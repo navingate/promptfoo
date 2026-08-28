@@ -1826,7 +1826,9 @@ describe('promptfoo plugin package (Codex + Claude Code)', () => {
     expect(marketplace.name).toBe('promptfoo');
     expect(marketplace.interface.displayName).toBe('Promptfoo');
     expect(JSON.stringify(marketplace)).not.toContain('[TODO:');
-    expect(marketplace.plugins).toHaveLength(1);
+    // The marketplace now also hosts the `cyber` bundle (validated in
+    // cyberPlugin.test.ts); assert the promptfoo entry rather than an exact count.
+    expect(marketplace.plugins.length).toBeGreaterThanOrEqual(1);
     expect(entry).toBeDefined();
     if (!entry) {
       throw new Error('Missing promptfoo marketplace entry');
@@ -2039,9 +2041,16 @@ describe('promptfoo plugin package (Codex + Claude Code)', () => {
     expect(claudeMarketplace.name).toBe('promptfoo');
     expect(claudeMarketplace.owner.name).toBe('promptfoo');
     expect(typeof claudeMarketplace.metadata.description).toBe('string');
-    expect(claudeMarketplace.plugins).toHaveLength(1);
+    // The `cyber` bundle also lives here (see cyberPlugin.test.ts); select the
+    // promptfoo entry instead of asserting an exact plugin count.
+    expect(claudeMarketplace.plugins.length).toBeGreaterThanOrEqual(1);
     expect(JSON.stringify(claudeMarketplace)).not.toContain('[TODO:');
-    const claudeEntry = claudeMarketplace.plugins[0];
+    const claudeEntry = (
+      claudeMarketplace.plugins as Array<{ name: string; license: string; source: string }>
+    ).find((plugin) => plugin.name === 'promptfoo');
+    if (!claudeEntry) {
+      throw new Error('Missing promptfoo Claude marketplace entry');
+    }
     expect(claudeEntry.name).toBe('promptfoo');
     expect(claudeEntry.license).toBe('MIT');
 

@@ -1,0 +1,85 @@
+#!/usr/bin/env bash
+# Timeboxed setup for the L3 capability-run slice.
+#
+# Clones the CAISI harness (usnistgov/caisi-cyber-evals) locally, creates its uv
+# env, wires the target-model credentials into its .env, and builds ONLY the
+# containers the three chosen tasks need — the core agent image plus the two
+# small target images. It deliberately does NOT run `ucb build` (which builds all
+# ~47 challenge images) and does NOT build or start GaaS (the heavy Ghidra
+# service), because none of the chosen tasks need reverse-engineering.
+#
+# The vendored CAISI tree is gitignored and never committed (no upstream
+# top-level LICENSE). Re-run this script to recreate it.
+#
+# Usage: bash setup_caisi.sh
+set -uo pipefail
+
+SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+# shellcheck disable=SC1091
+source "$SCRIPT_DIR/config.env"
+
+log() { printf '[setup] %s\n' "$*"; }
+fail() { printf '[setup][BLOCKER] %s\n' "$*" >&2; exit 1; }
+
+command -v docker >/dev/null 2>&1 || fail "docker not found on PATH"
+command -v uv >/dev/null 2>&1 || fail "uv not found on PATH (https://docs.astral.sh/uv/)"
+command -v git >/dev/null 2>&1 || fail "git not found on PATH"
+docker info >/dev/null 2>&1 || fail "docker daemon not reachable (start Docker and retry)"
+
+# 1) Clone the harness if absent.
+if [ ! -d "$CAISI_DIR/.git" ]; then
+  log "cloning CAISI harness into vendor/ ..."
+  git clone --depth 1 "$CAISI_REPO" "$CAISI_DIR" || fail "git clone failed"
+else
+  log "CAISI harness already present, skipping clone"
+fi
+
+cd "$CAISI_DIR" || fail "cannot cd into $CAISI_DIR"
+
+# 2) Create the uv env and install the harness (this pulls Inspect + inspect_cyber).
+log "uv sync (installs ucb + inspect_ai + inspect_cyber) ..."
+uv venv >/dev/null 2>&1 || true
+uv sync || fail "uv sync failed — inspect harness not installed"
+
+# 3) Wire the target-model credentials into CAISI's .env.
+#    Inspect's openai provider reads OPENAI_BASE_URL + OPENAI_API_KEY; we map the
+#    Azure OpenAI-compatible values onto those. UCB_CONTAINER_REGISTRY is left
+#    empty so images resolve to bare local tags.
+[ -f "$HALO_ENV" ] || fail "credentials file not found: $HALO_ENV (set HALO_ENV)"
+# shellcheck disable=SC1090
+set -a; source "$HALO_ENV"; set +a
+: "${AZURE_AI_BASE_URL:?AZURE_AI_BASE_URL missing from $HALO_ENV}"
+: "${AZURE_AI_API_KEY:?AZURE_AI_API_KEY missing from $HALO_ENV}"
+
+log "writing CAISI .env (OPENAI_BASE_URL from AZURE_AI_BASE_URL) ..."
+{
+  echo "UCB_CONTAINER_REGISTRY="
+  echo "OPENAI_BASE_URL=${AZURE_AI_BASE_URL}"
+  echo "OPENAI_API_KEY=${AZURE_AI_API_KEY}"
+  echo "INSPECT_LOG_LEVEL=INFO"
+} > "$CAISI_DIR/.env"
+chmod 600 "$CAISI_DIR/.env" 2>/dev/null || true
+
+# 4) Build the core agent image directly (avoids building the Ghidra core image
+#    that `ucb build --only-core` would also build).
+log "building core agent image ($AGENT_IMAGE) ..."
+docker build -t "$AGENT_IMAGE" \
+  -f "$CAISI_DIR/src/ucb/containers/agent/Dockerfile" \
+  "$CAISI_DIR/src/ucb/containers/agent" \
+  || fail "agent image build failed"
+
+# 5) Build ONLY the target images for tasks that need one (dynastic uses the
+#    alpine stub target, so it is skipped). Uncomment the build/context lines the
+#    same way `ucb build` does, then build just the target service.
+CB="$CAISI_DIR/src/ucb/benchmarks/cybench"
+for t in $TASKS_NEEDING_BUILD; do
+  cf="$CB/$t/compose.yml"
+  [ -f "$cf" ] || { log "WARN: no compose.yml for $t, skipping"; continue; }
+  log "building target image for $t ..."
+  sed 's/ #context:/ context:/; s/ #build:/ build:/' "$cf" > "$cf.tmp"
+  ( cd "$CB/$t" && UCB_CONTAINER_REGISTRY= docker compose -f "$(basename "$cf.tmp")" build target ) \
+    || log "WARN: target build for $t failed (task may still run if image is pullable)"
+  rm -f "$cf.tmp"
+done
+
+log "setup complete. Next: bash run_cybench.sh"
