@@ -241,8 +241,13 @@ _(newest first — append a line when a task lands)_
 
 ## How to resume
 
-Read this file. Work the **Post-review phases** top-down — Phase 1 first (it's pure
-correction and unblocks nothing else). Do **not** build tasks from the superseded
-wave backlog until Phase 2.1 has ratified the disposition mapping and Phase 3.1
-(socket-mount fix) has landed. Update the status box + progress log and commit as
-each item lands. For any high-sensitivity task, get an explicit human OK first.
+Phases 1 and 2 are complete and the catalog review is **closed** (reviewer
+sign-off; AG1–AG3 made coverage-neutral, lifecycle validation added). The next
+work is **Phase 3 → Gate 0A** (start at 3A.1: remove the host Docker-socket mount +
+binds and stand up a disposable dedicated runner). Non-sensitive Tier-1 diagnostics
+may be built only after Gate 0A; Tier-2 scenarios, sensitive tasks, and any
+deployment claim require Gate 0B. The task backlog lives in
+`tasks/catalog.manifest.json` (rendered by `gen_catalog.py`); record lifecycle in
+`catalog.status.json` as tasks land. Update the status boxes + progress log and
+commit as each item lands. For any high-sensitivity task, get an explicit human OK
+first.

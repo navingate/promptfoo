@@ -254,6 +254,13 @@ describe('cyber plugin bundle', () => {
     }
     // At least one client-agent Tier-1 diagnostic exists (to diagnose Tier-2 agent runs).
     expect(diagnostics.some((a) => a.sut === 'client_agent')).toBe(true);
+    // Client-agent preflight diagnostics are coverage-neutral: no cell, no technique.
+    const preflight = diagnostics.filter((a) => a.coverage_excluded);
+    expect(preflight.map((a) => a.id).sort()).toEqual(['AG1', 'AG2', 'AG3']);
+    for (const a of preflight) {
+      expect(a.cells, `${a.id} cells`).toEqual([]);
+      expect(a.techniques, `${a.id} techniques`).toEqual([]);
+    }
     // No stored `feeds` field — it is derived reciprocally by the generator.
     expect(atomic.every((a) => a.feeds === undefined)).toBe(true);
     // The generated catalog reflects the review corrections.
@@ -264,6 +271,9 @@ describe('cyber plugin bundle', () => {
     expect(catalog).toMatch(/ATT&CK-informed/);
     expect(catalog).toMatch(/contamination-reduced/);
     expect(catalog).toContain('| SUT |'); // Tier-2 table exposes system-under-test
+    // Preflight diagnostics are reported separately, not folded into cyber coverage.
+    expect(catalog).toContain('39 cyber atomic diagnostics');
+    expect(catalog).toContain('client-agent preflight diagnostics');
     expect(catalog).not.toContain('40 failure points'); // the old, wrong count
   });
 

@@ -4,8 +4,9 @@
 The manifest is the single source of truth (per the security review: counts and
 coverage must come from one machine-readable manifest so prose can't drift).
 Lifecycle state (built/validated/executed/demonstrated) comes from
-catalog.status.json — NEVER from directory existence. Deterministic (no
-timestamps) so regeneration is a no-op when nothing changed.
+catalog.status.json — NEVER from directory existence — and is validated here
+(known ids, monotonic states, evidence required). Deterministic (no timestamps)
+so regeneration is a no-op when nothing changed.
 
     python3 gen_catalog.py [--out PATH]
 """
@@ -21,11 +22,35 @@ MANIFEST = HERE / "catalog.manifest.json"
 STATUS = HERE / "catalog.status.json"
 OUT = HERE.parent / "references" / "task-catalog.md"
 CELL_ORDER = ["R", "E", "M", "C", "I", "P", "X", "D", "S"]
+# weakest -> strongest; demonstrated ⇒ executed ⇒ validated ⇒ built
 STAGES = ["built", "validated", "executed", "demonstrated"]
+STAGE_EVIDENCE = {
+    "built": "build_evidence",
+    "validated": "reference_solve",
+    "executed": "execution_id",
+    "demonstrated": "demonstrated_outcome",
+}
 
 
 def _cells(item: dict) -> str:
     return ", ".join(item.get("cells", []))
+
+
+def _validate_status(status: dict, all_ids: set[str]) -> None:
+    """Reject unknown ids, non-monotonic lifecycle, and true states without evidence."""
+    for tid, rec in status.items():
+        if tid not in all_ids:
+            raise SystemExit(f"catalog.status.json: unknown task id {tid!r}")
+        for i in range(1, len(STAGES)):
+            if rec.get(STAGES[i]) and not rec.get(STAGES[i - 1]):
+                raise SystemExit(
+                    f"catalog.status.json: {tid} has {STAGES[i]}=true without {STAGES[i - 1]}"
+                )
+        for st in STAGES:
+            if rec.get(st) and not rec.get(STAGE_EVIDENCE[st]):
+                raise SystemExit(
+                    f"catalog.status.json: {tid} {st}=true requires '{STAGE_EVIDENCE[st]}'"
+                )
 
 
 def _feeds_index(scenarios: list[dict]) -> dict[str, list[str]]:
@@ -53,14 +78,37 @@ def _render_checkpoints(s: dict) -> str:
     return " › ".join(parts)
 
 
+def _row(a: dict, feeds: dict[str, list[str]]) -> str:
+    fed = ", ".join(feeds.get(a["id"], [])) or "—"
+    cells = _cells(a) or "—"
+    techs = ", ".join(a.get("techniques", [])) or "—"
+    return (
+        f"| {a['id']} | {a['title']} | {cells} | {a['exec_mode']} | {a['sut']} | "
+        f"{a['sensitivity']} | {a['build']} | {a['disposition']} | {fed} | {techs} |"
+    )
+
+
 def main() -> None:
     m = json.loads(MANIFEST.read_text())
     status = json.loads(STATUS.read_text()).get("lifecycle", {})
     atomic = m["atomic"]
     scenarios = m["scenarios"]
     capstone = m["capstone"]
+
+    all_ids = (
+        {a["id"] for a in atomic}
+        | {s["id"] for s in scenarios}
+        | {c["id"] for c in capstone}
+    )
+    _validate_status(status, all_ids)
+
     diagnostics = [a for a in atomic if a["disposition"] != "move_l2"]
     moved = [a for a in atomic if a["disposition"] == "move_l2"]
+    # Preflight (client-agent) diagnostics are coverage-neutral: they test agent
+    # orchestration/memory/tool-selection, NOT cyber cells, so they never count
+    # toward taxonomy coverage.
+    cyber_diag = [a for a in diagnostics if not a.get("coverage_excluded")]
+    preflight = [a for a in diagnostics if a.get("coverage_excluded")]
     feeds = _feeds_index(scenarios)
 
     L: list[str] = []
@@ -99,11 +147,11 @@ def main() -> None:
     )
     L.append("")
 
-    # --- Tier 1 grouped by domain ---
+    # --- Tier 1 (cyber diagnostics) grouped by domain ---
     L.append("## Tier 1 — atomic diagnostics")
     L.append("")
     domains: list[str] = []
-    for a in diagnostics:
+    for a in cyber_diag:
         if a["domain"] not in domains:
             domains.append(a["domain"])
     for dom in domains:
@@ -115,14 +163,28 @@ def main() -> None:
         L.append(
             "| -- | ---- | ----- | ---- | --- | ---- | ----- | ---- | ----- | ------ |"
         )
-        for a in diagnostics:
-            if a["domain"] != dom:
-                continue
-            fed = ", ".join(feeds.get(a["id"], [])) or "—"
+        for a in cyber_diag:
+            if a["domain"] == dom:
+                L.append(_row(a, feeds))
+        L.append("")
+
+    # --- preflight diagnostics (coverage-neutral) ---
+    if preflight:
+        L.append("## Client-agent preflight diagnostics (coverage-neutral)")
+        L.append("")
+        L.append(
+            "These probe the client agent's tool orchestration, state carry, and "
+            "tool-selection — **not** cyber capability. They carry **no cell and no "
+            "ATT&CK technique** and are **excluded from coverage counts**; they exist to "
+            "diagnose a failed Tier-2 agent run, not to claim intrusion/exfil."
+        )
+        L.append("")
+        L.append("| id | Task | Exec | SUT | Build | What it checks |")
+        L.append("| -- | ---- | ---- | --- | ----- | -------------- |")
+        for a in preflight:
             L.append(
-                f"| {a['id']} | {a['title']} | {_cells(a)} | {a['exec_mode']} | {a['sut']} | "
-                f"{a['sensitivity']} | {a['build']} | {a['disposition']} | {fed} | "
-                f"{', '.join(a.get('techniques', []))} |"
+                f"| {a['id']} | {a['title']} | {a['exec_mode']} | {a['sut']} | "
+                f"{a['build']} | {a.get('evidence', '')} |"
             )
         L.append("")
 
@@ -190,15 +252,17 @@ def main() -> None:
     L.append("## Counts & coverage")
     L.append("")
     L.append(
-        f"- **{len(diagnostics)} atomic diagnostics** + **{len(scenarios)} staged scenarios** "
+        f"- **{len(cyber_diag)} cyber atomic diagnostics** + **{len(preflight)} client-agent "
+        f"preflight diagnostics** (coverage-neutral) + **{len(scenarios)} staged scenarios** "
         f"+ **{len(capstone)} capstone**. ({len(moved)} candidates reclassified to L2.)"
     )
     L.append("")
 
-    # per-cell catalogued (diagnostics + scenarios + capstone); lifecycle from status record.
+    # per-cell catalogued (cyber diagnostics + scenarios + capstone; preflight excluded).
+    coverage_items = cyber_diag + scenarios + capstone
     catalogued = {c: 0 for c in CELL_ORDER}
     stage_counts = {st: {c: 0 for c in CELL_ORDER} for st in STAGES}
-    for item in diagnostics + scenarios + capstone:
+    for item in coverage_items:
         rec = status.get(item["id"], {})
         for c in item.get("cells", []):
             if c not in catalogued:
@@ -207,11 +271,24 @@ def main() -> None:
             for st in STAGES:
                 if rec.get(st):
                     stage_counts[st][c] += 1
+
+    # dynamic lifecycle sentence
+    totals = {st: sum(1 for rec in status.values() if rec.get(st)) for st in STAGES}
+    any_life = any(totals[st] for st in STAGES)
+    if not any_life:
+        life_sentence = (
+            "Today: **catalogued only** (0 built / validated / executed / demonstrated). "
+            "The `_smoke` task is plumbing QA, not a catalog task."
+        )
+    else:
+        life_sentence = (
+            "Lifecycle totals — built {built}, validated {validated}, executed {executed}, "
+            "demonstrated {demonstrated} (from `catalog.status.json`)."
+        ).format(**totals)
     L.append(
         "Coverage is reported by stage (per the review), not one number. Lifecycle comes "
-        "from `catalog.status.json` — a directory does **not** count as built. Today: "
-        "**catalogued only** (0 built/validated/executed/demonstrated). The `_smoke` task "
-        "is plumbing QA, not a catalog task."
+        "from `catalog.status.json` — a directory does **not** count as built; states are "
+        "validated (known id, monotonic, evidence required). " + life_sentence
     )
     L.append("")
     L.append(
@@ -228,10 +305,11 @@ def main() -> None:
         )
     L.append("")
     L.append(
-        "> After the honest relabel, the atomic tier concentrates on **I** and **X**; "
+        "> After the honest relabel, the cyber atomic tier concentrates on **I** and **X**; "
         "**R** and **E** are 0 in the authored set (external recon and true "
         "exploit-development are not what these tasks measure); **M/C/D/S** live mostly in "
-        "the gated sensitive tier. Corrected coverage, not aspiration."
+        "the gated sensitive tier. Client-agent preflight diagnostics are excluded above. "
+        "Corrected coverage, not aspiration."
     )
     L.append("")
 
