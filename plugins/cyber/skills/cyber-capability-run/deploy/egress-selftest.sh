@@ -1,22 +1,23 @@
 #!/usr/bin/env bash
 # Gate 0A egress self-test — the AUTHORITATIVE proof that the lockdown holds.
 # RUN INSIDE the cyber-0a VM, AFTER egress-lockdown.sh. Exits non-zero if any
-# check fails, so run_0a.sh (and CI) can gate on it.
+# check fails, so run_0a.sh / selftest_0a.sh (and CI) can gate on it.
 #
-# It probes from TWO task-controlled contexts — the VM host (where Inspect's
-# eval/solver/scorer run, outside the per-sample sandbox) and a container on a
-# docker network — and asserts:
-#   - internet / IMDS / external DNS / IPv6 are UNREACHABLE from both, and
-#   - the model endpoint IP:port IS reachable (the one allowed hole).
+# Probes from TWO task-controlled contexts and asserts internet / IMDS / external
+# DNS / IPv6 are UNREACHABLE while the model endpoint IS reachable:
+#   - VM host  (where Inspect's eval/solver/scorer run, OUTSIDE the sandbox):
+#     tested with bash /dev/tcp (the Ubuntu host has bash).
+#   - a container on a docker network (target/tools): tested with busybox `nc`
+#     (alpine has no bash / no /dev/tcp).
 #
 # Usage (inside the VM):  bash egress-selftest.sh <MODEL_IP> [MODEL_PORT]
 set -uo pipefail
 
 MODEL_IP="${1:?model endpoint IP required}"
 MODEL_PORT="${2:-443}"
+IMG="alpine:latest"
 fails=0
 
-# A blocked probe should FAIL fast; keep timeouts short.
 blocked() { # description, command...
   local desc="$1"
   shift
@@ -38,24 +39,27 @@ allowed() { # description, command...
   fi
 }
 
-probe_set() { # runner-prefix... (e.g. "" for host, or "docker run ... --")
-  local run=("$@")
-  blocked "internet (1.1.1.1:443)" "${run[@]}" timeout 5 bash -c 'exec 3<>/dev/tcp/1.1.1.1/443'
-  blocked "IMDS (169.254.169.254:80)" "${run[@]}" timeout 5 bash -c 'exec 3<>/dev/tcp/169.254.169.254/80'
-  blocked "external DNS (8.8.8.8:53)" "${run[@]}" timeout 5 bash -c 'exec 3<>/dev/tcp/8.8.8.8/53'
-  blocked "IPv6 (2606:4700:4700::1111:443)" "${run[@]}" timeout 5 bash -c 'exec 3<>/dev/tcp/2606:4700:4700::1111/443'
-  allowed "model endpoint (${MODEL_IP}:${MODEL_PORT})" "${run[@]}" timeout 8 bash -c "exec 3<>/dev/tcp/${MODEL_IP}/${MODEL_PORT}"
-}
+# host TCP connect via bash /dev/tcp
+h() { timeout "$2" bash -c "exec 3<>/dev/tcp/$1"; } # h "ip/port" timeout
+# container TCP connect via busybox nc inside alpine
+c() { docker run --rm "$IMG" sh -c "timeout 6 nc -w 4 $3 $1 $2 </dev/null"; } # c ip port [extra]
 
 echo "[selftest] context 1/2: VM host (eval / solver / scorer origin)"
-probe_set
+blocked "internet (1.1.1.1:443)" h "1.1.1.1/443" 5
+blocked "IMDS (169.254.169.254:80)" h "169.254.169.254/80" 5
+blocked "external DNS (8.8.8.8:53)" h "8.8.8.8/53" 5
+blocked "IPv6 (2606:4700:4700::1111:443)" h "2606:4700:4700::1111/443" 5
+allowed "model endpoint (${MODEL_IP}:${MODEL_PORT})" h "${MODEL_IP}/${MODEL_PORT}" 8
 
 echo "[selftest] context 2/2: container on a docker network"
-# alpine already present from image pulls; falls back with a clear message.
-if docker image inspect alpine:latest >/dev/null 2>&1 || docker pull alpine:latest >/dev/null 2>&1; then
-  probe_set docker run --rm alpine:latest
+if docker image inspect "$IMG" >/dev/null 2>&1 || docker pull "$IMG" >/dev/null 2>&1; then
+  blocked "internet (1.1.1.1:443)" c 1.1.1.1 443 ""
+  blocked "IMDS (169.254.169.254:80)" c 169.254.169.254 80 ""
+  blocked "external DNS (8.8.8.8:53)" c 8.8.8.8 53 ""
+  blocked "IPv6 (2606:4700:4700::1111:443)" c 2606:4700:4700::1111 443 "-6"
+  allowed "model endpoint (${MODEL_IP}:${MODEL_PORT})" c "${MODEL_IP}" "${MODEL_PORT}" ""
 else
-  echo "  ! could not obtain alpine image to probe from a container — run after image build"
+  echo "  ! could not obtain the alpine image to probe from a container"
   fails=$((fails + 1))
 fi
 
