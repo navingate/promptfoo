@@ -96,8 +96,15 @@ vmssh() { colima ssh --profile "$PROFILE" -- "$@"; }
 # --- Provision inside the VM (internet ON) ---
 log "provisioning harness + images inside the VM (internet on) ..."
 vmssh sudo mkdir -p /opt/cyber
-tar -C "$SKILL_DIR" -cf - . | vmssh sudo tar -C /opt/cyber -xf - || fail "copy into VM failed"
+# Exclude the gitignored CAISI clone (and any venv/pycache): it's a macOS-built
+# tree — copying its .venv poisons the VM ("Exec format error"). setup_caisi.sh
+# clones CAISI fresh INSIDE the VM, creating a native-Linux venv.
+tar -C "$SKILL_DIR" \
+  --exclude='./scripts/vendor/caisi-cyber-evals' \
+  --exclude='*/.venv' --exclude='*/__pycache__' --exclude='*/node_modules' \
+  -cf - . | vmssh sudo tar -C /opt/cyber -xf - || fail "copy into VM failed"
 vmssh sudo chown -R "$(vmssh whoami)" /opt/cyber || true
+vmssh mkdir -p /opt/cyber/scripts/vendor || true
 # Write a VM-local creds file (chmod 600, never printed) so setup_caisi.sh maps
 # AZURE_AI_* -> OPENAI_* inside the VM without needing the laptop path.
 vmssh bash -c 'umask 077; cat > /opt/cyber/vm.env' <<EOF
