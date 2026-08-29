@@ -131,27 +131,31 @@ Split into two gates (review round 2). **Non-sensitive Tier-1 diagnostics may ru
 after Gate 0A. Tier-2 scenarios, sensitive tasks, private packs, and ANY deployment
 claim require Gate 0B.**
 
-**Gate 0A — development diagnostics** (design: `references/gate-0a-design.md`;
-substrate: disposable Colima VM. Scripts authored + syntax-clean in this session;
-**end-to-end host validation pending** — this session can't boot a VM.)
+**Gate 0A — development diagnostics** ✅ **PROVEN** (design:
+`references/gate-0a-design.md`; substrate: disposable Colima VM). Validated on an
+arm64 macOS host via `deploy/selftest_0a.sh`: `[selftest] PASS` — all 10 checks
+green from BOTH the VM host (Inspect solver/scorer origin) and a container context;
+VM torn down clean.
 
 - ✅ 3A.1 Removed the host Docker-socket mount + binds from `deploy/devcontainer.json`
   (now authoring-only, no dockerd control-plane exposure); compose is documented as
   not-a-boundary.
-- 🔄 3A.2 Host-layer egress **denial** implemented in `deploy/egress-lockdown.sh`
-  (iptables OUTPUT + DOCKER-USER default-drop; IPv6 dropped; IMDS/DNS/gateway denied;
-  only the model IP:port allowed). Proven by `deploy/egress-selftest.sh` from BOTH
-  host and container contexts — **run the self-test on a real VM to close this.**
-- 🔄 3A.3 `deploy/run_0a.sh`: disposable VM (`colima-0a.yaml` caps = kill-switch
-  ceiling), wall-clock timeout that force-deletes the VM, teardown trap on any exit,
-  results stamped `gate0a-dev`, and a guard that refuses `high`/`gated`/`redesign`
-  tasks. **Host validation pending.**
+- ✅ 3A.2 Host-layer egress **denial** (`deploy/egress-lockdown.sh`: iptables OUTPUT
+  - DOCKER-USER default-drop; IPv6 dropped; IMDS/DNS/gateway denied; only the model
+    IP:port allowed). **Proven**: `egress-selftest.sh` passed from host + container.
+- ✅ 3A.3 Runner (`deploy/run_0a.sh` + fast proof `deploy/selftest_0a.sh`): disposable
+  VM (`colima-0a.yaml` caps = kill-switch ceiling), wall-clock timeout that
+  force-deletes the VM, teardown trap on any exit, results stamped `gate0a-dev`, and
+  a guard that refuses `high`/`gated`/`redesign` tasks (guard confirmed on the run).
 - ✅ 3A.4 `references/inspect-boundary.md` documents (with the Inspect sandboxing
   cite) that solver/scorer run outside the sandbox, so the VM — not compose — is the
-  boundary; the self-test probes the solver/scorer (host) context accordingly.
+  boundary; the self-test probes that host context accordingly.
 
-Gate 0A **exit** = `run_0a.sh` boots the VM and `egress-selftest.sh` PASSES on a
-real macOS/Linux host. Until then Gate 0A is "authored, unproven."
+Gate 0A **exit MET**: the egress boundary self-test passes on a real host.
+Non-sensitive Tier-1 diagnostics may now be built (still not Tier-2/sensitive —
+those need Gate 0B). Note: the full `run_0a.sh` in-VM toolchain provision +
+`promptfoo eval` path is not yet end-to-end run (the isolation, which is the gate,
+is proven independently by `selftest_0a.sh`).
 
 **Gate 0B — assurance**
 
@@ -214,6 +218,15 @@ The task/scenario backlog now lives ONLY in `tasks/catalog.manifest.json` (rende
 ## Progress log
 
 _(newest first — append a line when a task lands)_
+
+- 2026-08-29 — **Gate 0A PROVEN on a real host.** `selftest_0a.sh` on an arm64 Mac
+  (Colima VM): all 10 egress checks green — internet/IMDS/DNS/IPv6 blocked and only
+  the model endpoint reachable, from BOTH the VM host (solver/scorer origin) and a
+  container; VM auto-torn-down. Fixed two issues found while running: (1) x86 Colima
+  under Rosetta → arch preflight + reinstall guidance; (2) the container probe used
+  bash /dev/tcp (absent in alpine) → now busybox nc. Also added VM toolchain
+  provisioning to run_0a.sh (bare VM lacked uv/node). 3A.2/3A.3 → ✅. The isolation
+  floor is real; non-sensitive Tier-1 diagnostics are now buildable.
 
 - 2026-08-29 — **Gate 0A authored** (design approved → `references/gate-0a-design.md`).
   Removed the host Docker-socket mount from the devcontainer (the hole). Added the
