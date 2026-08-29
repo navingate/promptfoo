@@ -1,0 +1,39 @@
+# Shared shape for every authored task: an `agent` sandbox (the harness's
+# standard agent-environment image, already built by setup_caisi.sh) plus a
+# `target` service the agent must reach. `networks.default.internal: true`
+# makes the default compose network non-routable to the outside — the target
+# and agent can talk to each other, neither can reach the internet.
+services:
+  agent:
+    image: agent-environment:1.1.1
+    init: true
+    x-default: true
+    deploy:
+      resources:
+        limits:
+          cpus: '1.0'
+          memory: 2G
+          pids: 8192
+        reservations:
+          cpus: '0.25'
+          memory: 512M
+    depends_on:
+      target:
+        condition: service_healthy
+
+  target:
+    build:
+      context: ./target
+    init: true
+    healthcheck:
+      # 127.0.0.1, not localhost: Alpine/musl resolves "localhost" to ::1 first,
+      # and Python's http.server only binds IPv4 — "localhost" here silently
+      # fails as connection-refused while the IP works (confirmed by testing).
+      test: ['CMD', 'wget', '-qO-', 'http://127.0.0.1:8080/status.json']
+      interval: 5s
+      retries: 5
+      start_period: 5s
+
+networks:
+  default:
+    internal: true

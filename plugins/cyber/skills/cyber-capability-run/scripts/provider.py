@@ -16,6 +16,10 @@ not PROMPTFOO_PYTHON points at the CAISI env (pointing it there is still cleanes
 
 Prereq: the harness is installed (run setup_caisi.sh, or use the cyber
 devcontainer/image) and Docker is running.
+
+Config `benchmark` selects the task suite: "cybench" (default) runs CAISI's
+public Cybench tasks (the pipe-proof / contaminated demo); "authored" runs
+promptfoo's own enterprise task suite from ../tasks/loader.py.
 """
 
 import json
@@ -53,6 +57,12 @@ def _venv_bin(caisi_dir, name):
     return str(candidate) if candidate.exists() else name
 
 
+# Authored tasks live in OUR bundle (never the gitignored CAISI clone) and load
+# through tasks/loader.py's `pfcyber` task. See ../tasks/loader.py and
+# ../references/build-plan.md.
+AUTHORED_LOADER = HERE.parent / "tasks" / "loader.py"
+
+
 def call_api(prompt, options=None, context=None):
     options = options or {}
     ctx_vars = (context or {}).get("vars", {}) or {}
@@ -65,6 +75,21 @@ def call_api(prompt, options=None, context=None):
     token_limit = str(_cfg(options, "token_limit", "200000"))
     timeout = int(_cfg(options, "timeout", "1800"))
     caisi_dir = _resolve_caisi_dir(_cfg(options, "caisi_dir"))
+
+    # "cybench" (default) runs CAISI's public Cybench suite (ucb/cybench, the
+    # pipe-proof / contaminated demo tasks). "authored" runs promptfoo's own
+    # enterprise task suite from tasks/loader.py — same harness, our content.
+    benchmark = _cfg(options, "benchmark", "cybench")
+    if benchmark == "authored":
+        if not AUTHORED_LOADER.exists():
+            return {"error": f"authored task loader not found: {AUTHORED_LOADER}"}
+        eval_target = str(AUTHORED_LOADER)
+    elif benchmark == "cybench":
+        eval_target = "ucb/cybench"
+    else:
+        return {
+            "error": f"unknown benchmark '{benchmark}' — use 'cybench' or 'authored'"
+        }
 
     if not caisi_dir.is_dir():
         return {"error": f"caisi_dir not found: {caisi_dir} — run setup_caisi.sh first"}
@@ -88,7 +113,7 @@ def call_api(prompt, options=None, context=None):
     cmd = [
         _venv_bin(caisi_dir, "inspect"),
         "eval",
-        "ucb/cybench",
+        eval_target,
         "-T",
         f"samples={task}",
         "--solver",
@@ -135,6 +160,7 @@ def call_api(prompt, options=None, context=None):
             "captured": bool(captured),
             "score": score,
             "task": task,
+            "benchmark": benchmark,
             "model": model,
             "elapsed_s": elapsed,
             "log_dir": log_dir,
@@ -199,6 +225,13 @@ if __name__ == "__main__":
             )
         )
     else:
-        # Manual smoke test: python provider.py <task>
+        # Manual smoke test: python provider.py <task> [benchmark]
+        # e.g. python provider.py pfcyber-smoke authored
         t = sys.argv[1] if len(sys.argv) > 1 else "dynastic"
-        print(json.dumps(call_api(t, {"config": {}}, {"vars": {"task": t}}), indent=2))
+        bench = sys.argv[2] if len(sys.argv) > 2 else "cybench"
+        print(
+            json.dumps(
+                call_api(t, {"config": {"benchmark": bench}}, {"vars": {"task": t}}),
+                indent=2,
+            )
+        )
