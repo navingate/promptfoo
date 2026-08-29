@@ -83,44 +83,44 @@ Phase 1 has no dependency on the others and is pure correction.
 
 ### Phase 1 — Corrections (fix what's currently wrong; docs + one code bug, no new sandboxes)
 
-- ⬜ 1.1 Fix the catalog count (**43**, not 40); generate counts from one
+- ✅ 1.1 Fix the catalog count (**43**, not 40); generate counts from one
   machine-readable manifest so prose and tracker can't drift.
-- ⬜ 1.2 Relabel taxonomy cells: known-vuln exploitation (A-series) → **I**, not
+- ✅ 1.2 Relabel taxonomy cells: known-vuln exploitation (A-series) → **I**, not
   exploit-dev **E**; F3/G2/H1 are evasion/anti-forensics, not **D** (only H3 is D);
   strip unearned **P** labels; fix recon-vs-post-compromise-discovery.
-- ⬜ 1.3 Reframe as "ATT&CK-**informed**"; add primary/secondary capability,
+- ✅ 1.3 Reframe as "ATT&CK-**informed**"; add primary/secondary capability,
   required evidence, and explicit ATT&CK technique IDs per task.
-- ⬜ 1.4 Split the `Lvl` column into **execution-mode** + **system-under-test**
+- ✅ 1.4 Split the `Lvl` column into **execution-mode** + **system-under-test**
   (fixed-scaffold-model / client-agent / both).
-- ⬜ 1.5 Move/reframe **K1–K3**: they are L2 conduct (agent induced via untrusted
+- ✅ 1.5 Move/reframe **K1–K3**: they are L2 conduct (agent induced via untrusted
   data), not L3 capability — scoring them as capability rewards a more vulnerable
   agent. Move to `cyber-conduct`, or reframe as attacker-vs-fixed-victim (review
   candidate 16). [depends on the 2.1 disposition decision]
-- ⬜ 1.6 Positioning/wording: "NIST CAISI cyber-evals on the **UK AISI** Inspect
+- ✅ 1.6 Positioning/wording: "NIST CAISI cyber-evals on the **UK AISI** Inspect
   framework" (Inspect is UK AISI, not NIST); "**contamination-reduced**" not
   "-free"; canary = marker, not control; label the public 3-task run as smoke QA,
   not a benchmark/score.
-- ⬜ 1.7 Resolve the wrapper contradiction (`caisi-inspect-run.md` says L3.4 is
+- ✅ 1.7 Resolve the wrapper contradiction (`caisi-inspect-run.md` says L3.4 is
   deferred; `promptfoo-wrapper.md` describes it as built).
-- ⬜ 1.8 Fix `provider.py` outcome handling: return a distinct outcome for
+- ✅ 1.8 Fix `provider.py` outcome handling: return a distinct outcome for
   demonstrated / non-solve / refusal / budget-exhausted / harness-error /
   invalidated. Never count an error or refusal as a non-solve (current bug: both
   collapse to `NOT CAPTURED`).
 
 ### Phase 2 — Two-tier restructure + additive staged scenarios
 
-- ⬜ 2.1 **Ratify the disposition mapping** (the review's disposition table) with the
+- ✅ 2.1 **Ratify the disposition mapping** (the review's disposition table) with the
   human: for each of the 43 IDs → keep-atomic / merge-into-scenario / move-layer /
   don't-build-as-written / capstone. This decision defines the two-tier structure.
-- ⬜ 2.2 Define the two tiers in the catalog: **Tier 1** atomic diagnostics
+- ✅ 2.2 Define the two tiers in the catalog: **Tier 1** atomic diagnostics
   (corrected existing tasks), **Tier 2** staged cross-boundary scenarios.
-- ⬜ 2.3 Add the 15 staged scenarios (review candidates 1–15) as Tier 2, plus
+- ✅ 2.3 Add the 15 staged scenarios (review candidates 1–15) as Tier 2, plus
   candidate 16 (AI-native victim-agent) when agent-security is the headline.
   **Additive**, not replacements; do not double-count an atomic task and the
   scenario that contains it.
-- ⬜ 2.4 Move to a single machine-readable manifest → generate catalog tables,
+- ✅ 2.4 Move to a single machine-readable manifest → generate catalog tables,
   counts, and coverage from it.
-- ⬜ 2.5 Coverage reporting distinguishes catalogued / built / reference-validated /
+- ✅ 2.5 Coverage reporting distinguishes catalogued / built / reference-validated /
   executed / demonstrated — no single "covered" number.
 
 ### Phase 3 — Gate 0: execution substrate + measurement (staged; the real blocker for assurance-grade)
@@ -212,6 +212,8 @@ Phase 1 has no dependency on the others and is pure correction.
 ## Progress log
 
 _(newest first — append a line when a task lands)_
+
+- 2026-08-29 — **Phase 1 + Phase 2 done.** Catalog is now manifest-driven (`tasks/catalog.manifest.json` → `gen_catalog.py` → `task-catalog.md`): count corrected (39 atomic diagnostics + 16 staged scenarios + 1 capstone; 3 K-tasks moved to L2), cells relabeled (A-series → I not E; F3/G2/H1 not D; unearned P stripped; recon→discovery), `Lvl` split into exec-mode + system-under-test, ATT&CK-informed + technique IDs + evidence per task, two-tier structure with the review's 15 scenarios added (additive), coverage reported by stage. Positioning fixed (Inspect = UK AISI; contamination-reduced; wrapper-contradiction). provider.py outcome bug fixed (errors/refusals no longer counted as non-solves). Tests added for manifest + catalog determinism. Phase 3 (Gate 0) not started.
 
 - 2026-08-29 — Security review received (`enterprise-task-suite-security-review.md`).
   Reorganized the plan into three governing phases: **Phase 1** corrections (count,

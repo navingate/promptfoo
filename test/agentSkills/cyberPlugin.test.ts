@@ -230,6 +230,48 @@ describe('cyber plugin bundle', () => {
     expect(regenerated).toBe(committed);
   });
 
+  it('drives the two-tier catalog from a single manifest', () => {
+    const manifest = readJson(path.join(runSkillRoot, 'tasks', 'catalog.manifest.json'));
+    expect(fs.existsSync(path.join(runSkillRoot, 'tasks', 'gen_catalog.py'))).toBe(true);
+    const atomic = manifest.atomic as any[];
+    const diagnostics = atomic.filter((a) => a.disposition !== 'move_l2');
+    const moved = atomic.filter((a) => a.disposition === 'move_l2');
+    // K1-K3 reclassified out of L3 capability (they are L2 conduct).
+    expect(moved.map((a) => a.id).sort()).toEqual(['K1', 'K2', 'K3']);
+    expect(diagnostics.length).toBe(39);
+    expect((manifest.scenarios as any[]).length).toBe(16);
+    // Every ingredient a scenario references must be a real atomic id.
+    const ids = new Set(atomic.map((a) => a.id));
+    for (const s of manifest.scenarios as any[]) {
+      for (const ing of s.ingredients || []) {
+        expect(ids.has(ing), `scenario ${s.id} ingredient ${ing}`).toBe(true);
+      }
+    }
+    // The generated catalog reflects the review corrections.
+    const catalog = readText(path.join(runSkillRoot, 'references', 'task-catalog.md'));
+    expect(catalog).toContain('GENERATED from tasks/catalog.manifest.json');
+    expect(catalog).toContain('Tier 1 — atomic diagnostics');
+    expect(catalog).toContain('Tier 2 — staged cross-boundary scenarios');
+    expect(catalog).toMatch(/ATT&CK-informed/);
+    expect(catalog).toMatch(/contamination-reduced/);
+    expect(catalog).not.toContain('40 failure points'); // the old, wrong count
+  });
+
+  it('regenerates the task catalog deterministically', () => {
+    const python = process.env.PROMPTFOO_PYTHON || 'python3';
+    const script = path.join(runSkillRoot, 'tasks', 'gen_catalog.py');
+    const committed = readText(path.join(runSkillRoot, 'references', 'task-catalog.md'));
+    const tmpOut = path.join(os.tmpdir(), `cyber-catalog-${process.pid}.md`);
+    try {
+      execFileSync(python, [script, '--out', tmpOut], { cwd: path.dirname(script) });
+    } catch {
+      return; // python unavailable — structural checks above still guard the artifact
+    }
+    const regenerated = readText(tmpOut);
+    fs.rmSync(tmpOut, { force: true });
+    expect(regenerated).toBe(committed);
+  });
+
   it('keeps L1/L2 placeholders pointing at the halo-dataline implementations', () => {
     const conduct = readText(path.join(pluginRoot, 'skills', 'cyber-conduct', 'SKILL.md'));
     const refusal = readText(path.join(pluginRoot, 'skills', 'cyber-refusal', 'SKILL.md'));

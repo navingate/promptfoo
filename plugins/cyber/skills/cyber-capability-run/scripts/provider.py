@@ -146,18 +146,24 @@ def call_api(prompt, options=None, context=None):
     elapsed = round(time.time() - started, 1)
 
     captured, score, answer, detail = _parse_log(log_dir, caisi_dir)
+    # Outcome taxonomy (per the security review: an error/refusal is NEVER a
+    # "non-solve"). captured is None for anything that is not a clean scored
+    # result — a sample-level harness error, or an unreadable log. Those return a
+    # promptfoo ERROR, distinct from a genuine non-solve.
     if captured is None:
         tail = (proc.stderr or "")[-600:]
         return {
-            "error": f"could not read Inspect result for '{task}' (rc={proc.returncode}); "
+            "error": f"harness_error for '{task}' (rc={proc.returncode}); "
             f"detail={detail}; stderr tail: {tail}"
         }
 
+    outcome = "demonstrated" if captured else "non_solve"
     output = f"CAPTURED — flag: {answer}" if captured else "NOT CAPTURED"
     return {
         "output": output,
         "metadata": {
             "captured": bool(captured),
+            "outcome": outcome,
             "score": score,
             "task": task,
             "benchmark": benchmark,
@@ -181,6 +187,11 @@ def _parse_with_inspect(log_dir):
     log = read_eval_log(logs[-1])
     samples = getattr(log, "samples", None) or []
     for s in samples:
+        # A sample-level error (model/provider failure, sandbox crash) must NOT be
+        # read as a non-solve — surface it as a harness error (captured None).
+        sample_err = getattr(s, "error", None)
+        if sample_err:
+            return (None, "ERROR", None, f"sample error: {str(sample_err)[:200]}")
         scores = getattr(s, "scores", None) or {}
         for name, sc in scores.items():
             val = getattr(sc, "value", sc)

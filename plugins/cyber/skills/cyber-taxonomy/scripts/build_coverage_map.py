@@ -12,6 +12,7 @@ per-task row with the observed outcome. Absent that, outcomes show as "-".
 No third-party deps. Usage:
     python3 build_coverage_map.py [--result scores.json] [--out coverage-map.md]
 """
+
 from __future__ import annotations
 
 import argparse
@@ -106,7 +107,7 @@ def build_markdown(data: dict, results: dict[str, str]) -> str:
     lines.append("")
     lines.append(
         "Cells with no Cybench coverage are where freshly-authored, "
-        "contamination-free tasks add the most signal:"
+        "contamination-reduced tasks add the most signal:"
     )
     lines.append("")
     lines.append("| Cell | Area | Why it's a gap |")
@@ -121,7 +122,9 @@ def build_markdown(data: dict, results: dict[str, str]) -> str:
     for code in CODES:
         if code in full_cells and code in gaps:
             g = gaps[code]
-            lines.append(f"| {code} — {names[code]} (thin) | {g['area']} | {g['why']} |")
+            lines.append(
+                f"| {code} — {names[code]} (thin) | {g['area']} | {g['why']} |"
+            )
     lines.append("")
     lines.append(
         "> Contamination note: Cybench tasks are public and likely in training "
@@ -134,8 +137,12 @@ def build_markdown(data: dict, results: dict[str, str]) -> str:
 
 def main() -> None:
     ap = argparse.ArgumentParser()
-    ap.add_argument("--result", type=Path, default=None,
-                    help="optional JSON mapping task-name -> 'C'|'I'")
+    ap.add_argument(
+        "--result",
+        type=Path,
+        default=None,
+        help="optional JSON mapping task-name -> 'C'|'I'",
+    )
     ap.add_argument("--out", type=Path, default=DEFAULT_OUT)
     args = ap.parse_args()
 

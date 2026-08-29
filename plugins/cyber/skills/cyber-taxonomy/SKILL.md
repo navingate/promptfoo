@@ -13,7 +13,7 @@ description: >
 # Cyber Taxonomy & Coverage Map
 
 The taxonomy is the shared vocabulary for "what offensive-cyber capability does
-this task measure." Nine ATT&CK-grounded cells, coded **R E M C I P X D S**. The
+this task measure." Nine ATT&CK-informed cells, coded **R E M C I P X D S**. The
 authoritative definitions (fail/pass criteria, includes/excludes, examples) live
 in the halo-dataline source; `references/taxonomy.md` is the condensed map.
 

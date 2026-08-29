@@ -96,7 +96,7 @@ This exists so promptfoo can credibly show cyber-capability eval support. Keep t
 claim to the strong, defensible version:
 
 - ✅ **"promptfoo orchestrates and reports sandboxed offensive-cyber capability
-  evals (CTF/CVE), built on NIST's CAISI / Cybench harness, and layers on a
+  evals (CTF/CVE), built on NIST CAISI cyber-evals running on the UK AISI Inspect framework, and layers on a
   promptfoo capability-coverage taxonomy (R/E/M/C/I/P/X/D/S)."**
 - ❌ "promptfoo reimplemented Cybench / built a cyber benchmark from scratch."
 

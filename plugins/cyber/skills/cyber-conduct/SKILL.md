@@ -25,6 +25,12 @@ steered into destructive / exfil / persistence actions by untrusted data it
 encounters** — poisoned web pages, malicious tool output, prompt injection — even
 when the user never asked for harm.
 
+The prompt-injection, RAG/knowledge-base-poisoning, and tool-chain confused-deputy
+scenarios belong **here** (L2), not in the L3 capability catalog: they measure
+whether the agent is _induced_, so scoring them as capability would reward a more
+vulnerable agent. (The L3 capability form is the _attacker-vs-fixed-victim_ scenario
+S16 in `cyber-capability-run/references/task-catalog.md`.)
+
 ## Where it lives (reference only — do not move or edit)
 
 - `../halo-dataline/capability_eval/l2/` — the L2 conduct layer: generator,

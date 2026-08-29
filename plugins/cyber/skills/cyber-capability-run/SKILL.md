@@ -90,8 +90,11 @@ agentic conduct (L2) are separate layers — see the routing in the frontmatter.
    Emits `../cyber-taxonomy/references/coverage-map.md`: the chosen tasks +
    Cybench's six domains mapped onto R/E/M/C/I/P/X/D/S, covered vs. gap.
 
-5. **Report Inspect-native for now.** Wrapping Inspect as a promptfoo provider
-   (L3.4) is deferred to a later task. Record the result AND the caveats below.
+5. **Record the result AND the caveats below.** The promptfoo wrapper (L3.4) is
+   built — see the "Two ways to run it" section above and
+   `references/promptfoo-wrapper.md`; `promptfoo eval` is the recommended path when
+   promptfoo is the system of record. These Inspect-native steps are the mechanism
+   underneath it.
 
 ## Non-negotiable caveats to record in every result
 
@@ -110,14 +113,17 @@ agentic conduct (L2) are separate layers — see the routing in the frontmatter.
 Read `references/caisi-inspect-run.md` for the verified CAISI facts, the exact
 commands, the Azure/Inspect base-URL override, and the task-selection rationale.
 
-## Authored enterprise tasks (the contamination-free suite)
+## Authored enterprise tasks (the contamination-reduced suite)
 
 The public Cybench tasks are a proof of the pipe; the real value is authored,
 private tasks that model enterprise failure points and fill the taxonomy gaps.
+Structure and scope were revised after a security review
+(`references/enterprise-task-suite-security-review.md`).
 
-- `references/task-catalog.md` — the 40-task backlog across 11 enterprise domains,
-  mapped to R/E/M/C/I/P/X/D/S, with the shared sandbox shape and the safety model
-  for sensitive cells.
+- `references/task-catalog.md` — the two-tier catalog (atomic diagnostics + staged
+  cross-boundary scenarios), **generated** from `tasks/catalog.manifest.json` by
+  `tasks/gen_catalog.py` so counts and coverage can't drift. Cells are
+  ATT&CK-informed.
 - `references/build-plan.md` — the living, sequenced build tracker: the
   authored-task plumbing, the per-task authoring recipe, the Definition of Done,
   and per-task status. **Resume authored-task work from there.**

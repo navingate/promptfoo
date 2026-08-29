@@ -36,5 +36,5 @@ coverage map (`scripts/task_taxonomy_map.json`):
 
 So CTF benchmarks concentrate on **E** and **I**, touch **R** and **P**, and
 leave **M, C, X, D, S** as structural gaps — the cells where freshly-authored,
-contamination-free tasks (cloud/IMDS, identity/SSO, container/k8s, malware,
+contamination-reduced tasks (cloud/IMDS, identity/SSO, container/k8s, malware,
 supply-chain) add the most signal.
