@@ -39,6 +39,18 @@ command -v colima >/dev/null || fail "colima not installed (brew install colima 
 command -v node >/dev/null || fail "node needed for the sensitivity guard"
 command -v python3 >/dev/null || fail "python3 needed to parse the endpoint URL"
 
+# Preflight: on Apple Silicon, Lima/Colima must be NATIVE arm64. An x86_64 build
+# under Rosetta fails at VM boot ("limactl is running under rosetta"). Fail early
+# with the fix instead of the cryptic Lima error.
+if [ "$(uname -m)" = "arm64" ] && command -v file >/dev/null; then
+  cbin="$(command -v colima)"
+  if file "$cbin" 2>/dev/null | grep -q "x86_64"; then
+    fail "colima/limactl at ${cbin} are x86_64 (Rosetta); Lima needs native arm64. Fix:
+       /usr/local/bin/brew uninstall colima lima && /opt/homebrew/bin/brew install colima lima
+     then ensure 'which colima' resolves under /opt/homebrew, and re-run."
+  fi
+fi
+
 # --- Read the target endpoint + key (never echoed) ---
 [ -f "$HALO_ENV" ] || fail "creds file not found: $HALO_ENV (set HALO_ENV)"
 set -a
