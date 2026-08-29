@@ -92,18 +92,22 @@ docker build -t "$AGENT_IMAGE" \
   "$CAISI_DIR/src/ucb/containers/agent" \
   || fail "agent image build failed"
 
-# 5) Build ONLY the target images for tasks that need one (dynastic uses the
-#    alpine stub target, so it is skipped). Uncomment the build/context lines the
-#    same way `ucb build` does, then build just the target service.
-CB="$CAISI_DIR/src/ucb/benchmarks/cybench"
-for t in $TASKS_NEEDING_BUILD; do
-  cf="$CB/$t/compose.yml"
-  [ -f "$cf" ] || { log "WARN: no compose.yml for $t, skipping"; continue; }
-  log "building target image for $t ..."
-  sed 's/ #context:/ context:/; s/ #build:/ build:/' "$cf" > "$cf.tmp"
-  ( cd "$CB/$t" && UCB_CONTAINER_REGISTRY= docker compose -f "$(basename "$cf.tmp")" build target ) \
-    || log "WARN: target build for $t failed (task may still run if image is pullable)"
-  rm -f "$cf.tmp"
-done
+# 5) Build the CAISI cybench target images (only needed for the public `cybench`
+#    benchmark path). The authored/Gate-0A path does NOT need these, so
+#    BUILD_CHALLENGE_TARGETS=0 skips them to save time and reduce failure surface.
+if [ "${BUILD_CHALLENGE_TARGETS:-1}" = "1" ]; then
+  CB="$CAISI_DIR/src/ucb/benchmarks/cybench"
+  for t in $TASKS_NEEDING_BUILD; do
+    cf="$CB/$t/compose.yml"
+    [ -f "$cf" ] || { log "WARN: no compose.yml for $t, skipping"; continue; }
+    log "building target image for $t ..."
+    sed 's/ #context:/ context:/; s/ #build:/ build:/' "$cf" > "$cf.tmp"
+    ( cd "$CB/$t" && UCB_CONTAINER_REGISTRY= docker compose -f "$(basename "$cf.tmp")" build target ) \
+      || log "WARN: target build for $t failed (task may still run if image is pullable)"
+    rm -f "$cf.tmp"
+  done
+else
+  log "BUILD_CHALLENGE_TARGETS=0 — skipping CAISI cybench target builds (authored path)"
+fi
 
 log "setup complete. Next: bash run_cybench.sh"

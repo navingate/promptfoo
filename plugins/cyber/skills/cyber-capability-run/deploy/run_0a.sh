@@ -120,8 +120,18 @@ vmssh sudo bash -c '
 vmssh bash -c 'command -v uv >/dev/null || curl -LsSf https://astral.sh/uv/install.sh | sh >/dev/null' \
   || fail "uv install failed"
 
-vmssh bash -c 'export PATH="$HOME/.local/bin:$PATH"; HALO_ENV=/opt/cyber/vm.env bash /opt/cyber/scripts/setup_caisi.sh' \
+vmssh bash -c 'export PATH="$HOME/.local/bin:$PATH"; BUILD_CHALLENGE_TARGETS=0 HALO_ENV=/opt/cyber/vm.env bash /opt/cyber/scripts/setup_caisi.sh' \
   || fail "in-VM setup failed"
+
+# Pre-build the authored sandbox images while the internet is still up, so the
+# eval can bring the sandbox up AFTER lockdown with no pull/build egress. The
+# smoke target's `build:` would otherwise pull python:3.12-alpine at eval time —
+# which the lockdown blocks.
+log "pre-building the authored sandbox images (before lockdown) ..."
+vmssh docker pull python:3.12-alpine >/dev/null 2>&1 || log "WARN: python base pull failed"
+vmssh docker pull alpine:latest >/dev/null 2>&1 || true
+vmssh bash -c 'cd /opt/cyber/tasks/_smoke && docker compose build target' \
+  || log "WARN: pre-build of smoke target failed (eval may need to rebuild)"
 
 # --- Lock down egress (internet OFF except the model endpoint) ---
 MODEL_IP="$(vmssh getent hosts "$MODEL_HOST" | awk '{print $1; exit}')"
@@ -134,17 +144,18 @@ log "running egress self-test (hard gate) ..."
 vmssh bash /opt/cyber/deploy/egress-selftest.sh "$MODEL_IP" "$MODEL_PORT" \
   || fail "egress self-test FAILED — refusing to run diagnostics"
 
-# --- Run the diagnostics inside the VM, stamped development-only ---
-SAMPLES="$(IFS=,; echo "${TASKS[*]}")"
-log "running diagnostics inside the VM: ${SAMPLES} (label=gate0a-dev) ..."
-# The full base URL is used verbatim (handles Azure's /openai/v1 path); the key
-# comes from the VM-local vm.env, never from the command line.
+# --- Run the diagnostics inside the VM ---
+# The task set comes from the config's `tests:` (task guard above validated the
+# requested ids; the smoke config runs pfcyber-smoke). `--description` stamps the
+# run development-only. Full base URL used verbatim (handles Azure's /openai/v1);
+# the key comes from the VM-local vm.env, never a command line.
+log "running the authored eval inside the VM (config-driven; label=gate0a-dev) ..."
 timeout "$TIMEOUT_SECS" vmssh bash -lc "
   set -a; . /opt/cyber/vm.env; set +a
   cd /opt/cyber/scripts &&
   export PROMPTFOO_PYTHON=/opt/cyber/scripts/vendor/caisi-cyber-evals/.venv/bin/python &&
-  export OPENAI_BASE_URL='${MODEL_BASE_URL}' OPENAI_API_KEY=\"\$AZURE_AI_API_KEY\" PROMPTFOO_EVAL_ENV=gate0a-dev &&
-  promptfoo eval -c promptfooconfig.authored.yaml -T samples=${SAMPLES} --no-cache -o /opt/cyber/out.json
+  export OPENAI_BASE_URL='${MODEL_BASE_URL}' OPENAI_API_KEY=\"\$AZURE_AI_API_KEY\" &&
+  promptfoo eval -c promptfooconfig.authored.yaml --no-cache --description 'gate0a-dev (development-only; not assurance-grade)' -o /opt/cyber/out.json
 "
 rc=$?
 [ "$rc" -eq 124 ] && fail "run exceeded ${TIMEOUT_SECS}s — VM will be force-deleted by teardown"
