@@ -1,0 +1,32 @@
+# Colima profile for the Gate 0A disposable dev-diagnostics VM.
+#
+# Authoritative VM shape for the `cyber-0a` profile. run_0a.sh seeds this into
+# ~/.colima/cyber-0a/colima.yaml before `colima start --profile cyber-0a`.
+# Everything (Docker daemon, Inspect, solver, scorer, task sandbox) runs INSIDE
+# this VM; the laptop's Docker socket is never mounted into anything. The VM is
+# deleted after every run.
+#
+# Resource caps double as the Gate 0A kill-switch ceiling (see run_0a.sh for the
+# wall-clock timeout that force-deletes the VM on breach).
+
+# Modest caps — dev diagnostics, not a fleet. Adjust for heavier task images.
+cpu: 2
+memory: 4 # GiB
+disk: 20 # GiB
+
+runtime: docker
+
+# vz is fast on Apple Silicon/macOS 13+; change to qemu if vz is unavailable.
+vmType: vz
+mountType: virtiofs
+
+# No host mounts by default — run_0a.sh copies the harness/scripts into the VM,
+# so nothing on the laptop is writable from inside. If you prefer a read-only
+# source mount for iteration, add it here with writable:false and point
+# `location` at the repo root; never make it writable.
+mounts: []
+
+# Give the VM its own routable address so run_0a.sh can drive it over ssh and
+# fetch results; egress from the VM is still denied by egress-lockdown.sh.
+network:
+  address: true

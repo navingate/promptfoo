@@ -131,17 +131,27 @@ Split into two gates (review round 2). **Non-sensitive Tier-1 diagnostics may ru
 after Gate 0A. Tier-2 scenarios, sensitive tasks, private packs, and ANY deployment
 claim require Gate 0B.**
 
-**Gate 0A — development diagnostics**
+**Gate 0A — development diagnostics** (design: `references/gate-0a-design.md`;
+substrate: disposable Colima VM. Scripts authored + syntax-clean in this session;
+**end-to-end host validation pending** — this session can't boot a VM.)
 
-- ⬜ 3A.1 **Pull-forward, urgent:** remove the host Docker-socket mount + host binds
-  from `deploy/devcontainer.json`; stop calling the compose network a security
-  boundary (done in the docs); use a disposable **dedicated runner**.
-- ⬜ 3A.2 Host-layer egress **denial** (not compose `internal:`) — block gateway,
-  cloud metadata, external DNS, proxy vars, over IPv4 **and** IPv6.
-- ⬜ 3A.3 Synthetic data/credentials only; CPU/memory/PID/disk/time limits; a kill
-  switch; guaranteed cleanup; **development-only** result labels.
-- ⬜ 3A.4 Confirm the "solver/scorer run outside the sandbox" boundary against
-  `inspect.aisi.org.uk/sandboxing.html` — the premise the isolation design rests on.
+- ✅ 3A.1 Removed the host Docker-socket mount + binds from `deploy/devcontainer.json`
+  (now authoring-only, no dockerd control-plane exposure); compose is documented as
+  not-a-boundary.
+- 🔄 3A.2 Host-layer egress **denial** implemented in `deploy/egress-lockdown.sh`
+  (iptables OUTPUT + DOCKER-USER default-drop; IPv6 dropped; IMDS/DNS/gateway denied;
+  only the model IP:port allowed). Proven by `deploy/egress-selftest.sh` from BOTH
+  host and container contexts — **run the self-test on a real VM to close this.**
+- 🔄 3A.3 `deploy/run_0a.sh`: disposable VM (`colima-0a.yaml` caps = kill-switch
+  ceiling), wall-clock timeout that force-deletes the VM, teardown trap on any exit,
+  results stamped `gate0a-dev`, and a guard that refuses `high`/`gated`/`redesign`
+  tasks. **Host validation pending.**
+- ✅ 3A.4 `references/inspect-boundary.md` documents (with the Inspect sandboxing
+  cite) that solver/scorer run outside the sandbox, so the VM — not compose — is the
+  boundary; the self-test probes the solver/scorer (host) context accordingly.
+
+Gate 0A **exit** = `run_0a.sh` boots the VM and `egress-selftest.sh` PASSES on a
+real macOS/Linux host. Until then Gate 0A is "authored, unproven."
 
 **Gate 0B — assurance**
 
@@ -204,6 +214,15 @@ The task/scenario backlog now lives ONLY in `tasks/catalog.manifest.json` (rende
 ## Progress log
 
 _(newest first — append a line when a task lands)_
+
+- 2026-08-29 — **Gate 0A authored** (design approved → `references/gate-0a-design.md`).
+  Removed the host Docker-socket mount from the devcontainer (the hole). Added the
+  disposable-VM runner: `deploy/colima-0a.yaml`, `egress-lockdown.sh`,
+  `egress-selftest.sh`, `run_0a.sh`, and `references/inspect-boundary.md`. All shell
+  syntax-clean; the eval runs entirely inside a throwaway Colima VM with default-deny
+  egress (model endpoint the only hole), a self-test gate from host+container
+  contexts, task-sensitivity refusal, and teardown-on-exit. **Not yet host-validated**
+  (no VM in this session); Gate 0A exit = the self-test passes on a real host.
 
 - 2026-08-29 — **Review round 2 applied** (conditional sign-off). SUT correction
   completed (scenarios now carry exec_mode; Tier-2 table exposes SUT; `both` = two

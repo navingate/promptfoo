@@ -163,10 +163,13 @@ describe('cyber plugin bundle', () => {
       ['dynastic', 'flag_command', 'unbreakable'].sort(),
     );
 
-    // Packaging references the Dockerfile and mounts a Docker engine.
+    // Packaging references the Dockerfile. Gate 0A removed the host Docker-socket
+    // mount (the control-plane hole); the eval now runs in a disposable VM via
+    // deploy/run_0a.sh, so the devcontainer must NOT mount docker.sock.
     const dc = JSON.parse(readText(path.join(runSkillRoot, 'deploy', 'devcontainer.json')));
     expect(dc.build.dockerfile).toContain('Dockerfile');
-    expect(JSON.stringify(dc.mounts)).toContain('docker.sock');
+    expect(dc.mounts).toBeUndefined();
+    expect(JSON.stringify(dc)).not.toContain('/var/run/docker.sock');
 
     // The positioning note carries the defensible claim and the caveats, so a
     // demo makes the CAISI-grounded claim rather than overreaching.
@@ -175,6 +178,28 @@ describe('cyber plugin bundle', () => {
     expect(wrap).toMatch(/reimplemented/i); // the "don't claim" guardrail
     expect(wrap).toMatch(/placeholder/i);
     expect(wrap).toMatch(/contamination/i);
+  });
+
+  it('ships the Gate 0A disposable-runner assets and no host-socket mount', () => {
+    for (const rel of [
+      'deploy/colima-0a.yaml',
+      'deploy/egress-lockdown.sh',
+      'deploy/egress-selftest.sh',
+      'deploy/run_0a.sh',
+      'references/gate-0a-design.md',
+      'references/inspect-boundary.md',
+    ]) {
+      expect(fs.existsSync(path.join(runSkillRoot, rel)), rel).toBe(true);
+    }
+    // The runner gates on the egress self-test, stamps dev-only, and tears the VM down.
+    const runner = readText(path.join(runSkillRoot, 'deploy', 'run_0a.sh'));
+    expect(runner).toContain('egress-selftest.sh');
+    expect(runner).toContain('gate0a-dev');
+    expect(runner).toMatch(/colima delete/);
+    // Lockdown denies by default and allowlists only the model endpoint.
+    const lock = readText(path.join(runSkillRoot, 'deploy', 'egress-lockdown.sh'));
+    expect(lock).toMatch(/-P OUTPUT DROP/);
+    expect(lock).toContain('DOCKER-USER');
   });
 
   it('never commits the vendored CAISI tree', () => {
