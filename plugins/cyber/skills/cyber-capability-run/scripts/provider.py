@@ -69,6 +69,21 @@ def call_api(prompt, options=None, context=None):
     if not caisi_dir.is_dir():
         return {"error": f"caisi_dir not found: {caisi_dir} — run setup_caisi.sh first"}
 
+    # promptfoo is the single control surface: the target (the client's own model
+    # or agent endpoint + key) is defined in the promptfoo provider config, and we
+    # inject it into the Inspect subprocess env here. The client never edits the
+    # harness .env — these values win.
+    run_env = os.environ.copy()
+    base_url = _cfg(options, "base_url")
+    if base_url:
+        run_env["OPENAI_BASE_URL"] = str(base_url)
+    api_key = _cfg(options, "api_key")
+    api_key_env = _cfg(options, "api_key_env")
+    if api_key:
+        run_env["OPENAI_API_KEY"] = str(api_key)
+    elif api_key_env and os.environ.get(str(api_key_env)):
+        run_env["OPENAI_API_KEY"] = os.environ[str(api_key_env)]
+
     log_dir = tempfile.mkdtemp(prefix=f"cyber_{task}_")
     cmd = [
         _venv_bin(caisi_dir, "inspect"),
@@ -90,7 +105,12 @@ def call_api(prompt, options=None, context=None):
     started = time.time()
     try:
         proc = subprocess.run(
-            cmd, cwd=str(caisi_dir), capture_output=True, text=True, timeout=timeout
+            cmd,
+            cwd=str(caisi_dir),
+            capture_output=True,
+            text=True,
+            timeout=timeout,
+            env=run_env,
         )
     except FileNotFoundError:
         return {

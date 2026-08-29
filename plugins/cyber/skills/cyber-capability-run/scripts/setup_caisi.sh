@@ -41,6 +41,30 @@ log "uv sync (installs ucb + inspect_ai + inspect_cyber) ..."
 uv venv >/dev/null 2>&1 || true
 uv sync || fail "uv sync failed — inspect harness not installed"
 
+# 2b) Upstream compat shim (confirmed 2026-08-29): CAISI main calls
+#     model.api.is_gpt_5(), but its locked inspect_ai (0.3.103) only has is_gpt —
+#     every cybench run crashes at agent init with AttributeError otherwise. Guard
+#     the call so it degrades to False on older inspect. Behavior-preserving for
+#     non-GPT-5 targets; re-applied on each setup since the clone is gitignored.
+UTILS="$CAISI_DIR/src/ucb/agents/utils.py"
+if [ -f "$UTILS" ]; then
+  python3 - "$UTILS" <<'PY' || log "WARN: is_gpt_5 shim not applied (patch it manually if runs crash)"
+import sys
+from pathlib import Path
+p = Path(sys.argv[1])
+t = p.read_text()
+old = "model.api.is_o_series() or model.api.is_gpt_5()"
+new = 'model.api.is_o_series() or getattr(model.api, "is_gpt_5", lambda: False)()'
+if old in t:
+    p.write_text(t.replace(old, new))
+    print("[setup] applied is_gpt_5 compat shim")
+elif "getattr(model.api, \"is_gpt_5\"" in t:
+    print("[setup] is_gpt_5 compat shim already present")
+else:
+    print("[setup] is_gpt_5 call not found (upstream may have fixed it)")
+PY
+fi
+
 # 3) Wire the target-model credentials into CAISI's .env.
 #    Inspect's openai provider reads OPENAI_BASE_URL + OPENAI_API_KEY; we map the
 #    Azure OpenAI-compatible values onto those. UCB_CONTAINER_REGISTRY is left

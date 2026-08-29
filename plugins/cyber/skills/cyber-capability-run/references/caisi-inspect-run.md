@@ -131,3 +131,16 @@ submission. Read results with `uv run inspect view`.
   end-to-end. Do not grind for a non-zero.
 - **Isolation** — offensive agent runs happen in the sandbox and can trip
   provider safeguards mid-run; a refusal-driven low score is a real result.
+
+## Known issues
+
+- **`AttributeError: 'OpenAIAPI' object has no attribute 'is_gpt_5'`** (confirmed
+  2026-08-29). CAISI `main` calls `model.api.is_gpt_5()` in
+  `src/ucb/agents/utils.py:_is_reasoning_model`, but the inspect_ai it locks to
+  (0.3.103) only has `is_gpt` — so every cybench run crashes at agent init. This
+  is an upstream CAISI defect (its code is ahead of its own pinned dependency),
+  not the promptfoo wrapper. `setup_caisi.sh` applies a behavior-preserving shim
+  (`getattr(model.api, "is_gpt_5", lambda: False)()`) after `uv sync`. If you set
+  the harness up by hand, apply the same guard, or upgrade inspect_ai to a version
+  that has `is_gpt_5` (watch for drift against `inspect-cyber==0.1.0`). The shim
+  fixes this one blocker; report any further version-drift errors from a real run.

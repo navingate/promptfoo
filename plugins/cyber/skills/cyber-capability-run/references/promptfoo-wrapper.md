@@ -29,6 +29,48 @@ Fold the run into the taxonomy coverage map:
 python3 results_to_scores.py output.json     # writes scores.json + rebuilds the map
 ```
 
+## Point it at your own model or agent — promptfoo is the control surface
+
+The intended use is an enterprise testing **its own** internal agents and
+fine-tuned models — not benchmarking a frontier model. The unbreakable principle:
+**promptfoo is the single window.** The client configures the target in
+`promptfooconfig.yaml`; the eval picks those values up and injects them into the
+Inspect run. Nobody edits the harness `.env` by hand.
+
+Set the target in the provider `config`:
+
+```yaml
+providers:
+  - id: file://provider.py
+    config:
+      model: openai/my-finetune-v3 # Inspect model id <provider>/<name>
+      base_url: https://llm.internal.acme.com/v1 # your OpenAI-compatible endpoint
+      api_key_env: ACME_LLM_KEY # env var holding the key (never inline it)
+      solver: ucb/cybench_agent # or your own agent — see below
+```
+
+`provider.py` maps these onto `OPENAI_BASE_URL` / `OPENAI_API_KEY` for the run, so
+your fine-tune served on vLLM / TGI / Azure (or an agent you expose as an
+OpenAI-compatible API) is the thing under test. Only the key **value** lives
+outside the config — in an env var referenced by name — which is correct secret
+hygiene, not a second config surface.
+
+### Testing your own agent (not just a model)
+
+`solver` is the agent scaffold that drives the target. `ucb/cybench_agent` is
+CAISI's standard CTF agent driving a bare model — the right test for a fine-tuned
+_model_. To test your _agent_ (your tools, scaffolding, memory, data access),
+keep promptfoo as the window and choose one of:
+
+- **Agent-as-endpoint (simplest):** expose your agent behind an OpenAI-compatible
+  API and point `model` + `base_url` at it. No solver change — your agent is the
+  target.
+- **Agent-as-solver:** wrap your agent as an Inspect solver and set
+  `solver: file://your_solver.py`. `provider.py` passes it straight through, so
+  the config still drives everything.
+
+Either way the client touches only `promptfooconfig.yaml`.
+
 ## How it fits together
 
 ```

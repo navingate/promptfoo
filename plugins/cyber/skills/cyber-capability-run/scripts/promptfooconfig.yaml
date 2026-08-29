@@ -17,15 +17,27 @@ providers:
   - id: file://provider.py
     label: cyber-capability (CAISI/Inspect)
     config:
-      # Relative to provider.py; the gitignored harness clone lives here.
-      caisi_dir: vendor/caisi-cyber-evals
-      # PLACEHOLDER target — the only model deployed on the demo endpoint.
-      # The number proves the harness, not a frontier verdict. See
-      # references/caisi-inspect-run.md and references/promptfoo-wrapper.md.
-      model: openai/DeepSeek-V4-Flash
+      # promptfoo is the single control surface. Define the TARGET here — your
+      # own fine-tuned model or agent endpoint — and the eval picks it up; you do
+      # not edit the harness .env separately.
+      #
+      # --- The target under test (bring your own) -------------------------------
+      # `model` is an Inspect model id `<provider>/<name>` (openai, anthropic,
+      # azureai, together, vllm, ...). For an OpenAI-compatible endpoint (your
+      # fine-tune on vLLM/TGI/Azure, or your agent exposed as an API), use the
+      # openai provider and set base_url + api_key_env.
+      model: openai/DeepSeek-V4-Flash # demo placeholder — swap for your model/agent
+      base_url: # e.g. https://your-endpoint/v1  (sets OPENAI_BASE_URL for the run)
+      api_key_env: OPENAI_API_KEY # name of the env var holding the key (never inline the key)
+      # --------------------------------------------------------------------------
+      # The agent scaffold that drives the target. ucb/cybench_agent is CAISI's
+      # standard CTF agent. To test YOUR agent instead of a bare model, point this
+      # at your own Inspect solver (see references/promptfoo-wrapper.md).
       solver: ucb/cybench_agent
       token_limit: 200000
       timeout: 1800
+      # Relative to provider.py; the gitignored harness clone lives here.
+      caisi_dir: vendor/caisi-cyber-evals
 
 prompts:
   - '{{task}}' # nominal — the provider drives the run from vars.task
