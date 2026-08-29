@@ -17,7 +17,7 @@ const expectedSkillDirs = [
   'cyber-refusal',
   'cyber-taxonomy',
 ];
-const expectedPluginVersion = '0.1.0';
+const expectedPluginVersion = '0.2.0';
 const taxonomyCodes = ['R', 'E', 'M', 'C', 'I', 'P', 'X', 'D', 'S'];
 
 function readText(filePath: string): string {
@@ -136,6 +136,45 @@ describe('cyber plugin bundle', () => {
     const ref = readText(path.join(runSkillRoot, 'references', 'caisi-inspect-run.md'));
     expect(ref).toMatch(/placeholder/i);
     expect(ref).toMatch(/contamination/i);
+  });
+
+  it('ships the promptfoo wrapper so it runs as a promptfoo eval', () => {
+    // Wrapper + packaging + docs exist.
+    for (const rel of [
+      'scripts/provider.py',
+      'scripts/promptfooconfig.yaml',
+      'scripts/results_to_scores.py',
+      'deploy/Dockerfile',
+      'deploy/devcontainer.json',
+      'references/promptfoo-wrapper.md',
+    ]) {
+      expect(fs.existsSync(path.join(runSkillRoot, rel)), rel).toBe(true);
+    }
+
+    // The config drives the eval through the local provider and the verified solver.
+    const cfg = yaml.load(
+      readText(path.join(runSkillRoot, 'scripts', 'promptfooconfig.yaml')),
+    ) as any;
+    expect(cfg.providers[0].id).toBe('file://provider.py');
+    expect(JSON.stringify(cfg.providers[0].config)).toContain('ucb/cybench_agent');
+    // Deterministic pass == flag captured.
+    expect(JSON.stringify(cfg.defaultTest.assert)).toContain('^CAPTURED');
+    expect(cfg.tests.map((t: any) => t.vars.task).sort()).toEqual(
+      ['dynastic', 'flag_command', 'unbreakable'].sort(),
+    );
+
+    // Packaging references the Dockerfile and mounts a Docker engine.
+    const dc = JSON.parse(readText(path.join(runSkillRoot, 'deploy', 'devcontainer.json')));
+    expect(dc.build.dockerfile).toContain('Dockerfile');
+    expect(JSON.stringify(dc.mounts)).toContain('docker.sock');
+
+    // The positioning note carries the defensible claim and the caveats, so a
+    // demo makes the CAISI-grounded claim rather than overreaching.
+    const wrap = readText(path.join(runSkillRoot, 'references', 'promptfoo-wrapper.md'));
+    expect(wrap).toMatch(/CAISI/);
+    expect(wrap).toMatch(/reimplemented/i); // the "don't claim" guardrail
+    expect(wrap).toMatch(/placeholder/i);
+    expect(wrap).toMatch(/contamination/i);
   });
 
   it('never commits the vendored CAISI tree', () => {

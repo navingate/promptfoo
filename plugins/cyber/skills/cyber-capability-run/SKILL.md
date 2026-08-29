@@ -31,6 +31,17 @@ agentic conduct (L2) are separate layers — see the routing in the frontmatter.
 2. A taxonomy coverage map (produced by the `cyber-taxonomy` skill) showing which
    R/E/M/C/I/P/X/D/S cells the chosen tasks cover vs. leave as gaps.
 
+## Two ways to run it
+
+- **Through promptfoo (recommended when promptfoo is the system of record).**
+  `promptfoo eval -c scripts/promptfooconfig.yaml` drives the whole thing via
+  `scripts/provider.py` and shows results in the promptfoo UI. This is the L3.4
+  wrapper — read `references/promptfoo-wrapper.md` for the launch, the reproducible
+  devcontainer (`deploy/`), and the positioning/claim guidance. After a run,
+  `scripts/results_to_scores.py output.json` folds it into the coverage map.
+- **Inspect-native (the underlying mechanism).** The steps below run the harness
+  directly with `inspect eval`. The promptfoo path calls exactly this underneath.
+
 ## Prerequisites
 
 - **Docker** running (CAISI builds per-task target containers).

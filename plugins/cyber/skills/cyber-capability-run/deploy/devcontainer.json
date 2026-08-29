@@ -1,0 +1,15 @@
+{
+  "//": "Devcontainer for the L3 cyber-capability eval. Copy (or symlink) this file to a '.devcontainer/devcontainer.json' at the folder you open in VS Code / Codespaces. Mounts the host Docker socket (Docker-out-of-Docker) because the eval launches sandbox containers; on a shared or hardened host, swap this for a Kubernetes or ephemeral-VM runner (see references/promptfoo-wrapper.md, 'Hardening').",
+  "name": "cyber-capability-eval",
+  "build": {
+    "dockerfile": "../deploy/Dockerfile",
+    "context": "../../../../.."
+  },
+  "mounts": ["source=/var/run/docker.sock,target=/var/run/docker.sock,type=bind"],
+  "workspaceFolder": "/work",
+  "containerEnv": {
+    "PROMPTFOO_PYTHON": "/work/plugins/cyber/skills/cyber-capability-run/scripts/vendor/caisi-cyber-evals/.venv/bin/python"
+  },
+  "postCreateCommand": "bash plugins/cyber/skills/cyber-capability-run/scripts/setup_caisi.sh",
+  "remoteUser": "root"
+}
