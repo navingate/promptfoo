@@ -104,7 +104,23 @@ vmssh bash -c 'umask 077; cat > /opt/cyber/vm.env' <<EOF
 AZURE_AI_BASE_URL=${MODEL_BASE_URL}
 AZURE_AI_API_KEY=${AZURE_AI_API_KEY}
 EOF
-vmssh bash -c 'HALO_ENV=/opt/cyber/vm.env bash /opt/cyber/scripts/setup_caisi.sh' \
+# The disposable VM starts bare — install the toolchain the harness + promptfoo
+# need (internet ON, before lockdown). NodeSource gives a modern Node for the
+# promptfoo CLI; uv installs user-local to ~/.local/bin.
+log "installing toolchain in the VM (git, python3, node, uv, promptfoo) ..."
+vmssh sudo bash -c '
+  set -e
+  export DEBIAN_FRONTEND=noninteractive
+  apt-get update -qq
+  apt-get install -y -qq git python3 python3-venv curl ca-certificates
+  curl -fsSL https://deb.nodesource.com/setup_20.x | bash - >/dev/null 2>&1
+  apt-get install -y -qq nodejs
+  npm i -g promptfoo >/dev/null 2>&1
+' || fail "VM toolchain install failed"
+vmssh bash -c 'command -v uv >/dev/null || curl -LsSf https://astral.sh/uv/install.sh | sh >/dev/null' \
+  || fail "uv install failed"
+
+vmssh bash -c 'export PATH="$HOME/.local/bin:$PATH"; HALO_ENV=/opt/cyber/vm.env bash /opt/cyber/scripts/setup_caisi.sh' \
   || fail "in-VM setup failed"
 
 # --- Lock down egress (internet OFF except the model endpoint) ---
