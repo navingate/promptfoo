@@ -2,11 +2,12 @@
 """Generate ../references/task-catalog.md from catalog.manifest.json.
 
 The manifest is the single source of truth (per the security review: counts and
-coverage must come from one machine-readable manifest so prose can't drift). Edit
-the manifest, then run this. Deterministic (no timestamps) so regeneration is a
-no-op when nothing changed.
+coverage must come from one machine-readable manifest so prose can't drift).
+Lifecycle state (built/validated/executed/demonstrated) comes from
+catalog.status.json — NEVER from directory existence. Deterministic (no
+timestamps) so regeneration is a no-op when nothing changed.
 
-    python3 gen_catalog.py
+    python3 gen_catalog.py [--out PATH]
 """
 
 from __future__ import annotations
@@ -17,31 +18,56 @@ from pathlib import Path
 
 HERE = Path(__file__).resolve().parent
 MANIFEST = HERE / "catalog.manifest.json"
+STATUS = HERE / "catalog.status.json"
 OUT = HERE.parent / "references" / "task-catalog.md"
 CELL_ORDER = ["R", "E", "M", "C", "I", "P", "X", "D", "S"]
-
-
-def _built(task_id: str) -> bool:
-    return (HERE / task_id).is_dir()
+STAGES = ["built", "validated", "executed", "demonstrated"]
 
 
 def _cells(item: dict) -> str:
     return ", ".join(item.get("cells", []))
 
 
+def _feeds_index(scenarios: list[dict]) -> dict[str, list[str]]:
+    """Reverse index: atomic id -> [scenario ids referencing it]. Reciprocal by construction."""
+    idx: dict[str, list[str]] = {}
+    for s in scenarios:
+        for cp in s.get("checkpoints", []):
+            for d in cp.get("diagnostics", []):
+                idx.setdefault(d, [])
+                if s["id"] not in idx[d]:
+                    idx[d].append(s["id"])
+    return idx
+
+
+def _render_checkpoints(s: dict) -> str:
+    cps = s.get("checkpoints", [])
+    if not cps:
+        return f"— ({s.get('diagnostics_status', 'none')})"
+    parts = []
+    for cp in cps:
+        di = cp.get("diagnostics", [])
+        tag = cp.get("mode", "required")
+        body = f"{tag}[{', '.join(di)}]" if di else "verifier-only"
+        parts.append(f"{cp['stage']}: {body}")
+    return " › ".join(parts)
+
+
 def main() -> None:
     m = json.loads(MANIFEST.read_text())
+    status = json.loads(STATUS.read_text()).get("lifecycle", {})
     atomic = m["atomic"]
     scenarios = m["scenarios"]
     capstone = m["capstone"]
     diagnostics = [a for a in atomic if a["disposition"] != "move_l2"]
     moved = [a for a in atomic if a["disposition"] == "move_l2"]
+    feeds = _feeds_index(scenarios)
 
     L: list[str] = []
     L.append("# Enterprise cyber-capability task catalog")
     L.append("")
     L.append(
-        f"<!-- GENERATED from tasks/catalog.manifest.json by gen_catalog.py — do not edit by hand. canary: {m['canary']} -->"
+        f"<!-- GENERATED from tasks/catalog.manifest.json + catalog.status.json by gen_catalog.py — do not edit by hand. canary: {m['canary']} -->"
     )
     L.append("")
     L.append(
@@ -54,18 +80,22 @@ def main() -> None:
     )
     L.append("")
     L.append(
-        "- **Tier 1 — atomic diagnostics:** single-capability tasks for debugging, "
-        "calibration, and as ingredients of Tier-2 scenarios. Not headline assurance "
-        "results on their own."
+        "- **Tier 1 — atomic diagnostics:** single-capability tasks for debugging and "
+        "calibration, and as checkpoint diagnostics inside Tier-2 scenarios. **Only "
+        "Tier-2 results support deployment claims.**"
     )
     L.append(
-        "- **Tier 2 — staged scenarios:** multi-step chains across a real enterprise "
-        "trust boundary — the deployment-gate signal. An atomic task that is an "
-        "*ingredient* of a scenario is not counted twice."
+        "- **Tier 2 — staged scenarios:** ordered checkpoint chains across a real "
+        "enterprise trust boundary. `SUT=both` means the scenario is run and scored in "
+        "**two separate conditions** — fixed-scaffold model AND client agent — reported "
+        "independently, never combined. An atomic task used as a checkpoint diagnostic "
+        "is not counted twice."
     )
     L.append("")
     L.append(
-        "Legend — **Exec:** text_reasoning / sandbox_tools / browser / multi_system · **SUT** (system under test): fixed_scaffold_model / client_agent / both · **Sens:** low/med/high · **Build:** S/M/L · **Disp:** see `catalog.manifest.json` dispositions."
+        "Legend — **Exec:** text_reasoning / sandbox_tools / browser / multi_system · "
+        "**SUT:** fixed_scaffold_model / client_agent / both · **Sens:** low/med/high · "
+        "**Build:** S/M/L · **Feeds:** scenarios that use this task as a checkpoint diagnostic."
     )
     L.append("")
 
@@ -88,10 +118,10 @@ def main() -> None:
         for a in diagnostics:
             if a["domain"] != dom:
                 continue
-            feeds = a.get("feeds", "—")
+            fed = ", ".join(feeds.get(a["id"], [])) or "—"
             L.append(
                 f"| {a['id']} | {a['title']} | {_cells(a)} | {a['exec_mode']} | {a['sut']} | "
-                f"{a['sensitivity']} | {a['build']} | {a['disposition']} | {feeds} | "
+                f"{a['sensitivity']} | {a['build']} | {a['disposition']} | {fed} | "
                 f"{', '.join(a.get('techniques', []))} |"
             )
         L.append("")
@@ -119,17 +149,22 @@ def main() -> None:
     L.append("## Tier 2 — staged cross-boundary scenarios")
     L.append("")
     L.append(
-        "| id | Scenario | Cells | Ingredients | Enterprise signal | Deterministic success | Sens | Build |"
+        "| id | Scenario | Cells | Exec | SUT | Stages (checkpoint diagnostics) | Success | Sens | Build |"
     )
     L.append(
-        "| -- | -------- | ----- | ----------- | ----------------- | --------------------- | ---- | ----- |"
+        "| -- | -------- | ----- | ---- | --- | ------------------------------- | ------- | ---- | ----- |"
     )
     for s in scenarios:
-        ing = ", ".join(s.get("ingredients", [])) or "—"
         L.append(
-            f"| {s['id']} | {s['title']} | {_cells(s)} | {ing} | {s['signal']} | "
-            f"{s['success']} | {s['sensitivity']} | {s['build']} |"
+            f"| {s['id']} | {s['title']} | {_cells(s)} | {s['exec_mode']} | {s['sut']} | "
+            f"{_render_checkpoints(s)} | {s['success']} | {s['sensitivity']} | {s['build']} |"
         )
+    L.append("")
+    n_designated = sum(1 for s in scenarios if not s.get("checkpoints"))
+    L.append(
+        f"> {n_designated} scenarios have no Tier-1 checkpoint diagnostics yet "
+        "(`designated-none`) — an accepted state, flagged explicitly rather than implied."
+    )
     L.append("")
 
     # --- capstone ---
@@ -137,10 +172,19 @@ def main() -> None:
     L.append("")
     for c in capstone:
         L.append(
-            f"- **{c['id']} {c['title']}** ({_cells(c)}) — ingredients {', '.join(c['ingredients'])}. "
-            f"{c['signal']} Integration result, not additional taxonomy breadth."
+            f"- **{c['id']} {c['title']}** ({_cells(c)}, SUT {c['sut']}) — stages "
+            f"{', '.join(c.get('stages', []))}. {c['signal']} Integration result, not "
+            "additional taxonomy breadth."
         )
     L.append("")
+
+    # --- overlays ---
+    if m.get("overlays"):
+        L.append("## Stack-dependent overlays (not in the core portfolio)")
+        L.append("")
+        for o in m["overlays"]:
+            L.append(f"- {o}")
+        L.append("")
 
     # --- counts + coverage ---
     L.append("## Counts & coverage")
@@ -150,31 +194,44 @@ def main() -> None:
         f"+ **{len(capstone)} capstone**. ({len(moved)} candidates reclassified to L2.)"
     )
     L.append("")
-    # per-cell catalogued (atomic diagnostics + scenarios + capstone), and built
+
+    # per-cell catalogued (diagnostics + scenarios + capstone); lifecycle from status record.
     catalogued = {c: 0 for c in CELL_ORDER}
-    built = {c: 0 for c in CELL_ORDER}
+    stage_counts = {st: {c: 0 for c in CELL_ORDER} for st in STAGES}
     for item in diagnostics + scenarios + capstone:
+        rec = status.get(item["id"], {})
         for c in item.get("cells", []):
-            if c in catalogued:
-                catalogued[c] += 1
-    for a in diagnostics:
-        if _built(a["id"]):
-            for c in a.get("cells", []):
-                built[c] += 1
+            if c not in catalogued:
+                continue
+            catalogued[c] += 1
+            for st in STAGES:
+                if rec.get(st):
+                    stage_counts[st][c] += 1
     L.append(
-        "Coverage is reported by stage, not as one number (per the review). Today: **catalogued** only — 0 built/validated/executed/demonstrated (the sole built sandbox is the `_smoke` plumbing task, which is not a security scenario)."
+        "Coverage is reported by stage (per the review), not one number. Lifecycle comes "
+        "from `catalog.status.json` — a directory does **not** count as built. Today: "
+        "**catalogued only** (0 built/validated/executed/demonstrated). The `_smoke` task "
+        "is plumbing QA, not a catalog task."
     )
     L.append("")
-    L.append("| Cell | Meaning | Catalogued | Built |")
-    L.append("| ---- | ------- | ---------: | ----: |")
+    L.append(
+        "| Cell | Meaning | Catalogued | Built | Validated | Executed | Demonstrated |"
+    )
+    L.append(
+        "| ---- | ------- | ---------: | ----: | --------: | -------: | -----------: |"
+    )
     for c in CELL_ORDER:
-        L.append(f"| {c} | {m['cells'][c]} | {catalogued[c]} | {built[c]} |")
+        L.append(
+            f"| {c} | {m['cells'][c]} | {catalogued[c]} | {stage_counts['built'][c]} | "
+            f"{stage_counts['validated'][c]} | {stage_counts['executed'][c]} | "
+            f"{stage_counts['demonstrated'][c]} |"
+        )
     L.append("")
     L.append(
         "> After the honest relabel, the atomic tier concentrates on **I** and **X**; "
-        "**R** and **E** are genuinely thin in the authored set (external recon and true "
+        "**R** and **E** are 0 in the authored set (external recon and true "
         "exploit-development are not what these tasks measure); **M/C/D/S** live mostly in "
-        "the gated sensitive tier. This is corrected coverage, not aspiration."
+        "the gated sensitive tier. Corrected coverage, not aspiration."
     )
     L.append("")
 
@@ -189,8 +246,8 @@ def main() -> None:
             L.append(f"- **{a['id']} (gated + note):** {a['redesign_note']}")
     L.append("")
     L.append(
-        "All sensitive/gated tasks build only behind the Phase 3 isolation gate with mock/"
-        "inert components, synthetic data, no egress, and explicit human sign-off. See "
+        "All sensitive/gated tasks build only behind **Gate 0B** with mock/inert "
+        "components, synthetic data, no egress, and explicit human sign-off. See "
         "`build-plan.md` Phase 3."
     )
     L.append("")

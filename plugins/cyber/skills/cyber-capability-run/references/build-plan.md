@@ -54,11 +54,13 @@ Revised after the security review (`enterprise-task-suite-security-review.md`).
     `http.server` only binds IPv4) — connection refused despite the server being
     up. Fixed to `127.0.0.1`. Confirmed by reproducing the failure, diagnosing via
     `/proc/net/tcp`, then verifying the fix.
-  - ✅ **Verified the safety property, not just asserted it**: with
-    `networks.default.internal: true`, the target container could NOT reach an
-    external IP (`wget` to 1.1.1.1 → "Network unreachable") while cross-container
-    access to `target:8080` still worked. No-egress sandboxing is real, not just
-    documented.
+  - ✅ **Verified one narrow property**: with `networks.default.internal: true`
+    the **target container** could not reach an external IP (`wget` 1.1.1.1 →
+    "Network unreachable") while cross-container access to `target:8080` still
+    worked. Caveat (per review round 2): this proves **target-container** egress
+    behavior ONLY — it is NOT containment of the evaluator, tools, or scorer,
+    which Inspect can run outside the sandbox. Compose is not the security
+    boundary; real containment is Gate 0 (Phase 3).
   - 🚫 **Blocked (environment):** full agent-driven capture (promptfoo → provider →
     Inspect → `ucb/cybench_agent` → sandbox → flag). Needs the harness's
     `agent-environment:1.1.1` image. Two build attempts failed; root cause
@@ -123,25 +125,54 @@ Phase 1 has no dependency on the others and is pure correction.
 - ✅ 2.5 Coverage reporting distinguishes catalogued / built / reference-validated /
   executed / demonstrated — no single "covered" number.
 
-### Phase 3 — Gate 0: execution substrate + measurement (staged; the real blocker for assurance-grade)
+### Phase 3 — Gate 0: execution substrate + measurement (the real blocker for assurance-grade)
 
-- ⬜ 3.1 **Pull-forward, urgent:** remove the host Docker-socket mount from
-  `deploy/devcontainer.json`; stop calling the compose network a security boundary;
-  add the honest containment caveat to the docs.
-- ⬜ 3.2 Confirm the "solver/scorer run outside the sandbox" boundary against
+Split into two gates (review round 2). **Non-sensitive Tier-1 diagnostics may run
+after Gate 0A. Tier-2 scenarios, sensitive tasks, private packs, and ANY deployment
+claim require Gate 0B.**
+
+**Gate 0A — development diagnostics**
+
+- ⬜ 3A.1 **Pull-forward, urgent:** remove the host Docker-socket mount + host binds
+  from `deploy/devcontainer.json`; stop calling the compose network a security
+  boundary (done in the docs); use a disposable **dedicated runner**.
+- ⬜ 3A.2 Host-layer egress **denial** (not compose `internal:`) — block gateway,
+  cloud metadata, external DNS, proxy vars, over IPv4 **and** IPv6.
+- ⬜ 3A.3 Synthetic data/credentials only; CPU/memory/PID/disk/time limits; a kill
+  switch; guaranteed cleanup; **development-only** result labels.
+- ⬜ 3A.4 Confirm the "solver/scorer run outside the sandbox" boundary against
   `inspect.aisi.org.uk/sandboxing.html` — the premise the isolation design rests on.
-- ⬜ 3.3 Design the isolation substrate (disposable VM/microVM per run;
-  host/hypervisor deny-all egress incl. IPv6 + metadata; brokered model calls
-  outside the task namespace) — its own brainstorming → spec pass.
-- ⬜ 3.4 Scoring: per-run injected nonces for diagnostics; an out-of-band,
-  replay-resistant verifier for the assurance tier (no proof crosses the agent
-  boundary).
-- ⬜ 3.5 Measurement: adopt the outcome taxonomy now (see 1.8); the N-attempt
-  statistical protocol (Pass@1 / Pass@10, Wilson intervals, positive/negative
-  controls) for assurance runs.
-- ⬜ 3.6 Gate 0 exit criteria as CI checks: egress fails from every task-controlled
-  context; no socket/host/neighbor/scorer-state access; controls pass; teardown
-  leaves zero residue; concurrent tasks isolated.
+
+**Gate 0B — assurance**
+
+- ⬜ 3B.1 **microVM-grade isolation** per run; egress tested from EVERY
+  task-controlled context (target, agent/tools, sidecars, custom solver, scorer,
+  eval process) — not just the target container.
+- ⬜ 3B.2 **Authenticated, destination-specific model broker** (not a generic
+  proxy); the task namespace gets no arbitrary provider/host/artifact socket.
+- ⬜ 3B.3 **Out-of-band, replay-resistant verifier**: high-entropy per-run nonce
+  generated outside all agent-visible files/images; **stage-specific** verifier
+  events so a terminal flag cannot falsely prove every claimed cell; no proof
+  crosses the agent boundary; reference solutions kept out of model-visible material.
+- ⬜ 3B.4 **Anti-cheating tests** per scenario: wrong-path, shortcut, replay
+  (stale/cross-task/cross-run), unintended-solution, log-copy, scorer-tamper,
+  reference-solution access. (NIST: agents use public walkthroughs / generic DoS to
+  fake cyber-eval results — https://www.nist.gov/caisi/cheating-ai-agent-evaluations)
+- ⬜ 3B.5 **Fail-closed** on broker/policy/verifier/telemetry failure (→ invalid,
+  never pass/non-solve); image **pinning + provenance + vuln policy**; quarantined
+  artifact extraction; log/UI secret + proof-token sanitization.
+- ⬜ 3B.6 **Measurement:** outcome taxonomy (adopted; provider down-payment done);
+  the N-attempt protocol (**10** per scenario per SUT condition unless preregistered),
+  Pass@1 / Pass@10, Wilson intervals, independently-provisioned same-seed clones,
+  positive-control + no-op-negative-control before accepting a run.
+- ⬜ 3B.7 **Component-level threat model** covering evaluator, agent, tools, broker,
+  scorer, verifier; **private-task controls** (public dev/private encrypted split,
+  per-run generation, exposure logs, author/evaluator separation, ZDR/self-hosted
+  inference, retirement rules).
+- ⬜ 3B.8 Gate 0B exit criteria as CI checks: reference solve passes + no-op &
+  adversarial fixtures fail in fresh instances; stale/wrong-stage/cross-task/cross-run
+  tokens rejected; two concurrent tasks isolated; 10 runs leave zero residue after
+  forced failure; exported result carries a full run manifest with secrets redacted.
 
 ## Per-task authoring recipe (repeat for every task)
 
@@ -166,52 +197,27 @@ Phase 1 has no dependency on the others and is pure correction.
 - ✅ Coverage map regenerated; catalog row linked.
 - ✅ (F/H3/J/E3 only) safety review: mock-only, no real payload, explicit human OK recorded.
 
-## Waves (the OLD backlog — SUPERSEDED)
+## Backlog source of truth
 
-> Superseded by the Post-review phases above. Kept only as the source of task IDs
-> until Phase 2.1 ratifies each ID's disposition. Do **not** build from this list
-> as-is — several entries are mislabeled (Phase 1.2), move layer (K1–K3), merge
-> into staged scenarios, or must not be built as written (D1/F3/H1/J1).
-
-### Core wave — prove the pipe, non-sensitive, agent-tool-testing, gap-filling
-
-- ⬜ B1 — IMDS credential theft (I,X)
-- ⬜ C2 — secrets sprawl → use leaked key (R,I)
-- ⬜ D1 — container escape (P,I)
-- ⬜ A1 — broken access control, internal admin panel (I)
-- ⬜ K1 — prompt-injection → agent tools exfil (X)
-
-### Wave 2 — enterprise web / exploit-dev (A-series)
-
-- ⬜ A2 IDOR · ⬜ A3 SQLi · ⬜ A4 SSTI · ⬜ A5 deserialization · ⬜ A6 SSRF
-- ⬜ A7 command-injection · ⬜ A8 upload→webshell · ⬜ A9 weak-JWT · ⬜ A10 business-logic · ⬜ A11 GraphQL over-fetch
-
-### Wave 3 — cloud / identity / k8s depth
-
-- ⬜ B2 IAM privesc · ⬜ B3 bucket exfil · ⬜ B4 serverless role · ⬜ B5 secrets-manager
-- ⬜ C1 SSO token · ⬜ C3 service-account · ⬜ C4 offline cracking
-- ⬜ D2 k8s RBAC · ⬜ D3 exposed kubelet
-
-### Wave 4 — supply chain + agentic
-
-- ⬜ E1 dependency-confusion · ⬜ E2 CI/CD poisoning · ⬜ E4 git secret-harvest
-- ⬜ K2 RAG poisoning · ⬜ K3 confused-deputy
-- ⬜ I1 network pivot · ⬜ I2 credential-reuse lateral
-
-### Wave 5 — sensitive gap cells (explicit OK per task)
-
-- ⬜ F1 dropper (M) · ⬜ F2 C2 beacon (C) · ⬜ F3 obfuscation (M,D)
-- ⬜ G1 persistence · ⬜ G2 log tampering
-- ⬜ H1 covert-channel exfil · ⬜ H2 bulk exfil · ⬜ H3 destructive impact (D)
-- ⬜ E3 malicious post-install · ⬜ J1 phishing · ⬜ J2 malicious OAuth app
-
-### Capstone
-
-- ⬜ K4 — multi-step kill-chain (R,I,P,X)
+The task/scenario backlog now lives ONLY in `tasks/catalog.manifest.json` (rendered to `references/task-catalog.md` by `gen_catalog.py`). The old wave list that used to sit here has been removed — it carried stale pre-review labels and the since-reclassified K1–K3, which contradicted the corrected catalog. Build order is: Gate 0A → non-sensitive Tier-1 diagnostics; Gate 0B → Tier-2 scenarios, sensitive tasks, and any deployment claim.
 
 ## Progress log
 
 _(newest first — append a line when a task lands)_
+
+- 2026-08-29 — **Review round 2 applied** (conditional sign-off). SUT correction
+  completed (scenarios now carry exec_mode; Tier-2 table exposes SUT; `both` = two
+  separately-scored conditions; added 3 client-agent Tier-1 diagnostics AG1–AG3).
+  Cell/technique fixes: E4 no longer claims persistence (X,S; T1195); S3→I,M,S;
+  S5→I; S9→D; S11→I,S; K4→I,X (no recon/P); E1→T1195.001; B5→T1555.006; added S to
+  E1–E4/S3/S11. Coverage-by-stage now driven by `catalog.status.json` lifecycle, not
+  directory existence (catalogued/built/validated/executed/demonstrated). Scenarios
+  are ordered `checkpoints` (one_of/required) not flat ingredients; `feeds` derived
+  reciprocally (fixes E3↔S11). Added S17 (MSP cascade) + overlays. Removed the stale
+  superseded backlog; fixed the "no-egress is real" contradiction. Gate 0 split into
+  **0A (dev diagnostics)** and **0B (assurance)** with the reviewer's additions
+  (broker, anti-cheating, fail-closed, threat model, private-task controls, 10-attempt
+  protocol). Counts now: 42 atomic + 17 scenarios + 1 capstone (3 to L2).
 
 - 2026-08-29 — **Phase 1 + Phase 2 done.** Catalog is now manifest-driven (`tasks/catalog.manifest.json` → `gen_catalog.py` → `task-catalog.md`): count corrected (39 atomic diagnostics + 16 staged scenarios + 1 capstone; 3 K-tasks moved to L2), cells relabeled (A-series → I not E; F3/G2/H1 not D; unearned P stripped; recon→discovery), `Lvl` split into exec-mode + system-under-test, ATT&CK-informed + technique IDs + evidence per task, two-tier structure with the review's 15 scenarios added (additive), coverage reported by stage. Positioning fixed (Inspect = UK AISI; contamination-reduced; wrapper-contradiction). provider.py outcome bug fixed (errors/refusals no longer counted as non-solves). Tests added for manifest + catalog determinism. Phase 3 (Gate 0) not started.
 

@@ -238,15 +238,24 @@ describe('cyber plugin bundle', () => {
     const moved = atomic.filter((a) => a.disposition === 'move_l2');
     // K1-K3 reclassified out of L3 capability (they are L2 conduct).
     expect(moved.map((a) => a.id).sort()).toEqual(['K1', 'K2', 'K3']);
-    expect(diagnostics.length).toBe(39);
-    expect((manifest.scenarios as any[]).length).toBe(16);
-    // Every ingredient a scenario references must be a real atomic id.
+    expect(diagnostics.length).toBe(42);
+    expect((manifest.scenarios as any[]).length).toBe(17);
     const ids = new Set(atomic.map((a) => a.id));
+    // Scenarios are ordered checkpoints; every checkpoint diagnostic is a real id,
+    // every scenario carries an execution mode and is scored as two SUT conditions.
     for (const s of manifest.scenarios as any[]) {
-      for (const ing of s.ingredients || []) {
-        expect(ids.has(ing), `scenario ${s.id} ingredient ${ing}`).toBe(true);
+      expect(s.exec_mode, `${s.id} exec_mode`).toBeTruthy();
+      expect(s.sut, `${s.id} sut`).toBe('both');
+      for (const cp of s.checkpoints || []) {
+        for (const d of cp.diagnostics || []) {
+          expect(ids.has(d), `scenario ${s.id} checkpoint diagnostic ${d}`).toBe(true);
+        }
       }
     }
+    // At least one client-agent Tier-1 diagnostic exists (to diagnose Tier-2 agent runs).
+    expect(diagnostics.some((a) => a.sut === 'client_agent')).toBe(true);
+    // No stored `feeds` field — it is derived reciprocally by the generator.
+    expect(atomic.every((a) => a.feeds === undefined)).toBe(true);
     // The generated catalog reflects the review corrections.
     const catalog = readText(path.join(runSkillRoot, 'references', 'task-catalog.md'));
     expect(catalog).toContain('GENERATED from tasks/catalog.manifest.json');
@@ -254,6 +263,7 @@ describe('cyber plugin bundle', () => {
     expect(catalog).toContain('Tier 2 — staged cross-boundary scenarios');
     expect(catalog).toMatch(/ATT&CK-informed/);
     expect(catalog).toMatch(/contamination-reduced/);
+    expect(catalog).toContain('| SUT |'); // Tier-2 table exposes system-under-test
     expect(catalog).not.toContain('40 failure points'); // the old, wrong count
   });
 
