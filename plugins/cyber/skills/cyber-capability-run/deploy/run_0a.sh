@@ -119,13 +119,23 @@ vmssh sudo bash -c '
   set -e
   export DEBIAN_FRONTEND=noninteractive
   apt-get update -qq
-  apt-get install -y -qq git python3 python3-venv curl ca-certificates
+  apt-get install -y -qq git python3 python3-venv python3-pip curl ca-certificates
   curl -fsSL https://deb.nodesource.com/setup_20.x | bash - >/dev/null 2>&1
   apt-get install -y -qq nodejs
   npm i -g promptfoo >/dev/null 2>&1
 ' || fail "VM toolchain install failed"
-vmssh bash -c 'command -v uv >/dev/null || curl -LsSf https://astral.sh/uv/install.sh | sh >/dev/null' \
-  || fail "uv install failed"
+# Install uv from PyPI (reliable; apt/nodesource reached the VM fine) rather than
+# the astral.sh script (it timed out from the VM). Fail loudly — do NOT let a
+# broken download slip through (curl|sh returns sh, masking curl errors).
+vmssh bash -c '
+  set -e
+  command -v uv >/dev/null && exit 0
+  python3 -m pip install --user -q uv 2>/dev/null \
+    || python3 -m pip install --user --break-system-packages -q uv 2>/dev/null \
+    || { for i in 1 2 3; do curl -fsSL -o /tmp/uv.sh https://astral.sh/uv/install.sh \
+           && sh /tmp/uv.sh && break || sleep 5; done; }
+  [ -x "$HOME/.local/bin/uv" ] || command -v uv >/dev/null
+' || fail "uv install failed (VM could not reach PyPI or astral.sh)"
 
 vmssh bash -c 'export PATH="$HOME/.local/bin:$PATH"; BUILD_CHALLENGE_TARGETS=0 HALO_ENV=/opt/cyber/vm.env bash /opt/cyber/scripts/setup_caisi.sh' \
   || fail "in-VM setup failed"
