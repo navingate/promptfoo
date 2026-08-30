@@ -40,6 +40,9 @@ if command -v ip6tables >/dev/null; then
 fi
 
 # --- IPv4 host egress (eval / solver / scorer originate here) ---
+# Flush any prior rules first so re-applying on a reused VM is idempotent (no
+# stacked duplicates).
+iptables -F OUTPUT
 iptables -A OUTPUT -o lo -j ACCEPT
 iptables -A OUTPUT -m conntrack --ctstate ESTABLISHED,RELATED -j ACCEPT
 for net in $DOCKER_NETS; do

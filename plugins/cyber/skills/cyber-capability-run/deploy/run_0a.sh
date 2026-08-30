@@ -25,11 +25,19 @@ PROFILE="cyber-0a"
 TIMEOUT_SECS="${TIMEOUT_SECS:-2400}"
 TASKS=("${@:-pfcyber-smoke}")
 HALO_ENV="${HALO_ENV:-/Users/navnn/Documents/AstrowareProjects/halo-dataline/.env}"
+# KEEP_VM=1 reuses the VM (and its image cache) between runs — big data saver on a
+# metered connection; nothing is re-downloaded that's already cached. Default 0
+# (disposable) preserves the safe hygiene default. Reclaim later: colima delete cyber-0a.
+KEEP_VM="${KEEP_VM:-0}"
 
 log() { printf '[0a] %s\n' "$*"; }
 fail() { printf '[0a][BLOCKER] %s\n' "$*" >&2; exit 1; }
 
 teardown() {
+  if [ "$KEEP_VM" = "1" ]; then
+    log "KEEP_VM=1 — leaving VM ${PROFILE} up (cache reuse). Remove with: colima delete ${PROFILE}"
+    return
+  fi
   log "tearing down VM ${PROFILE} ..."
   colima delete -f "$PROFILE" >/dev/null 2>&1 || true
 }
@@ -93,6 +101,17 @@ colima start --profile "$PROFILE" || fail "colima start failed"
 
 vmssh() { colima ssh --profile "$PROFILE" -- "$@"; }
 
+# A reused VM may still be egress-locked from the previous run — restore internet
+# before (re-)provisioning. Harmless on a fresh VM.
+log "restoring egress for provisioning (undo any prior lockdown) ..."
+vmssh sudo bash -c '
+  iptables -P OUTPUT ACCEPT 2>/dev/null || true
+  iptables -F OUTPUT 2>/dev/null || true
+  iptables -F DOCKER-USER 2>/dev/null || true
+  ip6tables -P OUTPUT ACCEPT 2>/dev/null || true
+  ip6tables -F 2>/dev/null || true
+' || true
+
 # --- Provision inside the VM (internet ON) ---
 log "provisioning harness + images inside the VM (internet on) ..."
 vmssh sudo mkdir -p /opt/cyber
@@ -114,16 +133,20 @@ EOF
 # The disposable VM starts bare — install the toolchain the harness + promptfoo
 # need (internet ON, before lockdown). NodeSource gives a modern Node for the
 # promptfoo CLI; uv installs user-local to ~/.local/bin.
-log "installing toolchain in the VM (git, python3, node, uv, promptfoo) ..."
-vmssh sudo bash -c '
-  set -e
-  export DEBIAN_FRONTEND=noninteractive
-  apt-get update -qq
-  apt-get install -y -qq git python3 python3-venv python3-pip curl ca-certificates
-  curl -fsSL https://deb.nodesource.com/setup_20.x | bash - >/dev/null 2>&1
-  apt-get install -y -qq nodejs
-  npm i -g promptfoo >/dev/null 2>&1
-' || fail "VM toolchain install failed"
+# Skip the whole toolchain install if a reused VM already has it (saves data).
+if vmssh bash -c 'command -v node >/dev/null && command -v npm >/dev/null && command -v promptfoo >/dev/null'; then
+  log "toolchain already present in the VM — skipping install (cache reuse)"
+else
+  log "installing toolchain in the VM (git, python3, node, uv, promptfoo) ..."
+  vmssh sudo bash -c '
+    set -e
+    export DEBIAN_FRONTEND=noninteractive
+    apt-get update -qq
+    apt-get install -y -qq git python3 python3-venv python3-pip curl ca-certificates
+    command -v node >/dev/null || { curl -fsSL https://deb.nodesource.com/setup_20.x | bash - >/dev/null 2>&1; apt-get install -y -qq nodejs; }
+    command -v promptfoo >/dev/null || npm i -g promptfoo >/dev/null 2>&1
+  ' || fail "VM toolchain install failed"
+fi
 # Install uv from PyPI (reliable; apt/nodesource reached the VM fine) rather than
 # the astral.sh script (it timed out from the VM). Fail loudly — do NOT let a
 # broken download slip through (curl|sh returns sh, masking curl errors).
@@ -145,8 +168,10 @@ vmssh bash -c 'export PATH="$HOME/.local/bin:$PATH"; BUILD_CHALLENGE_TARGETS=0 H
 # smoke target's `build:` would otherwise pull python:3.12-alpine at eval time —
 # which the lockdown blocks.
 log "pre-building the authored sandbox images (before lockdown) ..."
-vmssh docker pull python:3.12-alpine >/dev/null 2>&1 || log "WARN: python base pull failed"
-vmssh docker pull alpine:latest >/dev/null 2>&1 || true
+# Pull only if not already cached (data saver on a reused VM).
+vmssh bash -c 'docker image inspect python:3.12-alpine >/dev/null 2>&1 || docker pull python:3.12-alpine >/dev/null 2>&1' \
+  || log "WARN: python base pull failed"
+vmssh bash -c 'docker image inspect alpine:latest >/dev/null 2>&1 || docker pull alpine:latest >/dev/null 2>&1' || true
 vmssh bash -c 'cd /opt/cyber/tasks/_smoke && docker compose build target' \
   || log "WARN: pre-build of smoke target failed (eval may need to rebuild)"
 
