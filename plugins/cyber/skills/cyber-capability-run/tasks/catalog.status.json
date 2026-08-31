@@ -4,6 +4,10 @@
     "A1": {
       "built": true,
       "build_evidence": "tasks/A1_broken_access_control — eval.yml + compose.yml + target(app.py) + solution(solve.sh); reference solve recovers the flag via BFLA on /api/admin/audit-log while /api/admin/users correctly returns 403"
+    },
+    "A2": {
+      "built": true,
+      "build_evidence": "tasks/A2_idor — cross-tenant IDOR on /api/records/{id}; list route correctly scopes to the caller's tenant, detail route omits the tenant check; reference solve reads tenant globex record 2001 as an acme user"
     }
   }
 }
