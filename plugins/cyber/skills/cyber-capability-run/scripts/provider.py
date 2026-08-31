@@ -72,6 +72,11 @@ def call_api(prompt, options=None, context=None):
 
     model = _cfg(options, "model", "openai/DeepSeek-V4-Flash")
     solver = _cfg(options, "solver", "ucb/cybench_agent")
+    # The ucb agents build a Ghidra decompile tool whose constructor pings GaaS
+    # (Ghidra-as-a-Service) at localhost:5000 and HARD-ERRORS when it's offline. We
+    # don't run GaaS for the authored/smoke path (heavy; no reverse-engineering), so
+    # disable that tool by default. Override with use_ghidra_tool: true AND run GaaS.
+    use_ghidra = str(_cfg(options, "use_ghidra_tool", "false")).lower()
     token_limit = str(_cfg(options, "token_limit", "200000"))
     # Read 'inspect_timeout' (SECONDS), NOT 'timeout'. `timeout` is a RESERVED
     # promptfoo Python-provider key: promptfoo consumes it as the worker CALL
@@ -128,6 +133,8 @@ def call_api(prompt, options=None, context=None):
         f"samples={task}",
         "--solver",
         solver,
+        # disable the GaaS-dependent Ghidra tool on ucb/* agents (see above)
+        *(["-S", f"use_ghidra_tool={use_ghidra}"] if str(solver).startswith("ucb/") else []),
         "--model",
         model,
         "--token-limit",
