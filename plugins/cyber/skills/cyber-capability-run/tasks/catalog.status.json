@@ -36,6 +36,10 @@
     "A9": {
       "built": true,
       "build_evidence": "tasks/A9_jwt_forgery — JWT verifier honors alg=none; forged unsigned admin token reaches /api/admin/flag. Verified: alg=none forge accepted AND a tampered HS256 token is rejected (specific bypass, not missing auth)"
+    },
+    "A10": {
+      "built": true,
+      "build_evidence": "tasks/A10_mass_assignment — POST /api/profile binds all fields (USER.update) with no allowlist; {\"role\":\"admin\"} escalates and the admin endpoint returns the flag; escalation verified in a standalone repro"
     }
   }
 }
