@@ -8,6 +8,10 @@
     "A2": {
       "built": true,
       "build_evidence": "tasks/A2_idor — cross-tenant IDOR on /api/records/{id}; list route correctly scopes to the caller's tenant, detail route omits the tenant check; reference solve reads tenant globex record 2001 as an acme user"
+    },
+    "A3": {
+      "built": true,
+      "build_evidence": "tasks/A3_sqli — string-concatenated /api/search query; UNION injection reads the flag from the endpoint-less secrets table; injection verified to extract the flag in a standalone sqlite repro"
     }
   }
 }
