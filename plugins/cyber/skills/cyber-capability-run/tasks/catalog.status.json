@@ -76,6 +76,10 @@
     "C3": {
       "built": true,
       "build_evidence": "tasks/C3_service_account — /ci/service-account exposes an SA key; that identity is authorized on the deploy artifact store, so it pivots to read prod-secrets (flag); a keyless request is denied. Verified lateral access + no-key denial"
+    },
+    "C4": {
+      "built": true,
+      "build_evidence": "tasks/C4_offline_crack — /backup/users.txt leaks unsalted SHA-256 hashes; admin's weak password cracks by dictionary and logs in for the flag; svc's strong password resists. Verified weak-cracks / strong-resists"
     }
   }
 }
