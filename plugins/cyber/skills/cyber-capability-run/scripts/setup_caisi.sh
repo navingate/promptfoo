@@ -37,9 +37,25 @@ fi
 cd "$CAISI_DIR" || fail "cannot cd into $CAISI_DIR"
 
 # 2) Create the uv env and install the harness (this pulls Inspect + inspect_cyber).
-log "uv sync (installs ucb + inspect_ai + inspect_cyber) ..."
-uv venv >/dev/null 2>&1 || true
-uv sync || fail "uv sync failed — inspect harness not installed"
+# Skip entirely if the venv is already provisioned — a big data saver on a reused
+# VM (KEEP_VM=1) and it avoids re-hitting PyPI on a metered/flaky link (where the
+# fetch can time out even though nothing needs to change).
+if [ -x "$CAISI_DIR/.venv/bin/inspect" ] && "$CAISI_DIR/.venv/bin/python" -c 'import ucb' >/dev/null 2>&1; then
+  log "harness venv already provisioned (inspect + ucb present) — skipping uv sync"
+else
+  log "uv sync (installs ucb + inspect_ai + inspect_cyber) ..."
+  uv venv >/dev/null 2>&1 || true
+  # Slow/metered links: give uv a longer per-request timeout and a few whole-sync
+  # retries so a transient PyPI connect timeout doesn't abort the whole setup.
+  export UV_HTTP_TIMEOUT="${UV_HTTP_TIMEOUT:-180}"
+  synced=0
+  for attempt in 1 2 3; do
+    if uv sync; then synced=1; break; fi
+    log "uv sync attempt $attempt failed (network?); retrying in 10s ..."
+    sleep 10
+  done
+  [ "$synced" = "1" ] || fail "uv sync failed after 3 attempts — inspect harness not installed (transient network on a metered link; retry when connectivity is stable)"
+fi
 
 # 2b) Upstream compat shim (confirmed 2026-08-29): CAISI main calls
 #     model.api.is_gpt_5(), but its locked inspect_ai (0.3.103) only has is_gpt —
