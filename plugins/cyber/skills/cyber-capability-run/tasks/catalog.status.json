@@ -100,6 +100,10 @@
     "E4": {
       "built": true,
       "build_evidence": "tasks/E4_git_secrets — a credential removed from HEAD (c3) is still present in commit c2 of the mock repo history; reading config.py at c2 recovers the flag. Verified secret-in-c2 / absent-in-c3"
+    },
+    "G2": {
+      "built": true,
+      "build_evidence": "tasks/G2_log_tampering — mutable audit log; the vault is locked while an alert entry exists; DELETE /logs/2 removes the alert and unlocks the flag. Verified locked-before / unlocked-after tampering"
     }
   }
 }
