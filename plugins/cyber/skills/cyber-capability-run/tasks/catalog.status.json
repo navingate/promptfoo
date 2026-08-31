@@ -56,6 +56,10 @@
     "B3": {
       "built": true,
       "build_evidence": "tasks/B3_bucket_exfil — mock object store; corp-backups is anonymously public (misconfig) and leaks a db dump with the flag; corp-secrets stays private (403). Verified: public bucket leaks, private denied"
+    },
+    "B4": {
+      "built": true,
+      "build_evidence": "tasks/B4_serverless_role — dev token cannot read secrets directly (403), but report-gen's over-permissive role (secrets:read:*) reflects a caller-chosen resource, so invoking it returns the secret (confused deputy). Verified: direct denied, invoke leaks"
     }
   }
 }
