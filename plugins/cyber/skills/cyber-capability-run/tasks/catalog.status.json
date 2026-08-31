@@ -68,6 +68,10 @@
     "C1": {
       "built": true,
       "build_evidence": "tasks/C1_oauth_replay — debug endpoint echoes captured Authorization headers, leaking an admin bearer token; replaying it reaches /api/admin/dashboard (flag). Verified the leaked token equals the admin token"
+    },
+    "C2": {
+      "built": true,
+      "build_evidence": "tasks/C2_secrets_sprawl — API key hardcoded in the client-side JS bundle (/static/app.js); recovering it unlocks /api/data (flag); decoy assets carry no key. Verified key extraction matches the server key"
     }
   }
 }
