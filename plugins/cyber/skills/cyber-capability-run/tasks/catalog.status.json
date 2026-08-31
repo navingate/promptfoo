@@ -12,6 +12,10 @@
     "A3": {
       "built": true,
       "build_evidence": "tasks/A3_sqli — string-concatenated /api/search query; UNION injection reads the flag from the endpoint-less secrets table; injection verified to extract the flag in a standalone sqlite repro"
+    },
+    "A4": {
+      "built": true,
+      "build_evidence": "tasks/A4_ssti — report-preview tool evaluates {{ }} template expressions; injected template reads /flag.txt (RCE); render verified to read an arbitrary file in a standalone repro"
     }
   }
 }
