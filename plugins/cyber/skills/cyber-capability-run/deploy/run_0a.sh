@@ -172,7 +172,10 @@ vmssh bash -c '
   [ -x "$HOME/.local/bin/uv" ] || command -v uv >/dev/null
 ' || fail "uv install failed (VM could not reach PyPI or astral.sh)"
 
-vmssh bash -c 'export PATH="$HOME/.local/bin:$PATH"; BUILD_CHALLENGE_TARGETS=0 HALO_ENV=/opt/cyber/vm.env bash /opt/cyber/scripts/setup_caisi.sh' \
+# BUILD_AGENT_IMAGE=0: skip the real x86_64 Kali agent image (can't build natively
+# on arm64; heavy to emulate). We build a lightweight multi-arch stand-in below,
+# tagged agent-environment:1.1.1 — the tag the authored compose files reference.
+vmssh bash -c 'export PATH="$HOME/.local/bin:$PATH"; BUILD_CHALLENGE_TARGETS=0 BUILD_AGENT_IMAGE=0 HALO_ENV=/opt/cyber/vm.env bash /opt/cyber/scripts/setup_caisi.sh' \
   || fail "in-VM setup failed"
 
 # Pre-build the authored sandbox images while the internet is still up, so the
@@ -180,6 +183,11 @@ vmssh bash -c 'export PATH="$HOME/.local/bin:$PATH"; BUILD_CHALLENGE_TARGETS=0 H
 # smoke target's `build:` would otherwise pull python:3.12-alpine at eval time —
 # which the lockdown blocks.
 log "pre-building the authored sandbox images (before lockdown) ..."
+# The Gate-0A agent stand-in (multi-arch; builds natively on arm64) tagged with the
+# name the authored compose files reference. Build only if absent (data saver on a
+# reused VM). The real x86_64 Kali agent was skipped above (BUILD_AGENT_IMAGE=0).
+vmssh bash -c 'docker image inspect agent-environment:1.1.1 >/dev/null 2>&1 || docker build -t agent-environment:1.1.1 /opt/cyber/deploy/agent-dev' \
+  || fail "Gate-0A agent stand-in build failed"
 # Pull only if not already cached (data saver on a reused VM).
 vmssh bash -c 'docker image inspect python:3.12-alpine >/dev/null 2>&1 || docker pull python:3.12-alpine >/dev/null 2>&1' \
   || log "WARN: python base pull failed"

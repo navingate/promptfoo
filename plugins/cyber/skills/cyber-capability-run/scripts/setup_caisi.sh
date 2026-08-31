@@ -85,12 +85,21 @@ log "writing CAISI .env (OPENAI_BASE_URL from AZURE_AI_BASE_URL) ..."
 chmod 600 "$CAISI_DIR/.env" 2>/dev/null || true
 
 # 4) Build the core agent image directly (avoids building the Ghidra core image
-#    that `ucb build --only-core` would also build).
-log "building core agent image ($AGENT_IMAGE) ..."
-docker build -t "$AGENT_IMAGE" \
-  -f "$CAISI_DIR/src/ucb/containers/agent/Dockerfile" \
-  "$CAISI_DIR/src/ucb/containers/agent" \
-  || fail "agent image build failed"
+#    that `ucb build --only-core` would also build). The real CAISI agent image is
+#    an x86_64 Kali build (i386 multiarch + Playwright); on an arm64 host it can't
+#    build natively and is heavy to emulate. BUILD_AGENT_IMAGE=0 skips it so the
+#    caller can supply a lightweight multi-arch stand-in for the Gate-0A/authored
+#    path (run_0a.sh does exactly this). Default 1 keeps the real build for an
+#    x86_64 runner (Gate 0B / real cyber tasks).
+if [ "${BUILD_AGENT_IMAGE:-1}" = "1" ]; then
+  log "building core agent image ($AGENT_IMAGE) ..."
+  docker build -t "$AGENT_IMAGE" \
+    -f "$CAISI_DIR/src/ucb/containers/agent/Dockerfile" \
+    "$CAISI_DIR/src/ucb/containers/agent" \
+    || fail "agent image build failed"
+else
+  log "BUILD_AGENT_IMAGE=0 — skipping the real x86_64 Kali agent image; caller must provide $AGENT_IMAGE (e.g. the Gate-0A dev stand-in)"
+fi
 
 # 5) Build the CAISI cybench target images (only needed for the public `cybench`
 #    benchmark path). The authored/Gate-0A path does NOT need these, so

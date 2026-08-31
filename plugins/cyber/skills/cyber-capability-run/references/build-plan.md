@@ -219,6 +219,24 @@ The task/scenario backlog now lives ONLY in `tasks/catalog.manifest.json` (rende
 
 _(newest first — append a line when a task lands)_
 
+- 2026-08-31 — **Gate-0A agent image: arm64 decision + run_0a.sh end-to-end
+  progressing.** Ran the full `run_0a.sh` on the arm64 Mac. Toolchain now installs
+  cleanly (fixed silenced/hanging promptfoo+uv downloads → visible + time-boxed).
+  Hit the real blocker: CAISI's `agent-environment:1.1.1` is an **x86_64 Kali** image
+  (i386 multiarch + Playwright) that cannot build natively on arm64 (`exec format
+error`) and is heavy to emulate. Decision (advisor unavailable — my call, metered
+  link): for the Gate-0A/authored path, build a **lightweight multi-arch stand-in**
+  (`deploy/agent-dev/Dockerfile`: bash/python3/curl/wget + `/opt/ucb` venv + `hacker`
+  user + inspect-tool-support + `CMD sleep infinity`) tagged `agent-environment:1.1.1`.
+  Verified against CAISI source that the default `cybench_agent` runs as **root**,
+  sources the venv only on opt-in, and execs directly (no Kali tooling needed for a
+  fetch-the-flag plumbing task). `setup_caisi.sh` now gates the real build behind
+  `BUILD_AGENT_IMAGE` (default 1, for an x86_64 Gate-0B runner); `run_0a.sh` sets it 0
+  and builds the stand-in pre-lockdown. **Honest scope:** this validates the wrapper
+  PLUMBING on arm64, NOT CAISI's real toolchain — real cyber tasks still need the real
+  Kali image on x86 (Gate 0B). Smoke eval not yet observed green (external model call
+  is the user's to run); cyberPlugin.test.ts still 14/14.
+
 - 2026-08-29 — **Gate 0A PROVEN on a real host.** `selftest_0a.sh` on an arm64 Mac
   (Colima VM): all 10 egress checks green — internet/IMDS/DNS/IPv6 blocked and only
   the model endpoint reachable, from BOTH the VM host (solver/scorer origin) and a
