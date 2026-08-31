@@ -168,7 +168,7 @@ def call_api(prompt, options=None, context=None):
     # result — a sample-level harness error, or an unreadable log. Those return a
     # promptfoo ERROR, distinct from a genuine non-solve.
     if captured is None:
-        tail = (proc.stderr or "")[-600:]
+        tail = (proc.stderr or "")[-2000:]
         return {
             "error": f"harness_error for '{task}' (rc={proc.returncode}); "
             f"detail={detail}; stderr tail: {tail}"
@@ -208,7 +208,7 @@ def _parse_with_inspect(log_dir):
         # read as a non-solve — surface it as a harness error (captured None).
         sample_err = getattr(s, "error", None)
         if sample_err:
-            return (None, "ERROR", None, f"sample error: {str(sample_err)[:200]}")
+            return (None, "ERROR", None, f"sample error: {str(sample_err)[:1200]}")
         scores = getattr(s, "scores", None) or {}
         for name, sc in scores.items():
             val = getattr(sc, "value", sc)

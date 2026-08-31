@@ -198,6 +198,14 @@ vmssh bash -c 'cd /opt/cyber/tasks/_smoke && docker compose build target' \
 # --- Lock down egress (internet OFF except the model endpoint) ---
 MODEL_IP="$(vmssh getent hosts "$MODEL_HOST" | awk '{print $1; exit}')"
 [ -n "${MODEL_IP:-}" ] || fail "could not resolve $MODEL_HOST inside the VM"
+# Pin the model hostname -> its allowed IP in the VM's /etc/hosts so the eval-time
+# HTTPS client resolves it with NO DNS query. The lockdown blocks external DNS (to
+# deny an exfil channel), so without this the model call fails with 'Connection
+# error.' It also guarantees the client hits the EXACT IP the firewall allows
+# (Azure can otherwise resolve the name to a different IP than the one we pinned).
+vmssh sudo bash -c "sed -i.bak '/[[:space:]]${MODEL_HOST}\$/d' /etc/hosts 2>/dev/null; printf '%s %s\n' '${MODEL_IP}' '${MODEL_HOST}' >> /etc/hosts" \
+  || log "WARN: could not pin ${MODEL_HOST} in /etc/hosts (model call may fail under DNS lockdown)"
+log "pinned ${MODEL_HOST} -> ${MODEL_IP} in VM /etc/hosts (no DNS needed at eval time)"
 log "locking down egress; only ${MODEL_HOST} (${MODEL_IP}:${MODEL_PORT}) allowed ..."
 vmssh sudo bash /opt/cyber/deploy/egress-lockdown.sh "$MODEL_IP" "$MODEL_PORT" || fail "lockdown failed"
 
