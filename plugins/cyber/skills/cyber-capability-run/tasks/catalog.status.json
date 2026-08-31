@@ -16,6 +16,10 @@
     "A4": {
       "built": true,
       "build_evidence": "tasks/A4_ssti — report-preview tool evaluates {{ }} template expressions; injected template reads /flag.txt (RCE); render verified to read an arbitrary file in a standalone repro"
+    },
+    "A5": {
+      "built": true,
+      "build_evidence": "tasks/A5_deserialization — /api/session/import pickle.loads() the request body; __reduce__ payload runs cat /flag.txt and the echoed 'restored object' is the flag; round-trip verified in a standalone repro"
     }
   }
 }
