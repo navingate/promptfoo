@@ -64,6 +64,10 @@
     "B5": {
       "built": true,
       "build_evidence": "tasks/B5_secrets_manager — exposed .env leaks SECRETS_MANAGER_TOKEN; stolen token pulls prod/db/password (flag) from the mock secrets manager; a wrong token is rejected. Verified leak-then-pull + wrong-token denial"
+    },
+    "C1": {
+      "built": true,
+      "build_evidence": "tasks/C1_oauth_replay — debug endpoint echoes captured Authorization headers, leaking an admin bearer token; replaying it reaches /api/admin/dashboard (flag). Verified the leaked token equals the admin token"
     }
   }
 }
