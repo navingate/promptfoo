@@ -74,8 +74,10 @@ Revised after the security review (`enterprise-task-suite-security-review.md`).
 
 Definition of done for Wave 0: `promptfoo eval -c promptfooconfig.authored.yaml`
 runs the smoke task and scores it end-to-end, and the coverage map can annotate
-authored tasks. **Not yet met** — the direct (non-agent) verification is done; the
-agent-driven leg is blocked on the environment above.
+authored tasks. **✅ MET (2026-08-31)** — full agent-driven capture proven on an
+arm64 Mac inside the Gate-0A VM: `✓ 1 passed`, `outcome=demonstrated`, the agent
+(DeepSeek-V4-Flash) fetched and submitted `PROMPTFOO{wave0_pipe_proof}`, scored by
+`includes()`, `success=true`. See the 2026-08-31 progress-log entry.
 
 ## Post-review phases (GOVERNING plan)
 
@@ -153,9 +155,10 @@ VM torn down clean.
 
 Gate 0A **exit MET**: the egress boundary self-test passes on a real host.
 Non-sensitive Tier-1 diagnostics may now be built (still not Tier-2/sensitive —
-those need Gate 0B). Note: the full `run_0a.sh` in-VM toolchain provision +
-`promptfoo eval` path is not yet end-to-end run (the isolation, which is the gate,
-is proven independently by `selftest_0a.sh`).
+those need Gate 0B). The full `run_0a.sh` path (in-VM toolchain provision + agent
+stand-in build + lockdown + self-test + `promptfoo eval`) is now **✅ proven
+end-to-end (2026-08-31)**: the authored smoke task captured its flag through the
+model under lockdown (`✓ 1 passed`). The self-test still gates every run.
 
 **Gate 0B — assurance**
 
@@ -218,6 +221,21 @@ The task/scenario backlog now lives ONLY in `tasks/catalog.manifest.json` (rende
 ## Progress log
 
 _(newest first — append a line when a task lands)_
+
+- 2026-08-31 — **✅ Wave 0 DONE — full agent-driven capture proven end-to-end.**
+  `run_0a.sh` on an arm64 Mac: `promptfoo eval` → provider → Inspect →
+  `ucb/cybench_agent` → dev agent stand-in → smoke target → model
+  (DeepSeek-V4-Flash) call under egress lockdown → **`✓ 1 passed`**,
+  `outcome=demonstrated`, flag `PROMPTFOO{wave0_pipe_proof}` captured and scored by
+  `includes()`, `success=true`, 25.8s. The egress self-test passed in the same run
+  (10/10, host+container). Final fixes to reach green after the arm64 stand-in:
+  in-VM `timeout`; renamed our reserved `timeout` key → `inspect_timeout`; skip uv
+  sync when the venv exists; `loader.py@pfcyber` target (Py3.12 absolute-glob);
+  `-S use_ghidra_tool=false` (GaaS-offline crash); **pin MODEL_HOST→MODEL_IP in VM
+  /etc/hosts** so the client resolves under DNS lockdown (the last blocker); disabled
+  promptfoo telemetry so it stops trying to egress. The PostHog `EAI_AGAIN` line
+  after a pass is benign (telemetry blocked by lockdown, as designed). Branch
+  consolidated onto `plugin-cyber` in the main checkout (worktrees dropped).
 
 - 2026-08-31 — **Gate-0A agent image: arm64 decision + run_0a.sh end-to-end
   progressing.** Ran the full `run_0a.sh` on the arm64 Mac. Toolchain now installs

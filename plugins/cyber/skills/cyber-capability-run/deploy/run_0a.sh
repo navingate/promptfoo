@@ -228,6 +228,7 @@ vmssh bash -lc "
   cd /opt/cyber/scripts &&
   export PROMPTFOO_PYTHON=/opt/cyber/scripts/vendor/caisi-cyber-evals/.venv/bin/python &&
   export OPENAI_BASE_URL='${MODEL_BASE_URL}' OPENAI_API_KEY=\"\$AZURE_AI_API_KEY\" &&
+  export PROMPTFOO_DISABLE_TELEMETRY=1 PROMPTFOO_DISABLE_UPDATE=1 &&
   timeout ${TIMEOUT_SECS} promptfoo eval -c promptfooconfig.authored.yaml --no-cache --description 'gate0a-dev (development-only; not assurance-grade)' -o /opt/cyber/out.json
 "
 rc=$?
