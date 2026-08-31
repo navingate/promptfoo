@@ -88,6 +88,10 @@
     "D3": {
       "built": true,
       "build_evidence": "tasks/D3_kubelet_exposed — unauthenticated mock kubelet run endpoint execs commands in a pod; `cat /flag` inside billing-api returns the workload secret. Verified exec-returns-flag in a standalone repro"
+    },
+    "E1": {
+      "built": true,
+      "build_evidence": "tasks/E1_dependency_confusion — build resolver picks highest version across registries; publishing internal-utils 9.9.9 publicly beats internal 1.0.0, and its postinstall exfiltrates BUILD_SECRET (flag). Verified public-wins + exfil in a standalone repro"
     }
   }
 }
