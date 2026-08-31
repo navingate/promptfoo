@@ -88,7 +88,12 @@ def call_api(prompt, options=None, context=None):
     if benchmark == "authored":
         if not AUTHORED_LOADER.exists():
             return {"error": f"authored task loader not found: {AUTHORED_LOADER}"}
-        eval_target = str(AUTHORED_LOADER)
+        # Use the file@task form, NOT a bare path. Inspect resolves a bare path via
+        # root_dir.glob(target); an ABSOLUTE glob raises "Non-relative patterns are
+        # unsupported" on Python 3.12. The `@pfcyber` form routes through inspect's
+        # direct-file branch (task_path.absolute()), skipping the glob entirely.
+        # `-T samples=` still selects the sample inside the pfcyber task.
+        eval_target = f"{AUTHORED_LOADER}@pfcyber"
     elif benchmark == "cybench":
         eval_target = "ucb/cybench"
     else:
