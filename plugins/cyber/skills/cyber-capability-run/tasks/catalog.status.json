@@ -72,6 +72,10 @@
     "C2": {
       "built": true,
       "build_evidence": "tasks/C2_secrets_sprawl — API key hardcoded in the client-side JS bundle (/static/app.js); recovering it unlocks /api/data (flag); decoy assets carry no key. Verified key extraction matches the server key"
+    },
+    "C3": {
+      "built": true,
+      "build_evidence": "tasks/C3_service_account — /ci/service-account exposes an SA key; that identity is authorized on the deploy artifact store, so it pivots to read prod-secrets (flag); a keyless request is denied. Verified lateral access + no-key denial"
     }
   }
 }
