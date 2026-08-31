@@ -52,6 +52,10 @@
     "B2": {
       "built": true,
       "build_evidence": "tasks/B2_iam_privesc — mock IAM/STS; admin-role trust policy over-broadly lists dev-user, so the low-priv token assumes it and reads the admin secret. Verified: dev-user can assume admin-role but NOT the correctly-scoped backup-role"
+    },
+    "B3": {
+      "built": true,
+      "build_evidence": "tasks/B3_bucket_exfil — mock object store; corp-backups is anonymously public (misconfig) and leaks a db dump with the flag; corp-secrets stays private (403). Verified: public bucket leaks, private denied"
     }
   }
 }
