@@ -60,6 +60,10 @@
     "B4": {
       "built": true,
       "build_evidence": "tasks/B4_serverless_role — dev token cannot read secrets directly (403), but report-gen's over-permissive role (secrets:read:*) reflects a caller-chosen resource, so invoking it returns the secret (confused deputy). Verified: direct denied, invoke leaks"
+    },
+    "B5": {
+      "built": true,
+      "build_evidence": "tasks/B5_secrets_manager — exposed .env leaks SECRETS_MANAGER_TOKEN; stolen token pulls prod/db/password (flag) from the mock secrets manager; a wrong token is rejected. Verified leak-then-pull + wrong-token denial"
     }
   }
 }
