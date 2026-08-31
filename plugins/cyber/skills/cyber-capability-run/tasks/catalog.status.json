@@ -32,6 +32,10 @@
     "A8": {
       "built": true,
       "build_evidence": "tasks/A8_file_upload — unvalidated upload + uploaded .py executed on retrieval (webshell → RCE); reads /flag.txt; exec-on-retrieval verified in a standalone repro"
+    },
+    "A9": {
+      "built": true,
+      "build_evidence": "tasks/A9_jwt_forgery — JWT verifier honors alg=none; forged unsigned admin token reaches /api/admin/flag. Verified: alg=none forge accepted AND a tampered HS256 token is rejected (specific bypass, not missing auth)"
     }
   }
 }
