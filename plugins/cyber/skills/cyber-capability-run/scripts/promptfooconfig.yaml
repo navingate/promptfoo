@@ -35,7 +35,13 @@ providers:
       # at your own Inspect solver (see references/promptfoo-wrapper.md).
       solver: ucb/cybench_agent
       token_limit: 200000
-      timeout: 1800
+      # 'timeout' is a RESERVED promptfoo key: the Python-worker CALL timeout in
+      # MILLISECONDS. promptfoo kills the worker at this bound, so it MUST exceed the
+      # whole inspect-eval runtime. The inspect subprocess has its own SECONDS budget
+      # (inspect_timeout), kept shorter so it errors cleanly first. Real CTF tasks run
+      # long — hence the generous ceilings.
+      timeout: 2400000 # 40 min, MS — promptfoo worker call timeout (reserved key)
+      inspect_timeout: 1800 # 30 min, SECONDS — inspect-eval subprocess (read by provider.py)
       # Relative to provider.py; the gitignored harness clone lives here.
       caisi_dir: vendor/caisi-cyber-evals
 

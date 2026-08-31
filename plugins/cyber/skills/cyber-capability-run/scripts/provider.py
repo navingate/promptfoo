@@ -73,7 +73,12 @@ def call_api(prompt, options=None, context=None):
     model = _cfg(options, "model", "openai/DeepSeek-V4-Flash")
     solver = _cfg(options, "solver", "ucb/cybench_agent")
     token_limit = str(_cfg(options, "token_limit", "200000"))
-    timeout = int(_cfg(options, "timeout", "1800"))
+    # Read 'inspect_timeout' (SECONDS), NOT 'timeout'. `timeout` is a RESERVED
+    # promptfoo Python-provider key: promptfoo consumes it as the worker CALL
+    # timeout in MILLISECONDS and kills the worker at that bound before we ever
+    # run. Set promptfoo's `timeout` (ms) larger than inspect_timeout*1000 in the
+    # config so THIS inner subprocess guard fires first with a clean error dict.
+    timeout = int(_cfg(options, "inspect_timeout", "1800"))
     caisi_dir = _resolve_caisi_dir(_cfg(options, "caisi_dir"))
 
     # "cybench" (default) runs CAISI's public Cybench suite (ucb/cybench, the
