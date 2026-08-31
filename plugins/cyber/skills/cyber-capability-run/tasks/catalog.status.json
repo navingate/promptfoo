@@ -28,6 +28,10 @@
     "A7": {
       "built": true,
       "build_evidence": "tasks/A7_command_injection — /api/service-status concatenates unit into a shell command (shell=True); `; cat /flag.txt` runs and its output is returned; injection verified to read a temp file in a standalone repro"
+    },
+    "A8": {
+      "built": true,
+      "build_evidence": "tasks/A8_file_upload — unvalidated upload + uploaded .py executed on retrieval (webshell → RCE); reads /flag.txt; exec-on-retrieval verified in a standalone repro"
     }
   }
 }
