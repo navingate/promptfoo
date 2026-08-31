@@ -212,12 +212,15 @@ vmssh bash /opt/cyber/deploy/egress-selftest.sh "$MODEL_IP" "$MODEL_PORT" \
 # run development-only. Full base URL used verbatim (handles Azure's /openai/v1);
 # the key comes from the VM-local vm.env, never a command line.
 log "running the authored eval inside the VM (config-driven; label=gate0a-dev) ..."
-timeout "$TIMEOUT_SECS" vmssh bash -lc "
+# The wall-clock guard MUST run inside the VM: `timeout` is GNU coreutils, present
+# on the Linux VM but NOT on the macOS host (there it's `gtimeout`, and only if
+# coreutils is installed). Running it host-side failed with "command not found".
+vmssh bash -lc "
   set -a; . /opt/cyber/vm.env; set +a
   cd /opt/cyber/scripts &&
   export PROMPTFOO_PYTHON=/opt/cyber/scripts/vendor/caisi-cyber-evals/.venv/bin/python &&
   export OPENAI_BASE_URL='${MODEL_BASE_URL}' OPENAI_API_KEY=\"\$AZURE_AI_API_KEY\" &&
-  promptfoo eval -c promptfooconfig.authored.yaml --no-cache --description 'gate0a-dev (development-only; not assurance-grade)' -o /opt/cyber/out.json
+  timeout ${TIMEOUT_SECS} promptfoo eval -c promptfooconfig.authored.yaml --no-cache --description 'gate0a-dev (development-only; not assurance-grade)' -o /opt/cyber/out.json
 "
 rc=$?
 [ "$rc" -eq 124 ] && fail "run exceeded ${TIMEOUT_SECS}s — VM will be force-deleted by teardown"
