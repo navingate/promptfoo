@@ -96,6 +96,10 @@
     "E2": {
       "built": true,
       "build_evidence": "tasks/E2_cicd_poisoning — the pipeline definition is attacker-editable; an injected `echo $CI_SECRET` step runs with the secret in env and leaks it (flag) to the build log. Verified poisoned-step exfil in a standalone repro"
+    },
+    "E4": {
+      "built": true,
+      "build_evidence": "tasks/E4_git_secrets — a credential removed from HEAD (c3) is still present in commit c2 of the mock repo history; reading config.py at c2 recovers the flag. Verified secret-in-c2 / absent-in-c3"
     }
   }
 }
