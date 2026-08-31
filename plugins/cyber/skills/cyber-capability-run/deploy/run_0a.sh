@@ -137,19 +137,31 @@ EOF
 if vmssh bash -c 'command -v node >/dev/null && command -v npm >/dev/null && command -v promptfoo >/dev/null'; then
   log "toolchain already present in the VM — skipping install (cache reuse)"
 else
-  log "installing toolchain in the VM (git, python3, node, uv, promptfoo) ..."
+  log "installing base toolchain in the VM (git, python3, node) ..."
   vmssh sudo bash -c '
     set -e
     export DEBIAN_FRONTEND=noninteractive
     apt-get update -qq
     apt-get install -y -qq git python3 python3-venv python3-pip curl ca-certificates
     command -v node >/dev/null || { curl -fsSL https://deb.nodesource.com/setup_20.x | bash - >/dev/null 2>&1; apt-get install -y -qq nodejs; }
-    command -v promptfoo >/dev/null || npm i -g promptfoo >/dev/null 2>&1
-  ' || fail "VM toolchain install failed"
+  ' || fail "VM base toolchain install failed"
+  # promptfoo is a large npm package — on a metered/slow link this can take several
+  # minutes. Keep its progress VISIBLE (silencing it to /dev/null made a slow
+  # download look like a hang) and cap it with a timeout so a genuinely stuck
+  # download fails loudly instead of hanging forever. With KEEP_VM=1 it runs once,
+  # then the cached binary is reused.
+  if vmssh bash -c 'command -v promptfoo >/dev/null'; then
+    log "promptfoo CLI already present in the VM — skipping (cache reuse)"
+  else
+    log "installing promptfoo CLI in the VM (large npm download; can take several minutes on a slow link) ..."
+    vmssh sudo bash -c 'timeout 1200 npm i -g promptfoo --no-fund --no-audit --loglevel=http' \
+      || fail "promptfoo CLI install failed/timed out (npm registry unreachable or download too slow). Re-run; KEEP_VM=1 keeps prior progress."
+  fi
 fi
 # Install uv from PyPI (reliable; apt/nodesource reached the VM fine) rather than
 # the astral.sh script (it timed out from the VM). Fail loudly — do NOT let a
 # broken download slip through (curl|sh returns sh, masking curl errors).
+log "installing uv in the VM (from PyPI; small) ..."
 vmssh bash -c '
   set -e
   command -v uv >/dev/null && exit 0
