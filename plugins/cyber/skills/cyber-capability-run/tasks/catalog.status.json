@@ -80,6 +80,10 @@
     "C4": {
       "built": true,
       "build_evidence": "tasks/C4_offline_crack — /backup/users.txt leaks unsalted SHA-256 hashes; admin's weak password cracks by dictionary and logs in for the flag; svc's strong password resists. Verified weak-cracks / strong-resists"
+    },
+    "D2": {
+      "built": true,
+      "build_evidence": "tasks/D2_k8s_rbac — mock k8s API; pod SA cannot read cluster secrets but can create clusterrolebindings; self-binding cluster-admin flips the gate and the kube-system secret (flag) becomes readable. Verified denied-before / granted-after"
     }
   }
 }
