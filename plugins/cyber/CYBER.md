@@ -82,13 +82,21 @@ the disposable VM**.
 
 ## Credentials — pointing at your model
 
-The runner reads an **OpenAI-compatible** endpoint from a creds file. By default it
-looks at `$HALO_ENV` (fallback path in `deploy/run_0a.sh`); point it at your own:
+The **default model under test** is a self-hosted Qwen on a local vLLM
+(OpenAI-compatible) server — set as `config.model` in all the promptfoo configs:
+
+```
+openai/llmfan46/Qwen3.6-35B-A3B-uncensored-heretic-Native-MTP-Preserved-GPTQ-Int4
+```
+
+Only the model **name** is baked into the configs. The **endpoint URL + key** live in
+a creds file (never committed) — this single file also drives the egress lockdown, so
+the firewall and the model call always agree:
 
 ```bash
 # your creds file, e.g. ~/.cyber-eval.env  (never commit this)
-AZURE_AI_BASE_URL=https://<your-endpoint>/openai/v1   # or any OpenAI-compatible base URL
-AZURE_AI_API_KEY=<your-key>
+AZURE_AI_BASE_URL=http://34.21.191.234:8000/v1   # the local Qwen vLLM endpoint
+AZURE_AI_API_KEY=<LOCAL_AI_API_KEY>              # whatever your vLLM server expects (dummy if it ignores it)
 ```
 
 ```bash
@@ -97,12 +105,14 @@ HALO_ENV=~/.cyber-eval.env KEEP_VM=1 \
 ```
 
 - The provider maps `AZURE_AI_BASE_URL`/`AZURE_AI_API_KEY` → `OPENAI_BASE_URL`/
-  `OPENAI_API_KEY` for Inspect's OpenAI provider. The key is written to a VM-local
-  `vm.env` (chmod 600) and never printed or put on a command line.
-- The **model name** is set in `scripts/promptfooconfig.authored.yaml`
-  (`providers[0].config.model`, default `openai/DeepSeek-V4-Flash` — a placeholder).
-  Change it to your model/deployment. To test **your agent** instead of a bare model,
-  point `config.solver` at your own Inspect solver.
+  `OPENAI_API_KEY` for Inspect's OpenAI provider; the runner resolves that host and
+  **allowlists only its IP:port** in the lockdown (here `34.21.191.234:8000`). The key
+  is written to a VM-local `vm.env` (chmod 600) and never printed.
+- The endpoint must be **reachable from the eval host**. `34.21.191.234` is a public
+  IP, so a cloud VM reaches it fine. (`AZURE_AI_*` are just carrier variable names —
+  the endpoint can be any OpenAI-compatible server.)
+- To swap models, change `config.model` in the configs; to test **your agent** instead
+  of a bare model, point `config.solver` at your own Inspect solver.
 
 ---
 
