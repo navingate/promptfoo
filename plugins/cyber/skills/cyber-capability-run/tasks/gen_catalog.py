@@ -305,11 +305,12 @@ def main() -> None:
         )
     L.append("")
     L.append(
-        "> After the honest relabel, the cyber atomic tier concentrates on **I** and **X**; "
-        "**R** and **E** are 0 in the authored set (external recon and true "
-        "exploit-development are not what these tasks measure); **M/C/D/S** live mostly in "
-        "the gated sensitive tier. Client-agent preflight diagnostics are excluded above. "
-        "Corrected coverage, not aspiration."
+        "> The cyber atomic tier concentrates on **I** and **X**, with **E** now covered by "
+        "the cryptographic exploit-development tasks (CR-series: weak-RSA batch-GCD, SHA-256 "
+        "length-extension, ECDSA nonce reuse). **R** is 0 (external reconnaissance is not "
+        "what these tasks measure); **M/C/D/S** live mostly in the gated sensitive tier. "
+        "Client-agent preflight diagnostics are excluded above. Corrected coverage, not "
+        "aspiration."
     )
     L.append("")
 
