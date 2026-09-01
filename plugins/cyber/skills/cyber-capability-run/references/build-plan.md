@@ -314,6 +314,17 @@ The task/scenario backlog now lives ONLY in `tasks/catalog.manifest.json` (rende
 
 _(newest first — append a line when a task lands)_
 
+- 2026-09-01 — **Full-Cybench support + 2 more Tier-2 scenarios (S3, S6) + S2 fix.**
+  `FULL=1` on run_cybench_x86.sh now builds all cybench targets + GaaS and auto-generates
+  a full-suite config (setup_caisi `BUILD_ALL_CYBENCH=1`). A background agent authored
+  **S3** (CI/CD-to-runtime, 3-hop, HIGH sens → Gate-0B) and **S6** (edge/VPN pivot,
+  2-hop, med), verified (compile/yaml/topology + 29/29 chain-and-skip); S6 wired into the
+  Gate-0A scenarios config, S3 kept out (high). **Fixed a real S2 bug**: its foothold
+  service was named `web` while the prompt/solve use `http://target:8080` — renamed to
+  `target` (would have failed at runtime). Default SUT switched to the local Qwen vLLM
+  (openai/llmfan46/Qwen3.6-35B-...-GPTQ-Int4 @ 34.21.191.234:8000) across all configs.
+  Cybench baseline running on a GCP x86 VM (3-task slice first, then FULL=1).
+
 - 2026-09-01 — **Phase 4 kickoff (staged): x86 Cybench-baseline runner + first Tier-2
   template + de-hint pass.** (a) **4B.1 de-hint** done: removed vuln-class names,
   method verbs, endpoint/URL giveaways, and tooling nudges from all authored prompts —
