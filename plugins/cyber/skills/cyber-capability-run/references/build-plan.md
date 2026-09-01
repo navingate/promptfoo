@@ -191,22 +191,36 @@ model under lockdown (`✓ 1 passed`). The self-test still gates every run.
   tokens rejected; two concurrent tasks isolated; 10 runs leave zero residue after
   forced failure; exported result carries a full run manifest with secrets redacted.
 
-### Phase 4 — Cybench-comparability & real capability assessment (GOVERNING — required for credibility)
+### Phase 4 — A rigorous, publishable enterprise-cyber benchmark (GOVERNING)
 
-**Why this phase exists.** The 29 Gate-0A Tier-1 diagnostics are **calibration-grade,
-not a capability benchmark**: single known vulns, toy stdlib targets (~50 LOC), often
-telegraphed prompts, static flags, and **no reverse engineering / binary exploitation
-/ crypto / forensics** — the categories that actually differentiate model capability.
-Presented to a cyber-evals reviewer (e.g. OpenAI) as a capability verdict, this set
-would be rejected. To be credible the results must be **comparable to Cybench**
-(Zhang et al., ICLR 2025: 40 professional CTF tasks across 6 categories — crypto, web,
-rev, forensics, pwn, misc — with subtask decomposition, unguided prompts, an agent
-scaffold in a Kali env, and first-blood human times of 7 min–25 h). Two tracks:
+**The goal (per the sponsor).** Build **our own** enterprise-cyber capability
+benchmark that is **at least as rigorous as Cybench, ideally better**, and is
+**publishable in the public domain** as a distinct benchmark. It is explicitly **not**
+positioned as a Cybench stand-in. Cybench (Zhang et al., ICLR 2025: 40 professional
+CTF tasks across crypto/web/rev/forensics/pwn/misc, subtask decomposition, unguided
+prompts, a Kali agent scaffold, first-blood human times 7 min–25 h) is the **rigor
+bar** and runs inside the same harness as a **baseline / methodology cross-check**.
 
-**4A — Run the ACTUAL Cybench through the promptfoo wrapper (the credibility anchor).**
+**Where we can EXCEED Cybench (the differentiators to lean into):**
+
+- **Contamination resistance** — Cybench is static + public (memorization-prone). Our
+  per-run nonce generation + out-of-band verifier (4C) makes scores resistant to
+  training-data leakage. This is a genuine methodological improvement, not parity.
+- **Enterprise trust-boundary scenarios** — real multi-stage attack chains across an
+  enterprise attack surface (web/cloud/identity/supply-chain/lateral), vs Cybench's
+  isolated CTF puzzles. A different, decision-relevant scope, not a weaker one.
+- **ATT&CK-informed coverage map** — every task/scenario mapped; Cybench has no such
+  taxonomy.
+- **Anti-cheating + fail-closed verification** (NIST-flagged failure mode) baked in.
+
+**Current gap (honest).** The 29 Gate-0A Tier-1 tasks are **calibration-grade**: single
+known vulns, toy stdlib targets (~50 LOC), some telegraphed prompts, static flags, and
+no rev/pwn/crypto/forensics. They are building blocks + a floor, **not** the benchmark.
+
+**4A — Run Cybench through the wrapper as a BASELINE / cross-check** (proves the
+harness + methodology are sound and calibrates difficulty; NOT the headline).
 The harness already supports it: `provider.py` `benchmark: cybench` → `ucb/cybench`
-(CAISI vendors the real Cybench). This yields numbers that sit directly beside the
-Cybench paper.
+(CAISI vendors the real Cybench).
 
 - ⬜ 4A.1 Build the **real** CAISI agent image (x86_64 Kali: nmap/pwntools/Playwright/i386)
   and the Cybench target images (`BUILD_CHALLENGE_TARGETS=1`) + GaaS/Ghidra for the
@@ -250,11 +264,24 @@ contamination-reduced, enterprise-shaped differentiator, but makes it real.)
   independently-provisioned clones, positive + no-op-negative controls before a run
   counts. Without this, a Cybench-comparable claim is not defensible.
 
-**Positioning (say this, not more):** "promptfoo orchestrates and scores the actual
-Cybench + CAISI cyber-evals suites against your own model, adds a contamination-reduced
-enterprise-shaped task layer, and reports coverage over an ATT&CK-informed taxonomy."
-The authored Tier-1 set is **calibration + enterprise diagnostics**, not a capability
-verdict, until 4A/4B/4C land.
+**4D — Publish it as a public benchmark (the sponsor's stretch goal).**
+
+- ⬜ 4D.1 Methodology paper: task taxonomy + construction, contamination-resistance
+  design, verifier + anti-cheating, the N-attempt protocol, and difficulty calibration.
+- ⬜ 4D.2 Public **held-out / rotating** split so the published benchmark resists
+  contamination over time (a public–private split; per-run generation for the private
+  set). This is the core "better than Cybench" claim — design it in from the start.
+- ⬜ 4D.3 A reference leaderboard run: several named models under an identical scaffold,
+  with Cybench numbers reported side-by-side as the baseline.
+- ⬜ 4D.4 Reproducible release: the harness, task generators, verifier, and a run
+  manifest, so third parties can reproduce scores.
+
+**Positioning (say this, not more):** "promptfoo ships a rigorous, contamination-reduced
+**enterprise cyber-capability benchmark** — real multi-stage attack chains across the
+enterprise attack surface, out-of-band verified, mapped to an ATT&CK-informed taxonomy,
+with an N-attempt protocol — and runs Cybench in the same harness as a baseline." Until
+4B/4C land, the authored Tier-1 set is **calibration + enterprise diagnostics**, not the
+benchmark and not a capability verdict.
 
 ## Per-task authoring recipe (repeat for every task)
 

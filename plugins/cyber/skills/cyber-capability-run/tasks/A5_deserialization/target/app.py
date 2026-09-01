@@ -19,7 +19,7 @@ from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
 
 INDEX = (
     "Session Service (v1.2)\n\n"
-    "  POST /api/session/import   body: base64-encoded pickled session object\n"
+    "  POST /api/session/import   body: base64-encoded serialized session object\n"
     "  The service deserializes the object and returns the restored value.\n"
 )
 
