@@ -243,9 +243,20 @@ contamination-reduced, enterprise-shaped differentiator, but makes it real.)
 - ⬜ 4B.2 **Realistic targets**: replace toy ~50-LOC stdlib services with real
   frameworks/apps and a larger attack surface, so exploitation requires navigating
   complexity and noise, not spotting the one obvious flaw.
-- ⬜ 4B.3 **Cover the hard, frontier-differentiating categories currently absent**:
-  reverse engineering, binary exploitation (pwn), cryptography, forensics. These need
-  the real Kali image + GaaS and (for pwn) careful sandboxing → Gate-0B substrate.
+- 🔄 4B.3 **Cover the hard, frontier-differentiating categories currently absent**:
+  reverse engineering, binary exploitation (pwn), cryptography, forensics.
+  - ✅ **CRYPTO** (new `Cryptography` domain, cells [E, I] — fills the empty E cell):
+    CR1 weak-RSA shared-prime batch-GCD, CR2 SHA-256 length-extension forgery, CR3
+    ECDSA nonce-reuse key recovery + signature forgery. All three are real named
+    attacks requiring genuine cryptanalysis; each verified end-to-end against its LIVE
+    target (solve recovers the flag; documented anti-shortcuts fail; nothing leaks).
+  - ✅ **FORENSICS** (new `Forensics` domain, cell [X]): FO1 DNS-exfil pcap, FO2
+    appended/hidden ZIP, FO3 LSB-stego PNG. Each artifact built deterministically in
+    memory at target startup; verified LIVE (valid pcap/zip/PNG, flag never plaintext,
+    reference solve recovers it).
+  - ⬜ **REV / PWN**: still require the real x86 Kali image + Ghidra/GaaS (and, for
+    pwn, careful microVM sandboxing) → Gate-0B substrate. Deferred, not authored here
+    (a stdlib mock would not exercise the real capability). Flagged as the remaining gap.
 - ⬜ 4B.4 **Tier-2 multi-stage chained scenarios** (recon → foothold → privesc →
   lateral → exfil) built from the atomic ingredients, unguided, scored per stage.
 - ✅ 4B.5 **Subtask decomposition + per-stage scoring** (Cybench-style) for granular,
@@ -320,6 +331,26 @@ The task/scenario backlog now lives ONLY in `tasks/catalog.manifest.json` (rende
 ## Progress log
 
 _(newest first — append a line when a task lands)_
+
+- 2026-09-02 — **4B.3 CRYPTO + FORENSICS categories — DONE (6 hard tasks, all verified
+  LIVE).** Added the two frontier-differentiating categories Cybench has and the authored
+  suite lacked. **Cryptography** (new domain, cells [E,I], fills the previously-empty E
+  exploit-dev cell): CR1 weak-RSA shared-prime batch-GCD → decrypt; CR2 SHA-256
+  length-extension forgery (solver implements SHA-256 from scratch — the sandbox has no
+  hashpump); CR3 ECDSA nonce-reuse → secp256k1 private-key recovery → signature forgery
+  (the private key exists nowhere in the artifact). **Forensics** (new domain, cell [X]):
+  FO1 DNS-exfil pcap (parse capture, reassemble hex-chunked flag), FO2 appended/hidden
+  ZIP (two concatenated archives; the flag is in the leading hidden one, DEFLATE-
+  compressed), FO3 LSB-stego PNG (flag in pixel-byte LSBs). All 6 are unguided, stdlib-
+  only (`python:3.12-alpine` + `http.server`), and were verified END-TO-END against a
+  LIVE target: the reference solve recovers the flag, the artifact is well-formed (PNG
+  chunk CRCs checked), documented anti-shortcuts fail, and `strings | grep PROMPTFOO`
+  finds nothing in any served artifact. Manifest/status/authored-config/generated-catalog
+  updated; the E cell now shows coverage (was 0). Contract test 48 diagnostics / 45 cyber
+  (cyberPlugin.test.ts 15/15). **rev/pwn deferred** to the Gate-0B x86/Kali/Ghidra
+  substrate (a stdlib mock would not exercise the real capability). NOT yet agent-run
+  against a model (needs the VM substrate). Next: 4B.4 more Tier-2 chains, then 4B.6
+  difficulty calibration.
 
 - 2026-09-01 — **4B.5 per-stage subtask scoring — DONE (proven on S2/S6).** `provider.py`
   now emits Cybench-style partial credit: after the Inspect run it reads each scenario's
