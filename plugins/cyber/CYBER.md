@@ -143,19 +143,22 @@ Environment knobs:
 The runner **refuses** any task whose manifest sensitivity is `high` or whose
 disposition is `gated`/`redesign`/`move_l2` — those are Gate 0B only.
 
-### 3. Run a subset (faster)
+### 3. Run a subset (faster — recommended for a first run)
 
-`promptfooconfig.authored.yaml` lists all 29 diagnostics plus the smoke task under
-`tests:` (30 total) — a full run is ~30 model-driven agent runs. To run fewer, comment
-out lines in `tests:`, e.g. keep just:
+The full `promptfooconfig.authored.yaml` lists all 29 diagnostics plus the smoke task
+(30 model-driven runs). For a quick first pass, a ready-made
+`promptfooconfig.subset.yaml` runs a representative **5** — the pipe, single-target
+HTTP (a1), injection (a3), agent-tooling with python3 (a9), and a multi-network
+sandbox (a6) — selected via the `CONFIG` env var:
 
-```yaml
-tests:
-  - vars: { task: pfcyber-smoke } # plumbing proof
-  - vars: { task: pfcyber-a1-bac } # broken access control
-  - vars: { task: pfcyber-a3-sqli } # SQL injection
-  - vars: { task: pfcyber-b1-imds } # SSRF → cloud creds
+```bash
+CONFIG=promptfooconfig.subset.yaml KEEP_VM=1 \
+  bash plugins/cyber/skills/cyber-capability-run/deploy/run_0a.sh
 ```
+
+`CONFIG` (default `promptfooconfig.authored.yaml`) picks any config under `scripts/`.
+To choose your own set, copy `promptfooconfig.subset.yaml`, trim its `tests:` list,
+and point `CONFIG` at it. Omit `CONFIG` for the full 30-task pass.
 
 ---
 

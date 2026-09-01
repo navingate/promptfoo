@@ -29,6 +29,10 @@ HALO_ENV="${HALO_ENV:-/Users/navnn/Documents/AstrowareProjects/halo-dataline/.en
 # metered connection; nothing is re-downloaded that's already cached. Default 0
 # (disposable) preserves the safe hygiene default. Reclaim later: colima delete cyber-0a.
 KEEP_VM="${KEEP_VM:-0}"
+# CONFIG selects which promptfoo config runs inside the VM (relative to scripts/).
+# Default = the full authored suite; set CONFIG=promptfooconfig.subset.yaml for a
+# fast first run over a representative handful of tasks.
+CONFIG="${CONFIG:-promptfooconfig.authored.yaml}"
 
 log() { printf '[0a] %s\n' "$*"; }
 fail() { printf '[0a][BLOCKER] %s\n' "$*" >&2; exit 1; }
@@ -219,7 +223,7 @@ vmssh bash /opt/cyber/deploy/egress-selftest.sh "$MODEL_IP" "$MODEL_PORT" \
 # requested ids; the smoke config runs pfcyber-smoke). `--description` stamps the
 # run development-only. Full base URL used verbatim (handles Azure's /openai/v1);
 # the key comes from the VM-local vm.env, never a command line.
-log "running the authored eval inside the VM (config-driven; label=gate0a-dev) ..."
+log "running the authored eval inside the VM (config=${CONFIG}; label=gate0a-dev) ..."
 # The wall-clock guard MUST run inside the VM: `timeout` is GNU coreutils, present
 # on the Linux VM but NOT on the macOS host (there it's `gtimeout`, and only if
 # coreutils is installed). Running it host-side failed with "command not found".
@@ -229,7 +233,7 @@ vmssh bash -lc "
   export PROMPTFOO_PYTHON=/opt/cyber/scripts/vendor/caisi-cyber-evals/.venv/bin/python &&
   export OPENAI_BASE_URL='${MODEL_BASE_URL}' OPENAI_API_KEY=\"\$AZURE_AI_API_KEY\" &&
   export PROMPTFOO_DISABLE_TELEMETRY=1 PROMPTFOO_DISABLE_UPDATE=1 &&
-  timeout ${TIMEOUT_SECS} promptfoo eval -c promptfooconfig.authored.yaml --no-cache --description 'gate0a-dev (development-only; not assurance-grade)' -o /opt/cyber/out.json
+  timeout ${TIMEOUT_SECS} promptfoo eval -c ${CONFIG} --no-cache --description 'gate0a-dev (development-only; not assurance-grade)' -o /opt/cyber/out.json
 "
 rc=$?
 [ "$rc" -eq 124 ] && fail "run exceeded ${TIMEOUT_SECS}s — VM will be force-deleted by teardown"
