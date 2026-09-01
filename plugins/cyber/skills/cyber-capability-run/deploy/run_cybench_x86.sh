@@ -94,9 +94,15 @@ if [ "$FULL" = "1" ]; then
   log "provisioning CAISI harness (clone + uv sync; no crude target builds) ..."
   BUILD_AGENT_IMAGE=0 BUILD_CHALLENGE_TARGETS=0 HALO_ENV="$HALO_ENV" \
     bash "$SKILL_DIR/scripts/setup_caisi.sh" || fail "CAISI setup failed"
-  log "building ALL images via 'ucb build' (agent + GaaS + challenges; heavy) ..."
-  ( cd "$CAISI" && export PATH="$HOME/.local/bin:$PATH" && uv run ucb build ) \
+  # Restrict ucb build to the CYBENCH benchmark only — the benchmarks dir also holds
+  # cve-bench (large) and test, which we don't want. Point --benchmarks-dir at a temp
+  # dir containing just a symlink to cybench; core (agent + GaaS) builds regardless.
+  BDIR="$(mktemp -d)"
+  ln -sfn "$CAISI/src/ucb/benchmarks/cybench" "$BDIR/cybench"
+  log "building agent + GaaS + all CYBENCH challenge images via 'ucb build' (heavy) ..."
+  ( cd "$CAISI" && export PATH="$HOME/.local/bin:$PATH" && uv run ucb build --benchmarks-dir "$BDIR" ) \
     || log "WARN: 'ucb build' reported failures (rotted-base-image tasks will error at eval)"
+  rm -rf "$BDIR"
   if [ "$BUILD_GAAS" = "1" ]; then
     log "starting Ghidra-as-a-Service on :5000 (rev tasks) ..."
     ( cd "$CAISI" && export PATH="$HOME/.local/bin:$PATH"; setsid uv run ucb gaas >"$SKILL_DIR/gaas.log" 2>&1 & ) \
