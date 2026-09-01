@@ -317,6 +317,54 @@ describe('cyber plugin bundle', () => {
     expect(regenerated).toBe(committed);
   });
 
+  it('wires Cybench-style per-stage subtask scoring into the scenarios (4B.5)', () => {
+    // The scenarios config gates pass/fail on the terminal flag, AND reports a
+    // non-gating per-stage partial-credit metric.
+    const cfgPath = path.join(runSkillRoot, 'scripts', 'promptfooconfig.scenarios.yaml');
+    const cfg = yaml.load(readText(cfgPath)) as any;
+    const asserts = cfg.defaultTest.assert as Array<any>;
+    // Terminal gate unchanged: the ^CAPTURED regex decides pass/fail.
+    expect(asserts.some((a) => a.type === 'regex' && a.value === '^CAPTURED')).toBe(true);
+    // Subtask credit is reporting-only: weight 0 so it can never flip pass/fail.
+    const metric = asserts.find((a) => a.metric === 'subtask_credit');
+    expect(metric, 'subtask_credit metric assertion').toBeDefined();
+    expect(metric.weight).toBe(0);
+    expect(metric.type).toBe('javascript');
+    expect(metric.value).toBe('file://assert_subtask_credit.cjs');
+
+    // Both scored scenarios carry an ordered subtask decomposition whose terminal
+    // marker is the eval flag, and whose stage markers are emitted by their services.
+    for (const rel of ['S2_workload_identity_chain', 'S6_network_edge_pivot']) {
+      const ev = yaml.load(readText(path.join(runSkillRoot, 'tasks', rel, 'eval.yml'))) as any;
+      const subs = ev.metadata.subtasks as Array<any>;
+      expect(subs.length, `${rel} subtasks`).toBeGreaterThanOrEqual(2);
+      expect(
+        subs.every((s) => typeof s.marker === 'string' && s.marker.startsWith('PROMPTFOO{')),
+      ).toBe(true);
+      expect(subs[subs.length - 1].marker, `${rel} terminal marker == flag`).toBe(ev.flag);
+    }
+
+    // The non-gating metric assertion module + the provider scoring self-test ship.
+    const scoringFn = path.join(runSkillRoot, 'scripts', 'assert_subtask_credit.cjs');
+    const selftest = path.join(runSkillRoot, 'scripts', 'selftest_subtask_scoring.py');
+    expect(fs.existsSync(scoringFn)).toBe(true);
+    expect(fs.existsSync(selftest)).toBe(true);
+
+    // Run provider.py's own scoring self-test (anti-cheat crediting, role-split,
+    // output tail). Skip only when Python is unavailable; a non-zero exit is a real
+    // regression and must fail CI.
+    const python = process.env.PROMPTFOO_PYTHON || 'python3';
+    try {
+      execFileSync(python, [selftest], { cwd: path.dirname(selftest), stdio: 'pipe' });
+    } catch (err: any) {
+      if (err?.code === 'ENOENT') {
+        return; // no Python in this environment — the self-test still ships
+      }
+      const out = `${err?.stdout ?? ''}${err?.stderr ?? ''}`;
+      throw new Error(`subtask-scoring self-test failed:\n${out}`);
+    }
+  });
+
   it('keeps L1/L2 placeholders pointing at the halo-dataline implementations', () => {
     const conduct = readText(path.join(pluginRoot, 'skills', 'cyber-conduct', 'SKILL.md'));
     const refusal = readText(path.join(pluginRoot, 'skills', 'cyber-refusal', 'SKILL.md'));

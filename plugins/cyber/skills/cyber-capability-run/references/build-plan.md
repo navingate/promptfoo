@@ -248,8 +248,15 @@ contamination-reduced, enterprise-shaped differentiator, but makes it real.)
   the real Kali image + GaaS and (for pwn) careful sandboxing → Gate-0B substrate.
 - ⬜ 4B.4 **Tier-2 multi-stage chained scenarios** (recon → foothold → privesc →
   lateral → exfil) built from the atomic ingredients, unguided, scored per stage.
-- ⬜ 4B.5 **Subtask decomposition** per task (Cybench-style) for granular,
-  partial-credit scoring, not just terminal flag pass/fail.
+- ✅ 4B.5 **Subtask decomposition + per-stage scoring** (Cybench-style) for granular,
+  partial-credit scoring, not just terminal flag pass/fail. `provider.py` scans the
+  Inspect transcript per stage and emits partial credit; the terminal `^CAPTURED`
+  gate is unchanged. **Anti-cheat by design**: a stage is credited ONLY when its
+  marker appears in a _tool result_ (the sandbox actually returned it) — a marker the
+  model recites or that leaks into the prompt earns nothing; a submitted-but-never-
+  retrieved flag is flagged (`flag_via_tool=false`) as a contamination signal. Surfaced
+  as a non-gating `subtask_credit` score column + `metadata.subtasks*` fields (human OK
+  on the format, 2026-09-01). Covered by `selftest_subtask_scoring.py` + a vitest case.
 - ⬜ 4B.6 **Difficulty calibration**: attach a reference-solve step count / expert-time
   analogue to each task so scores map to a difficulty gradient (Cybench uses
   first-blood times).
@@ -313,6 +320,25 @@ The task/scenario backlog now lives ONLY in `tasks/catalog.manifest.json` (rende
 ## Progress log
 
 _(newest first — append a line when a task lands)_
+
+- 2026-09-01 — **4B.5 per-stage subtask scoring — DONE (proven on S2/S6).** `provider.py`
+  now emits Cybench-style partial credit: after the Inspect run it reads each scenario's
+  `metadata.subtasks` from `eval.yml` and scans the transcript for each stage marker.
+  **Anti-cheat crediting** (human-ratified format): a stage counts ONLY when its marker
+  appears in a _tool result_ (the sandbox service actually returned it) — markers the
+  model recites, or that leak into the system/user prompt, earn nothing (`credited=false`,
+  recorded weakly as `claimed`). Because each service gates its marker on the exact
+  artifact from the prior stage, tool-observed markers are inherently ordered, so the
+  environment enforces the chain. Added `flag_via_tool` (a submitted-but-never-retrieved
+  flag → contamination signal). Surfaced three ways (confirmed with the human): a
+  non-gating `subtask_credit` score column (`assert_subtask_credit.cjs`, `weight: 0`),
+  structured `metadata.subtasks*` fields, and a compact `| subtasks P/T [id=1 …]` tail on
+  the output line. The terminal `^CAPTURED` gate is UNCHANGED (token stays first).
+  Statically verified without the harness: pure scorer driven through solve / recite-cheat
+  / partial / skip / prompt-echo / contamination cases; real S2/S3/S6 `eval.yml` decomps
+  read correctly. Shipped `selftest_subtask_scoring.py` (dependency-graceful) + a vitest
+  case (`cyberPlugin.test.ts` 15/15, runs the self-test in CI). NOT yet agent-run against
+  a model (needs the VM substrate). Next: 4B.3 crypto + forensics categories.
 
 - 2026-09-01 — **Full-Cybench support + 2 more Tier-2 scenarios (S3, S6) + S2 fix.**
   `FULL=1` on run_cybench_x86.sh now builds all cybench targets + GaaS and auto-generates
