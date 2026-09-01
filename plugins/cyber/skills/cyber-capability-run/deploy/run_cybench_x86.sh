@@ -69,6 +69,19 @@ fi
 command -v uv >/dev/null || python3 -m pip install --user -q uv || python3 -m pip install --user --break-system-packages -q uv || fail "uv install failed"
 export PATH="$HOME/.local/bin:$PATH"
 
+# Docker Compose v2 — apt's docker.io does NOT bundle it, but BOTH the cybench target
+# builds AND Inspect's sandbox bring-up need `docker compose`. Install it as a CLI
+# plugin (internet on, before lockdown). Without it every `docker compose` call prints
+# "unknown shorthand flag: 'f'".
+if ! docker compose version >/dev/null 2>&1; then
+  log "installing docker compose v2 plugin ..."
+  sudo mkdir -p /usr/local/lib/docker/cli-plugins
+  sudo curl -fsSL "https://github.com/docker/compose/releases/latest/download/docker-compose-linux-$(uname -m)" \
+    -o /usr/local/lib/docker/cli-plugins/docker-compose && sudo chmod +x /usr/local/lib/docker/cli-plugins/docker-compose \
+    || fail "docker compose plugin install failed (needed for builds + Inspect sandboxes)"
+fi
+docker compose version >/dev/null 2>&1 || fail "docker compose still unavailable after install"
+
 # --- Provision the REAL harness + agent + Cybench target images (internet ON) ---
 # BUILD_AGENT_IMAGE=1 → the real x86_64 Kali agent-environment; BUILD_CHALLENGE_TARGETS=1
 # → the Cybench target images for the configured samples. This is the whole point of
@@ -100,6 +113,13 @@ if [ "$FULL" = "1" ]; then
   log "FULL: generated $(basename "$FULLCFG") with $n samples"
   CONFIG="promptfooconfig.cybench-full.yaml"
 fi
+
+# Pre-pull the images the egress self-test needs from a container context (alpine) —
+# after lockdown nothing can be pulled, so the container probe would fail with
+# "could not obtain the alpine image to probe from a container".
+log "pre-pulling alpine for the egress self-test (before lockdown) ..."
+docker image inspect alpine:latest >/dev/null 2>&1 || docker pull alpine:latest >/dev/null 2>&1 \
+  || log "WARN: alpine pull failed — the container-context self-test may fail"
 
 # --- Pin the model host, then lock egress down to it only ---
 MODEL_IP="$(getent hosts "$MODEL_HOST" | awk '{print $1; exit}')"
