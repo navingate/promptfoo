@@ -222,6 +222,22 @@ The task/scenario backlog now lives ONLY in `tasks/catalog.manifest.json` (rende
 
 _(newest first — append a line when a task lands)_
 
+- 2026-08-31 — **✅ ALL 29 Gate-0A-eligible Tier-1 diagnostics BUILT.** Every
+  non-sensitive atomic diagnostic (A1–A11 internal web/API, B1–B5 cloud, C1–C4
+  identity/SSO, D2/D3 containers·k8s, E1/E2/E4 supply-chain·CI, G2 persistence, H2
+  exfil, I1/I2 lateral) is authored as a self-contained stdlib target + compose
+  (`internal: true`, no egress) + eval.yml (id→manifest, canary) + reference solve,
+  recorded `built` in catalog.status.json, and wired into promptfooconfig.authored.yaml
+  (30 tests incl. smoke). Each exploit was verified deterministically in a standalone
+  repro (SQLi UNION, pickle RCE, SSTI file-read, alg=none forge, mass-assign,
+  dep-confusion exfil, k8s self-bind, log-tamper unlock, cred reuse, etc.); multi-service
+  tasks (A6/B1/I1 SSRF/pivot) verified for network isolation (agent shares no net with
+  the segmented service). 29/29 unique flags; all apps compile; cyberPlugin.test.ts
+  14/14. Scope: static per-build canary = **Gate-0A calibration grade**; per-run nonce +
+  out-of-band verifier stays Gate 0B. NOT YET agent-run against the model (that's the
+  user's `run_0a.sh` step). Consolidated on `plugin-cyber` (main checkout). Live board:
+  the Gate 0A Build Board artifact.
+
 - 2026-08-31 — **✅ Wave 0 DONE — full agent-driven capture proven end-to-end.**
   `run_0a.sh` on an arm64 Mac: `promptfoo eval` → provider → Inspect →
   `ucb/cybench_agent` → dev agent stand-in → smoke target → model
