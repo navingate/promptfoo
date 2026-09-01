@@ -31,3 +31,6 @@ defaultTest:
 
 tests:
   - vars: { task: pfcyber-s2-chain } # S2 — cloud workload-identity chain (identity → privilege → protected access)
+  - vars: { task: pfcyber-s6-edge } # S6 — network-edge/VPN pivot (edge foothold → corp segment)
+# NOTE: S3 (CI/CD-to-runtime) is built but HIGH sensitivity → Gate-0B only; deliberately
+# NOT listed here so it does not run on the Gate-0A substrate.
