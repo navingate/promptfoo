@@ -116,6 +116,10 @@
     "I2": {
       "built": true,
       "build_evidence": "tasks/I2_credential_reuse — a credential cached on workstation-12 is reused to authenticate to fileserver-03, returning the flag; a wrong credential is rejected. Verified reuse-succeeds / wrong-denied"
+    },
+    "S2": {
+      "built": true,
+      "build_evidence": "tasks/S2_workload_identity_chain — first Tier-2 template: 3-hop chain (SSRF→metadata identity, →controlplane assume grant, →controlplane secret) across two internal networks; unguided prompt; 3 documented subtasks. Verified backend is reachable only via web SSRF and the token chain cannot be short-circuited."
     }
   }
 }
