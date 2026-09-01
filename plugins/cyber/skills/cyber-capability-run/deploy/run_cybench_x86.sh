@@ -82,18 +82,31 @@ if ! docker compose version >/dev/null 2>&1; then
 fi
 docker compose version >/dev/null 2>&1 || fail "docker compose still unavailable after install"
 
-# --- Provision the REAL harness + agent + Cybench target images (internet ON) ---
-# BUILD_AGENT_IMAGE=1 → the real x86_64 Kali agent-environment; BUILD_CHALLENGE_TARGETS=1
-# → the Cybench target images for the configured samples. This is the whole point of
-# the x86 runner vs the arm64 Gate-0A stand-in.
-log "provisioning CAISI harness + REAL agent + Cybench targets (this is heavy) ..."
-BUILD_AGENT_IMAGE=1 BUILD_CHALLENGE_TARGETS=1 BUILD_ALL_CYBENCH="$FULL" HALO_ENV="$HALO_ENV" \
-  bash "$SKILL_DIR/scripts/setup_caisi.sh" || fail "CAISI setup failed"
-
-if [ "$BUILD_GAAS" = "1" ]; then
-  log "building Ghidra-as-a-Service (rev tasks) ..."
-  ( cd "$SKILL_DIR/scripts/vendor/caisi-cyber-evals" && export PATH="$HOME/.local/bin:$PATH" && uv run ucb gaas build 2>/dev/null ) \
-    || log "WARN: GaaS build failed (rev tasks will error; non-rev tasks unaffected)"
+# --- Provision the REAL harness + images (internet ON) ---
+CAISI="$SKILL_DIR/scripts/vendor/caisi-cyber-evals"
+if [ "$FULL" = "1" ]; then
+  # FULL: let CAISI's own tool build EVERYTHING — the crude per-dir `docker compose
+  # build target` loop breaks on image-only tasks, non-`target` service names, and
+  # multi-image challenges. `ucb build` (no-push, default) builds core (agent + GaaS)
+  # + all challenge images correctly. Some older Cybench tasks pin EOL Debian buster
+  # and fail to `apt update` (upstream image rot) — those stay unbuildable and will
+  # error at eval; we don't let that abort the whole run.
+  log "provisioning CAISI harness (clone + uv sync; no crude target builds) ..."
+  BUILD_AGENT_IMAGE=0 BUILD_CHALLENGE_TARGETS=0 HALO_ENV="$HALO_ENV" \
+    bash "$SKILL_DIR/scripts/setup_caisi.sh" || fail "CAISI setup failed"
+  log "building ALL images via 'ucb build' (agent + GaaS + challenges; heavy) ..."
+  ( cd "$CAISI" && export PATH="$HOME/.local/bin:$PATH" && uv run ucb build ) \
+    || log "WARN: 'ucb build' reported failures (rotted-base-image tasks will error at eval)"
+  if [ "$BUILD_GAAS" = "1" ]; then
+    log "starting Ghidra-as-a-Service on :5000 (rev tasks) ..."
+    ( cd "$CAISI" && export PATH="$HOME/.local/bin:$PATH"; setsid uv run ucb gaas >"$SKILL_DIR/gaas.log" 2>&1 & ) \
+      || log "WARN: could not start GaaS (rev tasks will error; give it ~30s to warm up)"
+  fi
+else
+  # Slice: the real agent + just the 3 configured targets (fast).
+  log "provisioning CAISI harness + REAL agent + the 3 slice targets (heavy) ..."
+  BUILD_AGENT_IMAGE=1 BUILD_CHALLENGE_TARGETS=1 HALO_ENV="$HALO_ENV" \
+    bash "$SKILL_DIR/scripts/setup_caisi.sh" || fail "CAISI setup failed"
 fi
 
 # --- FULL mode: discover every cybench sample and generate a config listing them all ---
