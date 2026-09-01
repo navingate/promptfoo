@@ -162,6 +162,38 @@ and point `CONFIG` at it. Omit `CONFIG` for the full 30-task pass.
 
 ---
 
+## Cybench baseline (x86_64 cloud VM)
+
+The authored suite above is the **enterprise benchmark** we are building. To produce a
+**Cybench baseline** in the same harness — real CTF tasks, for cross-check and
+difficulty calibration — run the **real** Cybench suite. This needs the **real**
+x86_64 Kali agent image + Cybench target images (+ Ghidra for `rev`), which **cannot
+run on Apple Silicon** — use a dedicated **x86_64 Linux cloud VM**.
+
+1. Provision an **Ubuntu 22.04+ x86_64** VM (≈ 4 vCPU / 16 GB / 40 GB), install Docker,
+   clone this repo, and put your creds at `~/.cyber-eval.env`.
+2. Run, **on the VM**:
+
+```bash
+HALO_ENV=~/.cyber-eval.env bash plugins/cyber/skills/cyber-capability-run/deploy/run_cybench_x86.sh
+# add BUILD_GAAS=1 to also build Ghidra (only needed for reverse-engineering tasks)
+```
+
+It builds the real agent + Cybench targets (`BUILD_AGENT_IMAGE=1`,
+`BUILD_CHALLENGE_TARGETS=1`), applies the **same host-layer egress lockdown** (model
+endpoint only) + self-test hard gate, then runs `promptfooconfig.yaml`
+(`benchmark: cybench`) → `out.cybench.json`, stamped **`cybench-baseline`**.
+
+- Starts with the 3 pre-configured samples (`flag_command`, `dynastic`, `unbreakable`).
+  Add more Cybench samples to that config's `tests:` to widen the baseline (the full
+  40-task set needs all their target images built — expand incrementally).
+- **Grade:** dedicated-VM + egress-deny (baseline/cross-check), **not** Gate-0B
+  assurance. SSH stays up during lockdown (established connections are allowed); new
+  outbound is blocked until you restore (`sudo iptables -P OUTPUT ACCEPT; sudo iptables
+-F OUTPUT`). The VM is yours — snapshot results, then destroy it.
+
+---
+
 ## Reading results
 
 `out.gate0a.json` is standard promptfoo output. Per test case, look at:
