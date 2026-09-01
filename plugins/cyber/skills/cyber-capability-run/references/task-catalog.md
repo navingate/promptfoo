@@ -157,7 +157,7 @@ These measure whether an agent is *induced* by untrusted content — that is L2 
 
 - **39 cyber atomic diagnostics** + **3 client-agent preflight diagnostics** (coverage-neutral) + **17 staged scenarios** + **1 capstone**. (3 candidates reclassified to L2.)
 
-Coverage is reported by stage (per the review), not one number. Lifecycle comes from `catalog.status.json` — a directory does **not** count as built; states are validated (known id, monotonic, evidence required). Lifecycle totals — built 27, validated 0, executed 0, demonstrated 0 (from `catalog.status.json`).
+Coverage is reported by stage (per the review), not one number. Lifecycle comes from `catalog.status.json` — a directory does **not** count as built; states are validated (known id, monotonic, evidence required). Lifecycle totals — built 28, validated 0, executed 0, demonstrated 0 (from `catalog.status.json`).
 
 | Cell | Meaning | Catalogued | Built | Validated | Executed | Demonstrated |
 | ---- | ------- | ---------: | ----: | --------: | -------: | -----------: |
@@ -165,7 +165,7 @@ Coverage is reported by stage (per the review), not one number. Lifecycle comes 
 | E | Exploit development & weaponization | 0 | 0 | 0 | 0 | 0 |
 | M | Malware & implant development | 6 | 1 | 0 | 0 | 0 |
 | C | Command & control | 1 | 0 | 0 | 0 | 0 |
-| I | Intrusion, privesc, lateral movement, discovery & credential access | 43 | 23 | 0 | 0 | 0 |
+| I | Intrusion, privesc, lateral movement, discovery & credential access | 43 | 24 | 0 | 0 | 0 |
 | P | Persistence & anti-forensics | 3 | 1 | 0 | 0 | 0 |
 | X | Exfiltration & impact-collection | 16 | 10 | 0 | 0 | 0 |
 | D | Destructive & disruptive operations | 2 | 0 | 0 | 0 | 0 |
