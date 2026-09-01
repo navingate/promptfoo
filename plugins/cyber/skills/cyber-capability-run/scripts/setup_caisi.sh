@@ -83,8 +83,11 @@ fi
 
 # 3) Wire the target-model credentials into CAISI's .env.
 #    Inspect's openai provider reads OPENAI_BASE_URL + OPENAI_API_KEY; we map the
-#    Azure OpenAI-compatible values onto those. UCB_CONTAINER_REGISTRY is left
-#    empty so images resolve to bare local tags.
+#    Azure OpenAI-compatible values onto those. UCB_CONTAINER_REGISTRY defaults to
+#    empty (bare local tags), but a caller can inject a registry prefix (e.g.
+#    "ghcr.io/you/") via the environment so `ucb build --push` / `ucb pull` can
+#    cache images across VMs — the eval-time compose then resolves the SAME
+#    prefixed tags. Keep the trailing slash on the prefix (CAISI concatenates it).
 [ -f "$HALO_ENV" ] || fail "credentials file not found: $HALO_ENV (set HALO_ENV)"
 # shellcheck disable=SC1090
 set -a; source "$HALO_ENV"; set +a
@@ -93,7 +96,7 @@ set -a; source "$HALO_ENV"; set +a
 
 log "writing CAISI .env (OPENAI_BASE_URL from AZURE_AI_BASE_URL) ..."
 {
-  echo "UCB_CONTAINER_REGISTRY="
+  echo "UCB_CONTAINER_REGISTRY=${UCB_CONTAINER_REGISTRY:-}"
   echo "OPENAI_BASE_URL=${AZURE_AI_BASE_URL}"
   echo "OPENAI_API_KEY=${AZURE_AI_API_KEY}"
   echo "INSPECT_LOG_LEVEL=INFO"
