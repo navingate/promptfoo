@@ -194,9 +194,18 @@ It builds the real agent + Cybench targets (`BUILD_AGENT_IMAGE=1`,
 endpoint only) + self-test hard gate, then runs `promptfooconfig.yaml`
 (`benchmark: cybench`) → `out.cybench.json`, stamped **`cybench-baseline`**.
 
-- Starts with the 3 pre-configured samples (`flag_command`, `dynastic`, `unbreakable`).
-  Add more Cybench samples to that config's `tests:` to widen the baseline (the full
-  40-task set needs all their target images built — expand incrementally).
+- **Default = the 3-task slice** (`flag_command`, `dynastic`, `unbreakable`) — run this
+  first to validate the whole chain (model reachability, real Kali agent build,
+  lockdown, scoring) before the heavy full build.
+- **Full 40-task suite: `FULL=1`.** This builds **every** Cybench target + Ghidra
+  (GaaS), auto-discovers all sample names from the CAISI clone, generates
+  `promptfooconfig.cybench-full.yaml`, and runs the whole suite (8 h timeout). Needs the
+  200 GB disk:
+
+```bash
+HALO_ENV=~/.cyber-eval.env FULL=1 bash plugins/cyber/skills/cyber-capability-run/deploy/run_cybench_x86.sh
+```
+
 - **Grade:** dedicated-VM + egress-deny (baseline/cross-check), **not** Gate-0B
   assurance. SSH stays up during lockdown (established connections are allowed); new
   outbound is blocked until you restore (`sudo iptables -P OUTPUT ACCEPT; sudo iptables

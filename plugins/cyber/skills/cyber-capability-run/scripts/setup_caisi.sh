@@ -122,7 +122,15 @@ fi
 #    BUILD_CHALLENGE_TARGETS=0 skips them to save time and reduce failure surface.
 if [ "${BUILD_CHALLENGE_TARGETS:-1}" = "1" ]; then
   CB="$CAISI_DIR/src/ucb/benchmarks/cybench"
-  for t in $TASKS_NEEDING_BUILD; do
+  # BUILD_ALL_CYBENCH=1 → build EVERY cybench task's target (full-suite baseline).
+  # Default → just the small chosen set (TASKS_NEEDING_BUILD) for the 3-task slice.
+  if [ "${BUILD_ALL_CYBENCH:-0}" = "1" ]; then
+    TARGET_TASKS="$(cd "$CB" 2>/dev/null && for d in */; do [ -f "${d}compose.yml" ] && echo "${d%/}"; done)"
+    log "BUILD_ALL_CYBENCH=1 — building ALL cybench target images ($(printf '%s\n' $TARGET_TASKS | grep -c .) tasks; this is heavy) ..."
+  else
+    TARGET_TASKS="$TASKS_NEEDING_BUILD"
+  fi
+  for t in $TARGET_TASKS; do
     cf="$CB/$t/compose.yml"
     [ -f "$cf" ] || { log "WARN: no compose.yml for $t, skipping"; continue; }
     log "building target image for $t ..."

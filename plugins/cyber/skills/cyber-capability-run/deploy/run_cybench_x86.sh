@@ -24,9 +24,12 @@ set -uo pipefail
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 SKILL_DIR="$(cd "$SCRIPT_DIR/.." && pwd)"
 HALO_ENV="${HALO_ENV:-$HOME/.cyber-eval.env}"
-CONFIG="${CONFIG:-promptfooconfig.yaml}"          # the cybench suite
-BUILD_GAAS="${BUILD_GAAS:-0}"                      # 1 = build Ghidra-as-a-Service (rev tasks)
-TIMEOUT_SECS="${TIMEOUT_SECS:-7200}"              # real CTFs are slow; 2h default
+# FULL=1 → build EVERY cybench target + GaaS and run the whole suite (auto-generates
+# a config listing every discovered sample). Default runs the 3-task slice.
+FULL="${FULL:-0}"
+CONFIG="${CONFIG:-promptfooconfig.yaml}"          # the cybench suite (slice); FULL overrides
+BUILD_GAAS="${BUILD_GAAS:-$FULL}"                 # full run needs Ghidra for the rev tasks
+TIMEOUT_SECS="${TIMEOUT_SECS:-$([ "$FULL" = 1 ] && echo 28800 || echo 7200)}"  # 8h full / 2h slice
 
 log() { printf '[cybench] %s\n' "$*"; }
 fail() { printf '[cybench][BLOCKER] %s\n' "$*" >&2; exit 1; }
@@ -71,13 +74,31 @@ export PATH="$HOME/.local/bin:$PATH"
 # → the Cybench target images for the configured samples. This is the whole point of
 # the x86 runner vs the arm64 Gate-0A stand-in.
 log "provisioning CAISI harness + REAL agent + Cybench targets (this is heavy) ..."
-BUILD_AGENT_IMAGE=1 BUILD_CHALLENGE_TARGETS=1 HALO_ENV="$HALO_ENV" bash "$SKILL_DIR/scripts/setup_caisi.sh" \
-  || fail "CAISI setup failed"
+BUILD_AGENT_IMAGE=1 BUILD_CHALLENGE_TARGETS=1 BUILD_ALL_CYBENCH="$FULL" HALO_ENV="$HALO_ENV" \
+  bash "$SKILL_DIR/scripts/setup_caisi.sh" || fail "CAISI setup failed"
 
 if [ "$BUILD_GAAS" = "1" ]; then
   log "building Ghidra-as-a-Service (rev tasks) ..."
   ( cd "$SKILL_DIR/scripts/vendor/caisi-cyber-evals" && export PATH="$HOME/.local/bin:$PATH" && uv run ucb gaas build 2>/dev/null ) \
     || log "WARN: GaaS build failed (rev tasks will error; non-rev tasks unaffected)"
+fi
+
+# --- FULL mode: discover every cybench sample and generate a config listing them all ---
+if [ "$FULL" = "1" ]; then
+  CB="$SKILL_DIR/scripts/vendor/caisi-cyber-evals/src/ucb/benchmarks/cybench"
+  FULLCFG="$SKILL_DIR/scripts/promptfooconfig.cybench-full.yaml"
+  # Reuse the cybench config's provider block (model/timeouts/etc.), swap in all samples.
+  awk '/^tests:/{exit} {print}' "$SKILL_DIR/scripts/promptfooconfig.yaml" > "$FULLCFG"
+  echo "tests:" >> "$FULLCFG"
+  n=0
+  for f in "$CB"/*/eval.yaml "$CB"/*/eval.yml; do
+    [ -f "$f" ] || continue
+    name="$(awk -F: '/^name:/{gsub(/[[:space:]"'"'"']/,"",$2); print $2; exit}' "$f")"
+    [ -n "$name" ] && { printf '  - vars: { task: %s }\n' "$name" >> "$FULLCFG"; n=$((n+1)); }
+  done
+  [ "$n" -gt 0 ] || fail "no cybench samples found under $CB (unexpected clone/build layout)"
+  log "FULL: generated $(basename "$FULLCFG") with $n samples"
+  CONFIG="promptfooconfig.cybench-full.yaml"
 fi
 
 # --- Pin the model host, then lock egress down to it only ---
