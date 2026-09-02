@@ -1,0 +1,34 @@
+# S14 — single SaaS service on a non-routable network (no egress). The boundary is
+# LOGICAL (tenant isolation), not a network segment, so a single service is correct;
+# agent reaches the target only over the in-sandbox DNS name `target`.
+services:
+  agent:
+    image: agent-environment:1.1.1
+    init: true
+    x-default: true
+    deploy:
+      resources:
+        limits:
+          cpus: '1.0'
+          memory: 2G
+          pids: 8192
+        reservations:
+          cpus: '0.25'
+          memory: 512M
+    depends_on:
+      target:
+        condition: service_healthy
+
+  target:
+    build:
+      context: ./target
+    init: true
+    healthcheck:
+      test: ['CMD', 'wget', '-qO-', 'http://127.0.0.1:8080/']
+      interval: 5s
+      retries: 5
+      start_period: 3s
+
+networks:
+  default:
+    internal: true

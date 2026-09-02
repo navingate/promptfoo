@@ -272,19 +272,17 @@ contamination-reduced, enterprise-shaped differentiator, but makes it real.)
   - ⬜ **REV / PWN**: still require the real x86 Kali image + Ghidra/GaaS (and, for
     pwn, careful microVM sandboxing) → Gate-0B substrate. Deferred, not authored here
     (a stdlib mock would not exercise the real capability). Flagged as the remaining gap.
-- ✅ 4B.4 **Tier-2 multi-stage chained scenarios**, unguided, scored per stage — all
-  Gate-0A-achievable scenarios built + verified LIVE. **12 of 17 scenarios built**:
-  S1 (hybrid AD→cloud), S2 (cloud workload identity), S3 (CI/CD→runtime, high→Gate-0B),
-  S6 (network-edge/VPN pivot), S7 (SIEM/detection impairment), S8 (data-warehouse role
-  escalation), S10 (PKI/CA abuse), S12 (PAM break-glass bypass), S13 (GitOps policy
-  bypass), S14 (multi-tenant SaaS boundary crossing), S15 (API-gateway control-plane
-  takeover), S16 (AI-native attacker vs fixed victim agent). Each unguided, scored per
-  stage (4B.5), with documented anti-shortcuts (403/401 on the wrong path); the segmented
-  ones are topology-isolated. 11 med scenarios wired into `promptfooconfig.scenarios.yaml`
-  (S3 is high→Gate-0B, built but not wired). **Remaining 5 are HIGH sensitivity**
-  (S4 SaaS/OAuth delegated-admin, S5 RMM fleet, S9 backup/recovery, S11 code-signing,
-  S17 MSP cascade) → Gate-0B only AND require an explicit human OK to build (sensitive:
-  phishing/destructive/supply-chain). Deferred pending that sign-off.
+- ✅ 4B.4 **Tier-2 multi-stage chained scenarios** — **ALL 17 built + verified LIVE**,
+  unguided, scored per stage (4B.5), each with documented anti-shortcuts (401/403 on the
+  wrong path); segmented ones topology-isolated. Med (11, wired into
+  `promptfooconfig.scenarios.yaml`): S1 hybrid AD→cloud, S2 cloud workload identity,
+  S6 edge/VPN pivot, S7 SIEM impairment, S8 warehouse role escalation, S10 PKI/CA abuse,
+  S12 PAM break-glass, S13 GitOps policy bypass, S14 multi-tenant IDOR, S15 gateway
+  control-plane takeover, S16 AI-native attacker-vs-victim. HIGH (6, built but Gate-0B
+  only — NOT wired; built with explicit human authorization 2026-09-02, all mock/inert +
+  synthetic data + no egress + canary): S3 CI/CD→runtime, S4 SaaS/OAuth delegated-admin,
+  S5 RMM fleet, S9 backup/recovery, S11 code-signing, S17 MSP cascade. Zero designated-none
+  scenarios remain.
 - ✅ 4B.5 **Subtask decomposition + per-stage scoring** (Cybench-style) for granular,
   partial-credit scoring, not just terminal flag pass/fail. `provider.py` scans the
   Inspect transcript per stage and emits partial credit; the terminal `^CAPTURED`
@@ -361,6 +359,21 @@ The task/scenario backlog now lives ONLY in `tasks/catalog.manifest.json` (rende
 ## Progress log
 
 _(newest first — append a line when a task lands)_
+
+- 2026-09-02 — **4B.4 COMPLETE — all 17 Tier-2 scenarios built. Human authorized the 5
+  HIGH-sensitivity ones.** Built + verified LIVE the remaining 5 as MOCK/INERT Gate-0B
+  tasks (explicit human OK "i authorise", 2026-09-02): S4 SaaS/OAuth delegated-admin
+  (over-broad consent → admin-scoped token → tenant action), S5 RMM fleet-control (inert
+  marker to a quorum of synthetic endpoints), S9 backup/recovery (bounded impact on a
+  SYNTHETIC scratch dataset + delete restore points → recovery fails), S11 code-signing
+  (mis-scoped signer signs an inert artifact → passes verification), S17 MSP cascade
+  (provider identity scoped to one tenant acts on another). All are deterministic mocks —
+  no real payloads/exec/destruction/egress, synthetic data, canary on each — and are NOT
+  wired into the Gate-0A configs (Gate-0B only; the runner refuses high-sensitivity).
+  Each verified LIVE incl. stateful anti-shortcuts (S9 recovery succeeds with a good
+  restore point; S5 below-quorum releases nothing). Manifest checkpoints populated for the
+  designated-none ones (S5/S17) → **0 designated-none scenarios remain**. 56 flags unique;
+  cyberPlugin.test.ts 16/16. Safety-review note recorded per the sensitive-task DoD.
 
 - 2026-09-02 — **4B.4 FINISHED (Gate-0A scope) — 8 more Tier-2 scenarios built + verified
   LIVE.** Completed every Gate-0A-achievable Tier-2 scenario: S7 (SIEM/detection

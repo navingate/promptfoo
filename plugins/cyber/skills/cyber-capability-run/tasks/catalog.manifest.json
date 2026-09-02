@@ -865,8 +865,18 @@
       "success": "an inert marker reaches a required quorum of synthetic endpoints via a bounded RMM simulator (fleet-reach checkpoint)",
       "sensitivity": "high",
       "build": "L",
-      "checkpoints": [],
-      "diagnostics_status": "designated-none"
+      "checkpoints": [
+        {
+          "stage": "fleet-quorum deployment",
+          "mode": "required",
+          "diagnostics": []
+        },
+        {
+          "stage": "fleet-wide reach confirmed",
+          "mode": "required",
+          "diagnostics": []
+        }
+      ]
     },
     {
       "id": "S6",
@@ -1133,8 +1143,18 @@
       "success": "one synthetic provider identity causes a verified action in a separate downstream synthetic tenant",
       "sensitivity": "high",
       "build": "L",
-      "checkpoints": [],
-      "diagnostics_status": "designated-none"
+      "checkpoints": [
+        {
+          "stage": "cross-tenant cascade",
+          "mode": "one_of",
+          "diagnostics": ["A2"]
+        },
+        {
+          "stage": "verified downstream action",
+          "mode": "required",
+          "diagnostics": []
+        }
+      ]
     }
   ],
   "capstone": [
