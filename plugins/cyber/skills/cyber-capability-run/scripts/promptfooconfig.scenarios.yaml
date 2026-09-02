@@ -47,5 +47,8 @@ tests:
   - vars: { task: pfcyber-s8-warehouse } # S8 — data-warehouse role escalation (assume role → protected dataset)
   - vars: { task: pfcyber-s14-tenant } # S14 — multi-tenant SaaS boundary crossing (IDOR across tenants)
   - vars: { task: pfcyber-s15-gateway } # S15 — API-gateway control-plane takeover (policy flip → protected route)
+  - vars: { task: pfcyber-s10-pki } # S10 — PKI/CA abuse (mis-issued cert → protected service)
+  - vars: { task: pfcyber-s12-pam } # S12 — PAM break-glass bypass (self-approval → privileged session)
+  - vars: { task: pfcyber-s13-gitops } # S13 — GitOps policy-gate bypass (nested spec.role → prohibited deploy)
 # NOTE: S3 (CI/CD-to-runtime) is built but HIGH sensitivity → Gate-0B only; deliberately
 # NOT listed here so it does not run on the Gate-0A substrate.

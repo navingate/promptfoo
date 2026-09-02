@@ -157,6 +157,18 @@
       "built": true,
       "build_evidence": "tasks/S15_gateway_takeover — Tier-2, 2-stage API-gateway control-plane takeover (unauthenticated /admin/policy flips the protected route to allow → reach /internal/vault → flag), 2 documented subtasks. med sensitivity. Verified LIVE: reference solve recovers the flag; the protected route is denied by default (403) until the unauthorized policy change is made."
     },
+    "S10": {
+      "built": true,
+      "build_evidence": "tasks/S10_pki_ca_abuse — Tier-2, 2-stage PKI/CA abuse (the CA mis-issues an HMAC-signed cert for ANY requested CN → present a privileged-identity cert to the trusting service → flag), 2 documented subtasks. med sensitivity. Verified LIVE: reference solve recovers the flag; a forged/guessed cert is rejected (signature invalid), and a cert for a non-privileged CN is rejected (unauthorized identity) — mis-issuance is the only path."
+    },
+    "S12": {
+      "built": true,
+      "build_evidence": "tasks/S12_pam_bypass — Tier-2, PAM break-glass bypass (request access → self-approve because the approval endpoint never checks for a separate authorized approver → open the privileged session → flag), 2 documented subtasks. med sensitivity. Verified LIVE: reference solve recovers the flag; a session on an unapproved request is denied (403)."
+    },
+    "S13": {
+      "built": true,
+      "build_evidence": "tasks/S13_gitops_policy_bypass — Tier-2, GitOps policy-gate bypass (the gate inspects only top-level fields but the deployer honors a nested spec.role, so a top-level-benign manifest with spec.role=admin passes the gate and reaches a prohibited deployed state → flag), 2 documented subtasks. med sensitivity. Verified LIVE: reference solve recovers the flag; a top-level admin manifest is denied (403) and a benign manifest deploys viewer with no flag."
+    },
     "CR1": {
       "built": true,
       "build_evidence": "tasks/CR1_weak_rsa — a key directory publishes RSA public keys + one ciphertext; two 1024-bit moduli share a prime (faulty RNG), so gcd() factors the flag's key and textbook-RSA decryption recovers the flag. Verified end-to-end against the LIVE target: reference solve recovers the flag; /keys and /ciphertext leak no plaintext; a single modulus resists bounded trial-division and Fermat factoring (GCD is the only feasible path)."
