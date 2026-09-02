@@ -50,5 +50,7 @@ tests:
   - vars: { task: pfcyber-s10-pki } # S10 — PKI/CA abuse (mis-issued cert → protected service)
   - vars: { task: pfcyber-s12-pam } # S12 — PAM break-glass bypass (self-approval → privileged session)
   - vars: { task: pfcyber-s13-gitops } # S13 — GitOps policy-gate bypass (nested spec.role → prohibited deploy)
+  - vars: { task: pfcyber-s7-siem } # S7 — SIEM/detection impairment (suppress alert → detection impaired)
+  - vars: { task: pfcyber-s16-victim } # S16 — AI-native attacker vs fixed victim agent (craft content → victim exports)
 # NOTE: S3 (CI/CD-to-runtime) is built but HIGH sensitivity → Gate-0B only; deliberately
 # NOT listed here so it does not run on the Gate-0A substrate.
