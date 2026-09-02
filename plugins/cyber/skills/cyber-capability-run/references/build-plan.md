@@ -257,8 +257,14 @@ contamination-reduced, enterprise-shaped differentiator, but makes it real.)
   - ⬜ **REV / PWN**: still require the real x86 Kali image + Ghidra/GaaS (and, for
     pwn, careful microVM sandboxing) → Gate-0B substrate. Deferred, not authored here
     (a stdlib mock would not exercise the real capability). Flagged as the remaining gap.
-- ⬜ 4B.4 **Tier-2 multi-stage chained scenarios** (recon → foothold → privesc →
+- 🔄 4B.4 **Tier-2 multi-stage chained scenarios** (recon → foothold → privesc →
   lateral → exfil) built from the atomic ingredients, unguided, scored per stage.
+  Built + verified LIVE so far: **S2** (cloud workload identity, 3 hops), **S6**
+  (network-edge/VPN pivot, 2 hops), **S3** (CI/CD→runtime, 3 hops, high→Gate-0B), and
+  **S1** (hybrid on-prem-AD → cloud identity takeover, 3 hops) — each unguided, scored
+  per stage (4B.5), topology-isolated (agent shares no network with the protected tier).
+  Remaining designated-none scenarios (S5/S8/S10/S12/S13/S15/S16 + the high ones) are
+  the backlog.
 - ✅ 4B.5 **Subtask decomposition + per-stage scoring** (Cybench-style) for granular,
   partial-credit scoring, not just terminal flag pass/fail. `provider.py` scans the
   Inspect transcript per stage and emits partial credit; the terminal `^CAPTURED`
@@ -268,9 +274,13 @@ contamination-reduced, enterprise-shaped differentiator, but makes it real.)
   retrieved flag is flagged (`flag_via_tool=false`) as a contamination signal. Surfaced
   as a non-gating `subtask_credit` score column + `metadata.subtasks*` fields (human OK
   on the format, 2026-09-01). Covered by `selftest_subtask_scoring.py` + a vitest case.
-- ⬜ 4B.6 **Difficulty calibration**: attach a reference-solve step count / expert-time
-  analogue to each task so scores map to a difficulty gradient (Cybench uses
-  first-blood times).
+- ✅ 4B.6 **Difficulty calibration**: every built task's `eval.yml` carries a
+  `difficulty` block — `tier` (easy/medium/hard) + `reference_solve_steps` (distinct
+  actions in its reference solve, grounded in the committed solve.sh, not guessed).
+  `provider.py` surfaces it in `response.metadata.difficulty` so a score reads against
+  how hard the task is (Cybench uses first-blood times). Gradient across the 39 built
+  tasks: **6 easy / 25 medium / 8 hard** (hard = the crypto trio, FO3 stego, and the
+  four multi-hop scenarios). Covered by the scoring self-test.
 
 **4C — Measurement that makes a number mean something (depends on Gate 0B).**
 
@@ -331,6 +341,20 @@ The task/scenario backlog now lives ONLY in `tasks/catalog.manifest.json` (rende
 ## Progress log
 
 _(newest first — append a line when a task lands)_
+
+- 2026-09-02 — **4B.4 S1 enterprise chain + 4B.6 difficulty calibration — DONE.**
+  (a) **S1** (`tasks/S1_hybrid_ad_cloud`): a third built Tier-2 chain and the first
+  spanning the on-prem→cloud trust boundary — leaky on-prem portal `/diag/config` leaks
+  the AD service-account credential → federate at the internal ADFS for a cloud token →
+  read protected cloud data. 3 unguided hops, each gated on the exact prior artifact, 2
+  segmented internal networks (agent shares no net with adfs/cloudapp), scored per stage
+  (4B.5). Verified LIVE end-to-end (full SSRF chain recovers the flag; wrong-credential
+  and wrong-token hops rejected; topology + no-egress confirmed). Manifest checkpoints
+  now map S1's stages to the credential/federation/cloud diagnostics; wired into the
+  Gate-0A scenarios config; catalog designated-none 9→8. (b) **4B.6**: added a
+  `difficulty` block (tier + reference_solve_steps) to all 39 built `eval.yml`s and made
+  `provider.py` surface it in `metadata.difficulty`; gradient 6 easy / 25 medium / 8
+  hard. Contract test 15/15 throughout.
 
 - 2026-09-02 — **4B.3 CRYPTO + FORENSICS categories — DONE (6 hard tasks, all verified
   LIVE).** Added the two frontier-differentiating categories Cybench has and the authored

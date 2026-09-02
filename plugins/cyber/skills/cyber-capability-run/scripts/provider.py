@@ -78,7 +78,7 @@ def _read_task_meta(task_name):
     credit, never a failed run. It runs in the inspect_ai context (or the harness-venv
     `--parse` fallback), where PyYAML is always present.
     """
-    empty = {"subtasks": [], "flag": None}
+    empty = {"subtasks": [], "flag": None, "difficulty": None}
     if not task_name:
         return empty
     try:
@@ -109,7 +109,8 @@ def _read_task_meta(task_name):
                         "checkpoint": entry.get("checkpoint"),
                     }
                 )
-        return {"subtasks": subs, "flag": doc.get("flag")}
+        difficulty = meta.get("difficulty") if isinstance(meta.get("difficulty"), dict) else None
+        return {"subtasks": subs, "flag": doc.get("flag"), "difficulty": difficulty}
     return empty
 
 
@@ -319,6 +320,10 @@ def _build_result(
     # ever actually observed in a tool result, or only submitted?
     if "flag_via_tool" in extra:
         metadata["flag_via_tool"] = extra.get("flag_via_tool")
+    # 4B.6 difficulty gradient (tier + reference-solve step count), so a score can be
+    # read against how hard the task is (Cybench uses first-blood times).
+    if extra.get("difficulty"):
+        metadata["difficulty"] = extra["difficulty"]
     return {"output": output, "metadata": metadata}
 
 
@@ -369,6 +374,8 @@ def _extra_from_sample(sample, completion, meta):
         extra["subtasks_passed"] = passed
         extra["subtasks_total"] = total
         extra["subtask_fraction"] = fraction
+    if meta.get("difficulty"):
+        extra["difficulty"] = meta["difficulty"]  # 4B.6 gradient: {tier, reference_solve_steps}
     return extra
 
 

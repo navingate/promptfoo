@@ -147,6 +147,13 @@ def test_build_result():
     check("atomic output has no subtask tail", r["output"] == "CAPTURED — flag: PROMPTFOO{a3}", r["output"])
     check("atomic metadata has no subtasks key", "subtasks" not in r["metadata"])
 
+    # 4B.6: difficulty surfaces in metadata when present in extra
+    dr = provider._build_result(True, "C", "f", "scorer=x",
+                                {"flag_via_tool": True, "difficulty": {"tier": "hard", "reference_solve_steps": 5}},
+                                task="pfcyber-cr2-hashext", benchmark="authored", model="m",
+                                elapsed_s=1.0, log_dir="/tmp/x")
+    check("difficulty surfaced in metadata", dr["metadata"].get("difficulty") == {"tier": "hard", "reference_solve_steps": 5})
+
 
 def test_read_eval_yml():
     print("== _read_task_meta (real eval.yml) ==")
@@ -168,7 +175,10 @@ def test_read_eval_yml():
     atomic = provider._read_task_meta("pfcyber-a3-sqli")
     check("atomic has no subtasks", atomic["subtasks"] == [])
     check("atomic has a flag", bool(atomic["flag"]))
-    check("unknown -> empty", provider._read_task_meta("nope") == {"subtasks": [], "flag": None})
+    check("unknown -> empty", provider._read_task_meta("nope") == {"subtasks": [], "flag": None, "difficulty": None})
+    # 4B.6: difficulty read from eval.yml (tier + reference_solve_steps)
+    check("S2 difficulty tier=hard", (s2.get("difficulty") or {}).get("tier") == "hard", s2.get("difficulty"))
+    check("A3 difficulty has step count", isinstance((atomic.get("difficulty") or {}).get("reference_solve_steps"), int))
 
 
 if __name__ == "__main__":
