@@ -88,7 +88,7 @@ make_cybench_bdir() {
 }
 
 # Does `ucb <subcommand>` accept <flag> in this CAISI version? Lets us adapt to CLI
-# drift (e.g. --push / --benchmarks-dir presence) instead of hard-coding flag shapes.
+# drift (e.g. whether `build` supports --push) instead of hard-coding flag shapes.
 # Only call AFTER setup_caisi.sh has provisioned the venv.
 ucb_has_flag() {
   ( cd "$CAISI" && export PATH="$HOME/.local/bin:$PATH" && uv run ucb "$1" --help 2>&1 | grep -q -- "$2" )
@@ -171,7 +171,9 @@ if [ "$PHASE" = "provision" ]; then
     log "WARN: this CAISI 'ucb build' has no --push flag — images will build locally only (no registry push). Update the CAISI clone or push manually."
   fi
   log "building agent + GaaS + all CYBENCH challenge images and pushing to ${UCB_REGISTRY} (heavy) ..."
-  ( cd "$CAISI" && export PATH="$HOME/.local/bin:$PATH" UCB_CONTAINER_REGISTRY="$REG" && uv run ucb build $PUSH --benchmarks-dir "$BDIR" ) \
+  # --benchmarks-dir is a TOP-LEVEL flag (usage: `ucb [--benchmarks-dir X] {build,pull,...}`),
+  # so it MUST come before the subcommand; --push is a build-subcommand option (after `build`).
+  ( cd "$CAISI" && export PATH="$HOME/.local/bin:$PATH" UCB_CONTAINER_REGISTRY="$REG" && uv run ucb --benchmarks-dir "$BDIR" build $PUSH ) \
     || log "WARN: 'ucb build --push' reported failures (rotted-base-image tasks won't build/push; the rest still cached)"
   rm -rf "$BDIR"
   log "PROVISION done. On the (locked) eval VM run:"
@@ -199,9 +201,8 @@ if [ "$FULL" = "1" ]; then
     # rebuilding from scratch. Matches how the labs run it — build once, reuse.
     log "pulling prebuilt cybench images from ${REG} (before lockdown) ..."
     log "NOTE: 'docker login ${REG%%/*}' must have succeeded for a private registry, or the pull fails with an auth error."
-    PULLARGS=""
-    ucb_has_flag pull --benchmarks-dir && PULLARGS="--benchmarks-dir $BDIR"
-    ( cd "$CAISI" && export PATH="$HOME/.local/bin:$PATH" UCB_CONTAINER_REGISTRY="$REG" && uv run ucb pull $PULLARGS ) \
+    # --benchmarks-dir is a TOP-LEVEL flag and must precede the subcommand.
+    ( cd "$CAISI" && export PATH="$HOME/.local/bin:$PATH" UCB_CONTAINER_REGISTRY="$REG" && uv run ucb --benchmarks-dir "$BDIR" pull ) \
       || log "WARN: 'ucb pull' reported failures (some tasks may lack images and will error at eval)"
     # Sanity gate: if NOTHING from the registry landed, the pull did not work — refuse to
     # lock down and waste hours on a doomed run. Match by registry HOST (robust to any
@@ -222,7 +223,8 @@ if [ "$FULL" = "1" ]; then
   else
     # No registry: build all cybench images locally (the original from-scratch path).
     log "building agent + GaaS + all CYBENCH challenge images via 'ucb build' (heavy) ..."
-    ( cd "$CAISI" && export PATH="$HOME/.local/bin:$PATH" && uv run ucb build --benchmarks-dir "$BDIR" ) \
+    # --benchmarks-dir is a TOP-LEVEL flag and must precede the subcommand.
+    ( cd "$CAISI" && export PATH="$HOME/.local/bin:$PATH" && uv run ucb --benchmarks-dir "$BDIR" build ) \
       || log "WARN: 'ucb build' reported failures (rotted-base-image tasks will error at eval)"
   fi
   rm -rf "$BDIR"
