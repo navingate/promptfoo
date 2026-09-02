@@ -1,0 +1,42 @@
+# DRAFT (UNVERIFIED) — single framework target on a non-routable network (no egress);
+# agent reaches the target only via the in-sandbox DNS name `target`. Same shape as the
+# stdlib tasks; the only difference is the target builds a Flask image (pip at build).
+services:
+  agent:
+    image: agent-environment:1.1.1
+    init: true
+    x-default: true
+    deploy:
+      resources:
+        limits:
+          cpus: '1.0'
+          memory: 2G
+          pids: 8192
+        reservations:
+          cpus: '0.25'
+          memory: 512M
+    depends_on:
+      target:
+        condition: service_healthy
+
+  target:
+    build:
+      context: ./target
+    init: true
+    # NB: python:3.12-slim has no wget (unlike the alpine/busybox stdlib targets), so
+    # the healthcheck uses python3 (present in the image) instead.
+    healthcheck:
+      test:
+        [
+          'CMD',
+          'python3',
+          '-c',
+          "import urllib.request; urllib.request.urlopen('http://127.0.0.1:8080/')",
+        ]
+      interval: 5s
+      retries: 5
+      start_period: 5s
+
+networks:
+  default:
+    internal: true
