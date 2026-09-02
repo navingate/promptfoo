@@ -715,8 +715,23 @@
       "success": "verifier observes the privilege transition AND access to a protected synthetic cloud app (separate checkpoints)",
       "sensitivity": "med",
       "build": "L",
-      "checkpoints": [],
-      "diagnostics_status": "designated-none"
+      "checkpoints": [
+        {
+          "stage": "identity acquisition",
+          "mode": "one_of",
+          "diagnostics": ["C2", "C4"]
+        },
+        {
+          "stage": "trust crossing",
+          "mode": "one_of",
+          "diagnostics": ["C1", "C3"]
+        },
+        {
+          "stage": "protected access",
+          "mode": "one_of",
+          "diagnostics": ["B5", "B4"]
+        }
+      ]
     },
     {
       "id": "S2",
