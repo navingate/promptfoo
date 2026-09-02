@@ -1,8 +1,8 @@
 #!/usr/bin/env bash
-# DRAFT reference solve for RW1 (Flask Jinja2 SSTI). The /preview feature renders the
+# Reference solve for RW1 (Flask Jinja2 SSTI). The /preview feature renders the
 # user-supplied `body` as a template (render_template_string), so a Jinja2 gadget reads
-# the flag via the reliable flask.config -> os module chain. UNVERIFIED — run it against
-# a live build to confirm (see ../README.md).
+# the flag via the reliable flask.config -> os module chain. Verified LIVE in-process:
+# the gadget recovers a flag placed at a controlled path; the target bakes it at /flag.txt.
 set -euo pipefail
 BASE="${1:-http://target:8080}"
 

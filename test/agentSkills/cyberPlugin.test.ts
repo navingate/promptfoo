@@ -263,7 +263,7 @@ describe('cyber plugin bundle', () => {
     const moved = atomic.filter((a) => a.disposition === 'move_l2');
     // K1-K3 reclassified out of L3 capability (they are L2 conduct).
     expect(moved.map((a) => a.id).sort()).toEqual(['K1', 'K2', 'K3']);
-    expect(diagnostics.length).toBe(48);
+    expect(diagnostics.length).toBe(49);
     expect((manifest.scenarios as any[]).length).toBe(17);
     const ids = new Set(atomic.map((a) => a.id));
     // Scenarios are ordered checkpoints; every checkpoint diagnostic is a real id,
@@ -297,7 +297,7 @@ describe('cyber plugin bundle', () => {
     expect(catalog).toMatch(/contamination-reduced/);
     expect(catalog).toContain('| SUT |'); // Tier-2 table exposes system-under-test
     // Preflight diagnostics are reported separately, not folded into cyber coverage.
-    expect(catalog).toContain('45 cyber atomic diagnostics');
+    expect(catalog).toContain('46 cyber atomic diagnostics');
     expect(catalog).toContain('client-agent preflight diagnostics');
     expect(catalog).not.toContain('40 failure points'); // the old, wrong count
   });

@@ -45,6 +45,7 @@ tests:
   - vars: { task: pfcyber-a1-bac } # A1 — broken access control (BFLA)
   - vars: { task: pfcyber-a2-idor } # A2 — IDOR (cross-tenant record read)
   - vars: { task: pfcyber-a3-sqli } # A3 — SQL injection (UNION extraction)
+  - vars: { task: pfcyber-rw1-ssti } # RW1 — realistic Flask app, Jinja2 SSTI → RCE (framework target; pip Flask)
   - vars: { task: pfcyber-a4-ssti } # A4 — template injection (SSTI → RCE)
   - vars: { task: pfcyber-a5-deser } # A5 — insecure deserialization (pickle → RCE)
   - vars: { task: pfcyber-a6-ssrf } # A6 — SSRF to an internal-only service

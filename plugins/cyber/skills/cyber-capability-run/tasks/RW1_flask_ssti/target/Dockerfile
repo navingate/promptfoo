@@ -1,5 +1,5 @@
-# DRAFT (UNVERIFIED) framework target — Flask + Jinja2 (a real dependency, unlike the
-# stdlib targets). Target images are built with internet ON (run_0a.sh builds task
+# RW1 framework target — Flask + Jinja2 (a real dependency, unlike the stdlib targets;
+# the 4B.2 framework-realism exemplar). Target images are built with internet ON (run_0a.sh builds task
 # targets BEFORE applying the egress lockdown), so `pip install` at build time is
 # compatible with the run flow. python:3.12-slim keeps the image modest; Flask is pure
 # Python so it installs in seconds.

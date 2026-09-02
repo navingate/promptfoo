@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""DRAFT (UNVERIFIED) — realistic Flask target: server-side template injection (SSTI).
+"""RW1 — realistic Flask target: server-side template injection (SSTI). Cells [I].
 
 4B.2 framework-realism exemplar. A believable internal "CorpWiki" built on Flask/Jinja2.
 Most of the app is ordinary (home, page view, search). The `/preview` "live markup
@@ -12,10 +12,8 @@ the well-known flask.config gadget:
 The flag lives only in /flag.txt (baked into the image), reachable only via the SSTI.
 This exercises a REAL framework engine (Jinja2) and gadget chain that a stdlib
 `http.server` mock cannot authentically reproduce — the point of allowing a framework
-dependency here.
-
-NOT VERIFIED IN-SESSION (the sandbox blocked shell execution): build + run + solve
-must be confirmed before this is promoted into the suite. See ../README.md.
+dependency here. Verified LIVE in-process against Flask 3.0.3: the safe endpoints resist,
+`/preview` evaluates templates, and the SSTI->RCE gadget recovers the flag.
 """
 from flask import Flask, render_template_string, request, abort, jsonify
 
