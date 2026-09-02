@@ -42,6 +42,9 @@
 #   HALO_ENV=~/.cyber-eval.env bash plugins/cyber/skills/cyber-capability-run/deploy/run_cybench_x86.sh
 #   FULL=1 ...              # build/pull EVERY cybench target + GaaS and run the whole suite
 #   BUILD_GAAS=1 ...        # also build/start the Ghidra service (needed only for rev tasks)
+#   MODEL=openai/DeepSeek-V4-Flash ...     # override the target model for THIS run (no YAML edit);
+#                                          # pair it with a HALO_ENV whose AZURE_AI_BASE_URL points at
+#                                          # that model's OpenAI-compatible endpoint (e.g. Azure /openai/v1)
 #   UCB_REGISTRY=... PHASE=provision ...   # build + push images to a registry, then exit
 #   UCB_REGISTRY=... FULL=1 ...            # pull prebuilt images, then run the full suite
 #   CONFIG=promptfooconfig.yaml            # default; the cybench suite (edit its tests: to add samples)
@@ -60,6 +63,7 @@ TIMEOUT_SECS="${TIMEOUT_SECS:-$([ "$FULL" = 1 ] && echo 28800 || echo 7200)}"  #
 # --- Registry-backed image caching (build-once / pull-many; see the header) ---
 UCB_REGISTRY="${UCB_REGISTRY:-}"                  # e.g. ghcr.io/you/  (empty = local build, no cache)
 PHASE="${PHASE:-eval}"                            # 'provision' = build+push then exit; 'eval' = pull(if registry)+run
+MODEL="${MODEL:-}"                                # optional Inspect model id override (e.g. openai/DeepSeek-V4-Flash); blank = the config's model
 AGENT_IMAGE="agent-environment:1.1.1"             # keep in sync with scripts/config.env (AGENT_IMAGE)
 # Registry caching only applies to the FULL suite; the 3-task slice always builds its
 # handful of images locally (bare tags), so scope the effective prefix to FULL.
@@ -250,6 +254,21 @@ if [ "$FULL" = "1" ]; then
   [ "$n" -gt 0 ] || fail "no cybench samples found under $CB (unexpected clone/build layout)"
   log "FULL: generated $(basename "$FULLCFG") with $n samples"
   CONFIG="promptfooconfig.cybench-full.yaml"
+fi
+
+# Optional target-model override (MODEL=openai/...): rewrite ONLY the provider `model:`
+# line in the config we're about to run, into a throwaway promptfooconfig.run.yaml — so
+# you can retarget (e.g. the local Qwen vs an Azure DeepSeek endpoint) without editing
+# the committed default. Uniform for slice and full: it operates on whatever CONFIG is.
+# The matching endpoint/key still come from HALO_ENV (AZURE_AI_BASE_URL/AZURE_AI_API_KEY).
+if [ -n "$MODEL" ]; then
+  RUNCFG="$SKILL_DIR/scripts/promptfooconfig.run.yaml"
+  sed -E "s|^([[:space:]]*)model:[[:space:]].*|\1model: ${MODEL}|" \
+    "$SKILL_DIR/scripts/$CONFIG" > "$RUNCFG" || fail "could not apply MODEL override"
+  grep -qE "^[[:space:]]*model:[[:space:]]*${MODEL}$" "$RUNCFG" \
+    || fail "MODEL override did not take (no provider model: line in $CONFIG?)"
+  CONFIG="promptfooconfig.run.yaml"
+  log "MODEL override → ${MODEL} (running $(basename "$RUNCFG"))"
 fi
 
 # Pre-pull the images the egress self-test needs from a container context (alpine) —

@@ -206,6 +206,41 @@ endpoint only) + self-test hard gate, then runs `promptfooconfig.yaml`
 HALO_ENV=~/.cyber-eval.env FULL=1 bash plugins/cyber/skills/cyber-capability-run/deploy/run_cybench_x86.sh
 ```
 
+### Retargeting the model (Azure DeepSeek, or any OpenAI-compatible endpoint)
+
+The default SUT is the local Qwen vLLM endpoint. To run the **same suite against a
+different model** without editing the committed config, set `MODEL=<inspect id>` and
+point `HALO_ENV` at that model's endpoint. The runner rewrites only the provider
+`model:` line into a throwaway `promptfooconfig.run.yaml`, and the egress lockdown
+re-targets itself from the new `AZURE_AI_BASE_URL` — no other edits.
+
+Example — Azure AI Foundry DeepSeek via the `/openai/v1` OpenAI-compatible route (Bearer auth):
+
+```bash
+# ~/.cyber-eval.azure.env  (separate creds file so you don't clobber the Qwen one)
+AZURE_AI_BASE_URL="https://<resource>.services.ai.azure.com/openai/v1"
+AZURE_AI_API_KEY="<key>"
+```
+
+```bash
+# slice first (validate the chain), then full — one env var picks the target
+HALO_ENV=~/.cyber-eval.azure.env MODEL=openai/DeepSeek-V4-Flash \
+  bash plugins/cyber/skills/cyber-capability-run/deploy/run_cybench_x86.sh
+HALO_ENV=~/.cyber-eval.azure.env MODEL=openai/DeepSeek-V4-Flash FULL=1 \
+  bash plugins/cyber/skills/cyber-capability-run/deploy/run_cybench_x86.sh
+```
+
+- **`model:` is an Inspect id** `<provider>/<name>` — use `openai/<deployment>` for any
+  OpenAI-compatible endpoint (Azure Foundry `/openai/v1`, vLLM, TGI, …). The name is the
+  Azure **deployment** name (e.g. `DeepSeek-V4-Flash`).
+- **Tool calling is mandatory** — the agent needs a shell tool, so the target must
+  support function calling. Use a chat model (DeepSeek-V3/V4 chat), **not DeepSeek-R1**
+  (reasoning, no tools). Probe with a `tool_choice:auto` curl before a long run — the
+  same failure mode that errored the Qwen run 100%.
+- **Cloud-endpoint caveat:** the lockdown pins one resolved IP. An Azure endpoint behind
+  a load balancer can rotate IPs, so a long run may drop (connection errors, not 400s);
+  usually fine for a single run. Broadening the allowlist would weaken containment.
+
 ### Build once, pull many (registry cache — how the labs run it)
 
 The default `FULL=1` **rebuilds every Cybench target from scratch on the VM**. That's
