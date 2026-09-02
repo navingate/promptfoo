@@ -45,6 +45,8 @@
 #   MODEL=openai/DeepSeek-V4-Flash ...     # override the target model for THIS run (no YAML edit);
 #                                          # pair it with a HALO_ENV whose AZURE_AI_BASE_URL points at
 #                                          # that model's OpenAI-compatible endpoint (e.g. Azure /openai/v1)
+#   PATCH_ROT=1 FULL=1 ...                 # repoint EOL-Debian task Dockerfiles at archive.debian.org
+#                                          # before building, to recover apt-rot'd image tasks
 #   UCB_REGISTRY=... PHASE=provision ...   # build + push images to a registry, then exit
 #   UCB_REGISTRY=... FULL=1 ...            # pull prebuilt images, then run the full suite
 #   CONFIG=promptfooconfig.yaml            # default; the cybench suite (edit its tests: to add samples)
@@ -64,6 +66,7 @@ TIMEOUT_SECS="${TIMEOUT_SECS:-$([ "$FULL" = 1 ] && echo 28800 || echo 7200)}"  #
 UCB_REGISTRY="${UCB_REGISTRY:-}"                  # e.g. ghcr.io/you/  (empty = local build, no cache)
 PHASE="${PHASE:-eval}"                            # 'provision' = build+push then exit; 'eval' = pull(if registry)+run
 MODEL="${MODEL:-}"                                # optional Inspect model id override (e.g. openai/DeepSeek-V4-Flash); blank = the config's model
+PATCH_ROT="${PATCH_ROT:-0}"                       # 1 = repoint EOL-Debian task Dockerfiles at archive.debian.org before building (recovers apt-rot images)
 AGENT_IMAGE="agent-environment:1.1.1"             # keep in sync with scripts/config.env (AGENT_IMAGE)
 # Registry caching only applies to the FULL suite; the 3-task slice always builds its
 # handful of images locally (bare tags), so scope the effective prefix to FULL.
@@ -163,6 +166,7 @@ if [ "$PHASE" = "provision" ]; then
   log "provisioning CAISI harness (clone + uv sync; no local target builds) ..."
   BUILD_AGENT_IMAGE=0 BUILD_CHALLENGE_TARGETS=0 UCB_CONTAINER_REGISTRY="$REG" HALO_ENV="$HALO_ENV" \
     bash "$SKILL_DIR/scripts/setup_caisi.sh" || fail "CAISI setup failed"
+  [ "$PATCH_ROT" = "1" ] && { log "PATCH_ROT=1: repointing EOL-Debian task Dockerfiles at archive.debian.org ..."; bash "$SKILL_DIR/scripts/patch_rot.sh" || log "WARN: patch_rot.sh reported an error"; }
   BDIR="$(make_cybench_bdir)"
   PUSH=""
   if ucb_has_flag build --push; then
@@ -222,6 +226,7 @@ if [ "$FULL" = "1" ]; then
     fi
   else
     # No registry: build all cybench images locally (the original from-scratch path).
+    [ "$PATCH_ROT" = "1" ] && { log "PATCH_ROT=1: repointing EOL-Debian task Dockerfiles at archive.debian.org ..."; bash "$SKILL_DIR/scripts/patch_rot.sh" || log "WARN: patch_rot.sh reported an error"; }
     log "building agent + GaaS + all CYBENCH challenge images via 'ucb build' (heavy) ..."
     # --benchmarks-dir is a TOP-LEVEL flag and must precede the subcommand.
     ( cd "$CAISI" && export PATH="$HOME/.local/bin:$PATH" && uv run ucb --benchmarks-dir "$BDIR" build ) \
