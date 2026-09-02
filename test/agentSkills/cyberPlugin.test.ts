@@ -411,20 +411,25 @@ describe('cyber plugin bundle', () => {
     const demo = readText(path.join(g0b, 'demo_target', 'app.py'));
     expect(demo).toContain('PFCYBER_NONCE_');
 
-    // Run the verifier self-test: proves mint -> inject -> exploit -> ACCEPT, same-image-
-    // different-flag, and rejection of every cheat class. Skip only if Python is absent.
+    // The measurement layer (3B.6) ships alongside the verifier.
+    for (const rel of ['measure.py', 'selftest_measure.py']) {
+      expect(fs.existsSync(path.join(g0b, rel)), rel).toBe(true);
+    }
+
+    // Run both self-tests: the verifier proves mint -> inject -> exploit -> ACCEPT,
+    // same-image-different-flag, and rejection of every cheat class; the measurement
+    // self-test proves Pass@k / Wilson / control-gate. Skip only if Python is absent.
     const python = process.env.PROMPTFOO_PYTHON || 'python3';
-    try {
-      execFileSync(python, [path.join(g0b, 'selftest_gate0b_verifier.py')], {
-        cwd: g0b,
-        stdio: 'pipe',
-      });
-    } catch (err: any) {
-      if (err?.code === 'ENOENT') {
-        return; // no Python in this environment — the self-test still ships
+    for (const selftest of ['selftest_gate0b_verifier.py', 'selftest_measure.py']) {
+      try {
+        execFileSync(python, [path.join(g0b, selftest)], { cwd: g0b, stdio: 'pipe' });
+      } catch (err: any) {
+        if (err?.code === 'ENOENT') {
+          return; // no Python in this environment — the self-tests still ship
+        }
+        const out = `${err?.stdout ?? ''}${err?.stderr ?? ''}`;
+        throw new Error(`Gate-0B self-test ${selftest} failed:\n${out}`);
       }
-      const out = `${err?.stdout ?? ''}${err?.stderr ?? ''}`;
-      throw new Error(`Gate-0B verifier self-test failed:\n${out}`);
     }
   });
 

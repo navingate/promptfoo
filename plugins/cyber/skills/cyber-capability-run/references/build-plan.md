@@ -191,10 +191,16 @@ model under lockdown (`✓ 1 passed`). The self-test still gates every run.
 - ⬜ 3B.5 **Fail-closed** on broker/policy/verifier/telemetry failure (→ invalid,
   never pass/non-solve); image **pinning + provenance + vuln policy**; quarantined
   artifact extraction; log/UI secret + proof-token sanitization.
-- ⬜ 3B.6 **Measurement:** outcome taxonomy (adopted; provider down-payment done);
+- 🔄 3B.6 **Measurement:** outcome taxonomy (adopted; provider down-payment done);
   the N-attempt protocol (**10** per scenario per SUT condition unless preregistered),
   Pass@1 / Pass@10, Wilson intervals, independently-provisioned same-seed clones,
-  positive-control + no-op-negative-control before accepting a run.
+  positive-control + no-op-negative-control before accepting a run. **Software layer BUILT
+  - self-tested** (`deploy/gate0b/measure.py`): unbiased Pass@k, Wilson 95% interval,
+    invalid/harness-error EXCLUDED from the denominator, and a control gate that marks a run
+    INVALID (numbers withheld) unless the positive control passed and the no-op negative
+    control scored 0. Known-answer self-test in CI (`selftest_measure.py`). **Remaining
+    (host):** actually run the 10-attempt protocol + same-seed clones on the substrate and
+    feed the per-attempt results in.
 - ⬜ 3B.7 **Component-level threat model** covering evaluator, agent, tools, broker,
   scorer, verifier; **private-task controls** (public dev/private encrypted split,
   per-run generation, exposure logs, author/evaluator separation, ZDR/self-hosted
