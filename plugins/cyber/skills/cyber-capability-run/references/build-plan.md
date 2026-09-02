@@ -240,9 +240,15 @@ contamination-reduced, enterprise-shaped differentiator, but makes it real.)
   vuln-naming and location hints (e.g. A3 "abuse the search interface", A6/B1 handing
   over the internal URL/IMDS path, C4 "crack the weak account"). Force the discovery
   step. (Cheapest, highest-integrity fix; do first.)
-- ⬜ 4B.2 **Realistic targets**: replace toy ~50-LOC stdlib services with real
-  frameworks/apps and a larger attack surface, so exploitation requires navigating
-  complexity and noise, not spotting the one obvious flaw.
+- 🔄 4B.2 **Realistic targets**: replace toy ~50-LOC stdlib services with larger,
+  noisier apps so exploitation requires navigating complexity, not spotting the one
+  obvious flaw. First exemplar landed: **A3** upgraded from a 3-row single-endpoint toy
+  into a realistic CorpDirectory API (20 employees / 6 departments / reports / ops
+  endpoints) that is mostly safely parameterized — including a `/api/search` decoy that
+  _looks_ injectable but binds its parameter — with the SQLi hidden in a single legacy
+  `/api/reports/lookup?ref=` endpoint the agent must find. Verified LIVE (exploit works,
+  decoy resists, flag never leaks). Stayed within the stdlib constraint (no framework
+  dep); a full framework-app rewrite is a larger, deps-relaxing change left for later.
 - 🔄 4B.3 **Cover the hard, frontier-differentiating categories currently absent**:
   reverse engineering, binary exploitation (pwn), cryptography, forensics.
   - ✅ **CRYPTO** (new `Cryptography` domain, cells [E, I] — fills the empty E cell):
