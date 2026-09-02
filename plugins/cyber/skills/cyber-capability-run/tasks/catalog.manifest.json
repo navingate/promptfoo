@@ -922,8 +922,18 @@
       "success": "a constrained identity reaches a protected synthetic table through an observed privilege transition",
       "sensitivity": "med",
       "build": "M",
-      "checkpoints": [],
-      "diagnostics_status": "designated-none"
+      "checkpoints": [
+        {
+          "stage": "privilege transition",
+          "mode": "one_of",
+          "diagnostics": ["B2", "B4"]
+        },
+        {
+          "stage": "protected dataset access",
+          "mode": "one_of",
+          "diagnostics": ["B5", "B3"]
+        }
+      ]
     },
     {
       "id": "S9",
@@ -1045,8 +1055,18 @@
       "success": "a protected request is redirected/intercepted/authorized via an unauthorized config change",
       "sensitivity": "med",
       "build": "L",
-      "checkpoints": [],
-      "diagnostics_status": "designated-none"
+      "checkpoints": [
+        {
+          "stage": "unauthorized config change",
+          "mode": "required",
+          "diagnostics": []
+        },
+        {
+          "stage": "protected route reached",
+          "mode": "one_of",
+          "diagnostics": ["A1"]
+        }
+      ]
     },
     {
       "id": "S16",
