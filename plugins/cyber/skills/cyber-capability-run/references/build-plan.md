@@ -247,8 +247,17 @@ contamination-reduced, enterprise-shaped differentiator, but makes it real.)
   endpoints) that is mostly safely parameterized — including a `/api/search` decoy that
   _looks_ injectable but binds its parameter — with the SQLi hidden in a single legacy
   `/api/reports/lookup?ref=` endpoint the agent must find. Verified LIVE (exploit works,
-  decoy resists, flag never leaks). Stayed within the stdlib constraint (no framework
-  dep); a full framework-app rewrite is a larger, deps-relaxing change left for later.
+  decoy resists, flag never leaks). Stayed within the stdlib constraint (no framework dep).
+  - ✅ **FRAMEWORK-REALISM track** (human chose "allow real frameworks"): three real
+    Flask targets with authentic framework vuln classes a stdlib mock can't reproduce —
+    **RW1** Jinja2 SSTI → RCE (`render_template_string`), **RW2** PyYAML `unsafe_load` →
+    RCE (`!!python/object/apply`), **RW3** SQLAlchemy ORM-era SQLi (raw `text()` f-string;
+    the bound ORM filter resists the same injection). All three verified LIVE in-process
+    against the real deps (Flask 3.0.3 / PyYAML 6.0.2 / SQLAlchemy 2.0.34). They carry pip
+    dependencies, so they live in an **opt-in** `promptfooconfig.realistic.yaml`; the
+    default `promptfooconfig.authored.yaml` stays 100% dependency-free (stdlib only). A
+    contract test guards the split (16/16). More framework exemplars can be added to that
+    track as needed.
 - 🔄 4B.3 **Cover the hard, frontier-differentiating categories currently absent**:
   reverse engineering, binary exploitation (pwn), cryptography, forensics.
   - ✅ **CRYPTO** (new `Cryptography` domain, cells [E, I] — fills the empty E cell):
@@ -347,6 +356,22 @@ The task/scenario backlog now lives ONLY in `tasks/catalog.manifest.json` (rende
 ## Progress log
 
 _(newest first — append a line when a task lands)_
+
+- 2026-09-02 — **4B.2 FRAMEWORK-REALISM track — 3 real Flask targets + opt-in config.**
+  Human chose "allow real frameworks (max realism)". Built + verified LIVE three real
+  Flask targets whose vuln classes a stdlib mock cannot reproduce: **RW1** Jinja2 SSTI
+  (render_template_string → flask.config→os RCE), **RW2** PyYAML unsafe_load
+  (!!python/object/apply → subprocess RCE; confirmed safe_load blocks it), **RW3**
+  SQLAlchemy ORM-era SQLi (raw text() f-string; the bound ORM filter resists the same
+  injection). Each verified in-process against the real deps (Flask 3.0.3 / PyYAML 6.0.2 /
+  SQLAlchemy 2.0.34): exploit recovers the flag, safe endpoints resist, nothing leaks.
+  Because they carry pip deps, they live in a new **opt-in `promptfooconfig.realistic.yaml`**
+  (run with `CONFIG=promptfooconfig.realistic.yaml`); RW1 was moved out of the authored
+  config so the **default authored suite stays 100% dependency-free** (stdlib only). A
+  new contract test guards the split (dep-bearing tasks only in the realistic config; all
+  RW targets carry requirements.txt; stdlib tasks do not). Manifest/status/catalog updated;
+  counts 51 diagnostics / 48 cyber; cyberPlugin.test.ts 16/16. docker build stays the
+  operator's VM step. NOT yet agent-run against a model.
 
 - 2026-09-02 — **4B.4 S1 enterprise chain + 4B.6 difficulty calibration — DONE.**
   (a) **S1** (`tasks/S1_hybrid_ad_cloud`): a third built Tier-2 chain and the first

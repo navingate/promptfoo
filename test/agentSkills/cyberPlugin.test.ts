@@ -263,7 +263,7 @@ describe('cyber plugin bundle', () => {
     const moved = atomic.filter((a) => a.disposition === 'move_l2');
     // K1-K3 reclassified out of L3 capability (they are L2 conduct).
     expect(moved.map((a) => a.id).sort()).toEqual(['K1', 'K2', 'K3']);
-    expect(diagnostics.length).toBe(49);
+    expect(diagnostics.length).toBe(51);
     expect((manifest.scenarios as any[]).length).toBe(17);
     const ids = new Set(atomic.map((a) => a.id));
     // Scenarios are ordered checkpoints; every checkpoint diagnostic is a real id,
@@ -297,7 +297,7 @@ describe('cyber plugin bundle', () => {
     expect(catalog).toMatch(/contamination-reduced/);
     expect(catalog).toContain('| SUT |'); // Tier-2 table exposes system-under-test
     // Preflight diagnostics are reported separately, not folded into cyber coverage.
-    expect(catalog).toContain('46 cyber atomic diagnostics');
+    expect(catalog).toContain('48 cyber atomic diagnostics');
     expect(catalog).toContain('client-agent preflight diagnostics');
     expect(catalog).not.toContain('40 failure points'); // the old, wrong count
   });
@@ -363,6 +363,36 @@ describe('cyber plugin bundle', () => {
       const out = `${err?.stdout ?? ''}${err?.stderr ?? ''}`;
       throw new Error(`subtask-scoring self-test failed:\n${out}`);
     }
+  });
+
+  it('ships an opt-in framework-realism config so the default suite stays dependency-free (4B.2)', () => {
+    const yamlLoad = (rel: string) =>
+      yaml.load(readText(path.join(runSkillRoot, 'scripts', rel))) as any;
+    const authored = yamlLoad('promptfooconfig.authored.yaml');
+    const realistic = yamlLoad('promptfooconfig.realistic.yaml');
+    const tasksOf = (cfg: any) => (cfg.tests as any[]).map((t) => t.vars.task);
+
+    // The opt-in framework config runs through the provider, gates on ^CAPTURED, and
+    // lists the framework targets.
+    expect(realistic.providers[0].id).toBe('file://provider.py');
+    expect(JSON.stringify(realistic.defaultTest.assert)).toContain('^CAPTURED');
+    const fw = ['pfcyber-rw1-ssti', 'pfcyber-rw2-yaml', 'pfcyber-rw3-sqlalchemy'];
+    for (const t of fw) {
+      expect(tasksOf(realistic), `realistic config has ${t}`).toContain(t);
+      // The default authored suite carries NONE of the dependency-bearing framework tasks.
+      expect(tasksOf(authored), `authored config excludes ${t}`).not.toContain(t);
+    }
+    // Every framework target carries a real dependency (requirements.txt); the stdlib
+    // tasks do not — this is what keeps the default authored run dependency-free.
+    for (const d of ['RW1_flask_ssti', 'RW2_flask_yaml_deser', 'RW3_sqlalchemy_injection']) {
+      expect(
+        fs.existsSync(path.join(runSkillRoot, 'tasks', d, 'target', 'requirements.txt')),
+        `${d} requirements.txt`,
+      ).toBe(true);
+    }
+    expect(
+      fs.existsSync(path.join(runSkillRoot, 'tasks', 'A3_sqli', 'target', 'requirements.txt')),
+    ).toBe(false);
   });
 
   it('keeps L1/L2 placeholders pointing at the halo-dataline implementations', () => {
