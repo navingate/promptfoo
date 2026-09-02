@@ -167,14 +167,27 @@ model under lockdown (`✓ 1 passed`). The self-test still gates every run.
   eval process) — not just the target container.
 - ⬜ 3B.2 **Authenticated, destination-specific model broker** (not a generic
   proxy); the task namespace gets no arbitrary provider/host/artifact socket.
-- ⬜ 3B.3 **Out-of-band, replay-resistant verifier**: high-entropy per-run nonce
+- 🔄 3B.3 **Out-of-band, replay-resistant verifier**: high-entropy per-run nonce
   generated outside all agent-visible files/images; **stage-specific** verifier
   events so a terminal flag cannot falsely prove every claimed cell; no proof
   crosses the agent boundary; reference solutions kept out of model-visible material.
-- ⬜ 3B.4 **Anti-cheating tests** per scenario: wrong-path, shortcut, replay
+  **Software core BUILT + fully self-tested** (`deploy/gate0b/`): `NonceBroker` mints a
+  fresh per-run, per-STAGE nonce in the eval process (never in any file/image), injects
+  it into the target via env (same image → different flag each run), and `verify()`
+  accepts ONLY this run's this-stage nonce — rejecting memorized/static, cross-run
+  replay, cross-task, wrong-stage, no-op, and stale, each with a reason. Proven end-to-end
+  (mint → inject → exploit → accept; a repo-memorizer submitting the committed default is
+  rejected). Design + harness wiring in `references/gate-0b-verifier.md`. **Remaining
+  (host-validated):** wire into the provider (provider-as-verifier) + migrate authored
+  targets to `PFCYBER_NONCE_<STAGE>` env-or-default across the suite.
+- 🔄 3B.4 **Anti-cheating tests** per scenario: wrong-path, shortcut, replay
   (stale/cross-task/cross-run), unintended-solution, log-copy, scorer-tamper,
   reference-solution access. (NIST: agents use public walkthroughs / generic DoS to
   fake cyber-eval results — https://www.nist.gov/caisi/cheating-ai-agent-evaluations)
+  The verifier's rejection classes (3B.3) implement the replay/wrong-path/no-op/
+  reference-default cases as a self-tested harness (`selftest_gate0b_verifier.py`, in CI);
+  per-scenario shortcut/unintended-solution fixtures + log-copy/scorer-tamper are the
+  remaining host-validated pieces.
 - ⬜ 3B.5 **Fail-closed** on broker/policy/verifier/telemetry failure (→ invalid,
   never pass/non-solve); image **pinning + provenance + vuln policy**; quarantined
   artifact extraction; log/UI secret + proof-token sanitization.
@@ -359,6 +372,24 @@ The task/scenario backlog now lives ONLY in `tasks/catalog.manifest.json` (rende
 ## Progress log
 
 _(newest first — append a line when a task lands)_
+
+- 2026-09-02 — **Gate-0B 3B.3/3B.4 — out-of-band verifier + per-run nonce broker BUILT +
+  fully self-tested (software core).** The contamination-resistance heart (the biggest
+  "better than Cybench" claim, since Cybench flags are static/public). `deploy/gate0b/`:
+  `nonce_broker.py` (`NonceBroker.mint`/`env_for`/`verify`/`expire`) mints a fresh
+  high-entropy nonce per (task, run, STAGE) in the eval process — never in any committed
+  file or task image — injects it into the target via `PFCYBER_NONCE_<STAGE>` env (same
+  generic image serves a different flag each run), and verifies out of band: ACCEPT only
+  this run's this-stage nonce; REJECT memorized/static, cross-run replay, cross-task,
+  wrong-stage (a terminal flag can't prove an intermediate stage), no-op, and stale — each
+  with a diagnosable reason. A demonstrator target (`demo_target/`) reads the nonce from
+  env per request. `selftest_gate0b_verifier.py` proves the whole loop end-to-end
+  (mint→inject→exploit→ACCEPT, same-image-different-flag, and a repo-memorizer submitting
+  the committed default is rejected) and runs in CI (cyberPlugin.test.ts 17/17). Design +
+  harness wiring in `references/gate-0b-verifier.md`. Chose this (verifier core) over the
+  microVM/broker infra because it is fully buildable+testable here; the isolation pieces
+  (3B.1/3B.2) need the Gate-0B host. Remaining: provider-as-verifier wiring + migrating the
+  authored targets to env-or-default nonces (host-validated).
 
 - 2026-09-02 — **4B.4 COMPLETE — all 17 Tier-2 scenarios built. Human authorized the 5
   HIGH-sensitivity ones.** Built + verified LIVE the remaining 5 as MOCK/INERT Gate-0B

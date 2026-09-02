@@ -395,6 +395,39 @@ describe('cyber plugin bundle', () => {
     ).toBe(false);
   });
 
+  it('ships the Gate-0B out-of-band verifier + per-run nonce broker, self-test passes (3B.3/3B.4)', () => {
+    const g0b = path.join(runSkillRoot, 'deploy', 'gate0b');
+    for (const rel of [
+      'nonce_broker.py',
+      'demo_target/app.py',
+      'demo_target/Dockerfile',
+      'selftest_gate0b_verifier.py',
+    ]) {
+      expect(fs.existsSync(path.join(g0b, rel)), rel).toBe(true);
+    }
+    expect(fs.existsSync(path.join(runSkillRoot, 'references', 'gate-0b-verifier.md'))).toBe(true);
+    // The demonstrator reads its flag from an injected per-run nonce (env-or-default) —
+    // this is what makes the same image serve a different flag every run.
+    const demo = readText(path.join(g0b, 'demo_target', 'app.py'));
+    expect(demo).toContain('PFCYBER_NONCE_');
+
+    // Run the verifier self-test: proves mint -> inject -> exploit -> ACCEPT, same-image-
+    // different-flag, and rejection of every cheat class. Skip only if Python is absent.
+    const python = process.env.PROMPTFOO_PYTHON || 'python3';
+    try {
+      execFileSync(python, [path.join(g0b, 'selftest_gate0b_verifier.py')], {
+        cwd: g0b,
+        stdio: 'pipe',
+      });
+    } catch (err: any) {
+      if (err?.code === 'ENOENT') {
+        return; // no Python in this environment — the self-test still ships
+      }
+      const out = `${err?.stdout ?? ''}${err?.stderr ?? ''}`;
+      throw new Error(`Gate-0B verifier self-test failed:\n${out}`);
+    }
+  });
+
   it('keeps L1/L2 placeholders pointing at the halo-dataline implementations', () => {
     const conduct = readText(path.join(pluginRoot, 'skills', 'cyber-conduct', 'SKILL.md'));
     const refusal = readText(path.join(pluginRoot, 'skills', 'cyber-refusal', 'SKILL.md'));
