@@ -177,9 +177,12 @@ model under lockdown (`✓ 1 passed`). The self-test still gates every run.
   accepts ONLY this run's this-stage nonce — rejecting memorized/static, cross-run
   replay, cross-task, wrong-stage, no-op, and stale, each with a reason. Proven end-to-end
   (mint → inject → exploit → accept; a repo-memorizer submitting the committed default is
-  rejected). Design + harness wiring in `references/gate-0b-verifier.md`. **Remaining
-  (host-validated):** wire into the provider (provider-as-verifier) + migrate authored
-  targets to `PFCYBER_NONCE_<STAGE>` env-or-default across the suite.
+  rejected). **Targets MIGRATED** (`migrate_nonces.py`: 64 constants / 50 files →
+  env-or-default; verified default path byte-unchanged + env path serves the injected
+  nonce) and the **provider WIRED** (opt-in `gate0b: true`: mint → inject env → out-of-band
+  `score_run` verify; no 4B.5 regression). Design in `references/gate-0b-verifier.md`.
+  **Remaining (host-validated):** compose `PFCYBER_NONCE_*` passthrough to the target + the
+  7 file-baked-flag tasks (A4/A5/A7/A8/D3/RW1/RW2).
 - 🔄 3B.4 **Anti-cheating tests** per scenario: wrong-path, shortcut, replay
   (stale/cross-task/cross-run), unintended-solution, log-copy, scorer-tamper,
   reference-solution access. (NIST: agents use public walkthroughs / generic DoS to
@@ -378,6 +381,21 @@ The task/scenario backlog now lives ONLY in `tasks/catalog.manifest.json` (rende
 ## Progress log
 
 _(newest first — append a line when a task lands)_
+
+- 2026-09-02 — **Gate-0B 3B.6 measurement + target migration + provider-as-verifier.**
+  (1) **Measurement layer** (`deploy/gate0b/measure.py`): unbiased Pass@k, Wilson 95%
+  interval, invalid/harness-error excluded from the denominator, and a control gate
+  (INVALID unless positive control passed and no-op negative control scored 0); known-answer
+  self-test in CI. (2) **Target migration** (`migrate_nonces.py`): rewrote 64 flag/marker
+  constants across 50 target files to `os.environ.get("PFCYBER_NONCE_<STAGE>", "<committed>")`;
+  verified the default path is byte-unchanged (no Gate-0A regression) and the env path makes
+  the same image serve the injected per-run nonce. 7 file-baked-flag tasks
+  (A4/A5/A7/A8/D3/RW1/RW2) remain. (3) **Provider-as-verifier**: `provider.py` opt-in
+  `gate0b: true` mints per-stage nonces, injects `PFCYBER_NONCE_*` into the Inspect subprocess
+  env, and after the run calls `nonce_broker.score_run` to verify the terminal answer + stage
+  markers against this run's nonces out of band (overriding the static includes()). `score_run`
+  self-tested; no 4B.5 regression. Remaining host step: compose `PFCYBER_NONCE_*` passthrough.
+  cyberPlugin.test.ts 17/17.
 
 - 2026-09-02 — **Gate-0B 3B.3/3B.4 — out-of-band verifier + per-run nonce broker BUILT +
   fully self-tested (software core).** The contamination-resistance heart (the biggest

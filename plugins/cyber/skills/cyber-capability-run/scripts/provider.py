@@ -62,6 +62,20 @@ def _venv_bin(caisi_dir, name):
 # ../references/build-plan.md.
 AUTHORED_LOADER = HERE.parent / "tasks" / "loader.py"
 TASKS_DIR = HERE.parent / "tasks"
+GATE0B_BROKER = HERE.parent / "deploy" / "gate0b" / "nonce_broker.py"
+
+
+def _load_gate0b():
+    """Lazy-load the Gate-0B nonce broker (deploy/gate0b/nonce_broker.py), or None."""
+    if not GATE0B_BROKER.exists():
+        return None
+    import importlib.util
+
+    spec = importlib.util.spec_from_file_location("pfcyber_nonce_broker", GATE0B_BROKER)
+    mod = importlib.util.module_from_spec(spec)
+    sys.modules["pfcyber_nonce_broker"] = mod
+    spec.loader.exec_module(mod)
+    return mod
 
 
 def _read_task_meta(task_name):
@@ -222,6 +236,22 @@ def call_api(prompt, options=None, context=None):
     elif api_key_env and os.environ.get(str(api_key_env)):
         run_env["OPENAI_API_KEY"] = os.environ[str(api_key_env)]
 
+    # Gate-0B (opt-in): mint a fresh per-run, per-stage nonce OUTSIDE any file/image and
+    # inject it into the TARGET's env (PFCYBER_NONCE_*). The migrated targets read these
+    # (env-or-default), so the same image serves a different flag every run; the provider
+    # verifies the agent's submission against the nonce out of band after the run. Requires
+    # the compose to pass PFCYBER_NONCE_* through to the target (see gate-0b-verifier.md).
+    gate0b = str(_cfg(options, "gate0b", "false")).lower() in ("1", "true", "yes")
+    _g0b = _broker = _g0b_run = _g0b_meta = None
+    if gate0b and benchmark == "authored":
+        _g0b = _load_gate0b()
+        if _g0b is not None:
+            _g0b_meta = _read_task_meta(task)
+            _broker = _g0b.NonceBroker()
+            _stages = _g0b.stage_keys(_g0b_meta.get("subtasks") or [], _g0b_meta.get("flag"))
+            _g0b_run, _ = _broker.mint(task, _stages)
+            run_env.update(_broker.env_for(_g0b_run))
+
     log_dir = tempfile.mkdtemp(prefix=f"cyber_{task}_")
     cmd = [
         _venv_bin(caisi_dir, "inspect"),
@@ -260,7 +290,9 @@ def call_api(prompt, options=None, context=None):
         return {"error": f"inspect eval timed out after {timeout}s for task '{task}'"}
     elapsed = round(time.time() - started, 1)
 
-    captured, score, answer, detail, extra = _parse_log(log_dir, caisi_dir, task)
+    captured, score, answer, detail, extra = _parse_log(
+        log_dir, caisi_dir, task, include_texts=gate0b
+    )
     # Outcome taxonomy (per the security review: an error/refusal is NEVER a
     # "non-solve"). captured is None for anything that is not a clean scored
     # result — a sample-level harness error, or an unreadable log. Those return a
@@ -271,6 +303,28 @@ def call_api(prompt, options=None, context=None):
             "error": f"harness_error for '{task}' (rc={proc.returncode}); "
             f"detail={detail}; stderr tail: {tail}"
         }
+
+    if gate0b and _broker is not None:
+        # OUT-OF-BAND verify against THIS run's per-run nonces — overrides the static
+        # includes() scorer. A memorized/static flag is rejected; a stage is credited only
+        # when its per-run nonce appears in a tool result.
+        answer_full = (extra or {}).get("_answer_full") or answer or ""
+        tool_texts = (extra or {}).get("_tool_texts") or []
+        g = _g0b.score_run(
+            _broker, _g0b_run, _g0b_meta.get("subtasks") or [], _g0b_meta.get("flag"),
+            answer_full, tool_texts,
+        )
+        captured = g["captured"]
+        detail = f"gate0b_verify:{g['verify_reason']}"
+        extra = {"flag_via_tool": g["flag_via_tool"], "gate0b": True, "verify_reason": g["verify_reason"]}
+        if g["subtasks_total"]:
+            extra["subtasks"] = [
+                {"id": r["id"], "label": _stage_label(r["id"]), "credited": r["credited"]}
+                for r in g["subtasks"]
+            ]
+            extra["subtasks_passed"] = g["subtasks_passed"]
+            extra["subtasks_total"] = g["subtasks_total"]
+            extra["subtask_fraction"] = g["subtask_fraction"]
 
     return _build_result(
         captured, score, answer, detail, extra,
@@ -344,7 +398,7 @@ def _msg_text(m):
     return ""
 
 
-def _extra_from_sample(sample, completion, meta):
+def _extra_from_sample(sample, completion, meta, include_texts=False):
     """Per-stage subtask scoring (4B.5) for one Inspect sample.
 
     Splits the transcript by message role: `tool` messages are what the sandbox
@@ -376,10 +430,14 @@ def _extra_from_sample(sample, completion, meta):
         extra["subtask_fraction"] = fraction
     if meta.get("difficulty"):
         extra["difficulty"] = meta["difficulty"]  # 4B.6 gradient: {tier, reference_solve_steps}
+    if include_texts:
+        # raw corpora for the Gate-0B out-of-band verifier (score against per-run nonces)
+        extra["_tool_texts"] = tool_texts
+        extra["_model_texts"] = model_texts
     return extra
 
 
-def _parse_with_inspect(log_dir, task_name=None):
+def _parse_with_inspect(log_dir, task_name=None, include_texts=False):
     """Return (captured, score, answer, detail, extra) via inspect_ai, or None if unimportable.
 
     `extra` carries the per-stage subtask scoring (4B.5): `subtasks` (per-stage
@@ -412,14 +470,17 @@ def _parse_with_inspect(log_dir, task_name=None):
             if out is not None:
                 completion = getattr(out, "completion", None)
                 answer = str(completion if completion is not None else out)[:200]
-            extra = _extra_from_sample(s, completion, meta)
+            answer_full = str(completion if completion is not None else out) if out is not None else answer
+            extra = _extra_from_sample(s, completion, meta, include_texts=include_texts)
+            if include_texts:
+                extra["_answer_full"] = answer_full  # untruncated, for out-of-band verify
             return (captured, str(val), answer, f"scorer={name}", extra)
     return (None, None, None, "no scores found in samples", {})
 
 
-def _parse_log(log_dir, caisi_dir, task_name=None):
+def _parse_log(log_dir, caisi_dir, task_name=None, include_texts=False):
     """Parse the Inspect result: import inspect_ai directly, else via the harness venv."""
-    direct = _parse_with_inspect(log_dir, task_name)
+    direct = _parse_with_inspect(log_dir, task_name, include_texts=include_texts)
     if direct is not None:
         return direct
     # Fallback: promptfoo is running under a Python without inspect_ai. Re-invoke
