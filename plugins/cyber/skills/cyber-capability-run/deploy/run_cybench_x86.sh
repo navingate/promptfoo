@@ -82,10 +82,17 @@ fail() { printf '[cybench][BLOCKER] %s\n' "$*" >&2; exit 1; }
 
 # Restrict a `ucb build`/`ucb pull` to the CYBENCH benchmark only — the benchmarks dir
 # also holds cve-bench (large) and test, which we don't want. Prints a temp dir holding
-# just a symlink to cybench; caller must `rm -rf` it. Core (agent + GaaS) builds/pulls
-# regardless of --benchmarks-dir.
+# just a symlink to cybench; caller must `rm -rf` it.
+#
+# CRITICAL: the temp dir MUST live under src/ucb/ (a sibling of the real containers/),
+# NOT in /tmp. `ucb build` resolves the core agent/gaas build contexts as
+# <benchmarks-dir>/../containers — so a /tmp benchmarks-dir makes it look for
+# /tmp/containers/agent, which doesn't exist, and the core build dies with
+# "unable to prepare context: path /tmp/containers/agent not found" (taking the whole
+# build, including the challenge images, down with it). Placing the dir under src/ucb/
+# keeps ../containers pointing at the real src/ucb/containers.
 make_cybench_bdir() {
-  local d; d="$(mktemp -d)"
+  local d; d="$(mktemp -d "$CAISI/src/ucb/pf-cybench.XXXXXX")"
   ln -sfn "$CAISI/src/ucb/benchmarks/cybench" "$d/cybench"
   printf '%s' "$d"
 }
