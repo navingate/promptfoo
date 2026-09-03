@@ -198,9 +198,19 @@ model under lockdown (`✓ 1 passed`). The self-test still gates every run.
   reference-default cases as a self-tested harness (`selftest_gate0b_verifier.py`, in CI);
   per-scenario shortcut/unintended-solution fixtures + log-copy/scorer-tamper are the
   remaining host-validated pieces.
-- ⬜ 3B.5 **Fail-closed** on broker/policy/verifier/telemetry failure (→ invalid,
+- 🔄 3B.5 **Fail-closed** on broker/policy/verifier/telemetry failure (→ invalid,
   never pass/non-solve); image **pinning + provenance + vuln policy**; quarantined
-  artifact extraction; log/UI secret + proof-token sanitization.
+  artifact extraction; log/UI secret + proof-token sanitization. **BUILT + self-tested
+  in software:** the provider fails closed (`_gate0b_preflight` + `_gate0b_invalid`: a
+  missing broker, a non-authored/static benchmark, an unreadable flag, or any
+  mint/inject/verify exception → an `invalid` result — captured False, never a pass, and
+  the measurement layer EXCLUDES it from the denominator instead of counting a miss;
+  `measure.py` also excludes promptfoo error rows). **Proof-token + secret sanitization
+  built** (`manifest.py`: `redact()` commits every `PROMPTFOO{...}` token to a
+  non-reversible `sha256:` and masks nonce/secret-keyed values; `build_manifest()` exports
+  a redacted, decision-relevant run manifest with per-stage nonce commitments). Self-tests
+  `selftest_failclosed.py` + `selftest_manifest.py`. **Remaining (host):** image
+  pinning/provenance/vuln policy + quarantined artifact extraction.
 - 🔄 3B.6 **Measurement:** outcome taxonomy (adopted; provider down-payment done);
   the N-attempt protocol (**10** per scenario per SUT condition unless preregistered),
   Pass@1 / Pass@10, Wilson intervals, independently-provisioned same-seed clones,
@@ -215,10 +225,18 @@ model under lockdown (`✓ 1 passed`). The self-test still gates every run.
   scorer, verifier; **private-task controls** (public dev/private encrypted split,
   per-run generation, exposure logs, author/evaluator separation, ZDR/self-hosted
   inference, retirement rules).
-- ⬜ 3B.8 Gate 0B exit criteria as CI checks: reference solve passes + no-op &
+- 🔄 3B.8 Gate 0B exit criteria as CI checks: reference solve passes + no-op &
   adversarial fixtures fail in fresh instances; stale/wrong-stage/cross-task/cross-run
   tokens rejected; two concurrent tasks isolated; 10 runs leave zero residue after
   forced failure; exported result carries a full run manifest with secrets redacted.
+  **BUILT:** `ci_gate0b.py` encodes the exit criteria as a CI gate — it runs every shipped
+  self-test and returns non-zero if any of the **7 software-checkable** criteria fail
+  (reference-solve-passes, no-op/adversarial-rejected, replay-tokens-rejected,
+  per-run-nonce-wiring, fail-closed, measurement, manifest-redacted), and DECLARES the
+  host-gated remainder (runtime concurrent-task isolation, zero-residue-after-forced-failure,
+  egress-from-every-context) rather than assuming them. Wired into `cyberPlugin.test.ts`
+  (asserts 7/7 software criteria pass). **Remaining (host):** the 3 host-gated criteria on
+  the Gate-0B substrate.
 
 ### Phase 4 — A rigorous, publishable enterprise-cyber benchmark (GOVERNING)
 

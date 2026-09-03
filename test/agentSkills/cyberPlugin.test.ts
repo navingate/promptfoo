@@ -411,40 +411,50 @@ describe('cyber plugin bundle', () => {
     const demo = readText(path.join(g0b, 'demo_target', 'app.py'));
     expect(demo).toContain('PFCYBER_NONCE_');
 
-    // The measurement layer (3B.6) and the target-wiring last mile (3B.3) ship alongside.
+    // The measurement (3B.6), target-wiring last mile (3B.3), fail-closed (3B.5), manifest
+    // redaction (3B.5), and CI exit-criteria gate (3B.8) all ship alongside.
     for (const rel of [
       'measure.py',
       'selftest_measure.py',
-      // last-mile target migration + compose passthrough (3B.3) + its self-test
+      // last-mile target migration + compose passthrough (3B.3)
       'migrate_nonces.py',
       'harden_nonce_default.py',
       'migrate_compose_env.py',
       'selftest_nonce_targets.py',
+      // fail-closed (3B.5), manifest redaction (3B.5), CI exit criteria (3B.8)
+      'selftest_failclosed.py',
+      'manifest.py',
+      'selftest_manifest.py',
+      'ci_gate0b.py',
     ]) {
       expect(fs.existsSync(path.join(g0b, rel)), rel).toBe(true);
     }
 
-    // Run the self-tests: the verifier proves mint -> inject -> exploit -> ACCEPT,
-    // same-image-different-flag, and rejection of every cheat class; the measurement
-    // self-test proves Pass@k / Wilson / control-gate; the nonce-targets self-test proves
-    // compose passthrough completeness + per-run flag round-trips (real solves) + the
-    // file-baked shell writes are brace-safe. Skip only if Python is absent.
+    // Run the whole Gate-0B software gate via ci_gate0b.py, which executes every self-test
+    // (verifier: mint->inject->exploit->ACCEPT + rejection of every cheat class; measurement:
+    // Pass@k / Wilson / control-gate; nonce-targets: compose passthrough + per-run round-trips
+    // + brace-safe file-baked writes; fail-closed: broker/verifier failure -> invalid; manifest:
+    // no proof token survives export) and asserts all software criteria pass. Skip only if
+    // Python is absent.
     const python = process.env.PROMPTFOO_PYTHON || 'python3';
-    for (const selftest of [
-      'selftest_gate0b_verifier.py',
-      'selftest_measure.py',
-      'selftest_nonce_targets.py',
-    ]) {
-      try {
-        execFileSync(python, [path.join(g0b, selftest)], { cwd: g0b, stdio: 'pipe' });
-      } catch (err: any) {
-        if (err?.code === 'ENOENT') {
-          return; // no Python in this environment — the self-tests still ship
-        }
-        const out = `${err?.stdout ?? ''}${err?.stderr ?? ''}`;
-        throw new Error(`Gate-0B self-test ${selftest} failed:\n${out}`);
+    let report: string;
+    try {
+      report = execFileSync(python, [path.join(g0b, 'ci_gate0b.py'), '--json'], {
+        cwd: g0b,
+        encoding: 'utf8',
+      });
+    } catch (err: any) {
+      if (err?.code === 'ENOENT') {
+        return; // no Python in this environment — the self-tests still ship
       }
+      const out = `${err?.stdout ?? ''}${err?.stderr ?? ''}`;
+      throw new Error(`Gate-0B CI exit-criteria gate failed:\n${out}`);
     }
+    const parsed = JSON.parse(report);
+    expect(parsed.software_pass, JSON.stringify(parsed, null, 2)).toBe(true);
+    expect(parsed.software_criteria.length).toBe(7);
+    expect(parsed.software_criteria.every((c: any) => c.status === 'pass')).toBe(true);
+    expect(parsed.host_gated_criteria.length).toBeGreaterThan(0);
   });
 
   it('keeps L1/L2 placeholders pointing at the halo-dataline implementations', () => {

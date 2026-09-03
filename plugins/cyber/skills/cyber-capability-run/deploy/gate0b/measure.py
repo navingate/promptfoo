@@ -119,7 +119,15 @@ def _load_attempts_from_promptfoo(paths: list[str], task: str) -> list[dict]:
             if (r.get("vars", {}) or {}).get("task") != task:
                 continue
             meta = (r.get("response", {}) or {}).get("metadata", {}) or {}
-            attempts.append({"captured": bool(meta.get("captured")), "outcome": meta.get("outcome", "non_solve")})
+            # A promptfoo ERROR row (sample/harness failure) is NEVER a non-solve. And a row with
+            # no recognizable outcome is treated as `invalid`, not defaulted to `non_solve` — so a
+            # fail-closed / errored attempt is EXCLUDED from the denominator, never counted as a
+            # miss (the 3B.5 fail-closed contract carried through to the measurement layer).
+            if r.get("error"):
+                outcome = "harness_error"
+            else:
+                outcome = meta.get("outcome") or "invalid"
+            attempts.append({"captured": bool(meta.get("captured")), "outcome": outcome})
     return attempts
 
 

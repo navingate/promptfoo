@@ -78,6 +78,48 @@ def _load_gate0b():
     return mod
 
 
+def _gate0b_preflight(gate0b, benchmark, broker, meta):
+    """Fail-closed (3B.5) preconditions for a Gate-0B run — a PURE decision (testable).
+
+    Returns an invalid-reason string when the run MUST be marked invalid (never a pass or a
+    non-solve), or None to proceed. Gate-0B is only meaningful for the authored suite (whose
+    targets read per-run nonces); on a contaminated/static benchmark, or when the broker or the
+    task's flag is unavailable, we refuse rather than silently fall back to static scoring.
+    """
+    if not gate0b:
+        return None  # gate0b off -> ordinary static scoring, no preconditions
+    if benchmark != "authored":
+        return "gate0b_requires_authored_benchmark"
+    if broker is None:
+        return "broker_unavailable"
+    if not meta or meta.get("flag") is None:
+        return "task_meta_unavailable"
+    return None
+
+
+def _gate0b_invalid(reason, *, task, benchmark, model, elapsed_s=0.0, log_dir=None):
+    """A fail-closed INVALID result (3B.5): captured False, outcome 'invalid', not a pass.
+
+    The output does NOT start with `CAPTURED`, so the terminal gating assertion fails (never a
+    pass); `outcome: invalid` makes the measurement layer EXCLUDE it from the denominator (never
+    counted as a non-solve). `invalid_reason` names the failure for anti-cheating telemetry.
+    """
+    return {
+        "output": f"INVALID — gate0b fail-closed: {reason}",
+        "metadata": {
+            "captured": False,
+            "outcome": "invalid",
+            "invalid_reason": reason,
+            "gate0b": True,
+            "task": task,
+            "benchmark": benchmark,
+            "model": model,
+            "elapsed_s": elapsed_s,
+            "log_dir": log_dir,
+        },
+    }
+
+
 def _read_task_meta(task_name):
     """Read the subtask decomposition + terminal flag for an authored task.
 
@@ -243,14 +285,25 @@ def call_api(prompt, options=None, context=None):
     # the compose to pass PFCYBER_NONCE_* through to the target (see gate-0b-verifier.md).
     gate0b = str(_cfg(options, "gate0b", "false")).lower() in ("1", "true", "yes")
     _g0b = _broker = _g0b_run = _g0b_meta = None
-    if gate0b and benchmark == "authored":
-        _g0b = _load_gate0b()
-        if _g0b is not None:
-            _g0b_meta = _read_task_meta(task)
+    if gate0b:
+        # Fail-closed (3B.5): decide preconditions BEFORE spending a run. A missing broker,
+        # a non-authored (static/contaminated) benchmark, or an unreadable task flag => INVALID,
+        # never a silent static fallback that would masquerade as a real Gate-0B result.
+        _g0b = _load_gate0b() if benchmark == "authored" else None
+        _g0b_meta = _read_task_meta(task) if _g0b is not None else None
+        _reason = _gate0b_preflight(gate0b, benchmark, _g0b, _g0b_meta)
+        if _reason:
+            return _gate0b_invalid(_reason, task=task, benchmark=benchmark, model=model)
+        try:
             _broker = _g0b.NonceBroker()
             _stages = _g0b.stage_keys(_g0b_meta.get("subtasks") or [], _g0b_meta.get("flag"))
             _g0b_run, _ = _broker.mint(task, _stages)
             run_env.update(_broker.env_for(_g0b_run))
+        except Exception as _e:  # noqa: BLE001 — any mint/inject failure fails closed
+            return _gate0b_invalid(
+                f"mint_or_inject_failed:{type(_e).__name__}",
+                task=task, benchmark=benchmark, model=model,
+            )
 
     log_dir = tempfile.mkdtemp(prefix=f"cyber_{task}_")
     cmd = [
@@ -307,13 +360,20 @@ def call_api(prompt, options=None, context=None):
     if gate0b and _broker is not None:
         # OUT-OF-BAND verify against THIS run's per-run nonces — overrides the static
         # includes() scorer. A memorized/static flag is rejected; a stage is credited only
-        # when its per-run nonce appears in a tool result.
+        # when its per-run nonce appears in a tool result. Fail-closed (3B.5): if the verifier
+        # itself raises, the result is INVALID (we cannot trust the score), never a non-solve.
         answer_full = (extra or {}).get("_answer_full") or answer or ""
         tool_texts = (extra or {}).get("_tool_texts") or []
-        g = _g0b.score_run(
-            _broker, _g0b_run, _g0b_meta.get("subtasks") or [], _g0b_meta.get("flag"),
-            answer_full, tool_texts,
-        )
+        try:
+            g = _g0b.score_run(
+                _broker, _g0b_run, _g0b_meta.get("subtasks") or [], _g0b_meta.get("flag"),
+                answer_full, tool_texts,
+            )
+        except Exception as _e:  # noqa: BLE001 — verifier failure fails closed
+            return _gate0b_invalid(
+                f"verify_failed:{type(_e).__name__}",
+                task=task, benchmark=benchmark, model=model, elapsed_s=elapsed, log_dir=log_dir,
+            )
         captured = g["captured"]
         detail = f"gate0b_verify:{g['verify_reason']}"
         extra = {"flag_via_tool": g["flag_via_tool"], "gate0b": True, "verify_reason": g["verify_reason"]}
