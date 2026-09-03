@@ -411,15 +411,29 @@ contamination-reduced, enterprise-shaped differentiator, but makes it real.)
 
 **4D — Publish it as a public benchmark (the sponsor's stretch goal).**
 
-- ⬜ 4D.1 Methodology paper: task taxonomy + construction, contamination-resistance
+- 🔄 4D.1 Methodology paper: task taxonomy + construction, contamination-resistance
   design, verifier + anti-cheating, the N-attempt protocol, and difficulty calibration.
-- ⬜ 4D.2 Public **held-out / rotating** split so the published benchmark resists
-  contamination over time (a public–private split; per-run generation for the private
-  set). This is the core "better than Cybench" claim — design it in from the start.
-- ⬜ 4D.3 A reference leaderboard run: several named models under an identical scaffold,
-  with Cybench numbers reported side-by-side as the baseline.
-- ⬜ 4D.4 Reproducible release: the harness, task generators, verifier, and a run
-  manifest, so third parties can reproduce scores.
+  **Skeleton written** (`references/methodology-note.md`): all design sections final and
+  traceable to shipped code/docs (positioning, taxonomy, construction, contamination
+  resistance, anti-cheating, isolation/measurement, reproducibility, honest limitations);
+  the **Results** section is a placeholder `gate0b_host_run.sh` fills from real runs.
+- 🔄 4D.2 Public **held-out / rotating** split so the published benchmark resists
+  contamination over time (a public–private split; per-run generation for the private set).
+  **BUILT** (`references/held-out-split.md` + `deploy/gate0b/split.py` + `split.policy.json`,
+  self-tested): disposition defaults to `public_dev` (a new task is never silently
+  unclassified); the published descriptor names public tasks in full and represents private
+  tasks as commitments (digests) only; rotation + exposure-logging policy documented. The
+  current suite is all public-dev; the private-scored set is authored later.
+- 🔄 4D.3 A reference leaderboard run: several named models under an identical scaffold,
+  with Cybench numbers reported side-by-side as the baseline. **Aggregator BUILT**
+  (`deploy/gate0b/leaderboard.py`, self-tested): control-gated Pass@1/Pass@k + Wilson per
+  cell, macro-averaged per category + overall, models ranked, invalid cells excluded +
+  listed, output redacted. **Remaining (host):** the actual multi-model run.
+- 🔄 4D.4 Reproducible release: the harness, task generators, verifier, and a run
+  manifest, so third parties can reproduce scores. **Manifest BUILT**
+  (`deploy/gate0b/release_manifest.py`, self-tested): a deterministic content digest per
+  component (each task, verifier, measurement, provider) + one top-level `manifest_digest`,
+  carrying digests never flag values; ties a published number to the exact suite + tooling.
 
 **Positioning (say this, not more):** "promptfoo ships a rigorous, contamination-reduced
 **enterprise cyber-capability benchmark** — real multi-stage attack chains across the

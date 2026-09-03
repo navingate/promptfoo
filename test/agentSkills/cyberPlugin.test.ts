@@ -470,6 +470,44 @@ describe('cyber plugin bundle', () => {
     expect(parsed.host_gated_criteria.length).toBeGreaterThan(0);
   });
 
+  it('ships the 4D publish scaffolding, self-tests pass (leaderboard / release manifest / split)', () => {
+    const g0b = path.join(runSkillRoot, 'deploy', 'gate0b');
+    for (const rel of [
+      'leaderboard.py',
+      'selftest_leaderboard.py',
+      'release_manifest.py',
+      'selftest_release_manifest.py',
+      'split.py',
+      'split.policy.json',
+      'selftest_split.py',
+    ]) {
+      expect(fs.existsSync(path.join(g0b, rel)), rel).toBe(true);
+    }
+    for (const rel of ['methodology-note.md', 'held-out-split.md']) {
+      expect(fs.existsSync(path.join(runSkillRoot, 'references', rel)), rel).toBe(true);
+    }
+
+    // leaderboard aggregation (control-gated Pass@k + macro averaging + redaction), the
+    // reproducible-release digest (deterministic, no secrets), and the public/private split
+    // policy (complete-by-default, private tasks as commitments only). Skip only if Python is absent.
+    const python = process.env.PROMPTFOO_PYTHON || 'python3';
+    for (const selftest of [
+      'selftest_leaderboard.py',
+      'selftest_release_manifest.py',
+      'selftest_split.py',
+    ]) {
+      try {
+        execFileSync(python, [path.join(g0b, selftest)], { cwd: g0b, stdio: 'pipe' });
+      } catch (err: any) {
+        if (err?.code === 'ENOENT') {
+          return; // no Python in this environment — the self-tests still ship
+        }
+        const out = `${err?.stdout ?? ''}${err?.stderr ?? ''}`;
+        throw new Error(`4D publish-scaffolding self-test ${selftest} failed:\n${out}`);
+      }
+    }
+  });
+
   it('keeps L1/L2 placeholders pointing at the halo-dataline implementations', () => {
     const conduct = readText(path.join(pluginRoot, 'skills', 'cyber-conduct', 'SKILL.md'));
     const refusal = readText(path.join(pluginRoot, 'skills', 'cyber-refusal', 'SKILL.md'));
