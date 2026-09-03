@@ -283,6 +283,42 @@ UCB_REGISTRY=ghcr.io/you/ FULL=1 \
   not wired here. Without `UCB_REGISTRY` the eval builds locally (original behavior) —
   fine for a single run.
 
+### Pass@k (stable numbers — a single run is noisy)
+
+One eval run is not a benchmark: the SET of solved tasks shifts run to run (a task can
+solve once and miss the next). For a defensible number, run the suite `k` times and
+aggregate. Set `RUNS=k` (and a `RUN_TAG` to name the per-run files):
+
+```bash
+RUNS=3 RUN_TAG=qwen-cybench FULL=1 \
+  HALO_ENV=~/.cyber-eval.env bash plugins/cyber/skills/cyber-capability-run/deploy/run_cybench_x86.sh
+# writes out.qwen-cybench.run{1,2,3}.json (build + lockdown happen ONCE, only the eval repeats)
+node plugins/cyber/skills/cyber-capability-run/scripts/aggregate_runs.cjs \
+  plugins/cyber/skills/cyber-capability-run/out.qwen-cybench.run*.json
+```
+
+The aggregator reports **Pass@k** (solved in ≥1 run), **reliable** (solved in every run),
+and **mean solved/run** with the range — the honest way to state the result.
+
+### Running the authored/enterprise suite on x86 (`SUITE=authored`)
+
+The same x86 runner can drive promptfoo's **own** enterprise task set (`../tasks`, via
+`benchmark: authored`) under the identical egress lockdown — no CAISI cybench build. It
+provisions the harness + agent, **pre-builds every authored target image** (egress on),
+then runs `promptfooconfig.authored.yaml` (override with `CONFIG=`):
+
+```bash
+SUITE=authored \
+  HALO_ENV=~/.cyber-eval.env bash plugins/cyber/skills/cyber-capability-run/deploy/run_cybench_x86.sh
+# Pass@k + a different model work the same way:
+SUITE=authored RUNS=3 RUN_TAG=qwen-authored MODEL=openai/DeepSeek-V4-Flash HALO_ENV=~/.cyber-eval.azure.env \
+  bash plugins/cyber/skills/cyber-capability-run/deploy/run_cybench_x86.sh
+```
+
+- Canonical output is `out.authored.json`; per-run files are `out.<RUN_TAG>.run<i>.json`.
+- The default authored suite is stdlib-only; the pip-dependent framework targets (RW1–3)
+  live in `promptfooconfig.realistic.yaml` (`CONFIG=promptfooconfig.realistic.yaml`).
+
 - **Grade:** dedicated-VM + egress-deny (baseline/cross-check), **not** Gate-0B
   assurance. SSH stays up during lockdown (established connections are allowed); new
   outbound is blocked until you restore (`sudo iptables -P OUTPUT ACCEPT; sudo iptables

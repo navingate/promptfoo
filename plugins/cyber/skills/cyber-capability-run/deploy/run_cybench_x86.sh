@@ -50,28 +50,46 @@
 #   UCB_REGISTRY=... PHASE=provision ...   # build + push images to a registry, then exit
 #   UCB_REGISTRY=... FULL=1 ...            # pull prebuilt images, then run the full suite
 #   CONFIG=promptfooconfig.yaml            # default; the cybench suite (edit its tests: to add samples)
+#   SUITE=authored ...                     # run promptfoo's OWN enterprise task set (../tasks) instead of
+#                                          # cybench: pre-builds the authored target images, uses
+#                                          # promptfooconfig.authored.yaml (override with CONFIG=...)
+#   RUNS=3 RUN_TAG=qwen-cybench ...        # Pass@k: repeat the eval 3x into out.<tag>.run{1,2,3}.json,
+#                                          # then aggregate with scripts/aggregate_runs.cjs
 set -uo pipefail
 
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 SKILL_DIR="$(cd "$SCRIPT_DIR/.." && pwd)"
 CAISI="$SKILL_DIR/scripts/vendor/caisi-cyber-evals"
 HALO_ENV="${HALO_ENV:-$HOME/.cyber-eval.env}"
+# SUITE selects WHAT to run: 'cybench' (CAISI's public suite; default) or 'authored'
+# (promptfoo's own enterprise task set under ../tasks, via benchmark: authored).
+SUITE="${SUITE:-cybench}"
 # FULL=1 → build/pull EVERY cybench target + GaaS and run the whole suite (auto-generates
-# a config listing every discovered sample). Default runs the 3-task slice.
+# a config listing every discovered sample). Default runs the 3-task slice. (cybench only)
 FULL="${FULL:-0}"
-CONFIG="${CONFIG:-promptfooconfig.yaml}"          # the cybench suite (slice); FULL overrides
-BUILD_GAAS="${BUILD_GAAS:-$FULL}"                 # full run needs Ghidra for the rev tasks
-TIMEOUT_SECS="${TIMEOUT_SECS:-$([ "$FULL" = 1 ] && echo 28800 || echo 7200)}"  # 8h full / 2h slice
+# Config default depends on the suite: cybench → the 3-task slice (FULL overrides with the
+# generated full config); authored → the enterprise suite.
+if [ "$SUITE" = "authored" ]; then
+  CONFIG="${CONFIG:-promptfooconfig.authored.yaml}"
+else
+  CONFIG="${CONFIG:-promptfooconfig.yaml}"
+fi
+BUILD_GAAS="${BUILD_GAAS:-$([ "$SUITE" = cybench ] && echo "$FULL" || echo 0)}"  # Ghidra: cybench-full only
+TIMEOUT_SECS="${TIMEOUT_SECS:-$([ "$FULL" = 1 ] || [ "$SUITE" = authored ] && echo 28800 || echo 7200)}"  # 8h full/authored / 2h slice
 # --- Registry-backed image caching (build-once / pull-many; see the header) ---
 UCB_REGISTRY="${UCB_REGISTRY:-}"                  # e.g. ghcr.io/you/  (empty = local build, no cache)
 PHASE="${PHASE:-eval}"                            # 'provision' = build+push then exit; 'eval' = pull(if registry)+run
 MODEL="${MODEL:-}"                                # optional Inspect model id override (e.g. openai/DeepSeek-V4-Flash); blank = the config's model
 PATCH_ROT="${PATCH_ROT:-0}"                       # 1 = repoint EOL-Debian task Dockerfiles at archive.debian.org before building (recovers apt-rot images)
+# --- Pass@k: repeat the eval to average out run-to-run variance ---
+RUNS="${RUNS:-1}"                                 # >1 = run the eval N times into per-run JSONs, then aggregate
+RUN_TAG="${RUN_TAG:-$SUITE}"                      # label for per-run output files (set e.g. qwen-cybench / deepseek-authored)
+CANON="$SKILL_DIR/out.${SUITE}.json"             # canonical latest-run output (out.cybench.json / out.authored.json)
 AGENT_IMAGE="agent-environment:1.1.1"             # keep in sync with scripts/config.env (AGENT_IMAGE)
 # Registry caching only applies to the FULL suite; the 3-task slice always builds its
 # handful of images locally (bare tags), so scope the effective prefix to FULL.
 REG=""
-if [ "$PHASE" = "provision" ] || { [ "$FULL" = "1" ] && [ -n "$UCB_REGISTRY" ]; }; then
+if [ "$SUITE" = "cybench" ] && { [ "$PHASE" = "provision" ] || { [ "$FULL" = "1" ] && [ -n "$UCB_REGISTRY" ]; }; }; then
   REG="$UCB_REGISTRY"
 fi
 [ -n "$UCB_REGISTRY" ] && [ "$FULL" != "1" ] && [ "$PHASE" != "provision" ] \
@@ -207,7 +225,29 @@ sudo iptables -F OUTPUT 2>/dev/null || true
 sudo iptables -F DOCKER-USER 2>/dev/null || true
 
 # --- Provision the REAL harness + images (internet ON) ---
-if [ "$FULL" = "1" ]; then
+if [ "$SUITE" = "authored" ]; then
+  # Authored/enterprise suite (../tasks via benchmark: authored). Provision the harness +
+  # agent, then PRE-BUILD every authored task's target image (egress on) so eval-time
+  # `docker compose up` finds them present under lockdown. Each task compose references the
+  # agent as an image (no build stanza), so `docker compose build` builds only the target
+  # service(s) — no shared-agent re-tag race, so multithread is fine here.
+  log "provisioning CAISI harness + agent for the authored suite ..."
+  BUILD_AGENT_IMAGE=1 BUILD_CHALLENGE_TARGETS=0 HALO_ENV="$HALO_ENV" \
+    bash "$SKILL_DIR/scripts/setup_caisi.sh" || fail "CAISI setup failed"
+  [ "$PATCH_ROT" = "1" ] && { log "PATCH_ROT=1: repointing EOL-Debian authored Dockerfiles at archive.debian.org ..."; bash "$SKILL_DIR/scripts/patch_rot.sh" "$SKILL_DIR/tasks" || log "WARN: patch_rot.sh reported an error"; }
+  log "pre-building authored task target images (egress on; heavy) ..."
+  a_built=0; a_failed=0
+  for c in "$SKILL_DIR"/tasks/*/compose.yml; do
+    [ -f "$c" ] || continue
+    d="$(dirname "$c")"
+    if ( cd "$d" && docker compose build >/dev/null 2>&1 ); then
+      a_built=$((a_built + 1))
+    else
+      a_failed=$((a_failed + 1)); log "WARN: authored target build failed for $(basename "$d")"
+    fi
+  done
+  log "authored pre-build done — ${a_built} built, ${a_failed} failed (failed tasks will error at eval)."
+elif [ "$FULL" = "1" ]; then
   # FULL: let CAISI's own tool build/pull EVERYTHING — the crude per-dir `docker compose
   # build target` loop breaks on image-only tasks, non-`target` service names, and
   # multi-image challenges. `ucb build` (no-push) builds core (agent + GaaS) + all
@@ -267,8 +307,8 @@ else
     bash "$SKILL_DIR/scripts/setup_caisi.sh" || fail "CAISI setup failed"
 fi
 
-# --- FULL mode: discover every cybench sample and generate a config listing them all ---
-if [ "$FULL" = "1" ]; then
+# --- FULL mode (cybench only): discover every cybench sample and generate a config listing them ---
+if [ "$SUITE" = "cybench" ] && [ "$FULL" = "1" ]; then
   CB="$SKILL_DIR/scripts/vendor/caisi-cyber-evals/src/ucb/benchmarks/cybench"
   FULLCFG="$SKILL_DIR/scripts/promptfooconfig.cybench-full.yaml"
   # Reuse the cybench config's provider block (model/timeouts/etc.), swap in all samples.
@@ -320,22 +360,39 @@ log "egress self-test (hard gate) ..."
 bash "$SCRIPT_DIR/egress-selftest.sh" "$MODEL_IP" "$MODEL_PORT" \
   || fail "egress self-test FAILED — refusing to run"
 
-# --- Run the REAL Cybench suite through promptfoo ---
-log "running Cybench through promptfoo (config=${CONFIG}; label=cybench-baseline) ..."
+# --- Run the suite through promptfoo (Pass@k when RUNS>1) ---
+log "running ${SUITE} through promptfoo (config=${CONFIG}; runs=${RUNS}; tag=${RUN_TAG}) ..."
 cd "$SKILL_DIR/scripts" || fail "cannot cd into scripts"
 export PROMPTFOO_PYTHON="$SKILL_DIR/scripts/vendor/caisi-cyber-evals/.venv/bin/python"
 export OPENAI_BASE_URL="$MODEL_BASE_URL" OPENAI_API_KEY="$AZURE_AI_API_KEY"
 # Make the eval-time compose resolve the SAME registry-prefixed tags `ucb pull` fetched
 # (provider.py copies this process env into the Inspect subprocess). Empty for the local
-# path — bare tags — which is exactly what a local `ucb build`/slice produced.
+# path — bare tags — which is exactly what a local `ucb build`/slice/authored produced.
 export UCB_CONTAINER_REGISTRY="$REG"
 export PROMPTFOO_DISABLE_TELEMETRY=1 PROMPTFOO_DISABLE_UPDATE=1
-timeout "$TIMEOUT_SECS" promptfoo eval -c "$CONFIG" --no-cache \
-  --description 'cybench-baseline (x86; gate0a-grade, not assurance)' -o "$SKILL_DIR/out.cybench.json"
-rc=$?
-[ "$rc" -eq 124 ] && log "WARN: run hit the ${TIMEOUT_SECS}s wall-clock guard"
+# Pass@k: repeat the eval RUNS times. RUNS=1 writes the canonical out.<suite>.json; RUNS>1
+# also writes per-run out.<tag>.run<i>.json (aggregate with scripts/aggregate_runs.cjs).
+rc=0
+for i in $(seq 1 "$RUNS"); do
+  OUT="$CANON"
+  if [ "$RUNS" -gt 1 ]; then
+    OUT="$SKILL_DIR/out.${RUN_TAG}.run${i}.json"
+    log "── Pass@k run ${i}/${RUNS} → $(basename "$OUT") ──"
+  fi
+  timeout "$TIMEOUT_SECS" promptfoo eval -c "$CONFIG" --no-cache \
+    --description "cybench-baseline (${SUITE}; ${RUN_TAG}; run ${i}/${RUNS}; x86 gate0a-grade)" -o "$OUT"
+  r=$?
+  [ "$r" -eq 124 ] && log "WARN: run ${i} hit the ${TIMEOUT_SECS}s wall-clock guard"
+  [ "$r" -ne 0 ] && rc="$r"
+  # Keep the canonical latest-run pointer up to date (the bucket one-liners read it).
+  [ "$OUT" != "$CANON" ] && cp -f "$OUT" "$CANON" 2>/dev/null || true
+done
 
-log "results → $SKILL_DIR/out.cybench.json (rc=$rc)"
+if [ "$RUNS" -gt 1 ]; then
+  log "Pass@${RUNS} complete. Aggregate with:"
+  log "    node $SKILL_DIR/scripts/aggregate_runs.cjs $SKILL_DIR/out.${RUN_TAG}.run*.json"
+fi
+log "results → ${CANON} (latest run; rc=$rc)"
 log "egress is still locked down. To restore: sudo iptables -P OUTPUT ACCEPT; sudo iptables -F OUTPUT"
 log "This VM is yours to manage — snapshot results, then destroy the VM when done."
 exit "$rc"
