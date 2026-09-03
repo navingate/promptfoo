@@ -195,6 +195,17 @@ fi
 
 # ─── PHASE 2: EVAL — provision/pull images, lock egress, run the suite ───────────────
 
+# The build/pull phase needs the internet — to pull base images and (for PATCH_ROT) to
+# reach archive.debian.org. A prior run (or a killed one) may have left the egress
+# lockdown in place, which silently breaks builds: base-image pulls time out on blocked
+# DNS, and in-build `apt` (container egress) is dropped by DOCKER-USER. Clear BOTH
+# chains now; we re-apply the lockdown + self-test before the eval, so containment is
+# unchanged for the run itself.
+log "opening egress for the build/pull phase (a prior run may have left it locked) ..."
+sudo iptables -P OUTPUT ACCEPT 2>/dev/null || true
+sudo iptables -F OUTPUT 2>/dev/null || true
+sudo iptables -F DOCKER-USER 2>/dev/null || true
+
 # --- Provision the REAL harness + images (internet ON) ---
 if [ "$FULL" = "1" ]; then
   # FULL: let CAISI's own tool build/pull EVERYTHING — the crude per-dir `docker compose
