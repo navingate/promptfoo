@@ -162,11 +162,23 @@ model under lockdown (`✓ 1 passed`). The self-test still gates every run.
 
 **Gate 0B — assurance**
 
-- ⬜ 3B.1 **microVM-grade isolation** per run; egress tested from EVERY
+- 🔄 3B.1 **microVM-grade isolation** per run; egress tested from EVERY
   task-controlled context (target, agent/tools, sidecars, custom solver, scorer,
-  eval process) — not just the target container.
-- ⬜ 3B.2 **Authenticated, destination-specific model broker** (not a generic
-  proxy); the task namespace gets no arbitrary provider/host/artifact socket.
+  eval process) — not just the target container. **Decision core BUILT + self-tested**
+  (`deploy/gate0b/isolation/`): `egress_probe.py` holds the policy (only `agent → model
+broker`; every other context/destination zero) + a pure checker that flags a leak from
+  any context or an unreachable broker (`selftest_egress_policy.py`). Host launcher skeleton
+  `run_microvm.sh` (disposable microVM per run, pinned image, default-deny egress, probe from
+  every context, fail-closed, zero-residue teardown). **Remaining (host):** boot the VM, apply
+  the lockdown, run live probes, prove zero residue. Design in `references/isolation-and-broker.md`.
+- 🔄 3B.2 **Authenticated, destination-specific model broker** (not a generic
+  proxy); the task namespace gets no arbitrary provider/host/artifact socket. **Decision core
+  BUILT + self-tested** (`deploy/gate0b/broker/model_broker.py`): `authorize()` grants ONLY an
+  authenticated request to the ONE allowlisted model host + inference path prefixes (POST only);
+  denies missing/wrong token (401), any other host incl. look-alike subdomains (403), non-inference
+  paths (403), other methods (405); fail-closed on misconfig; the real provider key is never in the
+  sandbox-facing policy (injected server-side). `selftest_model_broker.py`. **Remaining (host):**
+  the live forwarding proxy. Design in `references/isolation-and-broker.md`.
 - 🔄 3B.3 **Out-of-band, replay-resistant verifier**: high-entropy per-run nonce
   generated outside all agent-visible files/images; **stage-specific** verifier
   events so a terminal flag cannot falsely prove every claimed cell; no proof
@@ -221,10 +233,14 @@ model under lockdown (`✓ 1 passed`). The self-test still gates every run.
     control scored 0. Known-answer self-test in CI (`selftest_measure.py`). **Remaining
     (host):** actually run the 10-attempt protocol + same-seed clones on the substrate and
     feed the per-attempt results in.
-- ⬜ 3B.7 **Component-level threat model** covering evaluator, agent, tools, broker,
+- 🔄 3B.7 **Component-level threat model** covering evaluator, agent, tools, broker,
   scorer, verifier; **private-task controls** (public dev/private encrypted split,
   per-run generation, exposure logs, author/evaluator separation, ZDR/self-hosted
-  inference, retirement rules).
+  inference, retirement rules). **BUILT** (`references/threat-model.md`): per-component
+  threat→mitigation table (verifier/answer-key/agent/broker/target/eval-process/logs/
+  measurement) tied to what ships, honest residual risks (host-validated enforcement,
+  unintended solutions, broker side channels), and the private-task control set. Adversary
+  framed as the thing under test (NIST cheating-eval failure mode).
 - 🔄 3B.8 Gate 0B exit criteria as CI checks: reference solve passes + no-op &
   adversarial fixtures fail in fresh instances; stale/wrong-stage/cross-task/cross-run
   tokens rejected; two concurrent tasks isolated; 10 runs leave zero residue after

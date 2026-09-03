@@ -44,6 +44,14 @@ CRITERIA = [
     ("manifest_redacted",
      "exported run manifest carries no recoverable proof token or secret",
      "selftest_manifest.py"),
+    ("model_broker_deny_logic",
+     "broker grants ONLY an authenticated socket to the one allowlisted model destination "
+     "(3B.2); provider key never in the sandbox-facing policy",
+     "broker/selftest_model_broker.py"),
+    ("egress_policy_logic",
+     "egress policy: only agent->broker permitted; a leak from any task-controlled context is "
+     "flagged (3B.1 decision core)",
+     "isolation/selftest_egress_policy.py"),
 ]
 
 # Criteria that need the Gate-0B host (cannot be proven in CI software alone).

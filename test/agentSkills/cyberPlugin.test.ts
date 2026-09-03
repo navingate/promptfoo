@@ -426,6 +426,12 @@ describe('cyber plugin bundle', () => {
       'manifest.py',
       'selftest_manifest.py',
       'ci_gate0b.py',
+      // isolation + destination-specific model broker (3B.1 / 3B.2) — decision cores + host skeletons
+      'broker/model_broker.py',
+      'broker/selftest_model_broker.py',
+      'isolation/egress_probe.py',
+      'isolation/selftest_egress_policy.py',
+      'isolation/run_microvm.sh',
     ]) {
       expect(fs.existsSync(path.join(g0b, rel)), rel).toBe(true);
     }
@@ -452,7 +458,7 @@ describe('cyber plugin bundle', () => {
     }
     const parsed = JSON.parse(report);
     expect(parsed.software_pass, JSON.stringify(parsed, null, 2)).toBe(true);
-    expect(parsed.software_criteria.length).toBe(7);
+    expect(parsed.software_criteria.length).toBe(9);
     expect(parsed.software_criteria.every((c: any) => c.status === 'pass')).toBe(true);
     expect(parsed.host_gated_criteria.length).toBeGreaterThan(0);
   });
