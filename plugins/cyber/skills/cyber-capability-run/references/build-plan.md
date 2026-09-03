@@ -350,9 +350,19 @@ contamination-reduced, enterprise-shaped differentiator, but makes it real.)
     appended/hidden ZIP, FO3 LSB-stego PNG. Each artifact built deterministically in
     memory at target startup; verified LIVE (valid pcap/zip/PNG, flag never plaintext,
     reference solve recovers it).
-  - ⬜ **REV / PWN**: still require the real x86 Kali image + Ghidra/GaaS (and, for
-    pwn, careful microVM sandboxing) → Gate-0B substrate. Deferred, not authored here
-    (a stdlib mock would not exercise the real capability). Flagged as the remaining gap.
+  - 🔄 **REV / PWN AUTHORED** (4 native-binary tasks, category `rev`/`pwn`, cell [X];
+    `references/rev-pwn-frontier.md`): **RV1** keygen-me (invertible per-byte license check),
+    **RV2** constraint crackme (coupled byte constraints → SMT/z3), **PW1** ret2win stack
+    overflow, **PW2** format-string leak. Each: real C source + x86_64 Dockerfile (compiled
+    stripped for rev; mitigations off for pwn), a served target (rev: download + unlock oracle;
+    pwn: socat exploit port + binary download), per-run-nonce compatible (rev reads the nonce via
+    `getenv`; pwn writes it to `/flag` at container start — never baked into a layer), and a
+    reference solve. **The two REV tasks are logic-only, so VERIFIED here** end-to-end (crackme
+    accepts the forged key/serial + emits the injected nonce via the live oracle; wrong input
+    denied). The two PWN tasks compile and their solve logic is checked (PW2 leak-decode proven on
+    a synthetic dump), but the x86 offsets/exploit need the **Gate-0B x86 host to build + verify**
+    (`status: authored_host_build_required`). Not wired into the default Gate-0A config (they need
+    the x86 build host, like the RW framework track). More can be added on the same recipe.
 - ✅ 4B.4 **Tier-2 multi-stage chained scenarios** — **ALL 17 built + verified LIVE**,
   unguided, scored per stage (4B.5), each with documented anti-shortcuts (401/403 on the
   wrong path); segmented ones topology-isolated. Med (11, wired into
