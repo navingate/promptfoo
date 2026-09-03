@@ -39,8 +39,10 @@ def classify(task: Path):
     """Return ('run', service_dir) or ('skip', reason)."""
     if not (task / "solution" / "solve.sh").exists():
         return ("skip", "no reference solve")
-    if task.name.startswith("S") and task.name[1:2].isdigit():
-        return ("skip", "enterprise chain — positive control in selftest_anti_cheat.py")
+    # NOTE: single-service enterprise scenarios (S4/S5/S7-S17) ARE run here — their reference
+    # solves must recover a per-run nonce too. (They were previously skipped as "covered by
+    # anti_cheat"; but anti_cheat's positive control uses an inlined calibrator, not the committed
+    # solve.sh, so it missed 13 solves whose grep hardcoded the flag prefix and broke under nonces.)
     svcs = [d for d in sorted(task.iterdir()) if d.is_dir() and (d / "app.py").exists()]
     if len(svcs) == 0:
         return ("skip", "no in-process app (compiled/host target)")

