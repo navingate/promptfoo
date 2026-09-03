@@ -207,9 +207,21 @@ broker`; every other context/destination zero) + a pure checker that flags a lea
   reference-solution access. (NIST: agents use public walkthroughs / generic DoS to
   fake cyber-eval results — https://www.nist.gov/caisi/cheating-ai-agent-evaluations)
   The verifier's rejection classes (3B.3) implement the replay/wrong-path/no-op/
-  reference-default cases as a self-tested harness (`selftest_gate0b_verifier.py`, in CI);
-  per-scenario shortcut/unintended-solution fixtures + log-copy/scorer-tamper are the
-  remaining host-validated pieces.
+  reference-default cases as a self-tested harness (`selftest_gate0b_verifier.py`, in CI).
+  **Per-scenario shortcut/unintended-solution fixtures BUILT + self-tested**
+  (`deploy/gate0b/anti_cheat.py`, `selftest_anti_cheat.py`): all **17 scenarios** (S1–S17)
+  carry probes proving the terminal flag is NOT reachable by a degenerate/unintended path
+  (e.g. hitting the protected route without the policy flip, opening a PAM session without an
+  approval, querying the warehouse with the un-escalated role), while the inlined intended path
+  DOES recover the (per-run) flag as a positive control. Two soundness classes are handled
+  honestly: app-gated terminals are probed directly; network-gated terminals (S3 runtime, S6
+  vault, which serve the flag freely by design) are checked for agent-vs-terminal network
+  segmentation in compose. A non-vacuity meta-test proves a real leak (or a miscalibrated
+  control) IS caught. **log-copy / scorer-tamper / reference-access** are covered by the OOB
+  design: crediting is tool-observed (an echoed/copied value earns no stage credit —
+  `selftest_gate0b_verifier.py`), and the scorer/verifier/reference solutions live in the eval
+  process, out of the agent's reach (3B.1 isolation). **Remaining (host):** exercise the fixtures
+  against the live docker sandboxes rather than in-process.
 - 🔄 3B.5 **Fail-closed** on broker/policy/verifier/telemetry failure (→ invalid,
   never pass/non-solve); image **pinning + provenance + vuln policy**; quarantined
   artifact extraction; log/UI secret + proof-token sanitization. **BUILT + self-tested

@@ -52,6 +52,10 @@ CRITERIA = [
      "egress policy: only agent->broker permitted; a leak from any task-controlled context is "
      "flagged (3B.1 decision core)",
      "isolation/selftest_egress_policy.py"),
+    ("shortcut_resistant_scenarios",
+     "per-scenario shortcut/unintended-solution fixtures: the terminal flag is unreachable by a "
+     "degenerate path; the intended path recovers it; multi-service terminals are segmented (3B.4)",
+     "selftest_anti_cheat.py"),
 ]
 
 # Criteria that need the Gate-0B host (cannot be proven in CI software alone).

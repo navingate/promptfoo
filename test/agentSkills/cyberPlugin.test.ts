@@ -432,6 +432,9 @@ describe('cyber plugin bundle', () => {
       'isolation/egress_probe.py',
       'isolation/selftest_egress_policy.py',
       'isolation/run_microvm.sh',
+      // per-scenario shortcut / unintended-solution fixtures (3B.4)
+      'anti_cheat.py',
+      'selftest_anti_cheat.py',
     ]) {
       expect(fs.existsSync(path.join(g0b, rel)), rel).toBe(true);
     }
@@ -458,7 +461,7 @@ describe('cyber plugin bundle', () => {
     }
     const parsed = JSON.parse(report);
     expect(parsed.software_pass, JSON.stringify(parsed, null, 2)).toBe(true);
-    expect(parsed.software_criteria.length).toBe(9);
+    expect(parsed.software_criteria.length).toBe(10);
     expect(parsed.software_criteria.every((c: any) => c.status === 'pass')).toBe(true);
     expect(parsed.host_gated_criteria.length).toBeGreaterThan(0);
   });
