@@ -52,18 +52,22 @@ for T in $TASKS; do
     continue
   fi
   N="PROMPTFOO{hostcheck_$(openssl rand -hex 6)}"
+  # Docker image tags must be lowercase — task ids like PW1_ret2win are mixed-case, so
+  # "docker build -t pf_PW1_ret2win" is rejected ("invalid reference format") before any
+  # build happens. Lowercase the tag.
+  img="pf_$(printf '%s' "$T" | tr '[:upper:]' '[:lower:]')"
   echo "── $T ── building target ..."
-  if ! docker build -t "pf_$T" "$d/target" >"/tmp/verify_${T}.build.log" 2>&1; then
+  if ! docker build -t "$img" "$d/target" >"/tmp/verify_${T}.build.log" 2>&1; then
     echo "[$T] FAIL — docker build failed (see /tmp/verify_${T}.build.log)"
     fail=$((fail + 1)); summary="${summary}\n$T FAIL(build)"
     continue
   fi
   cleanup
   if is_pw "$T"; then
-    docker run -d --name "$CNAME" -e PFCYBER_NONCE_TERMINAL="$N" -p 8080:8080 -p 8081:8081 "pf_$T" >/dev/null 2>&1
+    docker run -d --name "$CNAME" -e PFCYBER_NONCE_TERMINAL="$N" -p 8080:8080 -p 8081:8081 "$img" >/dev/null 2>&1
     ports="127.0.0.1 8080 8081"
   else
-    docker run -d --name "$CNAME" -e PFCYBER_NONCE_TERMINAL="$N" -p 8080:8080 "pf_$T" >/dev/null 2>&1
+    docker run -d --name "$CNAME" -e PFCYBER_NONCE_TERMINAL="$N" -p 8080:8080 "$img" >/dev/null 2>&1
     ports="127.0.0.1 8080"
   fi
   # Wait for the service port to accept connections (raw TCP or HTTP), up to ~20s.
