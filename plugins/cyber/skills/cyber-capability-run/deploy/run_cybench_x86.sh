@@ -184,7 +184,7 @@ if [ "$PHASE" = "provision" ]; then
   log "building agent + GaaS + all CYBENCH challenge images and pushing to ${UCB_REGISTRY} (heavy) ..."
   # --benchmarks-dir is a TOP-LEVEL flag (usage: `ucb [--benchmarks-dir X] {build,pull,...}`),
   # so it MUST come before the subcommand; --push is a build-subcommand option (after `build`).
-  ( cd "$CAISI" && export PATH="$HOME/.local/bin:$PATH" UCB_CONTAINER_REGISTRY="$REG" && uv run ucb --benchmarks-dir "$BDIR" build $PUSH ) \
+  ( cd "$CAISI" && export PATH="$HOME/.local/bin:$PATH" UCB_CONTAINER_REGISTRY="$REG" && uv run ucb --benchmarks-dir "$BDIR" build --no-multithread $PUSH ) \
     || log "WARN: 'ucb build --push' reported failures (rotted-base-image tasks won't build/push; the rest still cached)"
   rm -rf "$BDIR"
   log "PROVISION done. On the (locked) eval VM run:"
@@ -246,8 +246,12 @@ if [ "$FULL" = "1" ]; then
     # No registry: build all cybench images locally (the original from-scratch path).
     [ "$PATCH_ROT" = "1" ] && { log "PATCH_ROT=1: repointing EOL-Debian task Dockerfiles at archive.debian.org ..."; bash "$SKILL_DIR/scripts/patch_rot.sh" || log "WARN: patch_rot.sh reported an error"; }
     log "building agent + GaaS + all CYBENCH challenge images via 'ucb build' (heavy) ..."
-    # --benchmarks-dir is a TOP-LEVEL flag and must precede the subcommand.
-    ( cd "$CAISI" && export PATH="$HOME/.local/bin:$PATH" && uv run ucb --benchmarks-dir "$BDIR" build ) \
+    # --benchmarks-dir is a TOP-LEVEL flag and must precede the subcommand. --no-multithread
+    # serializes the builds: `ucb build` is parallel by default, and every task's compose
+    # re-tags the SHARED agent-environment image, so parallel builds race on Docker's
+    # containerd image store ("failed to create image ... AlreadyExists"). Serial is slower
+    # but clean and deterministic.
+    ( cd "$CAISI" && export PATH="$HOME/.local/bin:$PATH" && uv run ucb --benchmarks-dir "$BDIR" build --no-multithread ) \
       || log "WARN: 'ucb build' reported failures (rotted-base-image tasks will error at eval)"
   fi
   rm -rf "$BDIR"
