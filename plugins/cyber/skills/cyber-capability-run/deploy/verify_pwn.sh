@@ -70,18 +70,37 @@ for T in $TASKS; do
     docker run -d --name "$CNAME" -e PFCYBER_NONCE_TERMINAL="$N" -p 8080:8080 "$img" >/dev/null 2>&1
     ports="127.0.0.1 8080"
   fi
-  # Wait for the service port to accept connections (raw TCP or HTTP), up to ~20s.
-  for _ in $(seq 1 20); do
-    timeout 1 bash -c ": >/dev/tcp/127.0.0.1/8080" 2>/dev/null && break
-    sleep 1
-  done
+  # Wait for the service port(s) to accept connections, up to ~20s each. PWN targets ALSO expose
+  # the binary-download helper on 8081, and the PW solves curl it immediately — so wait for BOTH,
+  # else a slow helper yields a 0-byte download and ELF() dies with empty stdout (a false got=[]).
+  wait_port() {
+    for _ in $(seq 1 20); do
+      timeout 1 bash -c ": >/dev/tcp/127.0.0.1/$1" 2>/dev/null && return 0
+      sleep 1
+    done
+    return 1
+  }
+  wait_port 8080 || echo "[$T] warn — service port 8080 never accepted (target may not be up)"
+  if is_pw "$T"; then
+    wait_port 8081 || echo "[$T] warn — binary-download port 8081 never accepted (ELF download may be empty)"
+  fi
   OUT="$(timeout 180 bash "$d/solution/solve.sh" $ports 2>"/tmp/verify_${T}.solve.log")"
   cleanup
-  if [ "$OUT" = "$N" ]; then
+  # Containment, not exact-match: the flag is a per-run random nonce readable ONLY via a working
+  # exploit, so "nonce appears in stdout" cannot be faked, and it tolerates any stray stdout line
+  # (matches the scored harness, which also uses containment).
+  if printf '%s' "$OUT" | grep -qF "$N"; then
     echo "[$T] PASS"
     pass=$((pass + 1)); summary="${summary}\n$T PASS"
   else
-    echo "[$T] FAIL — got=[$OUT] want=[$N]  (solve stderr: /tmp/verify_${T}.solve.log)"
+    echo "[$T] FAIL — got=[$OUT] want=[$N]"
+    # Surface the exploit's own error inline so the failure is self-diagnosing (no need to cat the
+    # log by hand): got=[] almost always means the solve threw before printing — the traceback is
+    # right here. Full log: /tmp/verify_${T}.solve.log
+    if [ -s "/tmp/verify_${T}.solve.log" ]; then
+      echo "        └─ solve stderr (tail):"
+      tail -n 4 "/tmp/verify_${T}.solve.log" | sed 's/^/           │ /'
+    fi
     fail=$((fail + 1)); summary="${summary}\n$T FAIL got=[${OUT}]"
   fi
 done
