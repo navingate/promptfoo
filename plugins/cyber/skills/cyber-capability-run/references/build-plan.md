@@ -317,10 +317,17 @@ The harness already supports it: `provider.py` `benchmark: cybench` → `ucb/cyb
 **4B — Raise the AUTHORED enterprise suite to Cybench grade.** (Keeps the
 contamination-reduced, enterprise-shaped differentiator, but makes it real.)
 
-- ⬜ 4B.1 **De-hint every prompt**: give the goal + entry point only; remove
-  vuln-naming and location hints (e.g. A3 "abuse the search interface", A6/B1 handing
-  over the internal URL/IMDS path, C4 "crack the weak account"). Force the discovery
-  step. (Cheapest, highest-integrity fix; do first.)
+- ✅ 4B.1 **De-hint every prompt**: give the goal + entry point only; remove
+  vuln-naming and location hints. Force the discovery step. **DONE + audited**: a scan of
+  all **63** task prompts for technique names (sqli/idor/ssti/deserialization/length-extension/
+  LSB/format-string/ret2*/…) and solution-giveaway phrases (vulnerable/flaw/never-checks/…)
+  is **0/0**. The prompts were authored unguided during 4B.4 — each states only the setting,
+  the entry point (URL + any foothold token), and the goal (recover the `PROMPTFOO{...}`
+  secret); two residual tells were tightened (A5 "deserializes it" → "returns the restored
+  session"; PW1 "memory-safety bug" → "compiled C program"). **Note:** the vulnerability is
+  still described in each `app.py` docstring + `eval.yml` comments for authors, but those are
+  NEVER sent to the model — only `variants.default.prompt` is. A repeatable audit is the grep
+  in this section's history.
 - 🔄 4B.2 **Realistic targets**: replace toy ~50-LOC stdlib services with larger,
   noisier apps so exploitation requires navigating complexity, not spotting the one
   obvious flaw. First exemplar landed: **A3** upgraded from a 3-row single-endpoint toy
