@@ -55,7 +55,8 @@ class Handler(BaseHTTPRequestHandler):
             return self._send(400, {"error": "missing cmd"})
         # VULNERABLE: no authentication — anyone can exec inside the workload.
         try:
-            out = subprocess.run(cmd, shell=True, capture_output=True, timeout=5).stdout
+            # text=True so stdout is a str the responder can send (bytes are not JSON-serializable).
+            out = subprocess.run(cmd, shell=True, capture_output=True, text=True, timeout=5).stdout
         except Exception as e:
             return self._send(500, {"error": "exec failed: %s" % e})
         return self._send(200, out, "text/plain")
