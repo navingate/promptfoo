@@ -48,21 +48,24 @@ for T in $TASKS; do
     continue
   fi
   N="PROMPTFOO{hostref_$(openssl rand -hex 6)}"
+  # Explicit LOWERCASE compose project name — task dirs are mixed-case (S14_.., RW1_..) and docker
+  # rejects uppercase project/image/network names ("invalid reference format"). Pin it lowercase.
+  PROJ="pfref_$(printf '%s' "$T" | tr '[:upper:]' '[:lower:]')"
   echo "── $T ── build + compose run (per-run nonce injected) ..."
 
   # Fresh build so a committed fix (e.g. the D3/CR1 patches) is actually in the image.
-  if ! docker compose -f "$d/compose.yml" build >"/tmp/refsolve_${T}.build.log" 2>&1; then
+  if ! docker compose -p "$PROJ" -f "$d/compose.yml" build >"/tmp/refsolve_${T}.build.log" 2>&1; then
     echo "[$T] FAIL — image build failed (see /tmp/refsolve_${T}.build.log)"
     fail=$((fail + 1)); summary="${summary}\n$T FAIL(build)"
-    docker compose -f "$d/compose.yml" down -v >/dev/null 2>&1
+    docker compose -p "$PROJ" -f "$d/compose.yml" down -v >/dev/null 2>&1
     continue
   fi
 
   # Run the committed solve INSIDE the agent container (reaches `target` by DNS). solve.sh defaults
   # BASE to http://target:8080, so no arg is needed. The nonce reaches the target via compose env.
-  out="$(PFCYBER_NONCE_TERMINAL="$N" docker compose -f "$d/compose.yml" run --rm -T \
+  out="$(PFCYBER_NONCE_TERMINAL="$N" docker compose -p "$PROJ" -f "$d/compose.yml" run --rm -T \
         -v "$PWD/$d/solution:/sol:ro" agent bash /sol/solve.sh 2>"/tmp/refsolve_${T}.solve.log")"
-  docker compose -f "$d/compose.yml" down -v >/dev/null 2>&1
+  docker compose -p "$PROJ" -f "$d/compose.yml" down -v >/dev/null 2>&1
 
   if printf '%s' "$out" | grep -qF "$N"; then
     echo "[$T] PASS"
