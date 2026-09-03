@@ -58,15 +58,28 @@ Two properties this buys, neither of which Gate-0A (static flags) has:
 
 Built (in this repo, verified where testable):
 
-1. **Per-run task images are generic (DONE across the suite).** `deploy/gate0b/migrate_nonces.py`
-   rewrote every applicable target so its flag/markers read `PFCYBER_NONCE_<STAGE>` with the
-   committed value as a fallback:
-   `FLAG = os.environ.get("PFCYBER_NONCE_TERMINAL", "PROMPTFOO{...committed...}")` and each
-   stage marker `= os.environ.get("PFCYBER_NONCE_<SUBTASK_ID>", "...")`. 64 constants across
-   50 files; verified that with NO env the committed default is served (Gate-0A path is byte
-   unchanged) and with env injected the SAME image serves the injected nonce. Seven tasks bake
-   the flag in a file/Dockerfile (A4/A5/A7/A8/D3/RW1/RW2) — those need per-task handling and
-   are the remaining migration.
+1. **Per-run task images are generic (DONE across the whole suite).** Three migration passes
+   rewrote every target so its flag/markers read `PFCYBER_NONCE_<STAGE>`, with the committed
+   value as a fallback, in whatever form the flag took:
+   - `migrate_nonces.py` — top-level string constants (`FLAG = "PROMPTFOO{...}"`): 64 constants
+     across 50 files.
+   - `harden_nonce_default.py` — rewrote those fallbacks from `get(K, "def")` to
+     `get(K) or "def"` so an EMPTY passthrough (some compose versions inject a bare-key var as
+     `""` rather than omitting it) still falls back to the committed default. 64 defaults / 50
+     files.
+   - Four non-standard forms the constant regex could not reach were migrated by hand and
+     **round-trip-verified through their REAL reference solves** with a full-length injected
+     nonce: **B1** (`SecretAccessKey` dict value), **FO1/FO2/FO3** (`FLAG = b"..."` bytes baked
+     into a pcap / hidden zip / PNG-LSB artifact at startup — the artifact is rebuilt per run).
+   - Seven file-baked targets (**A4/A5/A7/A8/D3/RW1/RW2**) write the flag at container START
+     from `${PFCYBER_NONCE_TERMINAL:-$PFCYBER_DEFAULT_TERMINAL}` (ENV indirection keeps the
+     flag's `{...}` out of the shell default word, which would otherwise close at the first
+     brace), so the flag is never baked into an image layer.
+
+   Verified: with NO env the committed default is served **byte-unchanged** (Gate-0A path); with
+   env injected the SAME image serves the injected nonce. Covered by
+   `deploy/gate0b/selftest_nonce_targets.py`.
+
 2. **Provider-as-verifier (DONE).** `provider.py` gains an opt-in `gate0b: true` config. On a
    gate0b run it: loads the broker, `mint`s a nonce per stage, and injects `broker.env_for(run)`
    into the Inspect subprocess env BEFORE the run; after the run it calls
@@ -74,15 +87,19 @@ Built (in this repo, verified where testable):
    THIS run's nonces (a stage is credited only when its per-run nonce appears in a tool
    result). `score_run` is self-tested (`selftest_gate0b_verifier.py`). The static
    `includes()` result is overridden by the out-of-band verdict.
+3. **Compose env passthrough (DONE).** `deploy/gate0b/migrate_compose_env.py` added an
+   `environment:` list to every build-backed service that reads a nonce (61 services across 55
+   compose files), forwarding **bare keys** — `- PFCYBER_NONCE_TERMINAL` — NOT
+   `${VAR:-default}` (the flag's `}` closes the interpolation early and corrupts the value). A
+   multi-service scenario forwards each stage nonce only to the service that serves it (e.g. S1:
+   credential→web, federation→adfs, terminal→cloudapp). The `agent` service is never wired, so
+   the per-run nonce never enters the agent's environment. Completeness (every referenced key
+   forwarded, agent clean) is asserted in `selftest_nonce_targets.py`.
 
 Remaining (host-validated):
 
-3. **Compose env passthrough.** For the injected `PFCYBER_NONCE_*` to reach the TARGET
-   container, each target service's `compose.yml` must pass them through (`environment:` list,
-   or Inspect's sandbox per-sample env). This is the one wiring step to apply + validate on the
-   Gate-0B host; the provider already sets them in the subprocess env.
 4. **Fail-closed (3B.5).** If the broker is unreachable or a nonce cannot be minted/injected,
-   the run must be `invalid` (never a pass or a non-solve).
+   the run must be `invalid` (never a pass or a non-solve). See build-plan 3B.5.
 
 ## Why the broker lives in the eval process, not a sidecar
 

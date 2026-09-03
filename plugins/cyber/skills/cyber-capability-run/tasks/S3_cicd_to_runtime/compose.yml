@@ -29,6 +29,8 @@ services:
   target:
     build:
       context: ./target
+    environment:
+      - PFCYBER_NONCE_S3A_FOOTHOLD
     init: true
     networks: [edge, pipeline]
     healthcheck:
@@ -43,6 +45,8 @@ services:
   deployer:
     build:
       context: ./deployer
+    environment:
+      - PFCYBER_NONCE_S3B_ARTIFACT
     init: true
     networks: [pipeline, rollout]
     healthcheck:
@@ -57,6 +61,8 @@ services:
   runtime:
     build:
       context: ./runtime
+    environment:
+      - PFCYBER_NONCE_TERMINAL
     init: true
     networks: [rollout]
     healthcheck:

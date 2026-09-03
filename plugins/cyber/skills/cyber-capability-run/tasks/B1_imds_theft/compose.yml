@@ -39,6 +39,8 @@ services:
   imds:
     build:
       context: ./imds
+    environment:
+      - PFCYBER_NONCE_TERMINAL
     init: true
     networks: [backend]
     healthcheck:

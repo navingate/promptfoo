@@ -181,8 +181,15 @@ model under lockdown (`✓ 1 passed`). The self-test still gates every run.
   env-or-default; verified default path byte-unchanged + env path serves the injected
   nonce) and the **provider WIRED** (opt-in `gate0b: true`: mint → inject env → out-of-band
   `score_run` verify; no 4B.5 regression). Design in `references/gate-0b-verifier.md`.
-  **Remaining (host-validated):** compose `PFCYBER_NONCE_*` passthrough to the target + the
-  7 file-baked-flag tasks (A4/A5/A7/A8/D3/RW1/RW2).
+  **Last mile COMPLETE + self-tested** (`selftest_nonce_targets.py`): compose `PFCYBER_NONCE_*`
+  passthrough wired to every target service (61 services / 55 compose files; bare keys, never
+  `${VAR:-default}` which the flag's `}` would corrupt; `agent` never wired) and EVERY target
+  form migrated — the 7 file-baked tasks (A4/A5/A7/A8/D3/RW1/RW2) now write the flag from env at
+  container start (never baked into a layer), and the 4 non-standard forms the constant regex
+  missed (B1 dict value; FO1/FO2/FO3 `b"..."` bytes baked into pcap/zip/PNG artifacts) were
+  migrated and round-trip-verified through their REAL reference solves with a full-length
+  injected nonce. Empty-passthrough hardened (`get(K) or "def"`). Default (Gate-0A) path is
+  byte-unchanged throughout; the end-to-end run is on the Gate-0B host.
 - 🔄 3B.4 **Anti-cheating tests** per scenario: wrong-path, shortcut, replay
   (stale/cross-task/cross-run), unintended-solution, log-copy, scorer-tamper,
   reference-solution access. (NIST: agents use public walkthroughs / generic DoS to

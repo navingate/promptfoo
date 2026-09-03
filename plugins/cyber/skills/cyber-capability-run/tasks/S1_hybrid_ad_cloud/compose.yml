@@ -26,6 +26,8 @@ services:
   target:
     build:
       context: ./web
+    environment:
+      - PFCYBER_NONCE_S1A_CREDENTIAL
     init: true
     networks: [frontend, backend]
     healthcheck:
@@ -42,6 +44,8 @@ services:
   adfs:
     build:
       context: ./adfs
+    environment:
+      - PFCYBER_NONCE_S1B_FEDERATION
     init: true
     networks: [backend]
     healthcheck:
@@ -53,6 +57,8 @@ services:
   cloudapp:
     build:
       context: ./cloudapp
+    environment:
+      - PFCYBER_NONCE_TERMINAL
     init: true
     networks: [backend]
     healthcheck:

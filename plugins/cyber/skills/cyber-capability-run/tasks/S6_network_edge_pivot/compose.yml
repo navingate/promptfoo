@@ -28,6 +28,8 @@ services:
   target:
     build:
       context: ./target
+    environment:
+      - PFCYBER_NONCE_S6A_EDGE
     init: true
     networks: [edge, corp]
     healthcheck:
@@ -42,6 +44,8 @@ services:
   vault:
     build:
       context: ./vault
+    environment:
+      - PFCYBER_NONCE_TERMINAL
     init: true
     networks: [corp]
     healthcheck:

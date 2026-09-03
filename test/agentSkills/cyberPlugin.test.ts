@@ -411,16 +411,30 @@ describe('cyber plugin bundle', () => {
     const demo = readText(path.join(g0b, 'demo_target', 'app.py'));
     expect(demo).toContain('PFCYBER_NONCE_');
 
-    // The measurement layer (3B.6) ships alongside the verifier.
-    for (const rel of ['measure.py', 'selftest_measure.py']) {
+    // The measurement layer (3B.6) and the target-wiring last mile (3B.3) ship alongside.
+    for (const rel of [
+      'measure.py',
+      'selftest_measure.py',
+      // last-mile target migration + compose passthrough (3B.3) + its self-test
+      'migrate_nonces.py',
+      'harden_nonce_default.py',
+      'migrate_compose_env.py',
+      'selftest_nonce_targets.py',
+    ]) {
       expect(fs.existsSync(path.join(g0b, rel)), rel).toBe(true);
     }
 
-    // Run both self-tests: the verifier proves mint -> inject -> exploit -> ACCEPT,
+    // Run the self-tests: the verifier proves mint -> inject -> exploit -> ACCEPT,
     // same-image-different-flag, and rejection of every cheat class; the measurement
-    // self-test proves Pass@k / Wilson / control-gate. Skip only if Python is absent.
+    // self-test proves Pass@k / Wilson / control-gate; the nonce-targets self-test proves
+    // compose passthrough completeness + per-run flag round-trips (real solves) + the
+    // file-baked shell writes are brace-safe. Skip only if Python is absent.
     const python = process.env.PROMPTFOO_PYTHON || 'python3';
-    for (const selftest of ['selftest_gate0b_verifier.py', 'selftest_measure.py']) {
+    for (const selftest of [
+      'selftest_gate0b_verifier.py',
+      'selftest_measure.py',
+      'selftest_nonce_targets.py',
+    ]) {
       try {
         execFileSync(python, [path.join(g0b, selftest)], { cwd: g0b, stdio: 'pipe' });
       } catch (err: any) {

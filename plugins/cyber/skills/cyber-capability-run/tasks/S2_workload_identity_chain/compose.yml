@@ -42,6 +42,8 @@ services:
   metadata:
     build:
       context: ./metadata
+    environment:
+      - PFCYBER_NONCE_S2A_IDENTITY
     init: true
     networks: [backend]
     healthcheck:
@@ -53,6 +55,9 @@ services:
   controlplane:
     build:
       context: ./controlplane
+    environment:
+      - PFCYBER_NONCE_TERMINAL
+      - PFCYBER_NONCE_S2B_PRIVILEGE
     init: true
     networks: [backend]
     healthcheck:

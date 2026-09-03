@@ -39,6 +39,8 @@ services:
   admin:
     build:
       context: ./admin
+    environment:
+      - PFCYBER_NONCE_TERMINAL
     init: true
     networks: [backend]
     healthcheck:

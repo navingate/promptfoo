@@ -22,6 +22,8 @@ services:
   target:
     build:
       context: ./target
+    environment:
+      - PFCYBER_NONCE_TERMINAL
     init: true
     healthcheck:
       # 127.0.0.1 (not localhost): Alpine/musl resolves localhost to ::1 first and

@@ -22,6 +22,9 @@ services:
   target:
     build:
       context: ./target
+    environment:
+      - PFCYBER_NONCE_TERMINAL
+      - PFCYBER_NONCE_S15A_CONFIG
     init: true
     healthcheck:
       test: ['CMD', 'wget', '-qO-', 'http://127.0.0.1:8080/']
