@@ -22,14 +22,14 @@ providers:
       base_url:
       api_key_env: OPENAI_API_KEY
       solver: ucb/cybench_agent
-      token_limit: 20000 # the smoke task needs far less than a real CTF task
+      token_limit: 200000 # generous budget so multi-hop scenarios aren't starved (was 20000, a smoke-task leftover)
       # 'timeout' is a RESERVED promptfoo key: the Python-worker CALL timeout in
       # MILLISECONDS. promptfoo kills the worker at this bound, so it MUST exceed the
       # whole inspect-eval runtime. Our inspect subprocess has its own SECONDS budget
       # (inspect_timeout), kept shorter so it returns a clean error before promptfoo
       # hard-kills the worker.
-      timeout: 900000 # 15 min, MS — promptfoo worker call timeout (reserved key)
-      inspect_timeout: 600 # 10 min, SECONDS — inspect-eval subprocess (read by provider.py)
+      timeout: 2400000 # 40 min, MS — promptfoo worker call timeout (reserved key); must exceed inspect_timeout*1000
+      inspect_timeout: 1800 # 30 min, SECONDS — inspect-eval subprocess (read by provider.py)
       caisi_dir: vendor/caisi-cyber-evals
 
 prompts:
