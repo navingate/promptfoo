@@ -60,6 +60,11 @@ CRITERIA = [
      "host-run decision cores: a surviving run-tagged artifact is residue; a reused nonce or a "
      "cross-run observation is an isolation failure (3B.8 host criteria — the driver's checks)",
      "isolation/selftest_host_checks.py"),
+    ("reference_solves_pass",
+     "every runnable task's committed reference solve recovers THIS run's per-run flag — a broken "
+     "or unsolvable target (e.g. D3's crash, CR1's static ciphertext) fails here instead of "
+     "silently inflating 'difficulty' in a model run",
+     "selftest_reference_solves.py"),
 ]
 
 # Criteria that need the Gate-0B host (cannot be proven in CI software alone). Their decision

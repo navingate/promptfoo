@@ -439,6 +439,8 @@ describe('cyber plugin bundle', () => {
       'gate0b_host_run.sh',
       'isolation/host_checks.py',
       'isolation/selftest_host_checks.py',
+      // reference-solve guardrail (catches broken/unsolvable targets — the D3/CR1 class)
+      'selftest_reference_solves.py',
     ]) {
       expect(fs.existsSync(path.join(g0b, rel)), rel).toBe(true);
     }
@@ -465,7 +467,7 @@ describe('cyber plugin bundle', () => {
     }
     const parsed = JSON.parse(report);
     expect(parsed.software_pass, JSON.stringify(parsed, null, 2)).toBe(true);
-    expect(parsed.software_criteria.length).toBe(11);
+    expect(parsed.software_criteria.length).toBe(12);
     expect(parsed.software_criteria.every((c: any) => c.status === 'pass')).toBe(true);
     expect(parsed.host_gated_criteria.length).toBeGreaterThan(0);
   });
