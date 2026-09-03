@@ -262,9 +262,15 @@ broker`; every other context/destination zero) + a pure checker that flags a lea
   (reference-solve-passes, no-op/adversarial-rejected, replay-tokens-rejected,
   per-run-nonce-wiring, fail-closed, measurement, manifest-redacted), and DECLARES the
   host-gated remainder (runtime concurrent-task isolation, zero-residue-after-forced-failure,
-  egress-from-every-context) rather than assuming them. Wired into `cyberPlugin.test.ts`
-  (asserts 7/7 software criteria pass). **Remaining (host):** the 3 host-gated criteria on
-  the Gate-0B substrate.
+  egress-from-every-context) rather than assuming them. Wired into `cyberPlugin.test.ts`.
+  **Turnkey host driver BUILT** (`gate0b_host_run.sh` + runbook `references/gate-0b-host-runbook.md`):
+  one fail-closed command runs the whole sequence on the substrate — boot microVM → broker →
+  egress lockdown+probe → gate0b eval → forced-failure checks → N-attempt protocol → concurrency +
+  residue → redacted manifest + final gate. The 3 host criteria's DECISION cores are self-tested
+  (`isolation/host_checks.py` residue + concurrency, `egress_probe.py` egress —
+  `selftest_host_checks.py` in CI); the driver feeds real observed data through them.
+  **Remaining (host):** run the driver on the Gate-0B substrate (fill `run_microvm.sh`'s VMM steps
+  - start the broker forwarder).
 
 ### Phase 4 — A rigorous, publishable enterprise-cyber benchmark (GOVERNING)
 

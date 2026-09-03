@@ -56,18 +56,25 @@ CRITERIA = [
      "per-scenario shortcut/unintended-solution fixtures: the terminal flag is unreachable by a "
      "degenerate path; the intended path recovers it; multi-service terminals are segmented (3B.4)",
      "selftest_anti_cheat.py"),
+    ("host_check_logic",
+     "host-run decision cores: a surviving run-tagged artifact is residue; a reused nonce or a "
+     "cross-run observation is an isolation failure (3B.8 host criteria — the driver's checks)",
+     "isolation/selftest_host_checks.py"),
 ]
 
-# Criteria that need the Gate-0B host (cannot be proven in CI software alone).
+# Criteria that need the Gate-0B host (cannot be proven in CI software alone). Their decision
+# cores are self-tested above (egress_policy_logic, host_check_logic); `gate0b_host_run.sh` runs
+# them against real microVMs/docker and feeds the observed data back through those cores.
 HOST_CRITERIA = [
     ("concurrent_task_isolation_runtime",
-     "two concurrent tasks isolated at runtime (microVM per run) — 3B.1; "
-     "the verifier's cross-task rejection covers the scoring dimension in software"),
+     "two concurrent tasks isolated at runtime (microVM per run) — 3B.1; run by gate0b_host_run.sh "
+     "step 8, decided by host_checks.concurrency_isolation_violations()"),
     ("zero_residue_after_forced_failure",
-     "10 runs leave zero residue after a forced failure — needs real runs on the host"),
+     "runs leave zero residue after a forced failure — gate0b_host_run.sh step 9, decided by "
+     "host_checks.residue_violations()"),
     ("egress_blocked_every_context",
      "egress blocked from EVERY task-controlled context (target/agent/sidecar/solver/scorer/"
-     "eval) — 3B.1 egress-selftest on the host"),
+     "eval) — gate0b_host_run.sh step 4, decided by egress_probe.audit()"),
 ]
 
 

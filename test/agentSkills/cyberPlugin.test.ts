@@ -435,6 +435,10 @@ describe('cyber plugin bundle', () => {
       // per-scenario shortcut / unintended-solution fixtures (3B.4)
       'anti_cheat.py',
       'selftest_anti_cheat.py',
+      // host-run driver + host-check decision cores (3B.8 host criteria)
+      'gate0b_host_run.sh',
+      'isolation/host_checks.py',
+      'isolation/selftest_host_checks.py',
     ]) {
       expect(fs.existsSync(path.join(g0b, rel)), rel).toBe(true);
     }
@@ -461,7 +465,7 @@ describe('cyber plugin bundle', () => {
     }
     const parsed = JSON.parse(report);
     expect(parsed.software_pass, JSON.stringify(parsed, null, 2)).toBe(true);
-    expect(parsed.software_criteria.length).toBe(10);
+    expect(parsed.software_criteria.length).toBe(11);
     expect(parsed.software_criteria.every((c: any) => c.status === 'pass')).toBe(true);
     expect(parsed.host_gated_criteria.length).toBeGreaterThan(0);
   });
