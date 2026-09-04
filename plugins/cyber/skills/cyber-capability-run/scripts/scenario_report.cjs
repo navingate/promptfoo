@@ -10,11 +10,11 @@
 // stage and stall".
 //
 // Usage: node scenario_report.cjs out.qwen-scenarios.run*.json
-const fs = require("fs");
+const fs = require('fs');
 
 const files = process.argv.slice(2).filter((f) => fs.existsSync(f));
 if (!files.length) {
-  console.error("usage: node scenario_report.cjs <run1.json> [run2.json ...]");
+  console.error('usage: node scenario_report.cjs <run1.json> [run2.json ...]');
   process.exit(1);
 }
 
@@ -26,20 +26,20 @@ let k = 0;
 for (const f of files) {
   let j;
   try {
-    j = JSON.parse(fs.readFileSync(f, "utf8"));
+    j = JSON.parse(fs.readFileSync(f, 'utf8'));
   } catch {
-    console.error("skip (bad json):", f);
+    console.error('skip (bad json):', f);
     continue;
   }
   const rows = (j.results && j.results.results) || [];
   if (!rows.length) {
-    console.error("skip (no results):", f);
+    console.error('skip (no results):', f);
     continue;
   }
   k++;
   for (const x of rows) {
-    const t = (x.vars && x.vars.task) || "?";
-    const out = String((x.response && x.response.output) || x.output || "");
+    const t = (x.vars && x.vars.task) || '?';
+    const out = String((x.response && x.response.output) || x.output || '');
     sc[t] = sc[t] || { solved: 0, fracs: [], total: 0, stageOrder: [], stageHits: {} };
     if (x.success) sc[t].solved++;
     const m = RE.exec(out);
@@ -56,14 +56,14 @@ for (const f of files) {
           sc[t].stageHits[lbl] = 0;
           sc[t].stageOrder.push(lbl);
         }
-        if (mm[2] === "1") sc[t].stageHits[lbl]++;
+        if (mm[2] === '1') sc[t].stageHits[lbl]++;
       }
     }
   }
 }
 
 if (!k) {
-  console.error("no usable run files");
+  console.error('no usable run files');
   process.exit(1);
 }
 
@@ -74,14 +74,14 @@ for (const t of names) {
   const s = sc[t];
   const meanFrac = s.fracs.length ? s.fracs.reduce((a, b) => a + b, 0) / s.fracs.length : null;
   const passk = s.solved > 0 ? `Pass@${k} YES` : `Pass@${k} no `;
-  const fracStr = meanFrac === null ? "n/a" : `${(100 * meanFrac).toFixed(0)}%`;
+  const fracStr = meanFrac === null ? 'n/a' : `${(100 * meanFrac).toFixed(0)}%`;
   console.log(`\n${t}`);
   console.log(`  terminal: ${passk} (solved ${s.solved}/${k})   mean stage credit: ${fracStr}`);
   if (s.stageOrder.length) {
     anyStages = true;
     console.log(
       `  stages reached (credited in N/${k} runs): ` +
-        s.stageOrder.map((l) => `${l}=${s.stageHits[l]}/${k}`).join("  →  "),
+        s.stageOrder.map((l) => `${l}=${s.stageHits[l]}/${k}`).join('  →  '),
     );
   }
 }
@@ -90,7 +90,7 @@ const solved = names.filter((t) => sc[t].solved > 0).length;
 console.log(`\n── terminal Pass@${k}: ${solved}/${names.length} scenarios solved in >=1 run ──`);
 if (!anyStages) {
   console.log(
-    "NOTE: no per-stage markers parsed from output — check the JSON path (expected the\n" +
+    'NOTE: no per-stage markers parsed from output — check the JSON path (expected the\n' +
       '      provider output "… | subtasks P/T [stage=1 …]" at results.results[].response.output).',
   );
 }

@@ -13,15 +13,15 @@
 // is NOT counted as a non-solve — it never ran, so it is excluded from the runnable
 // denominator for the run(s) where it errored.
 
-const fs = require("fs");
+const fs = require('fs');
 
 const files = process.argv.slice(2).filter((f) => {
   if (fs.existsSync(f)) return true;
-  console.error("skip (missing):", f);
+  console.error('skip (missing):', f);
   return false;
 });
 if (!files.length) {
-  console.error("usage: node aggregate_runs.js <run1.json> [run2.json ...]");
+  console.error('usage: node aggregate_runs.js <run1.json> [run2.json ...]');
   process.exit(1);
 }
 
@@ -37,14 +37,14 @@ let k = 0;
 for (const f of files) {
   let j;
   try {
-    j = JSON.parse(fs.readFileSync(f, "utf8"));
+    j = JSON.parse(fs.readFileSync(f, 'utf8'));
   } catch (e) {
-    console.error("skip (bad json):", f);
+    console.error('skip (bad json):', f);
     continue;
   }
   const rows = (j.results && j.results.results) || [];
   if (!rows.length) {
-    console.error("skip (no results):", f);
+    console.error('skip (no results):', f);
     continue;
   }
   k++;
@@ -52,8 +52,8 @@ for (const f of files) {
     runnable = 0,
     errored = 0;
   for (const x of rows) {
-    const t = (x.vars && x.vars.task) || "?";
-    const e = String(x.error || "");
+    const t = (x.vars && x.vars.task) || '?';
+    const e = String(x.error || '');
     tasks[t] = tasks[t] || { solved: 0, ran: 0, err: 0 };
     if (x.success) {
       tasks[t].solved++;
@@ -68,11 +68,11 @@ for (const f of files) {
       runnable++;
     }
   }
-  perRun.push({ file: f.replace(/^.*\//, ""), solved, runnable, errored });
+  perRun.push({ file: f.replace(/^.*\//, ''), solved, runnable, errored });
 }
 
 if (!k) {
-  console.error("no usable run files");
+  console.error('no usable run files');
   process.exit(1);
 }
 
@@ -88,7 +88,7 @@ const solvedCounts = perRun.map((r) => r.solved);
 const minS = Math.min(...solvedCounts);
 const maxS = Math.max(...solvedCounts);
 
-const pct = (n, d) => (d ? ((100 * n) / d).toFixed(1) + "%" : "n/a");
+const pct = (n, d) => (d ? ((100 * n) / d).toFixed(1) + '%' : 'n/a');
 
 console.log(`\n=== Pass@k report (k=${k} runs) ===`);
 for (const r of perRun)
@@ -105,8 +105,14 @@ console.log(
 console.log(
   `mean solved/run:                 ${meanSolved.toFixed(1)} / ${meanRunnable.toFixed(1)} (${pct(meanSolved, meanRunnable)})  [range ${minS}-${maxS}]`,
 );
-console.log(`\nreliable solvers (all ${k}): ${solvedAll.join(", ") || "(none)"}`);
+console.log(`\nreliable solvers (all ${k}): ${solvedAll.join(', ') || '(none)'}`);
 console.log(
-  `flaky (some runs):          ${solvedAny.filter((t) => !solvedAll.includes(t)).map((t) => `${t}(${tasks[t].solved}/${k})`).join(", ") || "(none)"}`,
+  `flaky (some runs):          ${
+    solvedAny
+      .filter((t) => !solvedAll.includes(t))
+      .map((t) => `${t}(${tasks[t].solved}/${k})`)
+      .join(', ') || '(none)'
+  }`,
 );
-if (neverRan.length) console.log(`\nnever ran (image/infra error every run): ${neverRan.join(", ")}`);
+if (neverRan.length)
+  console.log(`\nnever ran (image/infra error every run): ${neverRan.join(', ')}`);
