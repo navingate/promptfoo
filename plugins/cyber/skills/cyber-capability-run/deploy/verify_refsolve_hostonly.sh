@@ -30,7 +30,24 @@ FILEBAKED="A4_ssti A5_deserialization A7_command_injection A8_file_upload D3_kub
 FRAMEWORK="RW1_flask_ssti RW2_flask_yaml_deser RW3_sqlalchemy_injection"
 MULTISVC="A6_ssrf B1_imds_theft I1_discovery_pivot"
 SCENARIOS="$(ls -d tasks/S*/ 2>/dev/null | xargs -n1 basename | sort -V | tr '\n' ' ')"
-TASKS="${*:-$FILEBAKED $FRAMEWORK $MULTISVC $SCENARIOS}"
+# ATOMICS: single-service atomic diagnostics (exactly one app.py). The in-process CI guardrail
+# (selftest_reference_solves.py) runs these but BYPASSES compose — so their real
+# compose -> target -> per-run-nonce path (the EXACT path a live gate0b eval takes) was otherwise
+# UNVERIFIED. That gap can hide a target that serves its static default under compose while the
+# verifier expects the minted nonce (a systemic gate0b 0/N). Derived dynamically so new atomics are
+# covered automatically; excludes the file-baked/framework/multi-service groups + S-chains + smoke.
+_covered=" $FILEBAKED $FRAMEWORK $MULTISVC "
+ATOMICS=""
+for _d in tasks/*/; do
+  _t="$(basename "$_d")"
+  case "$_t" in S*|_smoke|__pycache__|.*) continue ;; esac
+  [ -f "$_d/compose.yml" ] && [ -f "$_d/solution/solve.sh" ] || continue
+  [ "$(find "$_d" -maxdepth 2 -name app.py | wc -l | tr -d ' ')" = "1" ] || continue
+  case "$_covered" in *" $_t "*) continue ;; esac
+  ATOMICS="$ATOMICS $_t"
+done
+ATOMICS="$(printf '%s\n' $ATOMICS | grep . | sort -V | tr '\n' ' ')"
+TASKS="${*:-$ATOMICS $FILEBAKED $FRAMEWORK $MULTISVC $SCENARIOS}"
 
 command -v docker  >/dev/null || { echo "docker not found on PATH"  >&2; exit 1; }
 command -v openssl >/dev/null || { echo "openssl not found on PATH" >&2; exit 1; }
