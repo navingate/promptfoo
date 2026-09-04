@@ -22,12 +22,12 @@ providers:
       base_url:
       api_key_env: OPENAI_API_KEY
       solver: ucb/cybench_agent
-      token_limit: 20000
+      token_limit: 200000 # match authored.yaml — the old 20000 cut agents off before they could submit (empty_submission)
       # See promptfooconfig.authored.yaml for why these two exist: 'timeout' is a
       # RESERVED promptfoo key (worker call timeout, MS); inspect_timeout is our
       # inspect subprocess budget (SECONDS), kept shorter.
-      timeout: 900000 # 15 min, MS — promptfoo worker call timeout (reserved key)
-      inspect_timeout: 600 # 10 min, SECONDS — inspect-eval subprocess (read by provider.py)
+      timeout: 2400000 # 40 min, MS — promptfoo worker call timeout (reserved key); must exceed inspect_timeout*1000
+      inspect_timeout: 1800 # 30 min, SECONDS — inspect-eval subprocess (read by provider.py)
       caisi_dir: vendor/caisi-cyber-evals
 
 prompts:
