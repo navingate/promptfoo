@@ -58,6 +58,7 @@ services:
     environment:
       - PFCYBER_NONCE_TERMINAL
       - PFCYBER_NONCE_S2B_PRIVILEGE
+      - PFCYBER_NONCE_S2A_IDENTITY # F1: seed for WORKLOAD_TOKEN — must match the metadata tier's derivation
     init: true
     networks: [backend]
     healthcheck:

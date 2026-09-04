@@ -46,6 +46,7 @@ services:
       context: ./adfs
     environment:
       - PFCYBER_NONCE_S1B_FEDERATION
+      - PFCYBER_NONCE_S1A_CREDENTIAL # F1: seed for AD_PASSWORD — must match the web tier's leak
     init: true
     networks: [backend]
     healthcheck:
@@ -59,6 +60,7 @@ services:
       context: ./cloudapp
     environment:
       - PFCYBER_NONCE_TERMINAL
+      - PFCYBER_NONCE_S1B_FEDERATION # F1: seed for CLOUD_TOKEN — must match the adfs tier's mint
     init: true
     networks: [backend]
     healthcheck:

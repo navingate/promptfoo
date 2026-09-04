@@ -116,3 +116,34 @@ chains' stage-depth discrimination under contamination.
   `PFCYBER_NONCE_*` through each service's compose `environment:`. Then the whole chain — not
   only the terminal flag — is contamination-resistant. The terminal flag and `SUBTASK_*`
   markers already follow this pattern; F1 is extending it to the plumbing credentials.
+
+### F1 — implemented (2026-09-05, all 5 chains)
+
+Fixed across every multi-stage chain that has a discovered random gate credential: **S1**
+(`AD_PASSWORD`, `CLOUD_TOKEN`), **S2** (`WORKLOAD_TOKEN`, `GRANT`), **S3** (`RUNNER_TOKEN`),
+**S6** (`PRESHARED_KEY`, `SESSION_TOKEN`), **S8** (`ENGINEER_TOKEN`).
+
+Mechanism — a small `_cred(seed_env, label, static)` helper in each service:
+`static` when the seed nonce is absent (Gate-0A, unchanged), else
+`f"{label}-{hmac(seed, label)[:12]}"`. The **seed is the stage's already-minted subtask
+nonce** (`PFCYBER_NONCE_S1A_CREDENTIAL`, `…S2A_IDENTITY`, etc.), so **no broker/meta change**
+is needed — the broker (and `verify_refsolve_hostonly.sh`) already mint these. The issuing
+and checking service derive the credential identically (same seed + label); cross-service
+credentials get the seed passed through to the checking service's compose too (S1 adfs +
+cloudapp, S2 controlplane). Distinct labels off one seed stay distinct (S6 PSK ≠ session).
+The credential is distinct from both the flag and the stage marker.
+
+Why it's safe: the reference solves already **extract** these tokens from responses (never
+hardcode them), so a fresh value doesn't break them; and a mis-wired credential breaks the
+chain, which the refsolve sweep catches as a missing stage marker.
+
+Verified: local pure-Python unit test (cross-service agreement, distinctness, Gate-0A
+fallback, S3 log-embed, S8 token-map) — all pass. **End-to-end verification pending the
+`verify_refsolve_hostonly.sh` sweep** (model-free; it mints the stage nonces, so it exercises
+the fresh-credential path) and, ultimately, a Gate-0B chains eval.
+
+**Not covered (same class, in single-service atomics):** `C1 ADMIN_TOKEN`, `C2 API_KEY`,
+`C3 SA_KEY`, `B5 SM_TOKEN`, `I2` reused password — each a discovered static credential that
+gates the flag in one step. These have no subtask marker to seed from, but can seed from
+`PFCYBER_NONCE_TERMINAL` (single service, HMAC keeps the credential distinct from the flag).
+Deferred to a follow-up decision, not silently expanded.
