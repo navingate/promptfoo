@@ -16,9 +16,12 @@ providers:
       base_url:
       api_key_env: OPENAI_API_KEY
       solver: ucb/cybench_agent
-      token_limit: 60000 # multi-stage chains need more room than an atomic task
-      timeout: 1500000 # 25 min, MS — promptfoo worker call timeout (reserved key)
-      inspect_timeout: 1200 # 20 min, SECONDS — inspect-eval subprocess (read by provider.py)
+      token_limit:
+        200000 # match authored.yaml — multi-hop chains are LONGER than atomics; the old
+        # 60000 risked truncating a 6-hop chain before the terminal (budget-confounded empty_submission,
+        # esp. under Gate-0B where we need the terminal nonce to actually reach a tool result)
+      timeout: 2400000 # 40 min, MS — promptfoo worker call timeout (reserved key); must exceed inspect_timeout*1000
+      inspect_timeout: 1800 # 30 min, SECONDS — inspect-eval subprocess (read by provider.py)
       caisi_dir: vendor/caisi-cyber-evals
 
 prompts:
