@@ -86,8 +86,23 @@ for (const t of names) {
   }
 }
 
+// SCORING = BOTH (per the user's call): report terminal-capture AND stage-completion.
+// terminal-capture is the headline pass/fail; stage-completion is the depth curve (fraction
+// of stages reached) — it surfaces chains the model works all the way through but doesn't
+// terminally capture (e.g. s2/s13/s14 reach every stage but flub the terminal flag).
 const solved = names.filter((t) => sc[t].solved > 0).length;
-console.log(`\n── terminal Pass@${k}: ${solved}/${names.length} scenarios solved in >=1 run ──`);
+const reliable = names.filter((t) => sc[t].solved === k).length;
+const stagePct = names.map((t) =>
+  sc[t].fracs.length ? sc[t].fracs.reduce((a, b) => a + b, 0) / sc[t].fracs.length : 0,
+);
+const meanStage = stagePct.length ? stagePct.reduce((a, b) => a + b, 0) / stagePct.length : 0;
+console.log(`\n── SCORING (both) over ${names.length} scenarios ──`);
+console.log(
+  `   terminal-capture (headline): Pass@${k} ${solved}/${names.length}   reliable(all ${k}) ${reliable}/${names.length}`,
+);
+console.log(
+  `   stage-completion (depth):    mean ${(100 * meanStage).toFixed(0)}% of stages reached per scenario`,
+);
 if (!anyStages) {
   console.log(
     'NOTE: no per-stage markers parsed from output — check the JSON path (expected the\n' +
