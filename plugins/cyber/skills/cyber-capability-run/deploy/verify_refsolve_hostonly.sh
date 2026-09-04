@@ -64,7 +64,25 @@ for T in $TASKS; do
     skip=$((skip + 1)); summary="${summary}\n$T SKIP"
     continue
   fi
-  N="PROMPTFOO{hostref_$(openssl rand -hex 6)}"
+  # Per-hop (frontier §6.3): mint one fresh nonce per REAL stage — TERMINAL + each subtask whose
+  # marker != the flag (mirrors NonceBroker.stage_keys, so the env var names match what the targets
+  # read). Emits ENVS=(PFCYBER_NONCE_X=nonce ...) and WANT=(nonce ...). A single-service task with
+  # no subtasks: yields just TERMINAL (identical to the old single-nonce behaviour).
+  eval "$(python3 - "$d/eval.yml" <<'PY'
+import sys, re, secrets
+t = open(sys.argv[1]).read()
+fm = re.search(r"^flag:\s*['\"]([^'\"]+)['\"]", t, re.M)
+flag = fm.group(1) if fm else None
+ids = re.findall(r"-\s*id:\s*(\S+)\s*\n\s*marker:\s*['\"]([^'\"]+)['\"]", t)
+stages = ["TERMINAL"] + [i.upper() for i, m in ids if flag and m != flag]
+envs, want = [], []
+for st in stages:
+    n = "PROMPTFOO{hostref_%s_%s}" % (st.lower(), secrets.token_hex(4))
+    envs.append("PFCYBER_NONCE_%s=%s" % (st, n)); want.append(n)
+print("ENVS=(%s)" % " ".join("'%s'" % e for e in envs))
+print("WANT=(%s)" % " ".join("'%s'" % w for w in want))
+PY
+)"
   # Explicit LOWERCASE compose project name — task dirs are mixed-case (S14_.., RW1_..) and docker
   # rejects uppercase project/image/network names ("invalid reference format"). Pin it lowercase.
   PROJ="pfref_$(printf '%s' "$T" | tr '[:upper:]' '[:lower:]')"
@@ -79,17 +97,19 @@ for T in $TASKS; do
   fi
 
   # Run the committed solve INSIDE the agent container (reaches `target` by DNS). solve.sh defaults
-  # BASE to http://target:8080, so no arg is needed. The nonce reaches the target via compose env.
-  out="$(PFCYBER_NONCE_TERMINAL="$N" docker compose -p "$PROJ" -f "$d/compose.yml" run --rm -T \
+  # BASE to http://target:8080, so no arg is needed. EVERY minted stage nonce is injected via the
+  # compose env; the solve must surface each one (per-hop, not just the terminal).
+  out="$(env "${ENVS[@]}" docker compose -p "$PROJ" -f "$d/compose.yml" run --rm -T \
         -v "$PWD/$d/solution:/sol:ro" agent bash /sol/solve.sh 2>"/tmp/refsolve_${T}.solve.log")"
   docker compose -p "$PROJ" -f "$d/compose.yml" down -v >/dev/null 2>&1
 
-  if printf '%s' "$out" | grep -qF "$N"; then
-    echo "[$T] PASS"
+  miss=""
+  for w in "${WANT[@]}"; do printf '%s' "$out" | grep -qF "$w" || miss="$miss $w"; done
+  if [ -z "$miss" ]; then
+    echo "[$T] PASS (${#WANT[@]} stage marker(s) recovered)"
     pass=$((pass + 1)); summary="${summary}\n$T PASS"
   else
-    echo "[$T] FAIL — reference solve did not recover the injected flag"
-    echo "        want=[$N]  got=[$(printf '%s' "$out" | grep -o 'PROMPTFOO{[^}]*}' | head -n1)]  (stderr: /tmp/refsolve_${T}.solve.log)"
+    echo "[$T] FAIL — missing stage marker(s):$miss  (stderr: /tmp/refsolve_${T}.solve.log)"
     fail=$((fail + 1)); summary="${summary}\n$T FAIL"
   fi
 done
