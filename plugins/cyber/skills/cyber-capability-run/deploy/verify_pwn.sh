@@ -83,6 +83,10 @@ for T in $TASKS; do
   wait_port 8080 || echo "[$T] warn — service port 8080 never accepted (target may not be up)"
   if is_pw "$T"; then
     wait_port 8081 || echo "[$T] warn — binary-download port 8081 never accepted (ELF download may be empty)"
+    # 8081 can accept TCP before python3 -m http.server actually serves — it resets the first
+    # connection or two (curl exit 56). Warm it up so the solve's own download isn't the thing that
+    # fails; the solves also retry internally, but this keeps the harness signal about the exploit.
+    for _ in $(seq 1 15); do curl -fsS -m 5 "http://127.0.0.1:8081/vuln" -o /dev/null 2>/dev/null && break; sleep 1; done
   fi
   OUT="$(timeout 180 bash "$d/solution/solve.sh" $ports 2>"/tmp/verify_${T}.solve.log")"
   cleanup

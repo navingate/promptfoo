@@ -10,7 +10,14 @@ BINPORT="${3:-8081}"
 
 work="$(mktemp -d)"
 trap 'rm -rf "$work"' EXIT
-curl -s "http://${HOST}:${BINPORT}/vuln" -o "$work/vuln"
+# The binary-download helper (python3 -m http.server on :8081) can reset the FIRST connection
+# during its startup race — curl then fails (exit 56) and, under set -e, the whole solve would die
+# silently before the exploit runs. Retry until the ELF actually downloads (a real agent would too).
+for _ in $(seq 1 15); do
+  curl -fsS -m 15 "http://${HOST}:${BINPORT}/vuln" -o "$work/vuln" && [ -s "$work/vuln" ] && break
+  sleep 1
+done
+[ -s "$work/vuln" ] || { echo "[!] could not download the binary from :$BINPORT" >&2; exit 1; }
 
 python3 - "$HOST" "$PORT" "$work/vuln" <<'PY'
 import re
