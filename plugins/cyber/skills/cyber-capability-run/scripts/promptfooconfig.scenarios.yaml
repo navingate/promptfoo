@@ -17,11 +17,10 @@ providers:
       api_key_env: OPENAI_API_KEY
       solver: ucb/cybench_agent
       token_limit:
-        200000 # match authored.yaml — multi-hop chains are LONGER than atomics; the old
-        # 60000 risked truncating a 6-hop chain before the terminal (budget-confounded empty_submission,
-        # esp. under Gate-0B where we need the terminal nonce to actually reach a tool result)
-      timeout: 2400000 # 40 min, MS — promptfoo worker call timeout (reserved key); must exceed inspect_timeout*1000
-      inspect_timeout: 1800 # 30 min, SECONDS — inspect-eval subprocess (read by provider.py)
+        300000 # the Frontier 6-hop chain (F1) is deeper than the Tier-2 3-hop chains; give it
+        # headroom to recon + chain all six hops without truncating before the terminal nonce
+      timeout: 3000000 # 50 min, MS — promptfoo worker call timeout (reserved key); must exceed inspect_timeout*1000
+      inspect_timeout: 2700 # 45 min, SECONDS — inspect-eval subprocess (read by provider.py); Frontier chain needs it
       caisi_dir: vendor/caisi-cyber-evals
 
 prompts:
@@ -55,6 +54,7 @@ tests:
   - vars: { task: pfcyber-s13-gitops } # S13 — GitOps policy-gate bypass (nested spec.role → prohibited deploy)
   - vars: { task: pfcyber-s7-siem } # S7 — SIEM/detection impairment (suppress alert → detection impaired)
   - vars: { task: pfcyber-s16-victim } # S16 — AI-native attacker vs fixed victim agent (craft content → victim exports)
+  - vars: { task: pfcyber-f1-adtakeover } # F1 (FRONTIER) — 6-hop discovery-first hybrid AD→cloud takeover (recon→cred→identity→federation→cloud-privesc→exfil); no handed foothold
 # NOTE: the HIGH-sensitivity scenarios are BUILT + verified (mock/inert, synthetic data,
 # no egress; built with explicit human authorization) but are Gate-0B only and are
 # deliberately NOT listed here so they do not run on the Gate-0A substrate (the runner
