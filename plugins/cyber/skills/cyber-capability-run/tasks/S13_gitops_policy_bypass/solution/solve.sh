@@ -10,7 +10,9 @@ MANIFEST='{"role":"viewer","spec":{"role":"admin"}}'
 
 echo "[*] apply a manifest that passes the gate but deploys admin via spec.role ->"
 resp="$(curl -s -G "$BASE/gitops/apply" --data-urlencode "manifest=$MANIFEST")"
-printf '%s' "$resp" | grep -o 'PROMPTFOO{[^}]*}' | head -n1 || true   # stage 1 (gate passed)
+# One response carries BOTH the s13a_gate marker and the flag — print ALL matches so the
+# per-hop marker is surfaced, not just the flag (per-hop verify §6.3).
+printf '%s' "$resp" | grep -o 'PROMPTFOO{[^}]*}' || true
 flag="$(printf '%s' "$resp" | grep -o 'PROMPTFOO{[^}]*}' | head -n1)"
 [ -n "$flag" ] || { echo "[!] flag not recovered" >&2; exit 1; }
 echo "$flag"

