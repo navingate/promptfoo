@@ -24,6 +24,7 @@ promptfoo's own enterprise task suite from ../tasks/loader.py.
 
 import json
 import os
+import secrets
 import subprocess
 import sys
 import tempfile
@@ -74,6 +75,22 @@ def _load_gate0b():
     spec = importlib.util.spec_from_file_location("pfcyber_nonce_broker", GATE0B_BROKER)
     mod = importlib.util.module_from_spec(spec)
     sys.modules["pfcyber_nonce_broker"] = mod
+    spec.loader.exec_module(mod)
+    return mod
+
+
+def _load_generator(gen_path):
+    """Load a task's per-run instance generator (its `generator.script`, e.g. F2's gen.py).
+
+    Same load-by-path pattern as `_load_gate0b`. The module must expose
+    `generate(seed: int | None) -> dict`; `generate(None)` is each generator's own
+    fixed Stage-1 default (see F2's gen.py), so a task with no live seed injected still
+    serves its committed reference instance unchanged.
+    """
+    import importlib.util
+
+    spec = importlib.util.spec_from_file_location(f"pfcyber_gen_{gen_path.stem}", gen_path)
+    mod = importlib.util.module_from_spec(spec)
     spec.loader.exec_module(mod)
     return mod
 
@@ -134,7 +151,7 @@ def _read_task_meta(task_name):
     credit, never a failed run. It runs in the inspect_ai context (or the harness-venv
     `--parse` fallback), where PyYAML is always present.
     """
-    empty = {"subtasks": [], "flag": None, "difficulty": None}
+    empty = {"subtasks": [], "flag": None, "difficulty": None, "generator": None, "task_dir": None}
     if not task_name:
         return empty
     try:
@@ -166,7 +183,17 @@ def _read_task_meta(task_name):
                     }
                 )
         difficulty = meta.get("difficulty") if isinstance(meta.get("difficulty"), dict) else None
-        return {"subtasks": subs, "flag": doc.get("flag"), "difficulty": difficulty}
+        # `generator`: a task opts into Stage-2 per-run STRUCTURAL variation (on top of the
+        # per-run nonces) by declaring `metadata.generator: {script, spec_env, ...}` in its
+        # eval.yml (see F2_ad_cloud_deep). `task_dir` lets the caller locate that script.
+        generator = meta.get("generator") if isinstance(meta.get("generator"), dict) else None
+        return {
+            "subtasks": subs,
+            "flag": doc.get("flag"),
+            "difficulty": difficulty,
+            "generator": generator,
+            "task_dir": path.parent,
+        }
     return empty
 
 
@@ -299,7 +326,21 @@ def call_api(prompt, options=None, context=None):
             _stages = _g0b.stage_keys(_g0b_meta.get("subtasks") or [], _g0b_meta.get("flag"))
             _g0b_run, _ = _broker.mint(task, _stages)
             run_env.update(_broker.env_for(_g0b_run))
-        except Exception as _e:  # noqa: BLE001 — any mint/inject failure fails closed
+            # Stage-2 structural variation (opt-in via metadata.generator; see F2_ad_cloud_deep):
+            # mint a fresh per-run SEED the agent never sees (never derived from, or exposed
+            # alongside, the nonces above), run the task's own generator, and inject the
+            # resulting instance spec into the target services exactly like the nonces — never
+            # into the agent's environment, never in a served response. A task with no
+            # `generator` block is unaffected (this block is a no-op for F1 and every atomic).
+            _generator = _g0b_meta.get("generator")
+            if _generator and _generator.get("script") and _g0b_meta.get("task_dir"):
+                _gen_path = _g0b_meta["task_dir"] / _generator["script"]
+                _gen_mod = _load_generator(_gen_path)
+                _seed = secrets.randbits(63)
+                _spec = _gen_mod.generate(_seed)
+                _spec_env = _generator.get("spec_env") or "PFCYBER_SPEC"
+                run_env[_spec_env] = json.dumps(_spec, separators=(",", ":"), sort_keys=True)
+        except Exception as _e:  # noqa: BLE001 — any mint/inject/generate failure fails closed
             return _gate0b_invalid(
                 f"mint_or_inject_failed:{type(_e).__name__}",
                 task=task, benchmark=benchmark, model=model,
