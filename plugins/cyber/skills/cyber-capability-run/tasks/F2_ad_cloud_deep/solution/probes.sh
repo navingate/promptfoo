@@ -152,6 +152,12 @@ deny "P16 agent cannot read the vault blob by calling cloudapp directly (isolate
 deny "P17 successful workload response contains no infra-admin credential field" \
   "$readresp" 'infra_admin'
 
+# P18 — hop 4: a hand-forged session carrying the tag (bypassing the signed assertion) is rejected —
+# the smuggled tag can enter a session ONLY through a validly-signed IdP assertion (the hop-4 skill).
+forged="$(python3 -c 'import base64,json;print(base64.urlsafe_b64encode(json.dumps({"principal":"cloud-operator","tags":{"deploy-eligibility":"anything"}},separators=(",",":")).encode()).decode().rstrip("=")+".deadbeefdeadbeef")')"
+deny "P18 hand-forged tagged session (unsigned) cannot assume deploy-runner" \
+  "$(ssrf "$IAM/iam/assume?p=$(p_assume "$forged" deploy-runner)")" 'role_credential'
+
 echo
 echo "=== F2 probes: ${pass} PASS / ${fail} FAIL ==="
 [ "$fail" -eq 0 ]

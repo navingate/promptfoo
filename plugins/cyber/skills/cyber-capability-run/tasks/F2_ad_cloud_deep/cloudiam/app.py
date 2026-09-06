@@ -64,7 +64,10 @@ ACTION_READ = _I.get("action_read", "read-vault")
 ACTION_UNWRAP = _I.get("action_unwrap", "kms-unwrap")
 
 IDP_KEY = derive(H4).encode()                             # re-derive the IdP signing key to verify
-SESSION_KEY = hashlib.sha256(("iam-session|" + H4).encode()).digest()  # internal; signs session tokens
+# Internal key that signs OUR session tokens. Random per boot (cloudiam both mints and verifies these),
+# so a session token cannot be forged even by a caller who has observed the hop-4 marker — the smuggled
+# tag can enter a session ONLY through a validly-signed IdP assertion (the intended hop-4 skill).
+SESSION_KEY = os.urandom(32)
 REQUIRED_TAG_VALUE = _cred("deploy-tag", H4)              # trust-condition value (revealed by describe)
 PIVOT_CRED = _cred("deploy-runner", H5)                   # family A: the pivot-role credential (internal label)
 JOB_GRANT = _cred("job-grant", H5)                        # family B: the resource grant (internal label)
