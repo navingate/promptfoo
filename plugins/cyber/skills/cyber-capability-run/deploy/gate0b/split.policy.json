@@ -1,0 +1,10 @@
+{
+  "schema": "gate0b-split/1",
+  "note": "Public-dev / private-scored split (4D.2). Disposition defaults to public_dev; list ids under private_scored to hold them out of the published release. Per-run nonces resist flag memorization for the public set; the private set resists STRUCTURE memorization and is rotated. The current suite is all public-dev (a private-scored set is authored later, never published with its structure).",
+  "default": "public_dev",
+  "private_scored": [],
+  "rotation": {
+    "policy": "retire a private task once its cumulative model exposure risks contamination; replace it with a structurally-novel task in the same ATT&CK cell",
+    "exposure_log": "every model x private-task run is logged (see references/threat-model.md, private-task controls)"
+  }
+}

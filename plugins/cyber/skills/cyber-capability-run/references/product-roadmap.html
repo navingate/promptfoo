@@ -1,0 +1,1196 @@
+<title>Enterprise Agent Safety Benchmark</title>
+<link rel="preconnect" href="https://fonts.googleapis.com" />
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+<link
+  rel="stylesheet"
+  href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,400;9..144,500;9..144,600&family=IBM+Plex+Mono:wght@400;500&family=IBM+Plex+Sans:wght@400;450;500;600&display=swap"
+/>
+<style>
+  :root {
+    --bg: #f5f7f8;
+    --surface: #ffffff;
+    --surface-2: #eef1f3;
+    --ink: #131820;
+    --ink-2: #4c5765;
+    --ink-3: #71808f;
+    --line: #dde2e7;
+    --line-2: #cbd2d9;
+    --accent: #0e7c7b;
+    --accent-2: #0a5f5e;
+    --accent-soft: #d8ecec;
+    --done: #2c7a54;
+    --done-soft: #dcece3;
+    --active: #a86a12;
+    --active-soft: #f4e8d4;
+    --next: #0e7c7b;
+    --next-soft: #d8ecec;
+    --planned: #667485;
+    --planned-soft: #e6e9ed;
+    --risk: #a8443c;
+    --risk-soft: #f2ddda;
+    --shadow: 0 1px 2px rgba(19, 24, 32, 0.05), 0 8px 24px -12px rgba(19, 24, 32, 0.14);
+    font-synthesis: none;
+  }
+  @media (prefers-color-scheme: dark) {
+    :root:not([data-theme='light']) {
+      --bg: #0c1116;
+      --surface: #141b22;
+      --surface-2: #1a232c;
+      --ink: #e8edf2;
+      --ink-2: #a3b0bd;
+      --ink-3: #7b8996;
+      --line: #26313b;
+      --line-2: #33414d;
+      --accent: #3bb6b2;
+      --accent-2: #58c8c4;
+      --accent-soft: #123231;
+      --done: #57c58c;
+      --done-soft: #123023;
+      --active: #d59a4a;
+      --active-soft: #33260f;
+      --next: #3bb6b2;
+      --next-soft: #123231;
+      --planned: #8695a4;
+      --planned-soft: #1f2833;
+      --risk: #db6a60;
+      --risk-soft: #331a17;
+      --shadow: 0 1px 2px rgba(0, 0, 0, 0.3), 0 10px 30px -14px rgba(0, 0, 0, 0.6);
+    }
+  }
+  :root[data-theme='dark'] {
+    --bg: #0c1116;
+    --surface: #141b22;
+    --surface-2: #1a232c;
+    --ink: #e8edf2;
+    --ink-2: #a3b0bd;
+    --ink-3: #7b8996;
+    --line: #26313b;
+    --line-2: #33414d;
+    --accent: #3bb6b2;
+    --accent-2: #58c8c4;
+    --accent-soft: #123231;
+    --done: #57c58c;
+    --done-soft: #123023;
+    --active: #d59a4a;
+    --active-soft: #33260f;
+    --next: #3bb6b2;
+    --next-soft: #123231;
+    --planned: #8695a4;
+    --planned-soft: #1f2833;
+    --risk: #db6a60;
+    --risk-soft: #331a17;
+    --shadow: 0 1px 2px rgba(0, 0, 0, 0.3), 0 10px 30px -14px rgba(0, 0, 0, 0.6);
+  }
+
+  * {
+    box-sizing: border-box;
+  }
+  body {
+    margin: 0;
+    background: var(--bg);
+    color: var(--ink);
+    font-family:
+      'IBM Plex Sans',
+      system-ui,
+      -apple-system,
+      sans-serif;
+    font-weight: 400;
+    line-height: 1.6;
+    -webkit-font-smoothing: antialiased;
+  }
+  .wrap {
+    max-width: 940px;
+    margin: 0 auto;
+    padding: 0 24px;
+  }
+
+  h1,
+  h2,
+  h3 {
+    font-family: 'Fraunces', Georgia, serif;
+    font-weight: 500;
+    text-wrap: balance;
+    line-height: 1.15;
+    margin: 0;
+  }
+  p {
+    margin: 0;
+    max-width: 68ch;
+  }
+  a {
+    color: var(--accent-2);
+  }
+
+  .eyebrow {
+    font-family: 'IBM Plex Mono', ui-monospace, monospace;
+    font-size: 12px;
+    font-weight: 500;
+    letter-spacing: 0.12em;
+    text-transform: uppercase;
+    color: var(--accent-2);
+  }
+  .mono {
+    font-family: 'IBM Plex Mono', ui-monospace, monospace;
+  }
+
+  /* Header */
+  header {
+    border-bottom: 1px solid var(--line);
+    background: var(--surface);
+  }
+  .head-inner {
+    padding: 40px 0 28px;
+    display: flex;
+    flex-direction: column;
+    gap: 18px;
+  }
+  .brandline {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    flex-wrap: wrap;
+  }
+  .glyph {
+    width: 30px;
+    height: 30px;
+    border-radius: 7px;
+    flex: none;
+    background:
+      linear-gradient(var(--accent), var(--accent)) center/2px 100% no-repeat,
+      linear-gradient(var(--accent), var(--accent)) center/100% 2px no-repeat,
+      radial-gradient(circle at center, var(--accent) 3.5px, transparent 4px);
+    border: 1px solid var(--accent);
+    opacity: 0.9;
+  }
+  h1 {
+    font-size: clamp(31px, 5vw, 46px);
+    letter-spacing: -0.01em;
+  }
+  .thesis {
+    font-size: clamp(17px, 2.4vw, 20px);
+    color: var(--ink-2);
+    max-width: 60ch;
+  }
+  .thesis b {
+    color: var(--ink);
+    font-weight: 600;
+  }
+  .metabar {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 10px 22px;
+    align-items: center;
+    padding-top: 6px;
+    font-size: 13px;
+    color: var(--ink-3);
+  }
+  .metabar .mono {
+    color: var(--ink-2);
+  }
+  .legend {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 6px 14px;
+    margin-left: auto;
+  }
+  .legend span {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    font-size: 12px;
+    color: var(--ink-2);
+  }
+  .dot {
+    width: 9px;
+    height: 9px;
+    border-radius: 50%;
+    flex: none;
+  }
+  .dot.done {
+    background: var(--done);
+  }
+  .dot.active {
+    background: var(--active);
+  }
+  .dot.next {
+    background: var(--next);
+  }
+  .dot.planned {
+    background: var(--planned);
+  }
+
+  /* Sections */
+  section {
+    padding: 46px 0;
+    border-bottom: 1px solid var(--line);
+  }
+  .sec-head {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+    margin-bottom: 26px;
+  }
+  .sec-head h2 {
+    font-size: clamp(23px, 3.4vw, 30px);
+  }
+  .sec-head p {
+    color: var(--ink-2);
+  }
+
+  .lede {
+    font-size: 17px;
+    color: var(--ink-2);
+  }
+  .lede b {
+    color: var(--ink);
+    font-weight: 600;
+  }
+
+  /* Status pill */
+  .pill {
+    display: inline-flex;
+    align-items: center;
+    gap: 7px;
+    font-family: 'IBM Plex Mono', monospace;
+    font-size: 11.5px;
+    font-weight: 500;
+    letter-spacing: 0.04em;
+    text-transform: uppercase;
+    padding: 4px 10px;
+    border-radius: 100px;
+    white-space: nowrap;
+  }
+  .pill::before {
+    content: '';
+    width: 7px;
+    height: 7px;
+    border-radius: 50%;
+    background: currentColor;
+  }
+  .pill.done {
+    color: var(--done);
+    background: var(--done-soft);
+  }
+  .pill.active {
+    color: var(--active);
+    background: var(--active-soft);
+  }
+  .pill.next {
+    color: var(--next);
+    background: var(--next-soft);
+  }
+  .pill.planned {
+    color: var(--planned);
+    background: var(--planned-soft);
+  }
+
+  /* Foundation cards */
+  .cards {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+    gap: 14px;
+  }
+  .card {
+    background: var(--surface);
+    border: 1px solid var(--line);
+    border-radius: 12px;
+    padding: 18px 18px 20px;
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+  }
+  .card .k {
+    font-family: 'IBM Plex Mono', monospace;
+    font-size: 12px;
+    color: var(--accent-2);
+    letter-spacing: 0.04em;
+  }
+  .card h3 {
+    font-size: 18px;
+  }
+  .card p {
+    font-size: 14px;
+    color: var(--ink-2);
+  }
+
+  /* Product two-part */
+  .split {
+    display: grid;
+    grid-template-columns: 1fr;
+    gap: 16px;
+  }
+  @media (min-width: 720px) {
+    .split {
+      grid-template-columns: 1.05fr 1fr;
+    }
+  }
+  .panel {
+    background: var(--surface);
+    border: 1px solid var(--line);
+    border-radius: 14px;
+    padding: 22px 22px 24px;
+    display: flex;
+    flex-direction: column;
+    gap: 14px;
+  }
+  .panel.flag {
+    border-color: var(--accent);
+    box-shadow: var(--shadow);
+  }
+  .panel h3 {
+    font-size: 19px;
+  }
+  .tracklist {
+    display: flex;
+    flex-direction: column;
+    gap: 0;
+    margin: 0;
+    padding: 0;
+    list-style: none;
+  }
+  .tracklist li {
+    display: flex;
+    gap: 11px;
+    padding: 9px 0;
+    border-top: 1px solid var(--line);
+    font-size: 14.5px;
+    color: var(--ink-2);
+  }
+  .tracklist li:first-child {
+    border-top: none;
+  }
+  .tracklist .n {
+    font-family: 'IBM Plex Mono', monospace;
+    font-size: 12px;
+    color: var(--ink-3);
+    flex: none;
+    width: 20px;
+    padding-top: 2px;
+  }
+  .tracklist b {
+    color: var(--ink);
+    font-weight: 600;
+  }
+
+  .profiles {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px;
+    align-items: center;
+    margin-top: 4px;
+  }
+  .profiles .chip {
+    font-family: 'IBM Plex Mono', monospace;
+    font-size: 12px;
+    color: var(--ink-2);
+    background: var(--surface-2);
+    border: 1px solid var(--line);
+    border-radius: 7px;
+    padding: 5px 9px;
+  }
+  .profiles .arw {
+    color: var(--ink-3);
+    font-size: 13px;
+  }
+
+  /* Roadmap timeline */
+  .timeline {
+    display: flex;
+    flex-direction: column;
+    gap: 0;
+  }
+  .phase {
+    display: grid;
+    grid-template-columns: 84px 1fr;
+    gap: 20px;
+    padding: 24px 0;
+    border-top: 1px solid var(--line);
+    position: relative;
+  }
+  .phase:first-child {
+    border-top: none;
+  }
+  .rail {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 8px;
+  }
+  .rail .code {
+    font-family: 'IBM Plex Mono', monospace;
+    font-weight: 500;
+    font-size: 13px;
+    color: var(--ink-2);
+    letter-spacing: 0.04em;
+  }
+  .rail .node {
+    width: 15px;
+    height: 15px;
+    border-radius: 50%;
+    border: 2.5px solid var(--planned);
+    background: var(--surface);
+  }
+  .phase.s-done .rail .node {
+    border-color: var(--done);
+    background: var(--done);
+  }
+  .phase.s-active .rail .node {
+    border-color: var(--active);
+    background: var(--active);
+    box-shadow: 0 0 0 4px var(--active-soft);
+  }
+  .rail .line {
+    flex: 1;
+    width: 2px;
+    background: var(--line-2);
+    min-height: 8px;
+  }
+  .phase:last-child .rail .line {
+    display: none;
+  }
+  .p-body {
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+    padding-bottom: 4px;
+  }
+  .p-top {
+    display: flex;
+    align-items: baseline;
+    gap: 12px 14px;
+    flex-wrap: wrap;
+  }
+  .p-top h3 {
+    font-size: 21px;
+  }
+  .p-goal {
+    color: var(--ink-2);
+    font-size: 15px;
+  }
+  .p-goal b {
+    color: var(--ink);
+    font-weight: 600;
+  }
+  .deliver {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 7px;
+  }
+  .deliver span {
+    font-size: 13px;
+    color: var(--ink-2);
+    background: var(--surface);
+    border: 1px solid var(--line);
+    border-radius: 7px;
+    padding: 5px 10px;
+  }
+  .exit {
+    font-size: 13.5px;
+    color: var(--ink-3);
+  }
+  .exit b {
+    font-family: 'IBM Plex Mono', monospace;
+    font-weight: 500;
+    color: var(--ink-2);
+    font-size: 12px;
+    letter-spacing: 0.03em;
+    text-transform: uppercase;
+  }
+
+  /* Plan table */
+  .tbl-wrap {
+    overflow-x: auto;
+    border: 1px solid var(--line);
+    border-radius: 12px;
+    background: var(--surface);
+  }
+  table {
+    border-collapse: collapse;
+    width: 100%;
+    min-width: 640px;
+  }
+  thead th {
+    text-align: left;
+    font-family: 'IBM Plex Mono', monospace;
+    font-weight: 500;
+    font-size: 11.5px;
+    letter-spacing: 0.06em;
+    text-transform: uppercase;
+    color: var(--ink-3);
+    padding: 13px 16px;
+    border-bottom: 1px solid var(--line);
+    background: var(--surface-2);
+  }
+  tbody td {
+    padding: 15px 16px;
+    border-bottom: 1px solid var(--line);
+    font-size: 14px;
+    color: var(--ink-2);
+    vertical-align: top;
+  }
+  tbody tr:last-child td {
+    border-bottom: none;
+  }
+  td .stage {
+    font-weight: 600;
+    color: var(--ink);
+    display: block;
+    margin-bottom: 3px;
+  }
+  td .code {
+    font-family: 'IBM Plex Mono', monospace;
+    font-size: 12px;
+    color: var(--accent-2);
+  }
+  td.gate {
+    color: var(--ink-2);
+  }
+
+  /* Claims / callout */
+  .callout {
+    background: var(--surface);
+    border: 1px solid var(--line);
+    border-left: 3px solid var(--accent);
+    border-radius: 10px;
+    padding: 20px 22px;
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+  }
+  .claim {
+    display: grid;
+    grid-template-columns: 1fr;
+    gap: 3px;
+  }
+  @media (min-width: 640px) {
+    .claim {
+      grid-template-columns: 210px 1fr;
+      gap: 16px;
+      align-items: baseline;
+    }
+  }
+  .claim .no {
+    color: var(--ink-3);
+    font-size: 14px;
+    text-decoration: line-through;
+    text-decoration-color: var(--risk);
+  }
+  .claim .yes {
+    color: var(--ink);
+    font-size: 14.5px;
+  }
+  .claim .yes b {
+    color: var(--accent-2);
+    font-weight: 600;
+  }
+
+  /* Risks */
+  .risks {
+    display: flex;
+    flex-direction: column;
+    gap: 0;
+  }
+  .risk-row {
+    display: grid;
+    grid-template-columns: 1fr;
+    gap: 4px 16px;
+    padding: 15px 0;
+    border-top: 1px solid var(--line);
+  }
+  @media (min-width: 640px) {
+    .risk-row {
+      grid-template-columns: 1fr 1.3fr;
+    }
+  }
+  .risk-row:first-child {
+    border-top: none;
+  }
+  .risk-row .r {
+    font-weight: 600;
+    color: var(--ink);
+    font-size: 14.5px;
+    display: flex;
+    gap: 9px;
+    align-items: baseline;
+  }
+  .risk-row .r .sev {
+    font-family: 'IBM Plex Mono', monospace;
+    font-size: 10.5px;
+    letter-spacing: 0.05em;
+    text-transform: uppercase;
+    color: var(--risk);
+    background: var(--risk-soft);
+    padding: 2px 7px;
+    border-radius: 5px;
+    flex: none;
+  }
+  .risk-row .r .sev.med {
+    color: var(--active);
+    background: var(--active-soft);
+  }
+  .risk-row .m {
+    color: var(--ink-2);
+    font-size: 14px;
+  }
+
+  footer {
+    padding: 34px 0 60px;
+    color: var(--ink-3);
+    font-size: 13px;
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+  }
+  footer .mono {
+    color: var(--ink-2);
+  }
+
+  @media (prefers-reduced-motion: no-preference) {
+    .pill,
+    .card,
+    .panel {
+      transition: none;
+    }
+  }
+</style>
+
+<header>
+  <div class="wrap head-inner">
+    <div class="brandline">
+      <div class="glyph" aria-hidden="true"></div>
+      <span class="eyebrow">Product roadmap &amp; delivery plan</span>
+    </div>
+    <h1>Enterprise Agent Safety Benchmark</h1>
+    <p class="thesis">
+      Can a given <b>model</b>, <b>agent configuration</b>, and set of <b>enterprise controls</b> be
+      deployed without an unacceptable path to harm? The question public CTF benchmarks don't
+      answer.
+    </p>
+    <div class="metabar">
+      <span>Current phase <span class="mono">P1 · F2 flagship task</span></span>
+      <span>Overall <span class="mono">Phase 0 complete · lean pilot → OpenAI review</span></span>
+      <span>Updated <span class="mono">6 Sep 2026</span></span>
+      <div class="legend" aria-hidden="true">
+        <span><i class="dot done"></i>Done</span>
+        <span><i class="dot active"></i>In progress</span>
+        <span><i class="dot next"></i>Next</span>
+        <span><i class="dot planned"></i>Planned</span>
+      </div>
+    </div>
+  </div>
+</header>
+
+<main class="wrap">
+  <section>
+    <div class="sec-head">
+      <span class="eyebrow">The opportunity</span>
+      <h2>Why this benchmark exists</h2>
+    </div>
+    <p class="lede">
+      Enterprises are beginning to deploy autonomous AI agents wired to real tools and credentials —
+      CI systems, directories, cloud IAM, data stores. Two questions follow, and neither is answered
+      today: <b>what is the offensive blast radius of such an agent</b>, and
+      <b>is a given model safe to deploy for a given role?</b>
+    </p>
+    <div style="height: 16px"></div>
+    <p style="color: var(--ink-2)">
+      Public benchmarks like Cybench measure elite capture-the-flag puzzle solving on
+      <b style="color: var(--ink)">static, publicly-known, and bit-rotting</b> tasks — valuable, but
+      they neither reflect realistic multi-stage enterprise offense nor speak to deployment safety.
+      Our benchmark is built to be different on four axes that make it defensible and, ultimately,
+      saleable to frontier labs and enterprise buyers:
+    </p>
+    <div style="height: 20px"></div>
+    <div class="cards">
+      <div class="card">
+        <span class="k">01</span>
+        <h3>Enterprise-realistic</h3>
+        <p>
+          Multi-stage attacks across observability, CI, directory, federation, IAM, KMS and tenant
+          data — the estate agents actually touch.
+        </p>
+      </div>
+      <div class="card">
+        <span class="k">02</span>
+        <h3>Contamination-resistant</h3>
+        <p>
+          Every run is a freshly generated instance with fresh secrets, so a model that memorized
+          the benchmark gains nothing.
+        </p>
+      </div>
+      <div class="card">
+        <span class="k">03</span>
+        <h3>Depth-measured</h3>
+        <p>
+          Per-hop scoring reveals <em>where</em> a model cliffs, not just pass/fail — a capability
+          horizon, not a single bit.
+        </p>
+      </div>
+      <div class="card">
+        <span class="k">04</span>
+        <h3>Profile-scored</h3>
+        <p>
+          Results reported by deployment profile: a model may be safe as a read-only assistant yet
+          unsafe as a privileged agent.
+        </p>
+      </div>
+    </div>
+  </section>
+
+  <section>
+    <div class="sec-head">
+      <span class="eyebrow">Where we are</span>
+      <h2>A validated foundation — not a standing start</h2>
+      <p>
+        Phase 0 is complete: the measuring instrument is built, validated, and calibrated against a
+        mid-tier model. That calibration is precisely what tells us we now need frontier-hard
+        content.
+      </p>
+    </div>
+    <div class="cards">
+      <div class="card">
+        <span class="k">Infrastructure</span>
+        <h3>Sandbox &amp; harness</h3>
+        <p>
+          Isolated Docker environments, no egress, reference-solve validation, multi-hop chaining,
+          depth scoring — wired through promptfoo as the system of record.
+        </p>
+      </div>
+      <div class="card">
+        <span class="k">Integrity</span>
+        <h3>Contamination resistance</h3>
+        <p>
+          Per-run nonce-derived credentials at every gate, verified out-of-band. Host validation
+          passes 10/10 across chains and atomics.
+        </p>
+      </div>
+      <div class="card">
+        <span class="k">Calibration</span>
+        <h3>Mid-tier model floor</h3>
+        <p>
+          A 35B model clears single-skill tasks and most mid-chains but cliffs on the hard tail —
+          confirming the suite needs harder, reasoning-gated content.
+        </p>
+      </div>
+      <div class="card">
+        <span class="k">Flagship v1</span>
+        <h3>First frontier chain</h3>
+        <p>
+          A 6-hop, discovery-first chain (F1) that produced the intended horizon curve: the model is
+          reliable ~2 hops deep, then cliffs. Design for the harder F2 has cleared three rounds of
+          independent expert security review.
+        </p>
+      </div>
+    </div>
+  </section>
+
+  <section>
+    <div class="sec-head">
+      <span class="eyebrow">The product</span>
+      <h2>One offensive flagship, six safety tracks</h2>
+      <p>
+        The benchmark has two parts: a flagship offensive-capability track that measures how deep an
+        agent can autonomously compromise an estate, and a set of deployment-safety tracks that
+        measure whether the deployed system can be trusted with tools and data.
+      </p>
+    </div>
+    <div class="split">
+      <div class="panel flag">
+        <div style="display: flex; align-items: center; gap: 10px; flex-wrap: wrap">
+          <h3>Track A — Offensive capability</h3>
+          <span class="pill next">Flagship</span>
+        </div>
+        <p style="color: var(--ink-2); font-size: 14.5px">
+          A family of frontier chains, each a realistic enterprise kill-chain the agent must reason
+          through end-to-end. Measures capability and blast radius, and where a model's reasoning
+          runs out.
+        </p>
+        <p style="color: var(--ink-3); font-size: 13.5px">
+          Answers: <em>"Can the agent compromise the environment when instructed to?"</em>
+        </p>
+      </div>
+      <div class="panel">
+        <h3>Tracks B–F — Deployment safety</h3>
+        <ul class="tracklist">
+          <li>
+            <span class="n">B</span
+            ><span
+              ><b>Direct-misuse resistance</b> — unauthorized actions on explicit request.</span
+            >
+          </li>
+          <li>
+            <span class="n">C</span
+            ><span
+              ><b>Prompt-injection resistance</b> — hijack via tickets, logs, docs, emails, tool
+              output.</span
+            >
+          </li>
+          <li>
+            <span class="n">D</span
+            ><span
+              ><b>Authorization compliance</b> — respecting user, tenant, data and approval
+              boundaries.</span
+            >
+          </li>
+          <li>
+            <span class="n">E</span
+            ><span
+              ><b>Containment effectiveness</b> — which scoped-credential, segmentation and egress
+              controls stop it.</span
+            >
+          </li>
+          <li>
+            <span class="n">F</span
+            ><span
+              ><b>Benign utility</b> — still doing legitimate work without excessive refusal.</span
+            >
+          </li>
+        </ul>
+      </div>
+    </div>
+    <div style="height: 22px"></div>
+    <p style="color: var(--ink-2); font-size: 14.5px">
+      Every result is reported <b style="color: var(--ink)">per deployment profile</b> — the same
+      model can pass one and fail another:
+    </p>
+    <div class="profiles">
+      <span class="chip">Read-only assistant</span><span class="arw">→</span>
+      <span class="chip">Developer agent</span><span class="arw">→</span>
+      <span class="chip">Operations agent</span><span class="arw">→</span>
+      <span class="chip">Security agent</span><span class="arw">→</span>
+      <span class="chip">Privileged autonomous agent</span>
+    </div>
+    <div style="height: 24px"></div>
+    <div class="callout">
+      <div style="display: flex; align-items: center; gap: 10px; flex-wrap: wrap">
+        <span class="eyebrow">How results surface</span>
+      </div>
+      <p style="color: var(--ink-2); font-size: 14.5px">
+        The benchmark runs through <b style="color: var(--ink)">promptfoo</b> as the system of
+        record, so every run lands in
+        <span class="mono" style="font-size: 13px">promptfoo view</span> as a grid: tasks as rows
+        (tagged by track), models as columns, pass/fail per cell with the full agent transcript on
+        drill-down. The provider emits <b style="color: var(--ink)">named scores</b> — hops reached
+        and exploit-demonstrated — so the grid ranks and aggregates them like any metric. The two
+        things a flat grid can't draw — the <em>per-hop horizon curve</em> and the
+        <em>profile × track matrix</em> — stay as a separate report layer built on the same run
+        data.
+      </p>
+    </div>
+  </section>
+
+  <section>
+    <div class="sec-head">
+      <span class="eyebrow">Roadmap</span>
+      <h2>Six phases, foundation to market</h2>
+      <p>
+        A lean pilot — one chain per track — put in front of the OpenAI team before we invest in
+        breadth. Each phase produces something demonstrable; status reflects reality as of today.
+      </p>
+    </div>
+    <div class="timeline">
+      <div class="phase s-done">
+        <div class="rail">
+          <span class="code">P0</span><span class="node"></span><span class="line"></span>
+        </div>
+        <div class="p-body">
+          <div class="p-top">
+            <h3>Foundation &amp; calibration</h3>
+            <span class="pill done">Complete</span>
+          </div>
+          <p class="p-goal">Build the measuring instrument and establish the floor.</p>
+          <div class="deliver">
+            <span>Sandbox &amp; harness</span><span>Contamination resistance</span
+            ><span>Depth scoring</span><span>Mid-tier calibration</span
+            ><span>F1 frontier chain</span>
+          </div>
+          <p class="exit">
+            <b>Exit</b> &nbsp; Instrument validated 10/10 on host solves; F1 produces a horizon
+            curve. Met.
+          </p>
+        </div>
+      </div>
+
+      <div class="phase s-active">
+        <div class="rail">
+          <span class="code">P1</span><span class="node"></span><span class="line"></span>
+        </div>
+        <div class="p-body">
+          <div class="p-top">
+            <h3>Offensive flagship — F2</h3>
+            <span class="pill active">In progress</span>
+          </div>
+          <p class="p-goal">
+            Track A's one chain: a hardened, contamination-resistant hybrid AD→cloud takeover that a
+            simple enumeration script can't cheaply solve. Cleared three rounds of expert review and
+            is <b>approved to build</b>; work is staged (see plan below).
+          </p>
+          <div class="deliver">
+            <span>Prototype + execution path</span><span>Blind solve + bypass tests</span
+            ><span>Cybench calibration</span>
+          </div>
+          <p class="exit">
+            <b>Exit</b> &nbsp; Blind solve confirms solvability; a naive enumerator does not solve
+            cheaply; matched calibration shows discrimination vs Cybench.
+          </p>
+        </div>
+      </div>
+
+      <div class="phase">
+        <div class="rail">
+          <span class="code">P2</span><span class="node"></span><span class="line"></span>
+        </div>
+        <div class="p-body">
+          <div class="p-top">
+            <h3>One chain per safety track</h3>
+            <span class="pill planned">Planned</span>
+          </div>
+          <p class="p-goal">
+            A single, deliberately-scoped scenario for each deployment-safety track (B–F) — the
+            minimum that exercises the whole benchmark end-to-end. Breadth comes after review, not
+            before.
+          </p>
+          <div class="deliver">
+            <span>Misuse</span><span>Prompt-injection</span><span>Authorization</span
+            ><span>Containment</span><span>Benign utility</span>
+          </div>
+          <p class="exit">
+            <b>Exit</b> &nbsp; One runnable, validated scenario in every track — a complete, if
+            thin, benchmark.
+          </p>
+        </div>
+      </div>
+
+      <div class="phase">
+        <div class="rail">
+          <span class="code">P3</span><span class="node"></span><span class="line"></span>
+        </div>
+        <div class="p-body">
+          <div class="p-top">
+            <h3>Pilot review with OpenAI</h3>
+            <span class="pill planned">Review gate</span>
+          </div>
+          <p class="p-goal">
+            Put the one-chain-per-track pilot and its calibration in front of the OpenAI team. Their
+            feedback — not our assumptions — sets what we deepen first.
+          </p>
+          <div class="deliver">
+            <span>Pilot walkthrough</span><span>Calibration results</span
+            ><span>Methodology brief</span>
+          </div>
+          <p class="exit">
+            <b>Exit</b> &nbsp; Documented feedback and an agreed direction for expansion.
+          </p>
+        </div>
+      </div>
+
+      <div class="phase">
+        <div class="rail">
+          <span class="code">P4</span><span class="node"></span><span class="line"></span>
+        </div>
+        <div class="p-body">
+          <div class="p-top">
+            <h3>Expand on evidence</h3>
+            <span class="pill planned">Planned</span>
+          </div>
+          <p class="p-goal">
+            Deepen where the pilot and OpenAI feedback point: more chains per track, held-out
+            generator families, deployment-profile scoring and acceptance criteria, and the
+            productization for external use.
+          </p>
+          <div class="deliver">
+            <span>Track breadth</span><span>Held-out families</span><span>Profile scoring</span
+            ><span>Publication</span>
+          </div>
+          <p class="exit">
+            <b>Exit</b> &nbsp; A benchmark external parties run against their own models and
+            controls.
+          </p>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <section>
+    <div class="sec-head">
+      <span class="eyebrow">Implementation plan · Phase 1</span>
+      <h2>Building F2, staged and validated</h2>
+      <p>
+        Expert review converged on a lean path and approved it for build: one hardened instance,
+        validated in proportion to the claim (blind solve + targeted bypass tests), calibrated
+        against Cybench — expanding only where evidence points, rather than front-loading a
+        generator factory.
+      </p>
+    </div>
+    <div class="tbl-wrap">
+      <table>
+        <thead>
+          <tr>
+            <th>Stage</th>
+            <th>Goal</th>
+            <th>Validation gate</th>
+            <th>Status</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td>
+              <span class="stage">Prototype + execution path</span><span class="code">Stage 1</span>
+            </td>
+            <td>
+              One hardened fixed-family instance with the locked AD / federation / IAM / KMS
+              semantics — critically the full <b>PassRole path</b>: the agent submits a workload,
+              the deployment service runs it <em>as</em> the privileged role and returns the result,
+              and that role trusts the service. Same-start reference solve.
+            </td>
+            <td class="gate">
+              Blind solve recovers the secret from evidence alone; targeted bypass tests pass —
+              including submitting every nested attribute at once (hop 4 must still require finding
+              the right one).
+            </td>
+            <td><span class="pill next">Next</span></td>
+          </tr>
+          <tr>
+            <td>
+              <span class="stage">Generator + calibration</span><span class="code">Stage 2</span>
+            </td>
+            <td>
+              Seeded generator (hidden seed, generator/solver isolation) across varied instances;
+              matched comparison to Cybench — same models and scaffolds, equal budgets, end-to-end
+              and isolated-hop.
+            </td>
+            <td class="gate">
+              A simple instance-independent enumeration baseline is <em>measured, not banned</em>;
+              the task must demand adaptation beyond it. Reported with pass@k, failure location and
+              budgets.
+            </td>
+            <td><span class="pill planned">Planned</span></td>
+          </tr>
+          <tr>
+            <td>
+              <span class="stage">Held-out families + scale</span><span class="code">Stage 3</span>
+            </td>
+            <td>
+              Additional escalation / federation mechanisms and large-seed validation — a
+              strengthening investment driven by pilot evidence, not a prototype prerequisite.
+            </td>
+            <td class="gate">
+              Undertaken only if calibration shows instances don't demand enough adaptation.
+            </td>
+            <td><span class="pill planned">Deferred</span></td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+  </section>
+
+  <section>
+    <div class="sec-head">
+      <span class="eyebrow">How we measure success</span>
+      <h2>Claims we can defend</h2>
+      <p>
+        Independent review sharpened not just the design but the language. We report bounded,
+        evidence-backed claims — never absolutes.
+      </p>
+    </div>
+    <div class="callout">
+      <div class="claim">
+        <span class="no">"Contamination-resistant"</span
+        ><span class="yes"
+          >Resistant to <b>memorized instance solutions</b>; applying a learned strategy to a novel
+          instance is legitimate generalization.</span
+        >
+      </div>
+      <div class="claim">
+        <span class="no">"No unintended shortcut exists"</span
+        ><span class="yes"
+          >No shortcut <b>known within the defined threat model</b> after automated, adversarial and
+          independent validation.</span
+        >
+      </div>
+      <div class="claim">
+        <span class="no">"Failures are capability gaps"</span
+        ><span class="yes"
+          >An <b>observed performance gap</b> for that model-and-agent configuration under the
+          tested budget and tools.</span
+        >
+      </div>
+      <div class="claim">
+        <span class="no">"Harder than Cybench"</span
+        ><span class="yes"
+          >A <b>credible path</b> to harder than individual Cybench tasks — the flagship of a larger
+          suite, shown empirically.</span
+        >
+      </div>
+      <div class="claim">
+        <span class="no">"Safe for profile X"</span
+        ><span class="yes"
+          >Meets the <b>defined acceptance criteria</b> for profile X under the tested threat model,
+          configuration and model version.</span
+        >
+      </div>
+    </div>
+    <div style="height: 14px"></div>
+    <p class="exit" style="font-size: 13.5px">
+      Statistical honesty carries through to safety: a clean run bounds only
+      <em>that test family's</em> failure rate, under independence assumptions — it is not an
+      enterprise breach probability, since real attacks are correlated. We report the evidence and
+      its scope, never a single "safe" number.
+    </p>
+  </section>
+
+  <section style="border-bottom: none">
+    <div class="sec-head">
+      <span class="eyebrow">Risks &amp; dependencies</span>
+      <h2>What could slow us, and where we rely on others</h2>
+    </div>
+    <div class="risks">
+      <div class="risk-row">
+        <div class="r"><span class="sev">High</span>Difficulty is empirical</div>
+        <div class="m">
+          "Only a frontier model solves it" can only be confirmed by running one. The design aims
+          high; calibration may require turning a knob after the first frontier run.
+        </div>
+      </div>
+      <div class="risk-row">
+        <div class="r"><span class="sev">High</span>Generator engineering</div>
+        <div class="m">
+          Held-out families plus a large-seed validation harness are a real build, not a one-shot.
+          Staging contains the risk but not the effort.
+        </div>
+      </div>
+      <div class="risk-row">
+        <div class="r"><span class="sev med">Med</span>Model &amp; compute access</div>
+        <div class="m">
+          Calibration and safety claims need access to strong models and sandbox compute; throughput
+          here paces P1–P4.
+        </div>
+      </div>
+      <div class="risk-row">
+        <div class="r"><span class="sev med">Med</span>Safety claims need controls</div>
+        <div class="m">
+          A defensible "safe" statement rests on <em>deterministic</em> controls that block critical
+          actions, not model refusal alone — which expands scope into the deployment configuration
+          itself.
+        </div>
+      </div>
+      <div class="risk-row">
+        <div class="r"><span class="sev med">Med</span>Validation is off-box</div>
+        <div class="m">
+          The team validates through sandbox runs rather than local testing, so each stage depends
+          on an execution loop against the environment.
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <footer>
+    <span
+      >Enterprise Agent Safety Benchmark — living roadmap. Status updated as phases progress.</span
+    >
+    <span class="mono"
+      >Sources: internal calibration runs · F1 build &amp; validation · F2 design review (rounds
+      1–2)</span
+    >
+  </footer>
+</main>
