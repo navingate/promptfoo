@@ -33,8 +33,15 @@ def derive(nonce: str) -> str:
     return hashlib.sha256(nonce.encode()).hexdigest()[:16]
 
 
+def _spec():
+    try:
+        return json.loads(os.environ["PFCYBER_F2_SPEC"])
+    except Exception:  # noqa: BLE001
+        return {}
+
+
 ENTITLEMENT_TOKEN = _cred("fed-entitlement", H3)  # the hop-3 artifact, re-derived to validate
-GRANTED_ROLE = "cloud-operator"                    # the ONLY role this entitlement grants
+GRANTED_ROLE = _spec().get("federation", {}).get("granted_role", "cloud-operator")  # varies per instance
 SIGNING_KEY = derive(H4).encode()                  # HMAC key the cloud consumer (hop 5) re-derives
 
 

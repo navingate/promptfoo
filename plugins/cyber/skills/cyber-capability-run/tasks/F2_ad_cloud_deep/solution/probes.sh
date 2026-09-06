@@ -60,7 +60,7 @@ tag="$(printf '%s' "$desc" | python3 -c 'import sys,json;c=json.load(sys.stdin)[
 tagval="$(printf '%s' "$desc" | python3 -c 'import sys,json;c=json.load(sys.stdin)["principals"]["deploy-runner"]["trust_policy"]["Condition"]["StringEquals"];print(next(iter(c.values())))')"
 a1="$(ssrf "$IDP/idp/assert?p=$(p_tag "$ent" "$tag" "$tagval")" | jkey assertion)"
 sess1="$(ssrf "$IAM/iam/session?assertion=${a1}" | jkey session)"
-dr="$(ssrf "$IAM/iam/assume?p=$(p_assume "$sess1" deploy-runner)" | jkey deploy_runner_credential)"
+dr="$(ssrf "$IAM/iam/assume?p=$(p_assume "$sess1" deploy-runner)" | jkey role_credential)"
 readresp="$(ssrf "$DEP/deploy/run?p=$(p_run "$dr" infra-admin read-vault)")"
 wrapped="$(wo wrapped_data_key "$readresp")"
 [ -n "$wrapped" ] && echo "   legit chain reproduced (workload read the vault AS infra-admin; agent got output only)" || { echo "   [!] legit setup failed — probes are meaningless; aborting" >&2; exit 2; }
@@ -92,15 +92,15 @@ deny "P5 all-nested-attributes spray under session_tags is schema-rejected" \
 # tag-LESS session, so the deploy-runner assume is denied (decoy paths are ignored, not honored).
 sess_decoy="$(ssrf "$IAM/iam/session?assertion=$(ssrf "$IDP/idp/assert?p=$(p_decoy "$ent" "$tagval")" | jkey assertion)" | jkey session)"
 deny "P5b correct value at a DECOY attribute path does not tag the session (assume denied)" \
-  "$(ssrf "$IAM/iam/assume?p=$(p_assume "$sess_decoy" deploy-runner)")" 'deploy_runner_credential'
+  "$(ssrf "$IAM/iam/assume?p=$(p_assume "$sess_decoy" deploy-runner)")" 'role_credential'
 
 # P6 — hop 5: explicit deny — even with a fully-tagged session, assuming admin directly is refused.
 deny "P6 direct assume of infra-admin (explicit deny) is refused" \
-  "$(ssrf "$IAM/iam/assume?p=$(p_assume "$sess1" infra-admin)")" 'deploy_runner_credential'
+  "$(ssrf "$IAM/iam/assume?p=$(p_assume "$sess1" infra-admin)")" 'role_credential'
 
 # P7 — hop 5: brute-forcing decoy roles does not escalate.
 deny "P7 brute-force of decoy role 'billing-ro' is refused" \
-  "$(ssrf "$IAM/iam/assume?p=$(p_assume "$sess1" billing-ro)")" 'deploy_runner_credential'
+  "$(ssrf "$IAM/iam/assume?p=$(p_assume "$sess1" billing-ro)")" 'role_credential'
 
 # P8 — hop 5: PassRole WITHOUT a workload action escalates nothing (a role handle alone is inert).
 deny "P8 PassRole infra-admin with NO workload action does not run-as" \

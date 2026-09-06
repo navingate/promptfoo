@@ -41,9 +41,18 @@ def derive(nonce: str) -> str:
 
 INFRA_ADMIN_TOKEN = derive(H5)  # the hop-5 artifact, re-derived to gate the vault + KMS
 
-# --- documented stdlib AEAD (see module docstring) --------------------------------------------
-BLOB_AAD = b"tenant-blob-v1"
-WRAP_AAD = b"kms-wrap-v1"
+
+def _spec():
+    try:
+        return json.loads(os.environ["PFCYBER_F2_SPEC"])
+    except Exception:  # noqa: BLE001
+        return {}
+
+
+# --- documented stdlib AEAD (see module docstring); AAD labels vary per instance ---------------
+_K = _spec().get("kms", {})
+BLOB_AAD = _K.get("blob_aad", "tenant-blob-v1").encode()
+WRAP_AAD = _K.get("wrap_aad", "kms-wrap-v1").encode()
 
 
 def _keystream(key: bytes, iv: bytes, n: int) -> bytes:

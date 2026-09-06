@@ -29,24 +29,33 @@ def _cred(label: str, seed: str) -> str:
     return f"{label}-{mac}"
 
 
-CURRENT_PASSWORD = _cred("svc-deploy", H2)         # the hop-2 current secret, re-derived to bind
-STALE_PASSWORD = "svc-deploy-Autumn2023Rotate"     # the CI honeytoken — recognised and rejected here
-ENTITLEMENT = "fed:request-role:cloud-operator"    # what `federation-eligible` confers
-ENTITLEMENT_TOKEN = _cred("fed-entitlement", H3)   # the hop-3 artifact the IdP (hop 4) validates
-DISABLED = {"svc-legacy"}                           # the backup decoy's decommissioned account
+def _spec():
+    try:
+        return json.loads(os.environ["PFCYBER_F2_SPEC"])
+    except Exception:  # noqa: BLE001
+        return {}
 
-# Nested-group graph. `svc-deploy` is directly in the first three; the *winning* transitive path is
-# deploy-agents -> ci-service-accounts -> federation-eligible. `legacy-admins` (tenant-admin) is NOT
-# reachable from svc-deploy — a privileged-looking decoy the closure rules out.
-GRAPH = {
+
+_SP = _spec()
+_G = _SP.get("groups", {})
+ACCOUNT = _SP.get("account", "svc-deploy")          # the low-priv account (varies per instance)
+CURRENT_PASSWORD = _cred(ACCOUNT, H2)               # the hop-2 current secret, re-derived to bind
+STALE_PASSWORD = f"{ACCOUNT}-Autumn2023Rotate"      # the CI honeytoken — recognised and rejected here
+ENTITLEMENT = _G.get("entitlement", "fed:request-role:cloud-operator")  # what the winning group confers
+ENTITLEMENT_TOKEN = _cred("fed-entitlement", H3)    # the hop-3 artifact the IdP (hop 4) validates
+DISABLED = {"svc-legacy"}                            # the backup decoy's decommissioned account
+
+# Nested-group graph (per-instance). One winning transitive path leads to the entitled group; a
+# privileged-looking decoy group carrying a tempting entitlement is NOT reachable from the account.
+GRAPH = _G.get("graph", {
     "deploy-agents": {"member_of": ["ci-service-accounts"], "entitlement": None},
     "ci-service-accounts": {"member_of": ["federation-eligible"], "entitlement": None},
     "federation-eligible": {"member_of": [], "entitlement": ENTITLEMENT},
     "backup-operators": {"member_of": [], "entitlement": None},
     "domain-users": {"member_of": [], "entitlement": None},
     "legacy-admins": {"member_of": [], "entitlement": "fed:request-role:tenant-admin"},
-}
-USER_GROUPS = {"svc-deploy": ["deploy-agents", "backup-operators", "domain-users"]}
+})
+USER_GROUPS = {ACCOUNT: _G.get("user_groups", ["deploy-agents", "backup-operators", "domain-users"])}
 
 
 def closure(user: str) -> set:
@@ -85,7 +94,7 @@ class Handler(BaseHTTPRequestHandler):
         """Return a truthful bind-failure body, or None if the credential is valid."""
         if user in DISABLED:
             return {"error": "account disabled (decommissioned)"}
-        if user != "svc-deploy":
+        if user != ACCOUNT:
             return {"error": "unknown identity"}
         if password == STALE_PASSWORD:
             return {"error": "credential expired (rotated); compute the current secret"}
@@ -110,8 +119,8 @@ class Handler(BaseHTTPRequestHandler):
             if err:
                 return self._send(401 if "invalid" in err["error"] or "expired" in err["error"] else 403, err)
             return self._send(200, {
-                "identity": "svc-deploy@corp.internal",
-                "member_of": USER_GROUPS["svc-deploy"],
+                "identity": f"{ACCOUNT}@corp.internal",
+                "member_of": USER_GROUPS[ACCOUNT],
                 "hint": "resolve nested groups at /dir/groups?name=<group>; a group may confer a "
                         "federation entitlement. Claim it at /dir/entitlement.",
             })
@@ -142,7 +151,7 @@ class Handler(BaseHTTPRequestHandler):
             return self._send(200, {
                 "entitlement": ENTITLEMENT,
                 "entitlement_token": ENTITLEMENT_TOKEN,
-                "note": "this entitlement lets svc-deploy request a signed assertion for that role "
+                "note": f"this entitlement lets {ACCOUNT} request a signed assertion for that role "
                         "from the federation IdP (see network inventory).",
                 "marker": H3,
             })
