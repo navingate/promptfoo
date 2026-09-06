@@ -577,6 +577,12 @@ def _parse_log(log_dir, caisi_dir, task_name=None, include_texts=False):
         argv = [str(venv_py), str(Path(__file__).resolve()), "--parse", log_dir]
         if task_name:
             argv.append(task_name)
+        if include_texts:
+            # CRITICAL: forward the flag — gate0b's out-of-band verifier scores per-hop credit
+            # against `_tool_texts`/`_answer_full`, which _extra_from_sample only populates when
+            # include_texts is set. Without this the venv fallback returned empty corpora and every
+            # stage scored 0 (the F1 0/6-despite-reaching-H1/H2 bug).
+            argv.append("--texts")
         r = subprocess.run(argv, capture_output=True, text=True, timeout=120)
         return tuple(json.loads(r.stdout))
     except Exception as e:
@@ -586,12 +592,14 @@ def _parse_log(log_dir, caisi_dir, task_name=None, include_texts=False):
 if __name__ == "__main__":
     if len(sys.argv) >= 3 and sys.argv[1] == "--parse":
         # internal: parse a log dir (+ optional task name) and print the tuple as
-        # JSON (used by the harness-venv fallback in _parse_log)
-        parse_task = sys.argv[3] if len(sys.argv) > 3 else None
+        # JSON (used by the harness-venv fallback in _parse_log). A `--texts` flag forwards
+        # include_texts so gate0b gets the tool/answer corpora it scores per-hop credit against.
+        _texts = "--texts" in sys.argv[3:]
+        parse_task = next((a for a in sys.argv[3:] if not a.startswith("--")), None)
         print(
             json.dumps(
                 list(
-                    _parse_with_inspect(sys.argv[2], parse_task)
+                    _parse_with_inspect(sys.argv[2], parse_task, include_texts=_texts)
                     or (None, None, None, "n/a", {})
                 )
             )
