@@ -46,11 +46,12 @@ class Handler(BaseHTTPRequestHandler):
                 return self._send(400, {"error": "token required"})
             if token != CLOUD_TOKEN:
                 return self._send(403, {"error": "invalid cloud token"})
-            # MISCONFIG: any authenticated caller may self-attach the admin role.
+            # MISCONFIG: any authenticated caller may self-attach the admin role. No hint — the
+            # reader must recognise that an admin-scoped token is now what the protected tenant data
+            # API will accept, and find that service in the registry.
             return self._send(200, {
                 "attached_role": "admin",
                 "elevated_token": ELEVATED_TOKEN,
-                "hint": "read the protected tenant data at http://cloudapp:8080/tenant/secret?token=",
                 "marker": H5,
             })
         return self._send(404, {"error": "not found"})

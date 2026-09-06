@@ -41,9 +41,15 @@ class Handler(BaseHTTPRequestHandler):
             return self._send(200, {
                 "pipeline": "deploy-prod",
                 "runner": "self-hosted",
-                # Credential committed to the pipeline config by mistake (the hop-2 leak).
-                "ad_credential": {"username": AD_USERNAME, "password": AD_PASSWORD},
-                "hint": "authenticate to the directory at http://ldap:8080/ldap/bind?cred=<user>:<password>",
+                # A committed CI env file (the hop-2 leak). No pointer to where the credential is
+                # used: the domain-qualified account name (CORP\...) + AD_DOMAIN are the clue that
+                # this is an on-prem Active Directory service account — the reader must recognise it
+                # and find the directory itself.
+                "env": {
+                    "AD_DOMAIN": "corp.internal",
+                    "AD_USER": f"CORP\\{AD_USERNAME}",
+                    "AD_PASS": AD_PASSWORD,
+                },
                 "marker": H2,
             })
         return self._send(404, {"error": "not found"})
