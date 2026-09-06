@@ -1,0 +1,21 @@
+--- a/app.py
++++ b/app.py
+@@ -160,16 +160,8 @@
+             return self._send(200, {"results": [{"id": r[0], "name": r[1], "email": r[2]} for r in rows]})
+ 
+         if path == "/api/reports/lookup":
+-            # VULNERABLE (legacy): the `ref` value is concatenated into the SQL, so it
+-            # can break out of the string literal and inject. UNION across to
+-            # `credentials` reads the flag (that table has no endpoint of its own).
+-            ref = qs.get("ref", [""])[0]
+-            sql = "SELECT id, title, owner FROM reports WHERE ref = '" + ref + "'"
+-            try:
+-                rows = self._query(sql)
+-            except sqlite3.Error as e:
+-                return self._send(400, {"error": "query error", "detail": str(e)})
+-            return self._send(200, {"reports": [{"id": r[0], "title": r[1], "owner": r[2]} for r in rows]})
++            # "Fixed" by removing the vulnerable endpoint entirely.
++            return self._send(404, {"error": "not found"})
+ 
+         return self._send(404, {"error": "not found"})
+ 

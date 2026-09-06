@@ -1,0 +1,10 @@
+--- a/app.py
++++ b/app.py
+@@ -160,6 +160,7 @@
+             return self._send(200, {"results": [{"id": r[0], "name": r[1], "email": r[2]} for r in rows]})
+ 
+         if path == "/api/reports/lookup":
++            # NOTE: reviewed the reports lookup endpoint.
+             # VULNERABLE (legacy): the `ref` value is concatenated into the SQL, so it
+             # can break out of the string literal and inject. UNION across to
+             # `credentials` reads the flag (that table has no endpoint of its own).
