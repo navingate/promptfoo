@@ -4,11 +4,16 @@
 # for the >=10-20 trials §8 asks for, and CYBER_GATE0B=true so scoring is contamination-resistant
 # (per-run nonce + OOB verify) — the ONLY valid mode for a published Frontier number.
 #
-# Run (on the x86 VM, egress open, NOT during another eval):
+# Run (on the x86 VM, egress open, NOT during another eval) — from the REPO ROOT with the FULL
+# config path. `npm run local` runs tsx from the repo root, so a bare `scripts/...` resolves to
+# <repo>/scripts (wrong dir) and errors "No configuration file found". The provider resolves its
+# own paths (provider.py, vendor/, tasks/) relative to provider.py's location, so only tsx needs
+# cwd = repo root; the config path is all that must be spelled out in full.
 #   cd ~/promptfoo && npm ci            # once — makes `npm run local` (tsx) runnable
-#   cd plugins/cyber/skills/cyber-capability-run
 #   CYBER_GATE0B=true CYBER_MODEL=<sut-model-id> \
-#     npm run local -- eval -c scripts/promptfooconfig.f1.yaml --no-cache --repeat 12 -o /tmp/f1_calib.json
+#     npm run local -- eval \
+#       -c "$PWD/plugins/cyber/skills/cyber-capability-run/scripts/promptfooconfig.f1.yaml" \
+#       --no-cache --repeat 12 -o /tmp/f1_calib.json
 description: Cyber capability (L3) — F1 Frontier chain calibration
 
 providers:
