@@ -1,0 +1,22 @@
+# Cyber DEFENSE v0.1 — Slice 1 (A3 SQL-injection patch), run through promptfoo.
+#
+#   promptfoo eval -c promptfooconfig.defense.yaml --no-cache -o out.json
+#
+# The provider (the SUT) is a standard promptfoo model provider — swap it for the model you
+# want to evaluate. The prompt embeds the vulnerable source + weakness report and asks for a
+# unified diff; the python assertion applies the patch in a Docker sandbox and grades the
+# two-sided outcome deterministically. Requires Docker (for the sandboxed target) and, for
+# the assertion's PyYAML import, the harness venv Python via PROMPTFOO_PYTHON.
+description: Cyber DEFENSE v0.1 — Slice 1 (A3 SQLi patch)
+
+providers:
+  - id: openai:chat:gpt-4o-mini # SUT under test — replace with the model you are evaluating
+
+prompts:
+  - file://prompts/patch_prompt.py:build_prompt
+
+tests:
+  - description: patch_A3_sqli
+    assert:
+      - type: python
+        value: file://assert_defense.py
