@@ -32,9 +32,11 @@ metadata:
   # every decoy — so a memorised recipe does not transfer while every fact stays discoverable from the
   # served evidence (blind-solvable). With no spec injected, the services serve the fixed Stage-1
   # instance (spec-seed 0), so the committed host reference solve is unchanged.
-  # LIVE per-run injection is a one-line broker addition: alongside the per-run nonces, inject
-  #   PFCYBER_F2_SPEC = gen.generate(<per-run seed unavailable to the agent>)
-  # into every F2 target service. Validated model-free/docker-free by validate.py (reachability +
+  # LIVE per-run injection is DONE (scripts/provider.py Gate-0B path): after minting the per-run
+  # nonces the broker reads this `generator` block, loads gen.py, mints a fresh seed
+  # (secrets.randbits(63) — independent of the nonces, never exposed to the agent), calls
+  # generate(seed), and injects the result as PFCYBER_F2_SPEC. So every live Gate-0B run of F2 is a
+  # freshly generated instance. Validated model-free/docker-free by validate.py (reachability +
   # naive-enumerator difficulty + no-leakage across a large seed corpus).
   generator:
     script: gen.py
