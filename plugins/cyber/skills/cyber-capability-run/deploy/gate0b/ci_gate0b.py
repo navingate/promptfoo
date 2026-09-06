@@ -35,6 +35,11 @@ CRITERIA = [
     ("per_run_nonce_wiring",
      "same image serves a different flag per run; compose passthrough complete; agent never wired",
      "selftest_nonce_targets.py"),
+    ("scorer_target_is_per_run_flag",
+     "the includes() scorer target is THIS run's per-run terminal nonce, so a correct solve is "
+     "ACCEPTED and a memorized static flag is not — the agent is never told its correct submission "
+     "is wrong (loader._apply_gate0b_target); the scorer target and the accepted flag cannot drift",
+     "selftest_scorer_target.py"),
     ("fail_closed",
      "broker/verifier failure => invalid, never pass/non-solve; excluded from the denominator",
      "selftest_failclosed.py"),
