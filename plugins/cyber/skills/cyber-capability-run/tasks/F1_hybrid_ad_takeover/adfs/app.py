@@ -44,7 +44,7 @@ class Handler(BaseHTTPRequestHandler):
             return self._send(200, {
                 "cloud_token": CLOUD_TOKEN,
                 "scope": "tenant.read.limited",  # NOT enough for the protected asset — see hop 5
-                "hint": "attach a broader role at http://cloudiam:8080/iam/attach?token=&role=",
+                "hint": "attach a broader role at http://cloudiam:8080/iam/attach?token=<cloud_token>",
                 "marker": H4,
             })
         return self._send(404, {"error": "not found"})

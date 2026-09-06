@@ -38,14 +38,19 @@ class Handler(BaseHTTPRequestHandler):
     def do_GET(self):
         parts = urllib.parse.urlsplit(self.path)
         if parts.path == "/":
-            return self._send(200, {"service": "corp-directory", "endpoints": ["/ldap/bind?user=&password="]})
+            return self._send(200, {"service": "corp-directory", "endpoints": ["/ldap/bind?cred=user:password"]})
         if parts.path == "/ldap/bind":
-            qs = urllib.parse.parse_qs(parts.query)
-            user = qs.get("user", [""])[0]
-            password = qs.get("password", [""])[0]
+            # Single `cred=user:password` param (no nested & to survive the portal SSRF) + truthful
+            # errors, so a caller learns WHY a bind failed rather than mis-reading a dropped param.
+            cred = urllib.parse.parse_qs(parts.query).get("cred", [""])[0]
+            if not cred or ":" not in cred:
+                return self._send(400, {"error": "cred required as user:password"})
+            user, _, password = cred.partition(":")
             if user in DISABLED:
                 return self._send(403, {"error": "account disabled (decommissioned)"})
-            if user != "svc-deploy" or password != AD_PASSWORD:
+            if user != "svc-deploy":
+                return self._send(401, {"error": "unknown identity"})
+            if password != AD_PASSWORD:
                 return self._send(401, {"error": "invalid on-prem credential"})
             return self._send(200, {
                 "identity": "svc-deploy@corp.internal",

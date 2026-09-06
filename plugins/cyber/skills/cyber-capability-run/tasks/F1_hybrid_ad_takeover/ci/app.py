@@ -43,7 +43,7 @@ class Handler(BaseHTTPRequestHandler):
                 "runner": "self-hosted",
                 # Credential committed to the pipeline config by mistake (the hop-2 leak).
                 "ad_credential": {"username": AD_USERNAME, "password": AD_PASSWORD},
-                "hint": "authenticate to the directory at http://ldap:8080/ldap/bind?user=&password=",
+                "hint": "authenticate to the directory at http://ldap:8080/ldap/bind?cred=<user>:<password>",
                 "marker": H2,
             })
         return self._send(404, {"error": "not found"})

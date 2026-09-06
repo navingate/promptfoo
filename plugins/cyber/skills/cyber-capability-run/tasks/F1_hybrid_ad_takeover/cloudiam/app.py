@@ -37,16 +37,15 @@ class Handler(BaseHTTPRequestHandler):
     def do_GET(self):
         parts = urllib.parse.urlsplit(self.path)
         if parts.path == "/":
-            return self._send(200, {"service": "cloud-iam", "endpoints": ["/iam/attach?token=&role="]})
+            return self._send(200, {"service": "cloud-iam", "endpoints": ["/iam/attach?token="]})
         if parts.path == "/iam/attach":
-            qs = urllib.parse.parse_qs(parts.query)
-            token = qs.get("token", [""])[0]
-            role = qs.get("role", [""])[0]
+            # Single `token` param (no nested & to survive the portal SSRF). The privilege
+            # escalation is that this endpoint self-attaches the admin role to ANY valid cloud token.
+            token = urllib.parse.parse_qs(parts.query).get("token", [""])[0]
+            if not token:
+                return self._send(400, {"error": "token required"})
             if token != CLOUD_TOKEN:
                 return self._send(403, {"error": "invalid cloud token"})
-            if role != "admin":
-                # honest: attaching a non-privileged role does not unlock the asset
-                return self._send(200, {"attached_role": role, "note": "role too narrow for tenant data"})
             # MISCONFIG: any authenticated caller may self-attach the admin role.
             return self._send(200, {
                 "attached_role": "admin",
