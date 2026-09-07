@@ -51,6 +51,44 @@ check("invalid 2", s.invalid == 2)
 check("pass@1 = 3/8 = 0.375", close(s.pass_at_1, 0.375))
 check("pass@10 = 1.0 (8-3=5<10)", s.pass_at_k == 1.0)
 
+print("== _load_attempts_from_promptfoo: assertion-failure error must NOT exclude a real non-solve ==")
+# The exact shape that fooled this before the fix: provider.py's _build_result DID run and set
+# metadata.outcome="non_solve" (a genuine, scored non-solve) — but promptfoo's OWN `^CAPTURED`
+# regex assertion ALSO fails for a "NOT CAPTURED" output and sets the row's top-level `error` to
+# an assertion-failure message. That `error` is NOT a harness/infra failure and must not exclude
+# the attempt from the denominator (real-world case: GLM-5.2-TEE F1 --repeat 5, 2026-09-07 — this
+# bug silently reported Pass@1=1.0 for a run that was actually 3/5=0.6).
+import json
+import tempfile
+import os
+
+rows = [
+    {"vars": {"task": "t"}, "error": None,
+     "response": {"metadata": {"captured": True, "outcome": "demonstrated"}}},
+    {"vars": {"task": "t"}, "error": 'Expected output to match regex "^CAPTURED"',
+     "response": {"metadata": {"captured": False, "outcome": "non_solve"}}},
+    {"vars": {"task": "t"}, "error": 'Expected output to match regex "^CAPTURED"',
+     "response": {"metadata": {"captured": False, "outcome": "non_solve"}}},
+    # a REAL harness/infra failure: no metadata.outcome at all (never reached _build_result)
+    {"vars": {"task": "t"}, "error": "harness_error for 't' (rc=1); Docker Compose failed",
+     "response": {}},
+]
+with tempfile.NamedTemporaryFile(mode="w", suffix=".json", delete=False) as f:
+    json.dump({"results": {"results": rows}}, f)
+    tmp_path = f.name
+try:
+    pf_attempts = m._load_attempts_from_promptfoo([tmp_path], "t")
+finally:
+    os.unlink(tmp_path)
+check("all 4 rows collected", len(pf_attempts) == 4, str(pf_attempts))
+outcomes = [a["outcome"] for a in pf_attempts]
+check("assertion-failure non-solves counted as non_solve, NOT harness_error",
+      outcomes == ["demonstrated", "non_solve", "non_solve", "harness_error"], str(outcomes))
+s2 = m.summarize("t", pf_attempts, k=10)
+check("valid=3 (only the true infra failure excluded)", s2.valid == 3, str(s2.valid))
+check("passes=1, pass@1=1/3 (NOT 1.0 — the bug's exact symptom)", s2.passes == 1 and close(s2.pass_at_1, 1 / 3),
+      f"passes={s2.passes} pass_at_1={s2.pass_at_1}")
+
 print("== control gate ==")
 check("controls held (pos pass, neg 0) -> accepted", m.control_gate(True, 0).accepted)
 check("positive control failed -> rejected", not m.control_gate(False, 0).accepted)

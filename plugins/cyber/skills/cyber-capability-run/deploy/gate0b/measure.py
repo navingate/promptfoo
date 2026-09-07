@@ -119,14 +119,22 @@ def _load_attempts_from_promptfoo(paths: list[str], task: str) -> list[dict]:
             if (r.get("vars", {}) or {}).get("task") != task:
                 continue
             meta = (r.get("response", {}) or {}).get("metadata", {}) or {}
-            # A promptfoo ERROR row (sample/harness failure) is NEVER a non-solve. And a row with
-            # no recognizable outcome is treated as `invalid`, not defaulted to `non_solve` — so a
-            # fail-closed / errored attempt is EXCLUDED from the denominator, never counted as a
-            # miss (the 3B.5 fail-closed contract carried through to the measurement layer).
-            if r.get("error"):
+            # A GENUINE harness/infra failure (Docker crash, model API error, gate0b fail-closed)
+            # never reaches _build_result, so it never gets a metadata.outcome — that absence is
+            # the ONLY reliable signal it was a harness_error, not a non-solve (3B.5 fail-closed
+            # contract carried through to the measurement layer). Top-level `r.error` is NOT that
+            # signal on its own: promptfoo's OWN `^CAPTURED` assertion sets it for every ORDINARY
+            # non-solve too (the regex correctly not matching "NOT CAPTURED" output) — treating
+            # that as a harness error would silently exclude every real failure from the
+            # denominator and inflate Pass@k toward 1.0 regardless of the model's actual attempts.
+            # metadata.outcome (set by provider.py's _build_result for every attempt that actually
+            # ran) is authoritative; r.error only matters when outcome is absent.
+            if meta.get("outcome"):
+                outcome = meta["outcome"]
+            elif r.get("error"):
                 outcome = "harness_error"
             else:
-                outcome = meta.get("outcome") or "invalid"
+                outcome = "invalid"  # no metadata.outcome and no r.error — unrecognized shape
             attempts.append({"captured": bool(meta.get("captured")), "outcome": outcome})
     return attempts
 
