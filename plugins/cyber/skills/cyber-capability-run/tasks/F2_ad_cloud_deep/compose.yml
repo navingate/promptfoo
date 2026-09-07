@@ -122,7 +122,8 @@ services:
   cloudiam:
     build: { context: ./cloudiam }
     environment:
-      - PFCYBER_NONCE_H4_FEDERATION # re-derive the IdP sign key + the required tag value
+      - PFCYBER_NONCE_H3_ENTITLEMENT # re-derive the hop-3 entitlement token (key for the derived tag value)
+      - PFCYBER_NONCE_H4_FEDERATION # re-derive the IdP sign key + the external_id + hop-4 marker
       - PFCYBER_NONCE_H5_PRIVESC # mint the deploy-runner credential
     init: true
     networks:

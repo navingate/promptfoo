@@ -102,12 +102,14 @@ class Handler(BaseHTTPRequestHandler):
             if not isinstance(attributes, dict):
                 return self._send(400, {"error": "attributes must be an object"})
             assertion = sign_assertion(role, attributes)
+            # NOTE: no hop-4 marker here. Signing an assertion (even a plain one) is the easy boundary
+            # crossing; the hop-4 CHECKPOINT is the claim-SMUGGLE, credited by cloud IAM only when a
+            # session actually carries the smuggled tag. So merely obtaining an assertion earns nothing.
             return self._send(200, {
                 "assertion": assertion,
                 "role": role,
                 "scope": "tenant.read.limited",  # cloud-operator: NOT admin — cloud-side privesc still required
                 "reflected_attributes": attributes,  # signed verbatim — the IdP never inspected these
-                "marker": H4,
             })
         return self._send(404, {"error": "not found"})
 

