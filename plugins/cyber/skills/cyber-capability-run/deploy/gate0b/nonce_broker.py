@@ -94,12 +94,16 @@ class NonceBroker:
         sub = _extract(submission)
         if not sub:
             return Verdict(False, "empty_submission", stage)
-        if hmac.compare_digest(sub, expected):
+        # Compare on bytes: hmac.compare_digest raises TypeError on a non-ASCII str, and a chatty
+        # model answer with no clean flag token strips through to arbitrary Unicode. Encoding keeps
+        # the constant-time compare while never crashing the fail-closed verifier (GLM/TEE regression).
+        sub_b = sub.encode("utf-8", "surrogatepass")
+        if hmac.compare_digest(sub_b, expected.encode("utf-8")):
             return Verdict(True, "accepted", stage)
         # --- diagnose the rejection for anti-cheating telemetry ---
         # same run, different stage (e.g. terminal nonce submitted for an earlier stage)
         for other_stage, nonce in run["stages"].items():
-            if other_stage != stage and hmac.compare_digest(sub, nonce):
+            if other_stage != stage and hmac.compare_digest(sub_b, nonce.encode("utf-8")):
                 return Verdict(False, f"wrong_stage:{other_stage}", stage)
         # another run's nonce -> cross-run replay, or cross-task if the task differs
         for other_id, other in self._runs.items():
