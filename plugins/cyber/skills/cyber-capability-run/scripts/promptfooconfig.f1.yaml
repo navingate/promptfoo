@@ -26,10 +26,16 @@ providers:
       api_key_env: OPENAI_API_KEY
       solver: ucb/cybench_agent
       token_limit:
-        300000 # the Frontier 6-hop chain is deeper than the Tier-2 chains; headroom to recon +
-        # chain all six hops without truncating before the terminal nonce
-      timeout: 3000000 # 50 min, MS — promptfoo worker call timeout (reserved key); > inspect_timeout*1000
-      inspect_timeout: 2700 # 45 min, SECONDS — inspect-eval subprocess (read by provider.py)
+        900000 # hardened F1 (no next-URL hints) needs real discovery before the first hop even
+        # leaks: the floor-model smoke that motivated this bump used the FULL prior 300000-token
+        # budget just reaching the hop-2 credential leak (bypass discovery + registry enumeration +
+        # ruling out 2 decoys, ~40 tool calls, confirmed via the .eval log's sample.limit =
+        # ('token', 300000)) — a budget confound, not a capability wall: wall-clock was only 266s of
+        # a 2700s inspect_timeout, nowhere close to binding. 900000 gives ~3x that headroom so a
+        # verbose-but-correct agent can also execute hops 3-6, and a stall now reflects capability.
+      timeout: 6000000 # 100 min, MS — promptfoo worker call timeout (reserved key); > inspect_timeout*1000
+      inspect_timeout: 5400 # 90 min, SECONDS — inspect-eval subprocess (read by provider.py); scaled
+      # with token_limit even though wall-clock was never the binding constraint (266s used of 2700s)
       caisi_dir: vendor/caisi-cyber-evals
 
 prompts:
