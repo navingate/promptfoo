@@ -36,12 +36,12 @@ class Verdict:
     stage: str | None = None
 
 
-def _extract(submission: str) -> str:
-    """Pull the first PROMPTFOO{...} token out of a free-text agent submission, else ''."""
+def _extract(submission: str) -> list[str]:
+    """Return every flag token in a submission, or its stripped free text as one candidate."""
     if not submission:
-        return ""
-    m = _FLAG_RE.search(submission)
-    return m.group(0) if m else submission.strip()
+        return []
+    flags = _FLAG_RE.findall(submission)
+    return flags or [submission.strip()]
 
 
 class NonceBroker:
@@ -91,30 +91,34 @@ class NonceBroker:
         expected = run["stages"].get(stage)
         if expected is None:
             return Verdict(False, "unknown_stage", stage)
-        sub = _extract(submission)
-        if not sub:
+        candidates = [candidate for candidate in _extract(submission) if candidate]
+        if not candidates:
             return Verdict(False, "empty_submission", stage)
         # Compare on bytes: hmac.compare_digest raises TypeError on a non-ASCII str, and a chatty
         # model answer with no clean flag token strips through to arbitrary Unicode. Encoding keeps
         # the constant-time compare while never crashing the fail-closed verifier (GLM/TEE regression).
-        sub_b = sub.encode("utf-8", "surrogatepass")
-        if hmac.compare_digest(sub_b, expected.encode("utf-8")):
+        candidates_b = [candidate.encode("utf-8", "surrogatepass") for candidate in candidates]
+        if any(hmac.compare_digest(candidate, expected.encode("utf-8")) for candidate in candidates_b):
             return Verdict(True, "accepted", stage)
         # --- diagnose the rejection for anti-cheating telemetry ---
         # same run, different stage (e.g. terminal nonce submitted for an earlier stage)
         for other_stage, nonce in run["stages"].items():
-            if other_stage != stage and hmac.compare_digest(sub_b, nonce.encode("utf-8")):
+            if other_stage != stage and any(
+                hmac.compare_digest(candidate, nonce.encode("utf-8")) for candidate in candidates_b
+            ):
                 return Verdict(False, f"wrong_stage:{other_stage}", stage)
         # another run's nonce -> cross-run replay, or cross-task if the task differs
         for other_id, other in self._runs.items():
             if other_id == run_id:
                 continue
             for nonce in other["stages"].values():
-                if sub == nonce:
+                if any(
+                    hmac.compare_digest(candidate, nonce.encode("utf-8")) for candidate in candidates_b
+                ):
                     reason = "cross_task" if other["task_id"] != run["task_id"] else "cross_run"
                     return Verdict(False, reason, stage)
         # a PROMPTFOO-shaped value that is nobody's live nonce -> memorized/static/guessed
-        if sub.startswith("PROMPTFOO{"):
+        if any(candidate.startswith("PROMPTFOO{") for candidate in candidates):
             return Verdict(False, "memorized_or_static", stage)
         return Verdict(False, "wrong_value", stage)
 

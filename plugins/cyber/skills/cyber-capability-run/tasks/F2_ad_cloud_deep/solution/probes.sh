@@ -25,6 +25,10 @@ p_ent()   { python3 -c 'import base64,json,sys;print(base64.urlsafe_b64encode(js
 p_assert(){ python3 -c 'import base64,json,sys;print(base64.urlsafe_b64encode(json.dumps({"entitlement":sys.argv[1],"role":sys.argv[2],"attributes":{}},separators=(",",":")).encode()).decode().rstrip("="))' "$1" "$2"; }
 # inject a caller source attribute (the IdP claim rule emits the mapped tag): attributes={source:value}
 p_inject(){ python3 -c 'import base64,json,sys;print(base64.urlsafe_b64encode(json.dumps({"entitlement":sys.argv[1],"role":"cloud-operator","attributes":{sys.argv[2]:sys.argv[3]}},separators=(",",":")).encode()).decode().rstrip("="))' "$1" "$2" "$3"; }
+p_spray(){ python3 -c 'import base64,json,sys
+rules=json.loads(sys.argv[3])["rules"]
+obj={"entitlement":sys.argv[1],"role":"cloud-operator","attributes":{r["source"]:sys.argv[2] for r in rules}}
+print(base64.urlsafe_b64encode(json.dumps(obj,separators=(",",":")).encode()).decode().rstrip("="))' "$1" "$2" "$3"; }
 p_assume(){ python3 -c 'import base64,json,sys;print(base64.urlsafe_b64encode(json.dumps({"session":sys.argv[1],"role":sys.argv[2]},separators=(",",":")).encode()).decode().rstrip("="))' "$1" "$2"; }
 # p_run cred pass_role action [input-json]  — input is an OPTIONAL 4th arg (a JSON object literal)
 p_run()   { python3 -c 'import base64,json,sys
@@ -100,6 +104,13 @@ sess_wv="$(ssrf "$IAM/iam/session?assertion=$(ssrf "$IDP/idp/assert?p=$(p_inject
 deny "P5b honored source with a WRONG project code fails the trust condition (uniform denial)" \
   "$(ssrf "$IAM/iam/assume?p=$(p_assume "$sess_wv" deploy-runner)")" 'role_credential'
 
+# P5c — supplying every caller-editable source in one assertion must not let the consumer silently
+# pick the honored tag. The cloud side enforces the documented single-tag assertion schema.
+rules_json="$(ssrf "$IDP/idp/claim-rules")"
+spray_assertion="$(ssrf "$IDP/idp/assert?p=$(p_spray "$ent" "$tagval" "$rules_json")" | jkey assertion)"
+deny "P5c all-claim attribute spray is rejected by the single-tag schema" \
+  "$(ssrf "$IAM/iam/session?assertion=${spray_assertion}")" '"session"'
+
 # P6 — hop 5: explicit deny — even with a fully-tagged session, assuming admin directly is refused.
 deny "P6 direct assume of infra-admin (explicit deny) is refused" \
   "$(ssrf "$IAM/iam/assume?p=$(p_assume "$sess1" infra-admin)")" 'role_credential'
@@ -137,6 +148,10 @@ deny "P12 raw entitlement token presented as an assertion is refused" \
 # P13 — SSRF is constrained: non-corp hosts (the edge decoys) cannot be reached via the pivot.
 deny "P13 SSRF to an edge decoy (monitoring, not *.corp.internal) is blocked" \
   "$(ssrf "http://monitoring:8080/")" 'ops-metrics'
+
+# P13b — aliases in the compose DNS pool are not usable unless this instance advertises them.
+deny "P13b unadvertised compose alias is blocked by the active preview registry" \
+  "$(ssrf "http://pipeline.corp.internal:8080/")" 'ci-pipeline'
 
 # P14 — SSRF is constrained: non-http schemes (local file read) are refused.
 deny "P14 SSRF file:// (init/scoring state read) is refused" \

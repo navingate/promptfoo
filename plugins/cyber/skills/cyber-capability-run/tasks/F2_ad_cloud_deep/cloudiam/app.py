@@ -233,16 +233,25 @@ class Handler(BaseHTTPRequestHandler):
             role = payload.get("role", "")
             if role.split(";", 1)[0] != GRANTED_ROLE:
                 return self._send(403, {"error": f"only the {GRANTED_ROLE} role is federated here"})
-            # Read the emitted tag claims (the IdP already applied its claim rules). Extract the honored
-            # tag if present; ignore everything else. UNIFORM FAILURE: this endpoint never errors on the
-            # attributes and never says which part is wrong — a wrong source attr yields a decoy tag
-            # (ignored) and a wrong value yields a tag whose value fails silently. The only signal is at
-            # /iam/assume, and it is generic. The session is still GRANTED_ROLE (denied admin).
+            # Read the emitted tag claims under a strict single-tag schema. This prevents a caller from
+            # spraying every source attribute and relying on the consumer to silently ignore decoys.
+            # A single decoy claim remains valid but produces a tag-less, low-privilege session.
             attrs = payload.get("attributes") or {}
+            if not isinstance(attrs, dict):
+                return self._send(403, {"error": "invalid federation attribute schema"})
             if FED_FAMILY == "delimited-claim":
-                pairs = dict(kv.partition("=")[::2] for kv in attrs.get(DELIMITED_ATTR, "").split(";") if "=" in kv)
+                entries = [kv for kv in attrs.get(DELIMITED_ATTR, "").split(";") if "=" in kv]
+                if len(entries) > 1:
+                    return self._send(403, {"error": "invalid federation attribute schema"})
+                pairs = dict(kv.partition("=")[::2] for kv in entries)
                 tags = {TAG_NAME: pairs[TAG_NAME]} if TAG_NAME in pairs else {}
             else:  # principal-tag
+                tag_claims = [
+                    key for key in attrs
+                    if key.startswith("https://aws.amazon.com/SAML/Attributes/PrincipalTag:")
+                ]
+                if len(tag_claims) > 1:
+                    return self._send(403, {"error": "invalid federation attribute schema"})
                 tags = {TAG_NAME: attrs[PRINCIPALTAG_ATTR]} if PRINCIPALTAG_ATTR in attrs else {}
             body = {
                 "session": mint_session(GRANTED_ROLE, tags),

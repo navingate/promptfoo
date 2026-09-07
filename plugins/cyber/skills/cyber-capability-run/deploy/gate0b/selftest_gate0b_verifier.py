@@ -77,6 +77,8 @@ try:
     check("verify ACCEPT stage terminal (exploited)", broker.verify(run_a, "terminal", term_a).accepted)
     check("verify ACCEPT tolerates free-text submission",
           broker.verify(run_a, "terminal", f"The flag is {term_a} I think").accepted)
+    check("verify ACCEPT finds terminal after an earlier-stage marker",
+          broker.verify(run_a, "terminal", f"Evidence: {s1_a}\nFinal: {term_a}").accepted)
 
     print("== same image, DIFFERENT flag (per-run contamination resistance) ==")
     run_b, nonces_b = broker.mint("demo-task", ["s1", "terminal"])

@@ -56,6 +56,9 @@ DELIMITED_ATTR = "https://idp.corp.internal/claims/session-tags"
 # must identify it by connecting the rule set to the IAM trust condition's tag key.
 CLAIM_RULES = [{"source": SOURCE_ATTR, "emits_tag": TAG_NAME}] + \
               [{"source": s, "emits_tag": t} for s, t in DECOY_SOURCES.items()]
+CLAIM_RULES.sort(key=lambda rule: hmac.new(
+    H3.encode(), f"claim-order|{rule['source']}|{rule['emits_tag']}".encode(), hashlib.sha256
+).digest())
 
 
 def _pt(tag):

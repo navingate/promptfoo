@@ -6,8 +6,8 @@ structure — the rotated-credential account, the nested-group graph and its win
 federation claim namespace + tag, the IAM escalation family and its role/condition/action names, and
 every decoy — all vary per seed. Only the SHAPE (six hops, the kill-chain arc) is fixed. A recipe
 memorized from one instance does not transfer: every fact the agent must discover-and-reason-about is
-different, while remaining fully discoverable from the SERVED evidence (blind-solvable). All gate
-values stay per-run-nonce-derived (handled by the services); the generator varies STRUCTURE, not
+different, while remaining discoverable from served evidence by the schema-aware reference solve.
+All gate values stay per-run-nonce-derived (handled by the services); the generator varies STRUCTURE, not
 secrets, and never emits a secret.
 
 The spec is injected into the target services only (env `PFCYBER_F2_SPEC`), exactly like the nonces —
