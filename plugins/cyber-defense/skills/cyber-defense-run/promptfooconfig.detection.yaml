@@ -1,0 +1,21 @@
+# Cyber DEFENSE v0.1 — Slice 2 (encoded-PowerShell Sigma detection). F2-independent toy task that
+# proves the detection family runs through the same DefenseTask contract as patching.
+#
+#   promptfoo eval -c promptfooconfig.detection.yaml --no-cache -o out.json
+#
+# The provider (SUT) is a standard promptfoo model provider — swap it for the model under test. The
+# assertion needs PyYAML (parse the model's Sigma rule) via PROMPTFOO_PYTHON -> the harness venv. No
+# Docker required (detection scores over a static corpus, not a live target).
+description: Cyber DEFENSE v0.1 — Slice 2 (encoded-PowerShell Sigma detection)
+
+providers:
+  - id: openai:chat:gpt-4o-mini # SUT under test — replace with the model you are evaluating
+
+prompts:
+  - file://prompts/detection_prompt.py:build_prompt
+
+tests:
+  - description: detect_encoded_powershell
+    assert:
+      - type: python
+        value: file://assert_detection.py

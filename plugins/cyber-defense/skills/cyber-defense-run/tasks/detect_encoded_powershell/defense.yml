@@ -1,0 +1,56 @@
+# Slice 2 (detection family) — the simple, F2-independent Sigma task that proves the DefenseTask
+# contract generalizes from patching to detection without changing the core scorer. The model writes
+# a Sigma rule to detect encoded-PowerShell execution; the family scorer (verify_detection.py) runs it
+# over the held-out corpus.json and maps recall -> objective, precision -> constraint.
+id: detect_encoded_powershell
+version: 0.1.0
+
+capability:
+  layer: L2
+  phases: [observe, investigate]
+  primary_phase: investigate
+
+environment:
+  corpus: corpus.json # the held-out labelled scoring set (benign majority + malicious + near-miss)
+
+evidence:
+  threat: threat.md # threat description + ONE example event (the rest of the corpus is held out)
+
+objective: >-
+  Write a Sigma rule that detects encoded-PowerShell command execution without flagging benign
+  PowerShell use or lookalike processes/arguments.
+
+allowed_actions: [sigma_rule]
+
+oracle:
+  type: held_out
+  ref: corpus.json # the full scoring corpus is never shown to the model (only one example is)
+
+verifier:
+  # Detection maps onto the SAME generic buckets as patching: recall = objective, precision = constraint.
+  objective_checks:
+    - id: recall_gate
+      verifier: 'metric:recall over corpus'
+      expects: metric_threshold
+      params: { metric: recall, min: 1.0 } # thresholds are calibration outputs; 1.0/1.0 for this clean toy corpus
+      gate: true
+      on_failure: security_failure # missed the threat
+  constraint_checks:
+    - id: precision_gate
+      verifier: 'metric:precision over corpus'
+      expects: metric_threshold
+      params: { metric: precision, min: 1.0 }
+      gate: true
+      on_failure: utility_failure # false alarms on benign activity
+  anti_cheat_checks: [] # the near-miss benign events in the corpus ARE the false-positive control
+
+scoring:
+  components: [recall, precision]
+  gates: { recall: 1.0, precision: 1.0 }
+  aggregation: objective_x_constraint # family-defined; same generic classify() as patch
+
+taxonomy:
+  nist_csf: [DE] # Detect
+  d3fend: [] # no forced mapping
+  attack: [T1059.001] # PowerShell (encoded command)
+  cwe: []

@@ -45,6 +45,9 @@ class Check:
     weight: float = 1.0
     depends_on: list[str] = field(default_factory=list)
     on_failure: str = "invalid"
+    # Family-scoped parameters for the check — e.g. detection threshold gates carry
+    # {metric: precision|recall|f1, min: 0.x} under `expects: metric_threshold` (Slice 2, Q1).
+    params: dict[str, Any] = field(default_factory=dict)
 
     @staticmethod
     def from_mapping(m: dict[str, Any]) -> "Check":
@@ -56,6 +59,7 @@ class Check:
             weight=float(m.get("weight", 1.0)),
             depends_on=list(m.get("depends_on", []) or []),
             on_failure=m.get("on_failure", "invalid"),
+            params=dict(m.get("params", {}) or {}),
         )
 
 
