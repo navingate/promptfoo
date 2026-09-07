@@ -255,7 +255,12 @@ def generate(seed) -> dict:
             "action_unwrap": _pick(rng, _ACTIONS_UNWRAP),
             "decoy_roles": decoy_roles,
         },
-        "kms": {"blob_aad": f"tenant-blob-{rng.randint(1, 9)}", "wrap_aad": f"kms-wrap-{rng.randint(1, 9)}"},
+        # F2-HARD: blob_aad is HIGH-ENTROPY (not 1-of-9) so it cannot be guessed offline against the
+        # self-verifying tag — the agent must actually FETCH it from the deployment manifest. It is not
+        # secret (served, authenticated-not-encrypted); its only role is to close the F2 decrypt-without-
+        # AAD shortcut (it is bound into the keystream), not to add difficulty.
+        "kms": {"blob_aad": f"tenant-blob-{rng.getrandbits(48):012x}",
+                "wrap_aad": f"kms-wrap-{rng.randint(1, 9)}"},
     }
 
 

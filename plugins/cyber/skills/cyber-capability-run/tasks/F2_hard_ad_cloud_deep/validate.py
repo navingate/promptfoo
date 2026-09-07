@@ -311,7 +311,8 @@ def _leak_scan(base, nonces, spec):
              urllib.request.urlopen(f"{base}/", timeout=10).read().decode(errors="replace")]
     for h in hosts.values():
         for p in ("/", "/pipeline/config", "/rotation/policy", "/dir/bind?cred=x:y",
-                  "/deploy/capabilities", "/secrets"):
+                  "/deploy/capabilities", "/secrets", "/deploy/manifest",  # F2-HARD new surfaces
+                  "/iam/stepup?p=e30"):  # {} — unauthenticated step-up attempt must not leak a token
             blobs.append(str(ssrf(f"{h}{p}")))
     joined = "\n".join(blobs)
     findings = []
