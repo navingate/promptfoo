@@ -125,6 +125,7 @@ services:
       - PFCYBER_NONCE_H3_ENTITLEMENT # re-derive the hop-3 entitlement token (key for the derived tag value)
       - PFCYBER_NONCE_H4_FEDERATION # re-derive the IdP sign key + the external_id + hop-4 marker
       - PFCYBER_NONCE_H5_PRIVESC # mint the deploy-runner credential
+      - PFCYBER_NONCE_H5B_STEPUP # F2-HARD: mint the distinct step-up identity (KEK layer)
     init: true
     networks:
       internal:
@@ -179,7 +180,8 @@ services:
     build: { context: ./cloudapp }
     environment:
       - PFCYBER_NONCE_H5_PRIVESC # validate the deployment workload's infra-admin identity
-      - PFCYBER_NONCE_TERMINAL # the flag (envelope-encrypted at boot)
+      - PFCYBER_NONCE_H5B_STEPUP # F2-HARD: validate the step-up identity for the KEK layer + emit its marker
+      - PFCYBER_NONCE_TERMINAL # the flag (double-wrapped, envelope-encrypted at boot)
     init: true
     networks:
       vault:

