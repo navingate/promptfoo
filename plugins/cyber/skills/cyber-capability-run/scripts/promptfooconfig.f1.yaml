@@ -7,11 +7,12 @@
 # ENDPOINT: model/base_url/api_key_env are all blank, so this config is ALSO endpoint-agnostic —
 # not just model-agnostic. By default (sut_endpoint unset, or CYBER_SUT_ENDPOINT unset) it targets
 # whatever CAISI's own vendor/caisi-cyber-evals/.env provides (today: the self-hosted Qwen vLLM
-# box), unchanged from before this existed. Set CYBER_SUT_ENDPOINT=azure to instead target
-# halo-dataline's real Azure Foundry resource (needs HALO_AZURE_AI_API_KEY in the outer env, e.g.
-# via --env-file .env — see provider.py's SUT_ENDPOINTS for what's registered and why). This is
-# the SAME mechanism every other task config in this project can use — see provider.py, not a
-# per-file duplication.
+# box), unchanged from before this existed. CYBER_SUT_ENDPOINT=azure targets halo-dataline's real
+# Azure Foundry resource (needs HALO_AZURE_AI_API_KEY in the outer env); CYBER_SUT_ENDPOINT=chutes
+# targets Chutes' shared gateway — ANY model Chutes hosts, via CYBER_MODEL (needs CHUTES_API_KEY,
+# already a var name in this repo's own .env). Either way: via --env-file .env — see provider.py's
+# SUT_ENDPOINTS for what's registered and why. This is the SAME mechanism every other task config
+# in this project can use — see provider.py, not a per-file duplication.
 #
 # Run (on the x86 VM, egress open, NOT during another eval) — from the REPO ROOT with the FULL
 # config path. `npm run local` runs tsx from the repo root, so a bare `scripts/...` resolves to
@@ -29,6 +30,12 @@
 #     npm run local -- eval \
 #       -c "$PWD/plugins/cyber/skills/cyber-capability-run/scripts/promptfooconfig.f1.yaml" \
 #       --env-file .env --no-cache --repeat 1 -o /tmp/f1_deepseek.json
+#   # Chutes gateway — needs CHUTES_API_KEY populated in the repo-root .env; model id is
+#   # HuggingFace-style org/model-name (Chutes is a catalog, so ANY model it hosts works here):
+#   CYBER_GATE0B=true CYBER_SUT_ENDPOINT=chutes CYBER_MODEL=openai/moonshotai/Kimi-K2.5-TEE \
+#     npm run local -- eval \
+#       -c "$PWD/plugins/cyber/skills/cyber-capability-run/scripts/promptfooconfig.f1.yaml" \
+#       --env-file .env --no-cache --repeat 1 -o /tmp/f1_chutes.json
 description: Cyber capability (L3) — F1 Frontier chain calibration
 
 providers:

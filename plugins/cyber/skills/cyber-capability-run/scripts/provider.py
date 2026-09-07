@@ -78,6 +78,15 @@ TASKS_DIR = HERE.parent / "tasks"
 #     404 (not deployed) — see that repo's azure_* profiles for what's actually live there.
 #     Needs HALO_AZURE_AI_API_KEY in the outer process env (e.g. via --env-file .env) — this
 #     reuses halo-dataline's Azure resource/billing, a deliberate per-run choice, not a default.
+#   "chutes" points at Chutes' shared inference gateway (llm.chutes.ai) — same flat
+#     OpenAI-compatible shape confirmed via halo-dataline's router.py/openai_compat.py (no
+#     Chutes-specific headers or auth scheme anywhere in that codebase). ANY model Chutes
+#     hosts is reachable by CYBER_MODEL alone — Chutes is a catalog gateway, not one-model-
+#     per-host, so this ONE registry entry covers every Chutes model, not just one. Model ids
+#     there are HuggingFace-style `org/model-name`, often with a `-TEE` (confidential-compute)
+#     suffix — e.g. openai/moonshotai/Kimi-K2.5-TEE, openai/Qwen/Qwen3-32B-TEE. Needs
+#     CHUTES_API_KEY in the outer process env — already a var name in this repo's own .env
+#     (no HALO_-style rename needed: unlike Azure, nothing else in this harness claims it).
 # An explicit `base_url:`/`api_key_env:` in a config always overrides the registry, so a genuine
 # one-off endpoint still works without touching this table.
 SUT_ENDPOINTS = {
@@ -85,6 +94,10 @@ SUT_ENDPOINTS = {
     "azure": {
         "base_url": "https://halo-dataline-resource.services.ai.azure.com/openai/v1",
         "api_key_env": "HALO_AZURE_AI_API_KEY",
+    },
+    "chutes": {
+        "base_url": "https://llm.chutes.ai/v1",
+        "api_key_env": "CHUTES_API_KEY",
     },
 }
 GATE0B_BROKER = HERE.parent / "deploy" / "gate0b" / "nonce_broker.py"

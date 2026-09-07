@@ -5,7 +5,8 @@ Lets ANY task config pick a target-model endpoint via `sut_endpoint:` (or CYBER_
 instead of duplicating a whole config file per endpoint. Critical property: the default ("local",
 or the key simply absent) must be BYTE-IDENTICAL to provider.py's behavior before this feature
 existed, because every existing config (F1, F2, scenarios, authored, ...) relies on that default —
-a regression here silently breaks every other task, not just the new "azure" preset.
+a regression here silently breaks every other task, not just the new "azure"/"chutes" presets.
+Also proves the presets stay isolated from each other (picking one never leaks another's base_url).
 
 Drives the REAL call_api(), not a reimplementation of its logic: caisi_dir is faked (an empty temp
 dir, just enough to pass the `caisi_dir.is_dir()` gate) and subprocess.run is monkeypatched to
@@ -99,10 +100,20 @@ check("base_url still resolved even without the key present",
 check("no OPENAI_API_KEY injected when the source env var is absent",
       "OPENAI_API_KEY" not in (env or {}) or (env or {}).get("OPENAI_API_KEY") == os.environ.get("OPENAI_API_KEY"))
 
+print("== 3b. sut_endpoint: chutes — resolves the Chutes gateway preset ==")
+result, env = call_with({**BASE_CFG, "sut_endpoint": "chutes"}, env_overrides={"CHUTES_API_KEY": "chutes-key-456"})
+check("BASE_URL resolved to the chutes preset",
+      (env or {}).get("OPENAI_BASE_URL") == "https://llm.chutes.ai/v1",
+      env.get("OPENAI_BASE_URL") if env else None)
+check("API_KEY pulled from CHUTES_API_KEY", (env or {}).get("OPENAI_API_KEY") == "chutes-key-456")
+check("chutes and azure presets don't leak into each other (different base_url)",
+      (env or {}).get("OPENAI_BASE_URL") != "https://halo-dataline-resource.services.ai.azure.com/openai/v1")
+
 print("== 5. unknown sut_endpoint — clean error, never reaches the subprocess ==")
 result, env = call_with({**BASE_CFG, "sut_endpoint": "not-a-real-endpoint"})
 check("clean error naming the bad value", "unknown sut_endpoint" in result.get("error", ""), result)
-check("lists the valid choices", "azure" in result.get("error", "") and "local" in result.get("error", ""))
+check("lists all three valid choices", all(c in result.get("error", "") for c in ("azure", "chutes", "local")),
+      result)
 check("never reached the subprocess stage", env is None)
 
 print("== 6. explicit config base_url/api_key_env still OVERRIDES the registry (one-off escape hatch) ==")
