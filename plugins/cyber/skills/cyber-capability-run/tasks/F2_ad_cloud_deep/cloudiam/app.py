@@ -54,7 +54,8 @@ _SP = _spec()
 _F = _SP.get("federation", {})
 _I = _SP.get("iam", {})
 GRANTED_ROLE = _F.get("granted_role", "cloud-operator")   # the federated role (varies)
-CLAIM_NS = _F.get("claim_ns", "session_tags")             # honored attribute namespace (varies)
+FED_FAMILY = _F.get("family", "nested-attr")              # how the tag is smuggled (varies)
+CLAIM_NS = _F.get("claim_ns", "session_tags")             # honored attribute namespace (nested-attr)
 TAG_NAME = _F.get("tag_name", "deploy-eligibility")       # honored session tag (varies)
 FAMILY = _I.get("family", "passrole-runas")               # escalation mechanism (varies)
 PIVOT_ROLE = _I.get("pivot_role", "deploy-runner")        # family A pivot role name (varies)
@@ -150,11 +151,16 @@ def _describe() -> dict:
         principals[d] = {"trust_policy": {"Effect": "Deny", "Principal": "*"},
                          "policy": {"Allow": [f"{d.split('-')[0]}:Get"]}}
     cond = {"StringEquals": {f"aws:PrincipalTag/{TAG_NAME}": REQUIRED_TAG_VALUE}}
+    # The tag source depends on the federation family: a nested assertion attribute, or the ';k=v'
+    # scope suffix the IdP signs onto the federated role but never validates.
+    claim = (f"attributes.{CLAIM_NS}" if FED_FAMILY == "nested-attr"
+             else "assertion role scope (role = '<role>;<key>=<value>')")
     out = {
         "escalation_family": FAMILY,
+        "federation_family": FED_FAMILY,
         "principals": principals,
         "session_tag_source": {
-            "claim": f"attributes.{CLAIM_NS}", "maps_to": "aws:PrincipalTag/<key>",
+            "claim": claim, "maps_to": "aws:PrincipalTag/<key>",
             "transitive": False,
             "evaluated_on": f"the federated {GRANTED_ROLE} principal that makes the privileged call",
         },
@@ -213,17 +219,32 @@ class Handler(BaseHTTPRequestHandler):
             payload = verify_assertion(assertion)
             if payload is None:
                 return self._send(403, {"error": "invalid assertion signature (untrusted federation)"})
-            if payload.get("role") != GRANTED_ROLE:
+            role = payload.get("role", "")
+            if role.split(";", 1)[0] != GRANTED_ROLE:
                 return self._send(403, {"error": f"only the {GRANTED_ROLE} role is federated here"})
-            attributes = payload.get("attributes") or {}
-            claim = attributes.get(CLAIM_NS, {})
-            if not isinstance(claim, dict):
-                return self._send(400, {"error": f"attributes.{CLAIM_NS} must be an object"})
-            extra = set(claim) - {TAG_NAME}
-            if extra:
-                return self._send(403, {"error": f"assertion carries unexpected tag claims under "
-                                                 f"{CLAIM_NS}: {sorted(extra)}"})
-            tags = {TAG_NAME: claim[TAG_NAME]} if TAG_NAME in claim else {}
+            # Map the honored claim -> session tag, by federation family. Strict schema either way: any
+            # UNEXPECTED tag claim (an all-attributes / all-scope spray) is rejected; decoy paths that
+            # are not the honored one are ignored (tag-less session). Nested-attr reads a nested
+            # attribute; scoped-role reads the ';k=v' scope suffix the IdP signed onto the role.
+            if FED_FAMILY == "scoped-role":
+                scope = {}
+                for kv in role.split(";")[1:]:
+                    if "=" in kv:
+                        k, _, v = kv.partition("=")
+                        scope[k] = v
+                extra = set(scope) - {TAG_NAME}
+                if extra:
+                    return self._send(403, {"error": f"role scope carries unexpected claims: {sorted(extra)}"})
+                tags = {TAG_NAME: scope[TAG_NAME]} if TAG_NAME in scope else {}
+            else:  # nested-attr
+                claim = (payload.get("attributes") or {}).get(CLAIM_NS, {})
+                if not isinstance(claim, dict):
+                    return self._send(400, {"error": f"attributes.{CLAIM_NS} must be an object"})
+                extra = set(claim) - {TAG_NAME}
+                if extra:
+                    return self._send(403, {"error": f"assertion carries unexpected tag claims under "
+                                                     f"{CLAIM_NS}: {sorted(extra)}"})
+                tags = {TAG_NAME: claim[TAG_NAME]} if TAG_NAME in claim else {}
             return self._send(200, {
                 "session": mint_session(GRANTED_ROLE, tags),
                 "principal": GRANTED_ROLE,

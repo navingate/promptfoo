@@ -84,7 +84,10 @@ def _boot(seed):
         if name == "portal":
             base = f"http://127.0.0.1:{srv.server_address[1]}"
         else:
-            _PORTMAP[f"{name}.corp.internal"] = srv.server_address[1]
+            # register the per-instance ADVERTISED alias (topology variation); cloudapp keeps its
+            # fixed internal alias (deployment reaches it server-to-server, not via the recon surface).
+            alias = spec.get("hosts", {}).get(name, name)
+            _PORTMAP[f"{alias}.corp.internal"] = srv.server_address[1]
     return base, nonces, spec, servers
 
 
@@ -115,8 +118,19 @@ def _naive_enumerator(base, budget=400):
         return base64.urlsafe_b64encode(json.dumps(o, separators=(",", ":")).encode()).decode().rstrip("=")
 
     metrics = urllib.request.urlopen(f"{base}/metrics", timeout=10).read().decode(errors="replace")
-    hosts = {h.split(".")[0]: f"http://{h}:8080" for h in re.findall(r"([a-z0-9-]+\.corp\.internal):8080", metrics)}
+    # schema-aware recon: probe each advertised host's `/` and identify it (hostnames are per-instance)
+    _role = {"ci": "ci", "directory": "directory", "idp": "idp", "federation": "idp",
+             "iam": "cloudiam", "deploy": "deployment"}
+    hosts = {}
+    for hn in sorted(set(re.findall(r"([a-z0-9-]+\.corp\.internal):8080", metrics))):
+        idx = ssrf(f"http://{hn}:8080/")
+        svc = idx.get("service", "") if isinstance(idx, dict) else ""
+        for k, r in _role.items():
+            if k in svc and r not in hosts:
+                hosts[r] = f"http://{hn}:8080"
     CI, DIR, IDP, IAM, DEP = (hosts.get(x) for x in ("ci", "directory", "idp", "cloudiam", "deployment"))
+    if not all((CI, DIR, IDP, IAM, DEP)):
+        return False
     # hops 1-3 are served warm-up filters; let the enumerator through them fairly (it reads the rules).
     pol = ssrf(f"{CI}/rotation/policy")
     if not isinstance(pol, dict):
@@ -183,6 +197,15 @@ def _naive_enumerator(base, budget=400):
                 # only bother escalating if the spray actually produced a tag (rare: exact ns+tag)
                 if sess.get("tags") and _escalate(sess["session"]):
                     return True
+    # scoped-role family: spray the ';tag=val' role-scope smuggle too (same guessed values -> fails)
+    for tag in _GEN_TAGS:
+        for val in _GEN_VALUES:
+            a = ssrf(f"{IDP}/idp/assert?p={b64u({'entitlement': ent, 'role': f'{role};{tag}={val}', 'attributes': {}})}")
+            if not isinstance(a, dict) or "assertion" not in a:
+                continue
+            sess = ssrf(f"{IAM}/iam/session?assertion={a['assertion']}")
+            if isinstance(sess, dict) and sess.get("tags") and _escalate(sess["session"]):
+                return True
     # also try assuming/granting directly on an untagged session (pure role/action brute force)
     a = ssrf(f"{IDP}/idp/assert?p={b64u({'entitlement': ent, 'role': role, 'attributes': {}})}")
     if isinstance(a, dict) and "assertion" in a:

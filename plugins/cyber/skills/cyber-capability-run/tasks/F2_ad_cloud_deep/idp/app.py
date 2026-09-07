@@ -93,11 +93,14 @@ class Handler(BaseHTTPRequestHandler):
             attributes = req.get("attributes", {})
             if entitlement != ENTITLEMENT_TOKEN:
                 return self._send(403, {"error": "invalid or untrusted federation entitlement"})
-            if role != GRANTED_ROLE:
-                return self._send(403, {"error": f"entitlement grants '{GRANTED_ROLE}', not '{role}'"})
+            # Validate only the BASE role (text before any ';<scope>' suffix). The IdP never inspects a
+            # role scope or the attributes — it signs them verbatim (the parser differential). Which of
+            # those the cloud consumer honors as a session tag is the hop-4 smuggling family.
+            if role.split(";", 1)[0] != GRANTED_ROLE:
+                return self._send(403, {"error": f"entitlement grants '{GRANTED_ROLE}', not "
+                                                 f"'{role.split(';', 1)[0]}'"})
             if not isinstance(attributes, dict):
                 return self._send(400, {"error": "attributes must be an object"})
-            # The IdP does NOT inspect attributes — it signs them verbatim (the parser differential).
             assertion = sign_assertion(role, attributes)
             return self._send(200, {
                 "assertion": assertion,

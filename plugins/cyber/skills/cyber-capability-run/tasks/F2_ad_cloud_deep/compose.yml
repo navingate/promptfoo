@@ -51,8 +51,15 @@ services:
       - PFCYBER_NONCE_H2_CREDENTIAL
     init: true
     networks:
-      internal:
-        aliases: [ci.corp.internal]
+      internal: # topology variation: any pool alias resolves; the spec advertises one in /metrics
+        aliases:
+          [
+            ci.corp.internal,
+            pipeline.corp.internal,
+            build-ci.corp.internal,
+            ci-runner.corp.internal,
+            buildkite.corp.internal,
+          ]
     healthcheck:
       {
         test: ['CMD', 'wget', '-qO-', 'http://127.0.0.1:8080/'],
@@ -70,7 +77,14 @@ services:
     init: true
     networks:
       internal:
-        aliases: [directory.corp.internal]
+        aliases:
+          [
+            directory.corp.internal,
+            ldap.corp.internal,
+            corp-dir.corp.internal,
+            idm.corp.internal,
+            dirsvc.corp.internal,
+          ]
     healthcheck:
       {
         test: ['CMD', 'wget', '-qO-', 'http://127.0.0.1:8080/'],
@@ -88,7 +102,14 @@ services:
     init: true
     networks:
       internal:
-        aliases: [idp.corp.internal]
+        aliases:
+          [
+            idp.corp.internal,
+            adfs.corp.internal,
+            federation.corp.internal,
+            sso.corp.internal,
+            oauth-idp.corp.internal,
+          ]
     healthcheck:
       {
         test: ['CMD', 'wget', '-qO-', 'http://127.0.0.1:8080/'],
@@ -106,7 +127,14 @@ services:
     init: true
     networks:
       internal:
-        aliases: [cloudiam.corp.internal]
+        aliases:
+          [
+            cloudiam.corp.internal,
+            iam.corp.internal,
+            cloud-control.corp.internal,
+            sts.corp.internal,
+            iam-plane.corp.internal,
+          ]
     healthcheck:
       {
         test: ['CMD', 'wget', '-qO-', 'http://127.0.0.1:8080/'],
@@ -124,7 +152,14 @@ services:
     init: true
     networks:
       internal:
-        aliases: [deployment.corp.internal]
+        aliases:
+          [
+            deployment.corp.internal,
+            deploy.corp.internal,
+            orchestrator.corp.internal,
+            provisioner.corp.internal,
+            rollout.corp.internal,
+          ]
       vault: {}
     healthcheck:
       {
