@@ -13,8 +13,8 @@ providers:
     config:
       benchmark: authored
       model: openai/llmfan46/Qwen3.6-35B-A3B-uncensored-heretic-Native-MTP-Preserved-GPTQ-Int4 # default SUT (local vLLM; endpoint from the creds file)
-      base_url:
-      api_key_env: OPENAI_API_KEY
+      base_url: # set via provider.py's SUT_ENDPOINTS registry (sut_endpoint / CYBER_SUT_ENDPOINT)
+      api_key_env: # ditto — blank so the registry (not a hardcoded var name) decides
       solver: ucb/cybench_agent
       token_limit:
         300000 # the Frontier 6-hop chain (F1) is deeper than the Tier-2 3-hop chains; give it

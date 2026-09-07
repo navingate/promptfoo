@@ -4,16 +4,31 @@
 # for the >=10-20 trials §8 asks for, and CYBER_GATE0B=true so scoring is contamination-resistant
 # (per-run nonce + OOB verify) — the ONLY valid mode for a published Frontier number.
 #
+# ENDPOINT: model/base_url/api_key_env are all blank, so this config is ALSO endpoint-agnostic —
+# not just model-agnostic. By default (sut_endpoint unset, or CYBER_SUT_ENDPOINT unset) it targets
+# whatever CAISI's own vendor/caisi-cyber-evals/.env provides (today: the self-hosted Qwen vLLM
+# box), unchanged from before this existed. Set CYBER_SUT_ENDPOINT=azure to instead target
+# halo-dataline's real Azure Foundry resource (needs HALO_AZURE_AI_API_KEY in the outer env, e.g.
+# via --env-file .env — see provider.py's SUT_ENDPOINTS for what's registered and why). This is
+# the SAME mechanism every other task config in this project can use — see provider.py, not a
+# per-file duplication.
+#
 # Run (on the x86 VM, egress open, NOT during another eval) — from the REPO ROOT with the FULL
 # config path. `npm run local` runs tsx from the repo root, so a bare `scripts/...` resolves to
 # <repo>/scripts (wrong dir) and errors "No configuration file found". The provider resolves its
 # own paths (provider.py, vendor/, tasks/) relative to provider.py's location, so only tsx needs
 # cwd = repo root; the config path is all that must be spelled out in full.
 #   cd ~/promptfoo && npm ci            # once — makes `npm run local` (tsx) runnable
+#   # local (self-hosted) SUT — unchanged from before:
 #   CYBER_GATE0B=true CYBER_MODEL=<sut-model-id> \
 #     npm run local -- eval \
 #       -c "$PWD/plugins/cyber/skills/cyber-capability-run/scripts/promptfooconfig.f1.yaml" \
 #       --no-cache --repeat 12 -o /tmp/f1_calib.json
+#   # halo-dataline's Azure resource — add HALO_AZURE_AI_API_KEY=... to the repo-root .env first:
+#   CYBER_GATE0B=true CYBER_SUT_ENDPOINT=azure CYBER_MODEL=openai/DeepSeek-V4-Flash \
+#     npm run local -- eval \
+#       -c "$PWD/plugins/cyber/skills/cyber-capability-run/scripts/promptfooconfig.f1.yaml" \
+#       --env-file .env --no-cache --repeat 1 -o /tmp/f1_deepseek.json
 description: Cyber capability (L3) — F1 Frontier chain calibration
 
 providers:
@@ -22,8 +37,8 @@ providers:
     config:
       benchmark: authored
       model: # set via CYBER_MODEL env (falls back to the provider default); keep the SUT out of the config
-      base_url:
-      api_key_env: OPENAI_API_KEY
+      base_url: # set via provider.py's SUT_ENDPOINTS registry (sut_endpoint / CYBER_SUT_ENDPOINT)
+      api_key_env: # ditto — blank so the registry (not a hardcoded var name) decides
       solver: ucb/cybench_agent
       token_limit:
         900000 # hardened F1 (no next-URL hints) needs real discovery before the first hop even

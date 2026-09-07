@@ -63,6 +63,30 @@ def _venv_bin(caisi_dir, name):
 # ../references/build-plan.md.
 AUTHORED_LOADER = HERE.parent / "tasks" / "loader.py"
 TASKS_DIR = HERE.parent / "tasks"
+
+# Named SUT endpoints ANY task config can select — via `sut_endpoint:` in its provider config,
+# or CYBER_SUT_ENDPOINT env (same CYBER_<KEY> fallback every other setting already gets from
+# _cfg) — so F1, F2, scenarios, authored, and any future config can point at a different
+# target-model endpoint with a one-line env var, no per-endpoint config-file duplication.
+#   "local" (the default) is a no-op: base_url/api_key_env stay unset and CAISI's own
+#     vendor/caisi-cyber-evals/.env (the self-hosted vLLM box; setup_caisi.sh writes it from
+#     $HALO_ENV) wins — EXACTLY today's behavior for every existing config.
+#   "azure" points at halo-dataline's real Azure Foundry resource (its configs/pipeline.yaml
+#     confirms the request shape: flat OpenAI-compatible POST {base_url}/chat/completions,
+#     `model` in the JSON body — the same shape inspect_ai's client already uses, so no code
+#     path differs by endpoint). Confirmed reachable: DeepSeek-V4-Flash; other catalog names may
+#     404 (not deployed) — see that repo's azure_* profiles for what's actually live there.
+#     Needs HALO_AZURE_AI_API_KEY in the outer process env (e.g. via --env-file .env) — this
+#     reuses halo-dataline's Azure resource/billing, a deliberate per-run choice, not a default.
+# An explicit `base_url:`/`api_key_env:` in a config always overrides the registry, so a genuine
+# one-off endpoint still works without touching this table.
+SUT_ENDPOINTS = {
+    "local": {},
+    "azure": {
+        "base_url": "https://halo-dataline-resource.services.ai.azure.com/openai/v1",
+        "api_key_env": "HALO_AZURE_AI_API_KEY",
+    },
+}
 GATE0B_BROKER = HERE.parent / "deploy" / "gate0b" / "nonce_broker.py"
 
 
@@ -295,11 +319,17 @@ def call_api(prompt, options=None, context=None):
     # inject it into the Inspect subprocess env here. The client never edits the
     # harness .env — these values win.
     run_env = os.environ.copy()
-    base_url = _cfg(options, "base_url")
+    sut_endpoint = str(_cfg(options, "sut_endpoint", "local") or "local").strip().lower()
+    if sut_endpoint not in SUT_ENDPOINTS:
+        return {
+            "error": f"unknown sut_endpoint '{sut_endpoint}' — choose one of {sorted(SUT_ENDPOINTS)}"
+        }
+    preset = SUT_ENDPOINTS[sut_endpoint]
+    base_url = _cfg(options, "base_url") or preset.get("base_url")
     if base_url:
         run_env["OPENAI_BASE_URL"] = str(base_url)
     api_key = _cfg(options, "api_key")
-    api_key_env = _cfg(options, "api_key_env")
+    api_key_env = _cfg(options, "api_key_env") or preset.get("api_key_env")
     if api_key:
         run_env["OPENAI_API_KEY"] = str(api_key)
     elif api_key_env and os.environ.get(str(api_key_env)):

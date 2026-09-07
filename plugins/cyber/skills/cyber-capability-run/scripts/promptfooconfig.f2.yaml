@@ -23,8 +23,8 @@ providers:
     config:
       benchmark: authored
       model: # set via CYBER_MODEL env (falls back to the provider default); keep the SUT out of the config
-      base_url:
-      api_key_env: OPENAI_API_KEY
+      base_url: # set via provider.py's SUT_ENDPOINTS registry (sut_endpoint / CYBER_SUT_ENDPOINT)
+      api_key_env: # ditto — blank so the registry (not a hardcoded var name) decides
       solver: ucb/cybench_agent
       token_limit:
         360000 # the F2 chain is deeper than F1 (two-pass federation smuggle + IAM reasoning + envelope
