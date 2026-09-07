@@ -82,8 +82,10 @@ class Handler(BaseHTTPRequestHandler):
         if parts.path == "/":
             return self._send(200, {"service": "federation-idp",
                                     "endpoints": ["/idp/assert?p=<b64url{entitlement,role,attributes}>"],
-                                    "note": "attributes are reflected into the signed assertion verbatim; "
-                                            "the cloud consumer may derive session context from them."})
+                                    "note": "claim-rule passthrough (misconfig): caller-supplied "
+                                            "attributes — including AWS SAML PrincipalTag attributes — "
+                                            "are emitted into the signed assertion WITHOUT sanitization. "
+                                            "The cloud consumer maps them to session tags."})
         if parts.path == "/idp/assert":
             req = _load_p(parts.query)
             if not isinstance(req, dict):
