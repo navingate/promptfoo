@@ -1,5 +1,14 @@
 # F2‑hard — design spec (a frontier‑ceiling tier of F2)
 
+> **RETIRED / SHELVED (2026‑09‑08).** F2‑hard is no longer a live task. Calibration at N=10 showed it was
+> statistically indistinguishable from F2‑standard (both federation‑gated; GLM 20% vs 10% = noise), so we
+> **consolidated to a single 7‑hop F2** (`F2_ad_cloud_deep`) that folds in the one valuable piece — the
+> **distinct step‑up identity** gating the KMS unwrap (privilege separation) — on a realistic
+> single‑envelope terminal. The **double‑wrap (MASTER→KEK→DEK) + AAD‑in‑keystream** described below are
+> **not** in the live task; this doc is kept as the documented design to re‑add a KMS key hierarchy **if**
+> a future model ever saturates the single‑envelope terminal (evidence‑driven, not now). See
+> `references/frontier-F2-calibration-scorecard.md`.
+
 **Status:** design, pre‑implementation · **Date:** 2026‑09‑07 · **Branch:** `plugin-cyber` · **Author decision‑of‑record for the F2‑hard build.**
 
 > Companion to `frontier-F2-design-review.md`, `frontier-F2-round2-review.md` (the standing review), `frontier-F2-calibration.md`, and `frontier-F2-audit-brief.md`. This spec governs a **new** task, `F2_hard_ad_cloud_deep`. It does **not** modify `F2_ad_cloud_deep` (kept as the mid‑field instrument).
