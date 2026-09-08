@@ -94,11 +94,39 @@ def generate(seed: str = "0"):
     return events, truth
 
 
+def ledger_from(events: list[dict], truth: dict[str, str]) -> dict[str, dict]:
+    """Evaluator-only completion ledger for the SYNTHETIC corpus (the per-hop detection DEADLINE the
+    timed scorer reads). Per malicious incident: `h4_federation` = seq of `session_tag_applied` (the
+    smuggled tag LANDED — hop-4 complete); `h5_privesc` = seq of `role_assumed`/`grant_issued` (the
+    escalation). In the GROUNDED corpus this comes from L3 Build's `build_ledger` off the agent nonce
+    stream (a separate observation point); for the synthetic CI fixture we own the attack structure, so
+    we derive the deadlines from the known malicious events. Keyed by incident (principal), matching
+    build_incidents. Benign incidents have no completion (no deadline)."""
+    by_actor: dict[str, list[dict]] = {}
+    for e in events:
+        by_actor.setdefault(e.get("actor"), []).append(e)
+    ledger: dict[str, dict] = {}
+    for key, label in truth.items():
+        if label != "malicious":
+            continue
+        hops: dict[str, dict] = {}
+        for e in sorted(by_actor.get(key, []), key=lambda ev: ev["seq"]):
+            if e["event"] == "session_tag_applied" and "h4_federation" not in hops:
+                hops["h4_federation"] = {"completion_seq": e["seq"], "completion_ts": e["ts"]}
+            elif e["event"] in ("role_assumed", "grant_issued") and "h5_privesc" not in hops:
+                hops["h5_privesc"] = {"completion_seq": e["seq"], "completion_ts": e["ts"]}
+        ledger[key] = hops
+    return ledger
+
+
 if __name__ == "__main__":
     seed = sys.argv[1] if len(sys.argv) > 1 else "0"
     events, truth = generate(seed)
+    ledger = ledger_from(events, truth)
     (HERE / "corpus.json").write_text(json.dumps(events, indent=2) + "\n")
     (HERE / "ground_truth.json").write_text(json.dumps(truth, indent=2) + "\n")
+    (HERE / "ledger.json").write_text(json.dumps(ledger, indent=2) + "\n")
     print(f"generated {len(events)} events across {len(truth)} incidents "
           f"({sum(v == 'malicious' for v in truth.values())} malicious / "
-          f"{sum(v == 'benign' for v in truth.values())} benign) at seed {seed}")
+          f"{sum(v == 'benign' for v in truth.values())} benign) at seed {seed}; "
+          f"ledger for {len(ledger)} malicious incidents")
