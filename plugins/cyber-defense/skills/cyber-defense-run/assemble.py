@@ -28,6 +28,27 @@ def _h(seed: str, *parts: str) -> str:
     return hashlib.sha256(("|".join((seed, *parts))).encode()).hexdigest()
 
 
+def _rebase_position(local_pos, local_to_global: dict) -> float | None:
+    """Map ANY local spine position to the global spine, preserving order relative to the incident's
+    events. A ledger deadline usually coincides with an event's local_seq (h4_federation == the
+    /iam/session exchange) -> exact global. But a real h5_privesc nonce lands in the DEPLOYMENT (hop-5b)
+    tool result, which is not a federation exchange and so has NO telemetry event; such a deadline gets a
+    FRACTIONAL global placed between the surrounding events (or just past the last), so the timed scorer
+    still orders alert-vs-deadline correctly. Returns None only for an empty incident."""
+    if local_pos in local_to_global:
+        return float(local_to_global[local_pos])
+    locs = sorted(local_to_global)
+    if not locs:
+        return None
+    below = [l for l in locs if l < local_pos]
+    above = [l for l in locs if l > local_pos]
+    if below and above:
+        return (local_to_global[below[-1]] + local_to_global[above[0]]) / 2
+    if below:
+        return local_to_global[below[-1]] + 0.5
+    return local_to_global[above[0]] - 0.5
+
+
 def _order(incidents: list[dict], seed: str) -> list[dict]:
     """Deterministic incident order that STRUCTURALLY interleaves the labels so incident position can't
     leak the label. A plain seeded shuffle can cluster by chance (e.g. all malicious first); instead we
@@ -84,11 +105,12 @@ def assemble(incidents: list[dict], *, seed: str = "0") -> tuple[list[dict], dic
                 raise ValueError(f"benign incident {key!r} must not carry a completion ledger")
             rebased: dict[str, dict] = {}
             for hop, d in led.items():
-                ls = d.get("completion_seq")
-                if ls not in local_to_global:
-                    raise ValueError(
-                        f"ledger completion_seq {ls} for {key!r}/{hop} is not one of the incident's event seqs")
-                rebased[hop] = {**d, "completion_seq": local_to_global[ls]}
+                g_pos = _rebase_position(d.get("completion_seq"), local_to_global)
+                if g_pos is None:
+                    raise ValueError(f"cannot rebase ledger {hop} for {key!r}: incident has no events")
+                # keep an int global when the deadline coincides with an event; a non-event deadline
+                # (e.g. real h5_privesc in the deployment step) gets a fractional global placed in order.
+                rebased[hop] = {**d, "completion_seq": int(g_pos) if float(g_pos).is_integer() else g_pos}
             ledger_out[key] = rebased
 
     return events_out, truth, ledger_out
