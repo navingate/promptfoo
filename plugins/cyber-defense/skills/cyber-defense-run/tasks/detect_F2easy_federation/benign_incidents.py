@@ -133,15 +133,23 @@ BENIGN_INCIDENTS = [
 
 def to_bundles(event_from_request, *, label: str = "benign") -> list[dict]:
     """Shape each benign incident into an assemble.py bundle via the SHARED shaper. `event_from_request`
-    is `translate.event_from_request` (signature `(path, request, response, caller=None)` — the caller is
-    stamped as `actor` on the idp events). Benign incidents carry no completion ledger. A local `seq` is
-    assigned per exchange (events from one exchange share a local position)."""
+    is `translate.event_from_request` (signature `(path, request, response, caller=None)`).
+
+    LABEL-LEAK FIX (reviewer P0): the caller's human name (`b1-env-tag`) is used ONLY inside the
+    assertion/session request tokens, which the shaper pseudonymizes anyway. The value stamped as `actor`
+    on the idp events — and the incident key — is the PSEUDONYMIZED principal (`telemetry.pseudo("prin",
+    …)`), so a benign actor is `prin_<hex>`, format-indistinguishable from the grounded attackers' actors.
+    Previously benign actors were the raw `b1-env-tag` while malicious were `prin_<hex>`, so a rule keying
+    on the actor format alone separated the labels. `selftest_label_leakage` guards this. Benign incidents
+    carry no completion ledger; a local `seq` is assigned per exchange."""
+    import telemetry
     bundles = []
     for inc in BENIGN_INCIDENTS:
-        caller, events, seq = inc["caller"], [], 0
+        principal = telemetry.pseudo("prin", inc["caller"])  # prin_<hex> — matches the grounded TP actors
+        events, seq = [], 0
         for x in inc["exchanges"]:
-            for ev in event_from_request(x["path"], x["request"], x["response"], caller=caller):
+            for ev in event_from_request(x["path"], x["request"], x["response"], caller=principal):
                 events.append({**ev, "local_seq": seq})
             seq += 1
-        bundles.append({"key": caller, "label": label, "events": events})
+        bundles.append({"key": principal, "label": label, "events": events})
     return bundles
