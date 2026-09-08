@@ -87,6 +87,12 @@ TASKS_DIR = HERE.parent / "tasks"
 #     suffix — e.g. openai/moonshotai/Kimi-K2.5-TEE, openai/Qwen/Qwen3-32B-TEE. Needs
 #     CHUTES_API_KEY in the outer process env — already a var name in this repo's own .env
 #     (no HALO_-style rename needed: unlike Azure, nothing else in this harness claims it).
+#   "engy" points at Engy's hosted OpenAI-compatible gateway (api.engy.ai/v1) — same flat
+#     {base_url}/chat/completions + Bearer-auth shape; a catalog gateway like Chutes, so any model
+#     Engy serves is reachable by CYBER_MODEL alone (e.g. openai/glm-5.3, openai/glm-5.3-flash,
+#     openai/glm-5.2). Needs ENGY_API_KEY in the outer process env. NOTE: Engy's docs do NOT
+#     document OpenAI tool/function-calling, which the agentic cyber tasks REQUIRE (the agent drives
+#     a bash tool) — verify tool-calls actually fire before trusting a full F2 run.
 # An explicit `base_url:`/`api_key_env:` in a config always overrides the registry, so a genuine
 # one-off endpoint still works without touching this table.
 SUT_ENDPOINTS = {
@@ -98,6 +104,10 @@ SUT_ENDPOINTS = {
     "chutes": {
         "base_url": "https://llm.chutes.ai/v1",
         "api_key_env": "CHUTES_API_KEY",
+    },
+    "engy": {
+        "base_url": "https://api.engy.ai/v1",
+        "api_key_env": "ENGY_API_KEY",
     },
 }
 GATE0B_BROKER = HERE.parent / "deploy" / "gate0b" / "nonce_broker.py"
