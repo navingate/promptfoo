@@ -30,10 +30,14 @@ def _scoring_corpus(task_dir: Path):
             sys.path.insert(0, str(task_dir))
         from assemble import assemble
         from benign_incidents import to_bundles
-        from translate import event_from_request
+        from translate import assert_causal_order, event_from_request
         tp = []
         for m in json.loads(manifest.read_text()):
             bd = json.loads((grounded / m["file"]).read_text())
+            # Fail-closed grounding guard (reviewer P1): a loaded bundle that inverts causality (an effect
+            # observed before the event that mints the id it references) is an INFRASTRUCTURE fault, not a
+            # model-rule 'invalid'. verify() maps the GroundingError to environment_failure.
+            assert_causal_order(bd["events"])
             tp.append({"key": bd["key"], "label": "malicious", "events": bd["events"],
                        "ledger": event_anchored_ledger(bd["events"])})
         return assemble(tp + to_bundles(event_from_request), seed="f2-federation-scoring")
@@ -76,7 +80,16 @@ def verify(task_dir: str | Path, rule_text, nonce: str | None = None) -> Defense
     except Exception as exc:  # noqa: BLE001 - a malformed rule is invalid, not a model-perf failure
         return DefenseResult("invalid", None, {}, f"rule did not parse: {exc}", [])
 
-    events, ground_truth, ledger = _scoring_corpus(task_dir)
+    try:
+        events, ground_truth, ledger = _scoring_corpus(task_dir)
+    except Exception as exc:  # noqa: BLE001
+        # A grounding-integrity fault (a causal inversion in a loaded bundle) is a HARNESS/environment
+        # failure, excluded from model scoring — never a model 'invalid'. Identified by type name so the
+        # synthetic-fallback path (which never imports translate) needs no import here.
+        if type(exc).__name__ == "GroundingError":
+            return DefenseResult("environment_failure", None, {},
+                                 f"grounded corpus failed a causal-integrity check: {exc}", [])
+        raise
 
     # SOC config (the defender's OWN IAM/IdP facts — honored tag key, self-service pool) is provided so a
     # rule can reference it via {"$config": <key>} and stay instance-independent (e.g. flag the entitlement

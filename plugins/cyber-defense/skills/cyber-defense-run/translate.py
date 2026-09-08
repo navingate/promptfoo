@@ -268,6 +268,59 @@ def merged_ledger(tool_stream: list, events: list) -> dict:
     return out
 
 
+# --- grounding guard: causal order (reviewer P1) --------------------------------------------------
+class GroundingError(AssertionError):
+    """A loaded grounded incident violates a causal invariant — an EFFECT event observed strictly before
+    the CAUSE event that mints the id it references. Fail-closed: a corpus that inverts causality is an
+    INFRASTRUCTURE fault (environment_failure), never a model-rule 'invalid'. It means the synthesizer
+    mislinked a chain, so a detector could be graded against telemetry that could not have occurred."""
+
+
+def _obs_batch(e: dict):
+    """Observation-batch coordinate: obs_batch (post-assembly) else local_seq (pre-assembly) else seq."""
+    return e.get("obs_batch", e.get("local_seq", e.get("seq", 0)))
+
+
+def assert_causal_order(events: list[dict]) -> None:
+    """Reject causal inversions WITHIN one incident, in observation-batch coordinates. An event that
+    references a linkage id must not be observed strictly BEFORE the event that mints that id — WHEN that
+    minting event is present in the same incident. Uses `<=` so a cause and effect delivered in ONE
+    observation are allowed (they routinely are: session_created and its session_tag_applied come from a
+    single /iam/session exchange, and 2 of the grounded traces co-observe the escalation with the tag
+    landing). A minted/None id, or an id minted in another incident, is the incident-boundary layer's
+    concern (build_incidents), not this one — so an unresolved reference is skipped here, never inverted.
+    Raises GroundingError on the first violation."""
+    minted_at: dict[tuple[str, str], int] = {}  # (kind, id) -> earliest batch it was minted
+    for e in events:
+        b = _obs_batch(e)
+        if e.get("event") == "assertion_issued" and e.get("assertion_id") is not None:
+            k = ("assertion", e["assertion_id"])
+            minted_at[k] = min(minted_at.get(k, b), b)
+        elif e.get("event") == "session_created" and e.get("session_id") is not None:
+            k = ("session", e["session_id"])
+            minted_at[k] = min(minted_at.get(k, b), b)
+
+    def _not_before(kind: str, ref_id, effect_b: int, label: str) -> None:
+        if ref_id is None:
+            return
+        cause_b = minted_at.get((kind, ref_id))
+        if cause_b is not None and cause_b > effect_b:
+            raise GroundingError(
+                f"causal inversion: {label} observed at batch {effect_b} before its cause "
+                f"{kind} {ref_id!r} was minted at batch {cause_b}")
+
+    for e in events:
+        b, ev = _obs_batch(e), e.get("event")
+        if ev == "session_created":
+            _not_before("assertion", e.get("from_assertion_id"), b, "session_created.from_assertion_id")
+        elif ev == "session_tag_applied":
+            _not_before("session", e.get("session_id"), b, "session_tag_applied.session_id")
+            _not_before("assertion", e.get("from_assertion_id"), b, "session_tag_applied.from_assertion_id")
+        elif ev in ("role_assumed", "grant_issued"):
+            _not_before("session", e.get("via_session_id"), b, f"{ev}.via_session_id")
+            _not_before("session", e.get("session_id"), b, f"{ev}.session_id")
+
+
 # --- .eval parsing (real inspect transcript) -----------------------------------------------------
 _VAR_RE = re.compile(r"""(\w+)=(?:"([^"]*)"|'([^']*)'|(\S+))""")
 _URL_RE = re.compile(r"url=(https?://[^\s'\"&|)]+)")
@@ -550,6 +603,9 @@ def _validate_grounded(events: list, d: dict, tool_stream: list) -> None:
     pd = d.get("privesc_denied")
     if pd and pd.get("target"):
         assert pd["target"] in trace, "denied privesc target not a literal trace fragment"
+    # (4) causal order: no synthesized effect precedes the cause whose id it references (same invariant the
+    # scoring load-path enforces, applied here at build time so a mislinked chain never reaches disk).
+    assert_causal_order(events)
 
 
 def synthesize_incident(eval_path: str, caller: str | None = None) -> dict:

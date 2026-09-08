@@ -9,6 +9,7 @@ rule false-alarms on the tag-bearing benign, so the number is no longer gameable
 Self-contained (reads grounded/ + benign_incidents; no scratchpad). Run: `python3 selftest_grounded_corpus.py`.
 """
 
+import hashlib
 import json
 import sys
 from pathlib import Path
@@ -23,7 +24,7 @@ TASK = HERE / "tasks" / "detect_F2easy_federation"
 GROUNDED = TASK / "grounded"
 sys.path.insert(0, str(TASK))
 from benign_incidents import to_bundles  # noqa: E402
-from translate import event_from_request  # noqa: E402
+from translate import assert_causal_order, event_from_request  # noqa: E402
 
 RULE = json.loads((TASK / "fixtures" / "correct.json").read_text())
 ORACLE = {"require": "all", "conditions": [{"type": "exists", "event": "session_tag_applied"}]}
@@ -56,6 +57,30 @@ def main() -> int:
 
     tp_raw = load_tp()
     check(len(tp_raw) == 9, "9 hardened GLM-5.3 TP incidents loaded (consolidated 7-hop F2)")
+
+    # CORPUS INTEGRITY (reviewer P1). The manifest pins each bundle by a CANONICAL-JSON sha256 (sort_keys,
+    # no whitespace) so the value is formatter-independent — the Prettier pre-commit hook can reflow a
+    # bundle file without invalidating the hash, but any change to the DATA (an added/removed/edited event
+    # or value) breaks it. Three tamper-evidence checks: every listed bundle matches its hash; no unlisted
+    # bundle-*.json sits in grounded/ (a silent swap-in); every bundle is causally sound (the same guard
+    # the scoring load-path enforces fail-closed).
+    def _canon_sha(obj):
+        return hashlib.sha256(json.dumps(obj, sort_keys=True, separators=(",", ":")).encode()).hexdigest()
+
+    mismatched = [m["file"] for m, bd in tp_raw if m.get("sha256") != _canon_sha(bd)]
+    check(not mismatched, f"every grounded bundle matches its manifest canonical sha256 (mismatched: {mismatched})")
+    listed = {m["file"] for m, _ in tp_raw}
+    on_disk = {p.name for p in GROUNDED.glob("bundle-*.json")}
+    check(on_disk == listed,
+          f"grounded/ holds exactly the listed bundles (unlisted-on-disk={sorted(on_disk - listed)}, "
+          f"listed-but-missing={sorted(listed - on_disk)})")
+    inverted = []
+    for _, bd in tp_raw:
+        try:
+            assert_causal_order(bd["events"])
+        except AssertionError as x:  # GroundingError subclasses AssertionError
+            inverted.append((bd["key"], str(x)))
+    check(not inverted, f"every grounded bundle is causally sound (inversions: {inverted})")
 
     vbad, forb = [], []
     for _, bd in tp_raw:
