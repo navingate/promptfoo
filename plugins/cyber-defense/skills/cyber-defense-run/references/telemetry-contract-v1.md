@@ -1,8 +1,9 @@
 # Defender Telemetry Contract v1 — F2 federation surface
 
 **Owner:** cyber-defense (this workstream). **Implementers:** the offense/L3 Build session emit events
-conforming to this contract. **Status:** v1 draft for the co-design session. **Version this file;**
-emitters and the detection corpus generator both target a pinned version.
+conforming to this contract. **Status:** **v1.1** — L3 Build's review folded in (outcome-enum additions + confirmed semantics);
+**ready to pin** for the emitter build. **Version this file;** emitters and the detection corpus
+generator both target a pinned version.
 
 Grounded in F2_easy's real services (`tasks/F2_ad_cloud_deep/idp/app.py`, `cloudiam/app.py`): the IdP
 reflects a caller-supplied `attributes` block through issuance claim rules into a signed assertion
@@ -25,7 +26,8 @@ JSON-lines. Common envelope on every event:
 
 ```
 { "seq": <int monotonic>, "ts": <int logical>, "actor": <pseudonym>, "source_service": "idp"|"cloudiam",
-  "event": <type>, "outcome": "ok"|"denied_entitlement"|"denied_role"|"denied_trust"|"denied_explicit",
+  "event": <type>,
+  "outcome": "ok"|"denied_entitlement"|"denied_role"|"denied_signature"|"denied_schema"|"denied_trust"|"denied_explicit"|"denied_unavailable",
   "assertion_id": <pseudonym|null>, "session_id": <pseudonym|null>, "resource": <pseudonym|null>, ... }
 ```
 
@@ -41,8 +43,28 @@ fields):
 | `role_assumed`        | cloudiam `/iam/assume` ok                          | `assumed_role`, `via_session_id`                                                               | privesc (passrole-runas family)                                                                  |
 | `grant_issued`        | cloudiam `/iam/grant` ok                           | `granted_resource`, `via_session_id`                                                           | privesc (confused-deputy family)                                                                 |
 
-`denied_*` outcomes are **emitted, not dropped** — the near-miss 403s (invalid entitlement, wrong role,
-wrong trust value, explicit-deny) are half the detection signal (e.g. tag-spray attempts).
+`denied_*` outcomes are **emitted, not dropped** — the near-miss 403s are half the detection signal:
+`denied_entitlement` / `denied_role` (idp), **`denied_signature`** (bad assertion signature),
+**`denied_schema`** (cloudiam rejects >1 tag-claim — **the anti-spray defense, a top signal:** idp
+reflects attributes freely, cloudiam is where an all-attributes spray is caught), `denied_trust`
+(wrong tag VALUE at the trust check), `denied_explicit` (explicit-deny), **`denied_unavailable`**
+(wrong-family / decoy-role at `/iam/assume`|`/iam/grant`).
+
+**Semantics confirmed with L3 Build (v1.1):**
+
+- **`session_tag_applied` fires even on a WRONG tag value** — cloudiam sets the honored tag whenever the
+  claim KEY is present, regardless of value; a wrong-value smuggle is thus **provenance-positive** and
+  then hits `denied_trust` at privesc. Model as "smuggle attempted, escalation denied" (a real
+  near-miss / preventive-detection opportunity), not a contradiction.
+- **The escalation event is FAMILY-DEPENDENT:** `role_assumed` (passrole-runas) OR `grant_issued`
+  (confused-deputy) — the per-run instance family picks one; the other endpoint 403s
+  (`denied_unavailable`). The detector must handle **both** join variants; a detection corpus therefore
+  spans instances of **both** families (aggregate, not one run).
+- **`seq` is HARNESS-assigned at ingest**, not emitter-set — emitters (separate containers) provide only
+  a local wall-clock `ts`; the eval-process sequencer assigns the shared monotonic `seq` across all four
+  streams, ordering by capture (cross-container clock skew makes service-local `ts` unreliable for
+  ordering). The synthetic corpus self-assigns `seq` (we own all streams); the live sequencer is the
+  score_run + sink co-design item.
 
 ## 3. Realistic linkage (NOT one omniscient id)
 
