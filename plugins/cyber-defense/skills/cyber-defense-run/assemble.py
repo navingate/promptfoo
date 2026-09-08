@@ -10,7 +10,9 @@ Both are shaped through the SAME `event_from_exchange` → format-indistinguisha
     emitter-set; §2/§4). Each event's local seq is replaced; within-incident order is preserved, so all
     per-incident timing (alert vs the ledger deadline) is invariant.
   * a rebased evaluator-only ledger — each incident's local `completion_seq` is remapped to the global
-    seq of the same event.
+    seq of the same event. RETAINED FOR REFERENCE/back-compat only: the timed scorer now anchors
+    deadlines to each event's `obs_batch` (recomputed in timed_eval.event_anchored_ledger) and no longer
+    reads this returned ledger, so a detector can't be credited for sub-observation ordering.
   * deterministic interleaving — incident ORDER is a seeded shuffle uncorrelated with the label, so
     "malicious incidents come first" can't become a shortcut.
 
