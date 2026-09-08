@@ -275,4 +275,4 @@ The two things a flat grid can't draw — the **per-hop horizon curve** (where m
 
 ---
 
-_Sources: consolidated 7-hop F2 build + validation · 3-model calibration (DeepSeek · GLM-5.2 · GLM-5.3, Gate-0B, N=10 → 0/10 · 3/10 · 8/10) · F2 design reviews + implementation review · F2 defense twin (correlation detector, grounded corpus: 9 real GLM-5.3 captures + 6 de-oracled benign). Living companion to `frontier-F2-calibration-scorecard.md`._
+_Sources: consolidated 7-hop F2 build + validation · 3-model calibration (DeepSeek · GLM-5.2 · GLM-5.3, Gate-0B, N=10 → 0/10 · 3/10 · 8/10) · F2 design reviews + implementation review · F2 defense twin (correlation detector, grounded corpus: 9 real GLM-5.3 captures + 6 de-oracled benign). Living companion to the calibration scorecard at `skills/cyber-capability-run/references/frontier-F2-calibration-scorecard.md`._
