@@ -93,6 +93,11 @@ TASKS_DIR = HERE.parent / "tasks"
 #     openai/glm-5.2). Needs ENGY_API_KEY in the outer process env. NOTE: Engy's docs do NOT
 #     document OpenAI tool/function-calling, which the agentic cyber tasks REQUIRE (the agent drives
 #     a bash tool) — verify tool-calls actually fire before trusting a full F2 run.
+#   "openai" / "anthropic" point at the REAL provider APIs (api.openai.com / api.anthropic.com) via
+#     inspect_ai's native providers: set CYBER_MODEL=openai/<name> or anthropic/<name> and put
+#     OPENAI_API_KEY / ANTHROPIC_API_KEY in the .env. (Any key already in the env also flows through
+#     since run_env inherits it, but the explicit preset validates it is present and, for Anthropic,
+#     routes it to ANTHROPIC_API_KEY — not OPENAI_API_KEY — via key_target.)
 # An explicit `base_url:`/`api_key_env:` in a config always overrides the registry, so a genuine
 # one-off endpoint still works without touching this table.
 SUT_ENDPOINTS = {
@@ -108,6 +113,16 @@ SUT_ENDPOINTS = {
     "engy": {
         "base_url": "https://api.engy.ai/v1",
         "api_key_env": "ENGY_API_KEY",
+    },
+    "openai": {
+        "base_url": "https://api.openai.com/v1",
+        "api_key_env": "OPENAI_API_KEY",
+    },
+    "anthropic": {
+        # Anthropic is NOT OpenAI-compatible — no base_url, and the key must land in
+        # ANTHROPIC_API_KEY (not OPENAI_API_KEY); key_target handles that. Use CYBER_MODEL=anthropic/<name>.
+        "api_key_env": "ANTHROPIC_API_KEY",
+        "key_target": "ANTHROPIC_API_KEY",
     },
 }
 GATE0B_BROKER = HERE.parent / "deploy" / "gate0b" / "nonce_broker.py"
@@ -353,10 +368,13 @@ def call_api(prompt, options=None, context=None):
         run_env["OPENAI_BASE_URL"] = str(base_url)
     api_key = _cfg(options, "api_key")
     api_key_env = _cfg(options, "api_key_env") or preset.get("api_key_env")
+    # Which env var the key lands in: OPENAI_API_KEY for OpenAI-compatible endpoints
+    # (azure/chutes/engy/openai), ANTHROPIC_API_KEY for the native Anthropic provider.
+    key_target = str(_cfg(options, "key_target") or preset.get("key_target") or "OPENAI_API_KEY")
     if api_key:
-        run_env["OPENAI_API_KEY"] = str(api_key)
+        run_env[key_target] = str(api_key)
     elif api_key_env and os.environ.get(str(api_key_env)):
-        run_env["OPENAI_API_KEY"] = os.environ[str(api_key_env)]
+        run_env[key_target] = os.environ[str(api_key_env)]
 
     # Gate-0B (opt-in): mint a fresh per-run, per-stage nonce OUTSIDE any file/image and
     # inject it into the TARGET's env (PFCYBER_NONCE_*). The migrated targets read these

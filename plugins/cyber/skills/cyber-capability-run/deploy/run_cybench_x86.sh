@@ -25,12 +25,12 @@
 #   Phase 1 — PROVISION (egress ON, no lockdown, no eval): build + push cybench images.
 #     docker login ghcr.io                 # or gcloud/aws registry auth — YOUR step
 #     UCB_REGISTRY=ghcr.io/you/  PHASE=provision \
-#       HALO_ENV=~/.cyber-eval.env bash .../deploy/run_cybench_x86.sh
+#       bash .../deploy/run_cybench_x86.sh          # creds from the repo-root .env
 #
 #   Phase 2 — EVAL (this VM, locked down): pull the prebuilt images, then run.
 #     docker login ghcr.io                 # so the pull can auth (before lockdown)
 #     UCB_REGISTRY=ghcr.io/you/  FULL=1 \
-#       HALO_ENV=~/.cyber-eval.env bash .../deploy/run_cybench_x86.sh
+#       bash .../deploy/run_cybench_x86.sh          # creds from the repo-root .env
 #
 # Provision and eval can be the SAME VM (provision first, then eval) or DIFFERENT VMs
 # (one builder, many disposable locked eval VMs — build once, reuse everywhere).
@@ -39,12 +39,12 @@
 # NOTE: the trailing slash on UCB_REGISTRY matters (CAISI concatenates it to the tag).
 #
 # Usage (on the VM, from the repo root):
-#   HALO_ENV=~/.cyber-eval.env bash plugins/cyber/skills/cyber-capability-run/deploy/run_cybench_x86.sh
+#   bash plugins/cyber/skills/cyber-capability-run/deploy/run_cybench_x86.sh   # creds from the repo-root .env
 #   FULL=1 ...              # build/pull EVERY cybench target + GaaS and run the whole suite
 #   BUILD_GAAS=1 ...        # also build/start the Ghidra service (needed only for rev tasks)
 #   MODEL=openai/DeepSeek-V4-Flash ...     # override the target model for THIS run (no YAML edit);
-#                                          # pair it with a HALO_ENV whose AZURE_AI_BASE_URL points at
-#                                          # that model's OpenAI-compatible endpoint (e.g. Azure /openai/v1)
+#                                          # the endpoint (AZURE_AI_BASE_URL/AZURE_AI_API_KEY) comes from the
+#                                          # repo-root .env — or pass those two inline for a one-off endpoint.
 #   PATCH_ROT=1 FULL=1 ...                 # repoint EOL-Debian task Dockerfiles at archive.debian.org
 #                                          # before building, to recover apt-rot'd image tasks
 #   UCB_REGISTRY=... PHASE=provision ...   # build + push images to a registry, then exit
@@ -60,7 +60,9 @@ set -uo pipefail
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 SKILL_DIR="$(cd "$SCRIPT_DIR/.." && pwd)"
 CAISI="$SKILL_DIR/scripts/vendor/caisi-cyber-evals"
-HALO_ENV="${HALO_ENV:-$HOME/.cyber-eval.env}"
+# Credentials come from the consolidated repo-root .env (single source — no separate creds file).
+REPO_ROOT="$(cd "$SKILL_DIR/../../../.." && pwd)"
+HALO_ENV="${HALO_ENV:-$REPO_ROOT/.env}"
 # SUITE selects WHAT to run: 'cybench' (CAISI's public suite; default) or 'authored'
 # (promptfoo's own enterprise task set under ../tasks, via benchmark: authored).
 SUITE="${SUITE:-cybench}"
@@ -136,10 +138,14 @@ fi
 # --- Read the target model endpoint (never echoed) ---
 # Both phases read it: eval uses it to lock egress + run; provision only needs the creds
 # file present so setup_caisi.sh can populate the harness .env (it is NOT used to build).
-[ -f "$HALO_ENV" ] || fail "creds file not found: $HALO_ENV (define AZURE_AI_BASE_URL + AZURE_AI_API_KEY)"
-set -a; . "$HALO_ENV"; set +a
-: "${AZURE_AI_BASE_URL:?AZURE_AI_BASE_URL missing from $HALO_ENV}"
-: "${AZURE_AI_API_KEY:?AZURE_AI_API_KEY missing from $HALO_ENV}"
+# Model endpoint creds: inline AZURE_AI_BASE_URL/AZURE_AI_API_KEY win; otherwise pull them from the
+# consolidated repo-root .env ($HALO_ENV). Override the whole file with HALO_ENV=/path if you must.
+if [ -z "${AZURE_AI_BASE_URL:-}" ] || [ -z "${AZURE_AI_API_KEY:-}" ]; then
+  [ -f "$HALO_ENV" ] || fail "creds not found: add AZURE_AI_BASE_URL + AZURE_AI_API_KEY to $HALO_ENV, or pass them inline"
+  set -a; . "$HALO_ENV"; set +a
+fi
+: "${AZURE_AI_BASE_URL:?AZURE_AI_BASE_URL missing (add it to $HALO_ENV or pass inline)}"
+: "${AZURE_AI_API_KEY:?AZURE_AI_API_KEY missing (add it to $HALO_ENV or pass inline)}"
 MODEL_BASE_URL="$AZURE_AI_BASE_URL"
 read -r MODEL_HOST MODEL_PORT < <(python3 -c '
 import sys, urllib.parse
@@ -329,7 +335,7 @@ fi
 # line in the config we're about to run, into a throwaway promptfooconfig.run.yaml — so
 # you can retarget (e.g. the local Qwen vs an Azure DeepSeek endpoint) without editing
 # the committed default. Uniform for slice and full: it operates on whatever CONFIG is.
-# The matching endpoint/key still come from HALO_ENV (AZURE_AI_BASE_URL/AZURE_AI_API_KEY).
+# The matching endpoint/key still come from $HALO_ENV (the repo-root .env; AZURE_AI_BASE_URL/AZURE_AI_API_KEY).
 if [ -n "$MODEL" ]; then
   RUNCFG="$SKILL_DIR/scripts/promptfooconfig.run.yaml"
   sed -E "s|^([[:space:]]*)model:[[:space:]].*|\1model: ${MODEL}|" \

@@ -24,7 +24,7 @@ SKILL_DIR="$(cd "$SCRIPT_DIR/.." && pwd)"
 PROFILE="cyber-0a"
 TIMEOUT_SECS="${TIMEOUT_SECS:-2400}"
 TASKS=("${@:-pfcyber-smoke}")
-HALO_ENV="${HALO_ENV:-/Users/navnn/Documents/AstrowareProjects/halo-dataline/.env}"
+HALO_ENV="${HALO_ENV:-$(cd "$SKILL_DIR/../../../.." && pwd)/.env}"
 # KEEP_VM=1 reuses the VM (and its image cache) between runs — big data saver on a
 # metered connection; nothing is re-downloaded that's already cached. Default 0
 # (disposable) preserves the safe hygiene default. Reclaim later: colima delete cyber-0a.

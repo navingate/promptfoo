@@ -165,9 +165,9 @@ The design intent is that each new chain follows the same template: enterprise-r
 ### Prereqs
 
 - Repo at `~/promptfoo`; Docker running; Node per `.nvmrc` (`nvm use`).
-- API keys in the repo's gitignored `.env` (auto-loaded): `HALO_AZURE_AI_API_KEY` (azure), `ENGY_API_KEY` (engy), `CHUTES_API_KEY` (chutes). **Never commit `.env`.**
-- Endpoint registry (pick with `CYBER_SUT_ENDPOINT`): `azure` = `…azure.com/openai/v1`, `engy` = `api.engy.ai/v1`, `chutes` = `llm.chutes.ai/v1`, `local` = a self-hosted vLLM.
-- For Cybench only: the CAISI harness set up once (`setup_caisi.sh`), and a per-endpoint creds file (below).
+- **Credentials live in one place — the repo-root `.env`** (auto-loaded; gitignored — never commit it). Copy the template and fill in only the providers you use: `cp .env.sample .env`.
+- Endpoint registry (pick with `CYBER_SUT_ENDPOINT`): `openai` (real OpenAI), `anthropic` (real Anthropic), `azure` (halo-dataline Azure Foundry), `engy` (`api.engy.ai/v1`), `chutes` (`llm.chutes.ai/v1`), `local` (self-hosted vLLM). Each reads its key from `.env` — see [`.env.sample`](../../.env.sample) for the key names.
+- For Cybench only: the CAISI harness set up once (`setup_caisi.sh`). It reads the same repo-root `.env`.
 
 ### 6a. Cyber offense — F2 (the flagship)
 
@@ -213,32 +213,31 @@ Each run reports named scores **`recall` / `precision` / `f1`** plus **`pre_priv
 
 ### 6c. Cybench — slice and full suite
 
-Runs on the **x86 VM** through `run_cybench_x86.sh` (builds real target images, locks egress to the model endpoint, Pass@k via `RUNS`). First create a one-line creds file per endpoint (the egress lockdown allows _only_ that host):
+Runs on the **x86 VM** through `run_cybench_x86.sh` (builds real target images, locks egress to the model endpoint, Pass@k via `RUNS`). Creds come from the **repo-root `.env`**: set `AZURE_AI_BASE_URL` + `AZURE_AI_API_KEY` there to the OpenAI-compatible endpoint you want Cybench to hit (the egress lockdown allows _only_ that host). Override those two inline to switch endpoints for a single command.
 
 ```bash
-# ~/.cyber-eval.engy.env         (for GLM via engy)
-AZURE_AI_BASE_URL=https://api.engy.ai/v1
-AZURE_AI_API_KEY=<your ENGY_API_KEY value>
+# .env (repo root) — the Cybench endpoint for the runs below, e.g. GLM via engy:
+#   AZURE_AI_BASE_URL=https://api.engy.ai/v1
+#   AZURE_AI_API_KEY=<your engy key>
 
-# ~/.cyber-eval.azure.env        (for DeepSeek via azure)
-AZURE_AI_BASE_URL=https://halo-dataline-resource.services.ai.azure.com/openai/v1
-AZURE_AI_API_KEY=<your HALO_AZURE_AI_API_KEY value>
-```
-
-```bash
 # SLICE — 3 tasks (flag_command · dynastic · unbreakable), Ghidra-free, fast (~hours). This is the default.
-MODEL=openai/glm-5.3 HALO_ENV=~/.cyber-eval.engy.env RUNS=10 RUN_TAG=glm53-cybench \
+MODEL=openai/glm-5.3 RUNS=10 RUN_TAG=glm53-cybench \
   bash plugins/cyber/skills/cyber-capability-run/deploy/run_cybench_x86.sh
 
 # FULL suite — ~40 tasks incl. reverse-engineering (needs the Ghidra image), ~8h per model.
-MODEL=openai/glm-5.3 HALO_ENV=~/.cyber-eval.engy.env FULL=1 BUILD_GAAS=1 RUNS=10 RUN_TAG=glm53-cybench-full \
+MODEL=openai/glm-5.3 FULL=1 BUILD_GAAS=1 RUNS=10 RUN_TAG=glm53-cybench-full \
+  bash plugins/cyber/skills/cyber-capability-run/deploy/run_cybench_x86.sh
+
+# A DIFFERENT endpoint for one run — override the two vars inline (e.g. DeepSeek via azure):
+AZURE_AI_BASE_URL=https://halo-dataline-resource.services.ai.azure.com/openai/v1 AZURE_AI_API_KEY=<azure key> \
+  MODEL=openai/DeepSeek-V4-Flash RUNS=10 RUN_TAG=deepseek-cybench \
   bash plugins/cyber/skills/cyber-capability-run/deploy/run_cybench_x86.sh
 
 # Aggregate the Pass@10 picture (which tasks solve in ANY run vs EVERY run, mean solve count)
 node plugins/cyber/skills/cyber-capability-run/scripts/aggregate_runs.cjs out.glm53-cybench.run*.json
 ```
 
-Swap `MODEL=` + `HALO_ENV=` for the other two models (e.g. `MODEL=openai/DeepSeek-V4-Flash HALO_ENV=~/.cyber-eval.azure.env`). First run on a fresh VM builds the target images — big builds need outbound internet _before_ the lockdown; see the header of `run_cybench_x86.sh` for the build-once / pull-many registry flow.
+First run on a fresh VM builds the target images — big builds need outbound internet _before_ the lockdown; see the header of `run_cybench_x86.sh` for the build-once / pull-many registry flow.
 
 > A lighter, no-lockdown slice runner also exists — `scripts/run_cybench.sh` (drives `inspect eval` directly, single run, model from `config.env`). Use `run_cybench_x86.sh` for the matched, repeatable numbers.
 

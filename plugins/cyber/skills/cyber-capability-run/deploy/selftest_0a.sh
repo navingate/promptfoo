@@ -9,7 +9,7 @@ set -uo pipefail
 
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 PROFILE="cyber-0a"
-HALO_ENV="${HALO_ENV:-/Users/navnn/Documents/AstrowareProjects/halo-dataline/.env}"
+HALO_ENV="${HALO_ENV:-$(cd "$SCRIPT_DIR/../../../../.." && pwd)/.env}"
 
 log() { printf '[0a-selftest] %s\n' "$*"; }
 fail() { printf '[0a-selftest][BLOCKER] %s\n' "$*" >&2; exit 1; }
