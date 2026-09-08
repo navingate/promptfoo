@@ -3,7 +3,10 @@
 DE-ORACLED. The v1 benign set carried NO session_tag_applied, which made the mere PRESENCE of a landed
 tag an oracle (a one-line rule scored 1.0/1.0 without understanding the smuggle). v1.1 fixes that: benign
 logins now LEGITIMATELY land session tags — the defense telemetry models a realistic enterprise SIEM where
-many session tags (environment, team, ...) land from authoritative attributes, most of them benign.
+many session tags (environment, team, ...) land from self-service attrs that map to NON-honored (decoy)
+tags this instance, most of them benign. (F2 Chain: ALL 8 source attrs are a fixed self-service pool —
+there is no separate authoritative pool — so the benign/malicious line is the LANDED TAG, honored vs decoy,
+not the source's editability.)
 
 So `session_tag_applied` is common and mostly benign; the malicious signal is PROVENANCE + CONSEQUENCE — a
 privilege-granting tag that LANDED and then ENABLED a successful escalation (the frozen reference rule keys
@@ -60,14 +63,17 @@ def _assume(caller, role, *, error=None):
 # KNOWN v1.2 GAP (documented, not hidden): because NO benign here escalates, a cruder "an escalation
 # happened at all" rule still separates this corpus perfectly — v1.1 killed the tag-PRESENCE oracle but an
 # escalation-PRESENCE shortcut survives (selftest_grounded_corpus asserts this as a tripwire). Closing it
-# needs a benign LEGITIMATE-escalation incident (an authoritative-source tag lands and the user assumes a
-# role they are genuinely entitled to). That control would false-positive the current escalation-join
-# reference rule, so it is COUPLED with re-keying correct.json onto a 3rd provenance leg — the tag's source
-# attribute is caller-editable/self-service (the smuggle vector) vs authoritative — plus the telemetry to
-# expose source-attr editability. Until then the number is a milestone, not a gameproof detection score.
+# needs a benign LEGITIMATE-escalation incident that escalates WITHOUT the honored smuggled tag. That control
+# would false-positive the current escalation-join reference rule, so it is COUPLED with re-keying
+# correct.json onto a 3rd provenance leg. The discriminator is DETECTOR-SIDE, no telemetry change (F2 Chain,
+# gen.py:76): the landed tag's key == the honored IAM trust-condition tag (from /iam/describe, SOC config),
+# traced via claim_rules_read to a caller attr in the FIXED 8-attr self-service pool, with the correct value.
+# NOTE the axis is the LANDED-TAG identity (honored vs decoy), NOT source editability — all 8 source attrs
+# are uniformly self-service (employeeType/division included), so "authoritative source" does not
+# discriminate. Until this lands the number is a milestone, not a gameproof detection score.
 BENIGN_INCIDENTS = [
     {
-        "caller": "b1-env-tag", "taxonomy": "legit login: an authoritative attr lands a NON-privileged tag",
+        "caller": "b1-env-tag", "taxonomy": "legit login: a self-service attr maps to a DECOY (non-honored) tag",
         "tags_landed": ["environment"], "escalates": False, "source_attr_count": 1,
         "exchanges": [
             _assert("b1-env-tag", {"employeeType": "contractor"}, {PT + "environment": "prod"}),
@@ -75,7 +81,7 @@ BENIGN_INCIDENTS = [
         ],
     },
     {
-        "caller": "b2-team-tag", "taxonomy": "legit login: a different authoritative attr -> a team tag",
+        "caller": "b2-team-tag", "taxonomy": "legit login: a different self-service attr -> a decoy team tag",
         "tags_landed": ["team"], "escalates": False, "source_attr_count": 1,
         "exchanges": [
             _assert("b2-team-tag", {"division": "platform"}, {PT + "team": "platform"}),
