@@ -716,6 +716,22 @@ if __name__ == "__main__":
                 )
             )
         )
+    elif len(sys.argv) == 3 and sys.argv[1] == "--resolve-endpoint":
+        # Single-source endpoint resolver for the bash runners (run_cybench*.sh): print the
+        # SUT_ENDPOINTS entry as shell-eval'able PFCYBER_SUT_* assignments so bash never
+        # duplicates the registry. NEVER prints a secret — only KEY_ENV (the var NAME).
+        import shlex
+
+        _name = sys.argv[2].strip().lower()
+        _preset = SUT_ENDPOINTS.get(_name)
+        if _preset is None:
+            sys.stderr.write(
+                f"unknown endpoint '{_name}' — valid: {', '.join(sorted(SUT_ENDPOINTS))}\n"
+            )
+            sys.exit(2)
+        print(f"PFCYBER_SUT_BASE_URL={shlex.quote(_preset.get('base_url') or '')}")
+        print(f"PFCYBER_SUT_KEY_ENV={shlex.quote(_preset.get('api_key_env') or '')}")
+        print(f"PFCYBER_SUT_KEY_TARGET={shlex.quote(_preset.get('key_target') or 'OPENAI_API_KEY')}")
     else:
         # Manual smoke test: python provider.py <task> [benchmark]
         # e.g. python provider.py pfcyber-smoke authored
