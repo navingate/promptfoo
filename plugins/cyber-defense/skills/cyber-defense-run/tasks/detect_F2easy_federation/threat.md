@@ -5,8 +5,8 @@ attribute block** through its issuance **claim rules** into the signed assertion
 attributes are **self-service-editable**, an attacker can drive the value of the **entitlement tag** — the
 privilege-granting session tag that your cloud IAM trust policy honors — smuggle it across the signature
 boundary into the cloud IAM plane, and use it to escalate (assume a privileged role, or obtain a privileged
-resource grant). This is a **cross-service** attack: it is visible only by correlating the IdP and cloud
-telemetry, never from a single event.
+resource grant). This is a **cross-service** attack, spanning the IdP issuance plane and the cloud IAM
+plane.
 
 ## The telemetry you get
 
@@ -18,7 +18,7 @@ De-oracled, product-style events (JSON lines). Each has `seq`, `actor` (the prin
 `role_assumed` / `grant_issued` (privilege escalation, with `outcome`). Denied attempts appear with
 `denied_*` outcomes. Sensitive **values** are pseudonymized (consistently within the run); attribute and tag
 **names** are in the clear. **There are no attack-stage labels or markers** — the malicious conclusion must
-emerge from correlating a principal's activity across services.
+be inferred from the telemetry itself.
 
 ## Your SOC config
 
@@ -53,18 +53,13 @@ activity. Conditions are evaluated over one principal's incident (`require: all`
   ] }
 ```
 
-`join` correlates two distinct events in the incident (e.g. a landed tag on the same session that then
-successfully escalated). A `field`/`where_b` `value` may be a `{ "$config": "<key>" }` reference.
+`join` correlates two distinct events in the incident on a shared linkage id (e.g. two event types that
+carry the same `session_id`). A `field`/`where_b` `value` may be a `{ "$config": "<key>" }` reference, so a
+rule can stay free of instance-specific literals and travel across estates.
 
-**Two valid approaches** (both scored on a held-out corpus for recall + precision):
-
-1. **Correlate the consequence** — a session tag that was emitted by a federation assertion and landed on a
-   session that then **successfully escalated**. Literal-free, but fires only once the escalation happens.
-2. **Detect the provenance preventively** — the **entitlement tag** (`{ "$config": "honored_tag" }`) landing
-   on a session IS the smuggle, and it never lands for a benign principal (benign logins land only decoy
-   tags). Flagging it catches the attack at the **tag-landing, before any escalation**.
-
-Both must catch every smuggle and flag no benign near-miss (a self-service attribute mapped to a
-non-privileged **decoy** tag; a schema-denied multi-tag spray; failed attempts). The scorer also reports a
-**timing** diagnostic (`pre_privesc_rate`: how much of the attack you catch before escalation) — earlier is
-better, though it does not change the pass/fail gate. Reply with **only** the JSON rule in a ```json block.
+Your rule is scored on a held-out corpus for **recall** (every smuggling incident flagged) and **precision**
+(no benign federation activity flagged). The benign near-misses you must **not** flag include: a self-service
+attribute mapped to a non-privileged **decoy** tag; a schema-denied multi-tag spray; and failed attempts.
+The scorer also reports a **timing** diagnostic (`pre_privesc_rate`: the share of each attack you flag before
+the escalation occurs) — earlier detection scores better on the diagnostic, though it does not change the
+pass/fail gate. Reply with **only** the JSON rule in a ```json block.
