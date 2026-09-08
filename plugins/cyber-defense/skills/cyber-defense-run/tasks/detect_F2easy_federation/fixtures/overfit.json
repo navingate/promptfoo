@@ -1,9 +1,19 @@
 {
-  "_note": "Handles only the passrole-runas family (role_assumed) and misses the confused-deputy (grant_issued) malicious variant -> recall < 1.",
+  "_note": "Overfit: correlates only the passrole-runas family (role_assumed) for the escalation, missing confused-deputy (grant_issued) escalations -> recall < 1 on a corpus spanning both families.",
   "require": "all",
   "conditions": [
-    { "type": "field", "event": "assertion_issued", "field": "source_attrs", "op": "nonempty" },
-    { "type": "exists", "event": "session_tag_applied" },
-    { "type": "exists", "event": "role_assumed" }
+    {
+      "type": "join",
+      "a": { "event": "session_tag_applied", "field": "tag_name" },
+      "b": { "event": "assertion_issued", "field": "emitted_tags" },
+      "on": "a_in_b"
+    },
+    {
+      "type": "join",
+      "a": { "event": "session_tag_applied", "field": "session_id" },
+      "b": { "event": "role_assumed", "field": "via_session_id" },
+      "on": "eq",
+      "where_b": { "field": "outcome", "op": "eq", "value": "ok" }
+    }
   ]
 }

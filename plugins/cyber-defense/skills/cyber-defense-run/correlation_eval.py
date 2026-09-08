@@ -136,8 +136,12 @@ def _join_ok(events: list[dict], cond: dict) -> bool:
     a, b = cond.get("a") or {}, cond.get("b") or {}
     on = cond.get("on", "eq")
     where_b = cond.get("where_b")
-    a_evs = [e for e in events if e.get("event") == a.get("event")]
-    b_evs = [e for e in events if e.get("event") == b.get("event")]
+
+    def _evs(spec):  # accept a single "event" or a list of "events" (e.g. role_assumed | grant_issued)
+        types = set(spec.get("events") or ([spec["event"]] if spec.get("event") else []))
+        return [e for e in events if e.get("event") in types]
+
+    a_evs, b_evs = _evs(a), _evs(b)
     for ea in a_evs:
         av = ea.get(a.get("field"))
         if av is None:
