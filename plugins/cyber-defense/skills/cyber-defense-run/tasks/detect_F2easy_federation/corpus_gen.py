@@ -1,15 +1,17 @@
 #!/usr/bin/env python3
 """Deterministic generator for the F2-easy federation detection corpus (Slice 6b).
 
-Emits two files from a seed: `corpus.json` (the de-oracled defender telemetry event stream, conforming
-to telemetry-contract-v1) and `ground_truth.json` (evaluator-only {assertion_id: malicious|benign}).
-The malicious incidents carry the full recon→smuggle→privesc chain; each benign near-miss drops ONE
-element so that single-event and 2-event rules misfire but the correct 3-event correlation does not:
+Emits `corpus.json` (de-oracled telemetry), `ground_truth.json` (evaluator-only labels), and
+`ledger.json` (per-hop deadlines). The discriminator is PROVENANCE: a caller source-attr assertion whose
+honored tag LANDS on the session and enables privesc. Recon (claim_rules_read) is NOT the discriminator —
+grounding on real GLM attacks showed the honored tag only ever comes from the caller's self-service source
+attr, so tag+privesc is the attack with or without an observable claim-rules read. Each benign near-miss
+drops the provenance/privesc signal so partial rules misfire but the correct correlation does not:
 
-  malicious  : claim_rules_read + assertion(source_attrs≠∅ → privileged tag) + session_tag_applied + privesc
-  benign B1/B5/B6 (normal login) : no recon, no privileged tag, non-privileged role
-  benign B2  (legit privesc)      : full chain BUT no recon  -> defeats "no-recon" rules
-  benign B3  (decoy tag)          : recon + source_attr + tag BUT non-privileged tag, no privesc -> defeats "no-privesc" rules
+  malicious A1-A3 : claim_rules_read + assertion(source_attrs≠∅ → honored tag) + session_tag_applied + privesc
+  malicious A4    : the SAME smuggle WITHOUT observable recon (the real GLM attack pattern)
+  benign B1/B5/B6 (normal login) : no honored tag, non-privileged role
+  benign B3  (decoy tag)          : recon + source_attr + tag BUT non-privileged (decoy) tag, no privesc
   benign B4  (failed spray)       : recon + denied assertion, no tag/privesc
 
 Per-run SALTED pseudonyms on VALUES (tag values, principals, session/assertion ids); source-attr and
@@ -74,9 +76,12 @@ def generate(seed: str = "0"):
                  resource=p("res", "kms-key"))
         return ac  # incident keyed by principal (actor)
 
-    # malicious (full chain) — both privesc families + a distinct instance
-    for aid, actor, fam in [("A1", "mallory", "role"), ("A2", "trent", "grant"), ("A3", "oscar", "role")]:
-        a = incident(aid, actor, recon=True, source_attrs=[SELF_SERVICE], emitted_tags={PRIV_TAG: aid},
+    # malicious — both privesc families (A1 role / A2 grant / A3 role) + A4, the SAME smuggle WITHOUT an
+    # observable claim-rules read (the real GLM attack pattern; the honored tag only comes from the
+    # caller's self-service source attr, so tag+privesc is the attack regardless of recon).
+    for aid, actor, fam, recon in [("A1", "mallory", "role", True), ("A2", "trent", "grant", True),
+                                   ("A3", "oscar", "role", True), ("A4", "quinn", "role", False)]:
+        a = incident(aid, actor, recon=recon, source_attrs=[SELF_SERVICE], emitted_tags={PRIV_TAG: aid},
                      tag_applied=(PRIV_TAG, aid), privesc=fam)
         truth[a] = "malicious"
     # benign
@@ -84,8 +89,6 @@ def generate(seed: str = "0"):
         a = incident(aid, actor, recon=False, source_attrs=[], emitted_tags={},
                      tag_applied=None, privesc="role")  # ordinary reader role, no priv tag
         truth[a] = "benign"
-    truth[incident("B2", "dave", recon=False, source_attrs=[SELF_SERVICE], emitted_tags={PRIV_TAG: "B2"},
-                   tag_applied=(PRIV_TAG, "B2"), privesc="role")] = "benign"          # legit privesc, no recon
     truth[incident("B3", "erin", recon=True, source_attrs=["division"], emitted_tags={"team": "B3"},
                    tag_applied=("team", "B3"), privesc=None)] = "benign"              # decoy tag, no privesc
     truth[incident("B4", "frank", recon=True, source_attrs=["employeeType"], emitted_tags={},

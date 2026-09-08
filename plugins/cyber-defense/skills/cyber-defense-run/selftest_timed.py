@@ -3,7 +3,7 @@
 ledger at seed 0, then runs THREE rules that demand progressively more of the attack chain and shows the
 prevention<->precision frontier the timed scorer exists to measure:
 
-  R_early (recon + smuggle-attempt)      -> PREVENTIVE (fires before the tag lands) but lowest precision
+  R_early (caller source-attr assertion) -> PREVENTIVE (fires before the tag lands) but lowest precision
   R_tag   (+ tag actually landed)        -> RESPONSIVE (after the smuggle, before escalation), mid precision
   R_full  (+ privilege escalation)       -> LATE (only once the attacker escalated) but precision 1.0
 
@@ -22,11 +22,11 @@ from verify_correlation import score_corpus
 
 TASK = Path(__file__).resolve().parent / "tasks" / "detect_F2easy_federation"
 
+# Recon-optional rule family (matches the corrected reference rule): the discriminator is provenance
+# (caller source-attr) + tag landing + privesc, NOT an observable claim-rules read.
 R_EARLY = {"require": "all", "conditions": [
-    {"type": "exists", "event": "claim_rules_read"},
     {"type": "field", "event": "assertion_issued", "field": "source_attrs", "op": "nonempty"}]}
 R_TAG = {"require": "all", "conditions": [
-    {"type": "exists", "event": "claim_rules_read"},
     {"type": "field", "event": "assertion_issued", "field": "source_attrs", "op": "nonempty"},
     {"type": "exists", "event": "session_tag_applied"}]}
 
@@ -38,6 +38,7 @@ def main() -> int:
     truth = json.loads((TASK / "ground_truth.json").read_text())
     ledger = json.loads((TASK / "ledger.json").read_text())
     r_full = json.loads((TASK / "fixtures" / "correct.json").read_text())
+    n_mal = sum(v == "malicious" for v in truth.values())
 
     assert ledger and all("h4_federation" in h and "h5_privesc" in h for h in ledger.values()), \
         "ledger must record h4_federation + h5_privesc for every malicious incident"
@@ -68,10 +69,10 @@ def main() -> int:
 
     # R_full: max precision, but fires only after escalation (all malicious LATE)
     check(full_m.precision == 1.0 and full_m.recall == 1.0, "R_full is exact (recall 1.0 / precision 1.0)")
-    check(full_p["malicious"][LATE] == 3 and full_p["rates"]["pre_privesc_rate"] == 0.0,
+    check(full_p["malicious"][LATE] == n_mal and full_p["rates"]["pre_privesc_rate"] == 0.0,
           "R_full detects every attack only AFTER privilege escalation (pre_privesc_rate 0)")
     # R_tag: earlier (responsive, before escalation) but precision drops (decoy-tag benign leaks)
-    check(tag_p["malicious"][RESPONSIVE] == 3 and tag_p["rates"]["pre_privesc_rate"] == 1.0,
+    check(tag_p["malicious"][RESPONSIVE] == n_mal and tag_p["rates"]["pre_privesc_rate"] == 1.0,
           "R_tag catches every attack BEFORE escalation (responsive)")
     check(tag_m.precision < 1.0, f"R_tag pays for earliness with precision ({tag_m.precision:.2f} < 1.0)")
     # R_early: earliest (preventive) but lowest precision
