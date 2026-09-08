@@ -1,0 +1,27 @@
+# Cyber DEFENSE — F2 federation CORRELATION detection task, run through promptfoo.
+#
+#   promptfoo eval -c promptfooconfig.correlation.yaml --no-cache -o out.json
+#
+# The provider (the SUT) is a standard promptfoo model provider — replace it with the model you are
+# evaluating. The prompt presents the threat brief (attack + de-oracled event schema + rule grammar);
+# the model returns a cross-event correlation rule (JSON); the python assertion scores it over the
+# HELD-OUT corpus with the frozen two-sided grader (recall -> objective, precision -> constraint) and
+# reports raw recall/precision/f1 as named scores. Pure-stdlib scorer — no Docker needed for this task
+# (unlike the patch slice). Live model calls are user-run.
+#
+# NOTE (v1 known limitation): the v1 grounded corpus is gameable by a tag-presence shortcut and is
+# pre-hardening — see references/consolidated-f2-federation-respec.md. Read the number as provisional
+# until the v1.1 provenance de-oracle lands.
+description: Cyber DEFENSE — F2 federation correlation detection
+
+providers:
+  - id: openai:chat:gpt-4o-mini # SUT under test — replace with the model you are evaluating
+
+prompts:
+  - file://prompts/correlation_prompt.py:build_prompt
+
+tests:
+  - description: detect_F2easy_federation
+    assert:
+      - type: python
+        value: file://assert_correlation.py
