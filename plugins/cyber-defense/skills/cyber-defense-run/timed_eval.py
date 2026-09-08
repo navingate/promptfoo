@@ -40,17 +40,23 @@ _HOP_OF_EVENT = {"assertion_issued": "h3_entitlement", "session_tag_applied": "h
                  "role_assumed": "h5_privesc", "grant_issued": "h5_privesc"}
 
 
+def _batch(e: dict):
+    """The observation-batch coordinate of an event: `obs_batch` (post-assembly), falling back to the
+    pre-assembly `local_seq`, then `seq`. Events observed together share it — the unit all timing is in."""
+    return e.get("obs_batch", e.get("local_seq", e.get("seq", 0)))
+
+
 def event_anchored_ledger(events: list[dict]) -> dict:
-    """Detection-deadline ledger built from the defender-visible events on their local spine:
+    """Detection-deadline ledger built from the defender-visible events, in OBSERVATION-BATCH coordinates:
     assertion_issued→h3_entitlement, session_tag_applied→h4_federation, role_assumed|grant_issued→
     h5_privesc (first occurrence of each). h1/h2 have no federation telemetry and are omitted (not
-    detection targets). Uses `local_seq` (pre-assembly) falling back to `seq`."""
+    detection targets). Batch coordinates mean a hop that was observed together with another cannot be
+    separated in time."""
     led: dict[str, dict] = {}
-    for e in sorted(events, key=lambda x: x.get("local_seq", x.get("seq", 0))):
+    for e in sorted(events, key=_batch):
         hop = _HOP_OF_EVENT.get(e.get("event"))
         if hop and hop not in led:
-            pos = e.get("local_seq", e.get("seq"))
-            led[hop] = {"completion_seq": pos, "completion_ts": pos}
+            led[hop] = {"completion_seq": _batch(e), "completion_ts": _batch(e)}
     return led
 
 
@@ -63,50 +69,52 @@ TRUE_NEGATIVE = "true_negative"
 
 
 def alert_seq(rule: dict, incident_events: list[dict], config=None) -> int | None:
-    """Earliest seq at which `rule` is satisfied as this incident's events accumulate in seq order.
-    None if it never fires. Models a streaming detector (fires only on evidence seen so far). `config`
-    supplies per-instance SOC-config values for {"$config": <key>} rule references."""
-    evs = sorted(incident_events, key=lambda e: e["seq"])
-    for i in range(len(evs)):
-        if evaluate(rule, evs[: i + 1], config):
-            return evs[i]["seq"]
+    """Earliest OBSERVATION BATCH at which `rule` is satisfied as the incident's events accumulate batch by
+    batch. A detector fires only on a COMPLETE observation, never mid-observation — so evidence delivered
+    together (same obs_batch) can't yield artificial sub-observation timing. Returns the obs_batch, or None.
+    `config` supplies per-instance SOC-config for {"$config": <key>} rule references."""
+    batches = sorted({_batch(e) for e in incident_events})
+    for b in batches:
+        if evaluate(rule, [e for e in incident_events if _batch(e) <= b], config):
+            return b
     return None
 
 
-def classify_timing(a_seq: int | None, completions: dict, target_hop: str) -> str:
-    """Classify a MALICIOUS incident's detection. `completions` = {hop_key: {completion_seq,...}} for
-    this incident. `target_hop` = the hop the detector is meant to catch (e.g. 'h4_federation')."""
-    if a_seq is None:
+def classify_timing(a_batch: int | None, completions: dict, target_hop: str = "h4_federation") -> str:
+    """Classify a MALICIOUS incident's detection in OBSERVATION-BATCH coordinates. `completions` =
+    {hop_key: {completion_seq,...}}. preventive = caught BEFORE the target hop's evidence lands; responsive
+    = caught after the target hop but strictly BEFORE the escalation (h5_privesc); late = caught in the SAME
+    observation as the escalation or after. So a tag-landing and its escalation delivered in one observation
+    can never earn pre-escalation (responsive/preventive) credit."""
+    if a_batch is None:
         return MISSED
     target = (completions.get(target_hop) or {}).get("completion_seq")
-    if target is None:
-        return RESPONSIVE  # no deadline recorded for the target hop → credit a plain detection
-    if a_seq < target:
+    if target is not None and a_batch < target:
         return PREVENTIVE
-    later = sorted(
-        c["completion_seq"] for c in completions.values()
-        if c.get("completion_seq") is not None and c["completion_seq"] > target
-    )
-    nxt = later[0] if later else None
-    if nxt is None or a_seq < nxt:
+    esc = (completions.get("h5_privesc") or {}).get("completion_seq")
+    if esc is None or a_batch < esc:  # caught before the escalation (or the smuggle never escalated)
         return RESPONSIVE
-    return LATE
+    return LATE  # caught at/after the escalation (same observation counts as at)
 
 
 def timing_profile(rule: dict, events: list[dict], ground_truth: dict[str, str],
-                   ledger: dict[str, dict], target_hop: str = "h4_federation", config=None) -> dict:
-    """Full timing profile over the corpus: per-incident timing + aggregate rates + a stage-survival
-    curve. `ledger` = {incident_key: {hop_key: {completion_seq, completion_ts}}}. `config` supplies
-    per-instance SOC-config for {"$config": <key>} rule references. Pure."""
+                   ledger: dict[str, dict] | None = None, target_hop: str = "h4_federation",
+                   config=None) -> dict:
+    """Full timing profile over the corpus: per-incident timing + aggregate rates + a stage-survival curve,
+    all in OBSERVATION-BATCH coordinates. The per-incident deadline ledger is EVENT-ANCHORED from each
+    incident's own events (recomputed here in batch units), so a detection is credited pre-escalation only
+    when the alert genuinely precedes the escalation OBSERVATION — never for sub-observation ordering. The
+    `ledger` argument is accepted for back-compat but no longer used. `config` supplies {"$config"} values."""
     incidents = build_incidents(events)
     per_incident: dict[str, dict] = {}
     mal = {PREVENTIVE: 0, RESPONSIVE: 0, LATE: 0, MISSED: 0}
     ben = {FALSE_ALERT: 0, TRUE_NEGATIVE: 0}
 
     for key, label in ground_truth.items():
-        a = alert_seq(rule, incidents.get(key, []), config)
+        evs = incidents.get(key, [])
+        a = alert_seq(rule, evs, config)
         if label == "malicious":
-            timing = classify_timing(a, ledger.get(key, {}), target_hop)
+            timing = classify_timing(a, event_anchored_ledger(evs), target_hop)
             mal[timing] += 1
         else:
             timing = FALSE_ALERT if a is not None else TRUE_NEGATIVE

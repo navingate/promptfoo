@@ -1,22 +1,24 @@
 #!/usr/bin/env python3
-"""Grounded TIMING selftest — the deferred refinement, ready before the first real bundle.
+"""Batch-aware grounded TIMING selftest (reviewer P1). Timing is scored in OBSERVATION-BATCH coordinates,
+so a detector can only be credited with catching the smuggle BEFORE the escalation when the escalation was
+in a LATER observation than the tag landing. This builds the same real attack two ways and proves it:
 
-In a real trace the h5_privesc nonce lands in the DEPLOYMENT (hop-5b) tool result, which is not a
-federation exchange and so produces NO telemetry event. Its completion deadline therefore falls on a local
-spine position with no event. This proves:
-  * assemble._rebase_position places such a deadline at a FRACTIONAL global, correctly ordered after the
-    events that precede it (h4, which DOES coincide with /iam/session, stays an exact integer global); and
-  * with that realistic h5, the full-chain rule classifies RESPONSIVE — it fires at role_assumed, BEFORE
-    the privileged deployment action completes — not the synthetic "late" (where h5 was pinned to the
-    role_assumed event itself). Run: `python3 selftest_timing_grounded.py`.
+  * SEPARATE observations (the tag lands in one tool result, the escalation in a later one) -> the
+    preventive honored-tag rule is RESPONSIVE (caught before the escalation) and the response-grade
+    escalation-join is LATE (caught at the escalation).
+  * ONE observation (the tag landing and the escalation arrive together) -> the preventive rule is LATE
+    too: no artificial pre-escalation credit for sub-observation ordering.
+
+Run: `python3 selftest_timing_grounded.py`.
 """
 
 import json
 import sys
 from pathlib import Path
 
+import telemetry
 from assemble import assemble
-from timed_eval import RESPONSIVE, timing_profile
+from timed_eval import LATE, RESPONSIVE, event_anchored_ledger, timing_profile
 from translate import event_from_request
 from verify_correlation import score_corpus
 
@@ -26,29 +28,35 @@ sys.path.insert(0, str(TASK))
 from benign_incidents import to_bundles  # noqa: E402
 
 PT = "https://aws.amazon.com/SAML/Attributes/PrincipalTag:"
-import telemetry  # noqa: E402
+SOC = json.loads((TASK / "soc_config.json").read_text())
+PREVENTIVE = json.loads((TASK / "fixtures" / "correct_preventive.json").read_text())
+ESCALATION = json.loads((TASK / "fixtures" / "correct.json").read_text())
+CALLER = telemetry.pseudo("prin", "atk-real-timing")
 
-CALLER = telemetry.pseudo("prin", "atk-real-timing")  # actors must be pseudonyms (telemetry contract)
-EXCHANGES = [
-    ("/idp/claim-rules", {}, {"rules": [{"source": "extensionAttribute7", "emits_tag": "deploy-eligibility"}]}),
-    ("/idp/assert", {"role": "cloud-operator", "attributes": {"extensionAttribute7": "proj-DEPLOY"}},
-     {"assertion": "AS", "role": "cloud-operator", "emitted_claims": {PT + "deploy-eligibility": "proj-DEPLOY"}}),
-    ("/iam/session", {"assertion": "AS"},
-     {"session": "SE", "principal": "cloud-operator", "tags": {"deploy-eligibility": "proj-DEPLOY"}}),
-    ("/iam/assume", {"session": "SE", "role": "deploy-runner"}, {"assumed_role": "deploy-runner"}),
-]
+# recon, assertion, session(+tag land), escalation — as (path, request, response, observation-batch).
+def _exchanges(escalation_batch):
+    return [
+        ("/idp/claim-rules", {}, {"rules": [{"source": "extensionAttribute7", "emits_tag": "deploy-eligibility"}]}, 0),
+        ("/idp/assert", {"role": "cloud-operator", "attributes": {"extensionAttribute7": "proj-DEPLOY"}},
+         {"assertion": "AS", "role": "cloud-operator", "emitted_claims": {PT + "deploy-eligibility": "proj-DEPLOY"}}, 1),
+        ("/iam/session", {"assertion": "AS"},
+         {"session": "SE", "principal": "cloud-operator", "tags": {"deploy-eligibility": "proj-DEPLOY"}}, 2),
+        ("/iam/assume", {"session": "SE", "role": "deploy-runner"}, {"assumed_role": "deploy-runner"},
+         escalation_batch),
+    ]
 
 
-def mal_bundle():
+def _bundle(escalation_batch):
     events = []
-    for i, (p, rq, rs) in enumerate(EXCHANGES):        # exchanges at local positions 0..3
+    for p, rq, rs, batch in _exchanges(escalation_batch):
         for ev in event_from_request(p, rq, rs, caller=CALLER):
-            events.append({**ev, "local_seq": i})
-    # h4 coincides with /iam/session (local 2); h5 is the deployment nonce at a LATER local position (5)
-    # that produced no federation event -> exercises the fractional rebase.
-    ledger = {"h4_federation": {"completion_seq": 2, "completion_ts": 2},
-              "h5_privesc": {"completion_seq": 5, "completion_ts": 5}}
-    return {"key": CALLER, "label": "malicious", "events": events, "ledger": ledger}
+            events.append({**ev, "local_seq": batch})
+    return {"key": CALLER, "label": "malicious", "events": events}
+
+
+def _timing(bundle, rule, cfg=None):
+    events, truth, _ = assemble([bundle] + to_bundles(event_from_request), seed="rt")
+    return score_corpus(rule, events, truth, config=cfg), timing_profile(rule, events, truth, config=cfg)
 
 
 def main() -> int:
@@ -60,27 +68,25 @@ def main() -> int:
         print(f"  {'ok ' if c else 'FAIL'}: {m}")
         ok = ok and c
 
-    bundles = [mal_bundle()] + to_bundles(event_from_request)
-    events, truth, ledger = assemble(bundles, seed="rt")
-    rule = json.loads((TASK / "fixtures" / "correct.json").read_text())
-
-    m = score_corpus(rule, events, truth)
+    # SEPARATE observations: escalation in a LATER tool result (batch 3) than the tag landing (batch 2).
+    sep = _bundle(escalation_batch=3)
+    m, prof_prev = _timing(sep, PREVENTIVE, SOC)
     check(m.recall == 1.0 and m.precision == 1.0,
           f"detector still exact on the assembled corpus: recall {m.recall:.2f} / precision {m.precision:.2f}")
+    _, prof_esc = _timing(sep, ESCALATION)
+    check(prof_prev["per_incident"][CALLER]["timing"] == RESPONSIVE,
+          "separate observations: preventive rule = RESPONSIVE (caught before the escalation)")
+    check(prof_esc["per_incident"][CALLER]["timing"] == LATE,
+          "separate observations: escalation-join = LATE (caught at the escalation)")
 
-    h4 = ledger[CALLER]["h4_federation"]["completion_seq"]
-    h5 = ledger[CALLER]["h5_privesc"]["completion_seq"]
-    ev_by_seq = {e["seq"]: e for e in events}
-    check(isinstance(h4, int) and ev_by_seq[h4]["event"] == "session_tag_applied",
-          f"h4 deadline coincides with the session_tag_applied event (exact global {h4})")
-    check(not float(h5).is_integer(),
-          f"h5 deadline (deployment nonce, no telemetry event) got a FRACTIONAL global {h5}")
-    check(h5 > h4, f"h5 ({h5}) ordered after h4 ({h4}) on the global spine")
-
-    prof = timing_profile(rule, events, truth, ledger, target_hop="h4_federation")
-    t = prof["per_incident"][CALLER]["timing"]
-    check(t == RESPONSIVE,
-          f"full-chain rule with realistic h5 = RESPONSIVE (caught before the privileged action), got '{t}'")
+    # ONE observation: the escalation arrives WITH the tag landing (both batch 2). No pre-escalation credit.
+    one = _bundle(escalation_batch=2)
+    led = event_anchored_ledger(one["events"])
+    check(led["h4_federation"]["completion_seq"] == led["h5_privesc"]["completion_seq"],
+          "one observation: the tag landing and escalation share an observation batch")
+    _, prof_one = _timing(one, PREVENTIVE, SOC)
+    check(prof_one["per_incident"][CALLER]["timing"] == LATE,
+          "one observation: preventive rule = LATE — no artificial pre-escalation credit (reviewer P1)")
 
     print("[selftest_timing_grounded]", "PASS" if ok else "FAIL")
     return 0 if ok else 1

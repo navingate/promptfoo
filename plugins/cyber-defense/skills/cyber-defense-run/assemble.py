@@ -97,7 +97,12 @@ def assemble(incidents: list[dict], *, seed: str = "0") -> tuple[list[dict], dic
         for e in sorted(inc["events"], key=_local):
             g += 1
             local_to_global[_local(e)] = g
-            events_out.append({**{k: v for k, v in e.items() if k != "local_seq"}, "seq": g})
+            # `seq` is the global monotonic spine (ordering); `obs_batch` preserves the ORIGINAL observation
+            # index (the tool-result / exchange the event was seen in). Events observed TOGETHER share an
+            # obs_batch, so the timing scorer can't award a detector artificial pre-escalation credit for
+            # sub-observation ordering when a tag landing and its escalation arrived in one observation.
+            events_out.append({**{k: v for k, v in e.items() if k != "local_seq"},
+                               "seq": g, "obs_batch": _local(e)})
 
         led = inc.get("ledger") or {}
         if led:

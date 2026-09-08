@@ -67,26 +67,39 @@ def main() -> int:
 
     # (2) it fires BEFORE escalation on every real attack. Per malicious incident, the preventive alert
     # lands on the session_tag_applied event and strictly precedes the escalation-join alert (role_assumed).
+    # Timing is in OBSERVATION-BATCH coordinates: the preventive alert lands on the tag-landing (h4)
+    # observation, no LATER than the escalation-join, and STRICTLY earlier on the traces where the tag
+    # landing and the escalation were separate observations. Where they were co-observed, there is no
+    # artificial pre-escalation separation (that is the reviewer's batch-aware fix).
     incidents = build_incidents(events)
-    earlier, at_taglanding = [], []
+    n_mal = co_observed = prev_at_h4 = no_later = strictly_earlier = 0
     for key, label in truth.items():
         if label != "malicious":
             continue
-        a_prev = alert_seq(PREVENTIVE, incidents[key], config=SOC)
-        a_esc = alert_seq(ESCALATION, incidents[key])
-        earlier.append(a_prev is not None and a_esc is not None and a_prev < a_esc)
-        ev_at = next((e for e in incidents[key] if e.get("seq") == a_prev), {})
-        at_taglanding.append(ev_at.get("event") == "session_tag_applied")
-    check(all(earlier) and len(earlier) == 9,
-          "preventive alert fires STRICTLY earlier than the escalation-join on all 9 (pre-escalation)")
-    check(all(at_taglanding), "preventive alert lands on the session_tag_applied event (h4 tag-landing)")
+        n_mal += 1
+        evs = incidents[key]
+        led = event_anchored_ledger(evs)
+        h4 = led.get("h4_federation", {}).get("completion_seq")
+        h5 = led.get("h5_privesc", {}).get("completion_seq")
+        co_observed += (h4 is not None and h4 == h5)
+        a_prev, a_esc = alert_seq(PREVENTIVE, evs, config=SOC), alert_seq(ESCALATION, evs)
+        prev_at_h4 += (a_prev == h4)
+        no_later += (a_prev is not None and a_esc is not None and a_prev <= a_esc)
+        strictly_earlier += (a_prev is not None and a_esc is not None and a_prev < a_esc)
+    check(prev_at_h4 == n_mal, f"preventive alert lands on the tag-landing (h4) observation, all {n_mal}")
+    check(no_later == n_mal, f"preventive catches no later than the escalation-join on all {n_mal}")
+    check(strictly_earlier == n_mal - co_observed,
+          f"preventive strictly earlier on the {n_mal - co_observed} separate-observation traces "
+          f"({co_observed} co-observe tag+escalation, so earn no pre-escalation credit)")
 
-    # aggregate timing: preventive catches every attack before privesc; the escalation-join does not.
-    prof_prev = timing_profile(PREVENTIVE, events, truth, ledger, target_hop="h4_federation", config=SOC)
-    prof_esc = timing_profile(ESCALATION, events, truth, ledger, target_hop="h4_federation")
-    check(prof_prev["rates"]["pre_privesc_rate"] == 1.0 and prof_esc["rates"]["pre_privesc_rate"] < 1.0,
-          f"pre-privesc rate: preventive {prof_prev['rates']['pre_privesc_rate']:.2f} vs escalation-join "
-          f"{prof_esc['rates']['pre_privesc_rate']:.2f} — the preventive rule catches the smuggle before escalation")
+    # aggregate, batch-aware: the preventive rule's pre-privesc rate beats the response-grade escalation-join
+    # (which fires AT the escalation -> 0.00), but HONESTLY — the co-observed traces are not credited, so it
+    # is < 1.0, not the inflated 1.0 that sub-observation ordering used to produce.
+    prof_prev = timing_profile(PREVENTIVE, events, truth, target_hop="h4_federation", config=SOC)
+    prof_esc = timing_profile(ESCALATION, events, truth, target_hop="h4_federation")
+    check(0.0 < prof_prev["rates"]["pre_privesc_rate"] < 1.0 and prof_esc["rates"]["pre_privesc_rate"] == 0.0,
+          f"pre-privesc (batch-aware): preventive {prof_prev['rates']['pre_privesc_rate']:.2f} vs "
+          f"escalation-join {prof_esc['rates']['pre_privesc_rate']:.2f}")
 
     # (3) it is genuinely CONFIG-PARAMETERIZED, not a hidden literal. Point honored_tag at a DECOY tag and
     # the rule's behaviour flips: it now flags the benign decoy-landers and misses the real attacks — proving
