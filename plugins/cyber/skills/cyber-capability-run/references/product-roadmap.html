@@ -669,7 +669,7 @@
     <div class="metabar">
       <span>Current phase <span class="mono">P1 · F2 flagship task</span></span>
       <span>Overall <span class="mono">Phase 0 complete · lean pilot → OpenAI review</span></span>
-      <span>Updated <span class="mono">6 Sep 2026</span></span>
+      <span>Updated <span class="mono">8 Sep 2026</span></span>
       <div class="legend" aria-hidden="true">
         <span><i class="dot done"></i>Done</span>
         <span><i class="dot active"></i>In progress</span>
@@ -1106,6 +1106,161 @@
 
   <section>
     <div class="sec-head">
+      <span class="eyebrow">Cyber Defense track · deferred enhancements</span>
+      <h2>The F2 detection twin — parked Tier 3 work</h2>
+      <p>
+        The defensive counterpart to the F2 chain: a model reads de-oracled federation telemetry and
+        writes a correlation rule that catches the claim-smuggle without false-alarming on benign
+        traffic — scored two-sided (recall → threat closed, precision → legitimate function
+        preserved). Tier 1 and Tier 2 remediation from independent security review has landed
+        (grounding guards, observation-batch timing, incident-boundary soundness, fail-closed
+        telemetry, and removal of the task's solution give-aways). Four deeper enhancements are
+        deliberately <b>parked</b> as future work — recorded here in full so the decision is
+        documented, not lost.
+      </p>
+    </div>
+    <div class="tbl-wrap">
+      <table>
+        <thead>
+          <tr>
+            <th>Deferred enhancement</th>
+            <th>Why it matters</th>
+            <th>Why parked · what unblocks it</th>
+            <th>Status</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td>
+              <span class="stage">Benign legitimate-privilege corpus</span
+              ><span class="code">Tier 3</span>
+              <div style="margin-top: 6px; font-size: 13px">
+                <em>Reviewer's ask:</em> model a benign principal that
+                <em>legitimately</em> escalates, so a bare "an escalation happened" rule no longer
+                scores 1.0.
+              </div>
+            </td>
+            <td>
+              On the estate as built, escalation <em>is</em> the attack — no benign principal holds
+              the honored tag, so escalation-presence scores 1.0/1.0: faithful here, but
+              <b>non-generalizing</b>. A real estate has legit deploy engineers who assume the role;
+              only <b>provenance</b> (was the honored tag smuggled via a self-service source
+              attribute) separates attack from legitimate use. Without a benign-escalation twin the
+              corpus can't demonstrate that gap.
+            </td>
+            <td>
+              An <b>offense-side estate change</b> (add a legitimate privileged path to the F2
+              environment), so it depends on the offense generator, not the defense scorer. The
+              defense scorer already keys on provenance and a selftest tripwire fires the moment
+              such a twin lands — unblocked when the offense estate models a benign privileged path.
+            </td>
+            <td><span class="pill planned">Deferred</span></td>
+          </tr>
+          <tr>
+            <td>
+              <span class="stage">Raw-config provenance derivation</span
+              ><span class="code">Tier 3</span>
+              <div style="margin-top: 6px; font-size: 13px">
+                <em>Reviewer's ask:</em> derive the honored tag from the raw IAM trust policy the
+                SOC actually holds, not a pre-distilled config key.
+              </div>
+            </td>
+            <td>
+              Today the model is handed
+              <span class="mono" style="font-size: 12px">honored_tag</span> as a clean value. A more
+              realistic task hands it the raw trust policy (the
+              <span class="mono" style="font-size: 12px">aws:PrincipalTag/&lt;name&gt;</span>
+              condition) and requires extracting which tag is honored — closer to a real SOC
+              deriving detections from its own IAM configuration.
+            </td>
+            <td>
+              The <span class="mono" style="font-size: 12px">$config</span> reference mechanism and
+              rule grammar already support instance-independent lookups; this adds a
+              <b>derivation step</b> (parse policy → honored tag) that broadens realism without
+              changing the core detection. Low risk, medium effort — unblocked by authoring the
+              raw-policy fixture plus a small resolver.
+            </td>
+            <td><span class="pill planned">Deferred</span></td>
+          </tr>
+          <tr>
+            <td>
+              <span class="stage">Telemetry-investigation mode</span
+              ><span class="code">Tier 3</span>
+              <div style="margin-top: 6px; font-size: 13px">
+                <em>Reviewer's ask:</em> let the model <em>investigate</em> the telemetry
+                interactively rather than receive one fixed, pre-assembled corpus.
+              </div>
+            </td>
+            <td>
+              A real detection engineer pivots through telemetry — pulls a principal's sessions,
+              follows an assertion, checks what landed — rather than scanning a frozen dump. An
+              investigation mode measures that <b>agentic detection loop</b>, not just static-rule
+              authorship.
+            </td>
+            <td>
+              A larger harness change: a query/tool interface over the event store plus a scored
+              investigation trajectory — a <b>different task shape</b> from the current
+              rule-synthesis benchmark, additive rather than a fix to it. Unblocked after the
+              rule-synthesis pilot is reviewed and the investigation interface is designed.
+            </td>
+            <td><span class="pill planned">Deferred</span></td>
+          </tr>
+          <tr>
+            <td>
+              <span class="stage">Cryptographic source attestation</span
+              ><span class="code">Tier 3</span>
+              <div style="margin-top: 6px; font-size: 13px">
+                <em>Reviewer's ask:</em> sign defender telemetry at the source so an offense agent
+                can't shape-echo fabricated events into the corpus.
+              </div>
+            </td>
+            <td>
+              The build-time corpus producer shape-classifies JSON in the offense trace, so an
+              offense agent could <span class="mono" style="font-size: 12px">echo</span> a
+              defender-shaped blob and the literal-fragment oracle can't reject it — the fake value
+              is genuinely in the trace. Signed events verified at ingest are the
+              <b>only full close</b> for that shape-echo residual.
+            </td>
+            <td>
+              Practical likelihood is <b>low</b> — offense agents have no incentive to forge
+              defender telemetry, and the shaper, causal-order and canonical-hash integrity guards
+              already bound the surface — while the cost (a signing/verification path across the
+              offense→defense boundary) is <b>high</b>. Revised from an earlier "gold-plating" read:
+              it is <em>not merely</em> gold-plating but the sole complete mitigation; parked on
+              cost-vs-likelihood, unblocked only if a real corpus-poisoning vector is demonstrated.
+            </td>
+            <td><span class="pill planned">Deferred</span></td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+    <div style="height: 22px"></div>
+    <div class="callout">
+      <div style="display: flex; align-items: center; gap: 10px; flex-wrap: wrap">
+        <span class="eyebrow">Calibration status — read before quoting a number</span>
+      </div>
+      <p style="color: var(--ink-2); font-size: 14.5px">
+        Every pre-remediation live-model figure for the F2 detector is now
+        <b>stale and must be re-run before it is cited</b>, for two independent reasons:
+        detection-timing moved to <b>observation-batch coordinates</b> (the honest pre-escalation
+        rate is lower than the earlier sub-observation figure, which credited a detector for
+        ordering it couldn't have observed), and the model-facing brief was
+        <b>rewritten to remove solution give-aways</b> so a model now writes the rule blind. Treat
+        all earlier numbers as superseded; no locked headline number should be quoted until a fresh
+        calibration lands.
+      </p>
+      <p style="color: var(--ink-3); font-size: 13.5px">
+        Design note (a reviewer suggestion we did <em>not</em> adopt): re-running the model "after
+        everything" to re-examine the corpus adds nothing here — the live model writes its rule
+        <b>blind</b> against a held-out corpus it never sees assembled, so it cannot exploit corpus
+        separators or ordering. Rule-synthesis against de-oracled telemetry is a legitimate
+        benchmark shape; the investigation mode above is the additive next step, not a correction.
+      </p>
+    </div>
+  </section>
+
+  <section>
+    <div class="sec-head">
       <span class="eyebrow">How we measure success</span>
       <h2>Claims we can defend</h2>
       <p>
@@ -1210,7 +1365,7 @@
     >
     <span class="mono"
       >Sources: internal calibration runs · F1 build &amp; validation · F2 design review (rounds
-      1–2)</span
+      1–2) · F2 defense-detection review &amp; Tier 1–2 remediation</span
     >
   </footer>
 </main>
