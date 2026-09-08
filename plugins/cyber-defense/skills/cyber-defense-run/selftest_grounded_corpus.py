@@ -64,6 +64,20 @@ def main() -> int:
             forb.append(bd["key"])
     check(not vbad and not forb, f"all grounded events validate + de-oracled (bad={vbad} forbidden={forb})")
 
+    # SINGLE-TAG SCHEMA FAITHFULNESS (F2 Chain, verified in cloudiam/app.py:248-254): cloudiam mints a
+    # session ONLY when the assertion carries <=1 PrincipalTag claim (>1 emitted -> 403, no session, no
+    # decoy-dropping). So any TP with a landed session tag MUST have an assertion emitting <=1 tag — a
+    # bundle emitting >1 tag yet minting a session is physically impossible and mislabels a supplied-attr
+    # spray as a success. This guard caught a real synthesis bug in 12-28-28 (3 emitted + success).
+    unfaithful = []
+    for _, bd in tp_raw:
+        a = next((e for e in bd["events"] if e["event"] == "assertion_issued"), None)
+        minted = any(e["event"] in ("session_created", "session_tag_applied") for e in bd["events"])
+        if a and minted and len(a.get("emitted_tags") or {}) > 1:
+            unfaithful.append((bd["key"], sorted(a["emitted_tags"])))
+    check(not unfaithful, "single-tag schema faithful: every minted-session TP emits <=1 PrincipalTag "
+                          f"(>1 would 403 at /iam/session) — violators: {unfaithful}")
+
     check(all(m.get("privesc_succeeded") for m, _ in tp_raw), "all 9 are privesc-succeeded (real successes)")
     fams = {(bd.get("ground_truth") or {}).get("privesc_family") for _, bd in tp_raw}
     check(fams == {"passrole-runas"}, f"KNOWN GAP: every grounded success is passrole-runas {fams} "

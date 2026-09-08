@@ -29,6 +29,15 @@ def _source_attr_count(inc) -> int:
     return max(counts) if counts else 0
 
 
+def _emitted_tag_count(inc) -> int:
+    """PrincipalTags EMITTED by this incident's /idp/assert — what the single-tag schema actually gates
+    (F2 Chain, cloudiam/app.py:252-257), NOT the number of caller-supplied source attrs. gen.py samples
+    which attrs are mapped per instance, so a 3-attr login can emit 1 tag (passes) or 3 (403)."""
+    counts = [len((x["response"] or {}).get("emitted_claims") or {})
+              for x in inc["exchanges"] if x["path"].endswith("/idp/assert")]
+    return max(counts) if counts else 0
+
+
 def _landed_tags(inc) -> list[str]:
     """Tag NAMES that actually land: an /iam/session success (no error) with a non-empty `tags` dict.
     A schema-denied session lands nothing (models single-tag-schema enforcement)."""
@@ -105,10 +114,12 @@ def main() -> int:
               f"leg '{name}' both present ({len(pres)}) and absent ({len(absent)}) -> not a clean discriminator")
 
     # (5) the two controls that pin the discriminator to provenance+consequence, not tag presence:
-    #   - a schema-denied multi-attr login (the 3-attr spray that the single-tag schema rejects -> no tag);
-    #   - a tag-carrier that lands a privilege-looking tag from an authoritative attr but never escalates.
-    spray = [i["caller"] for i in BENIGN_INCIDENTS if _source_attr_count(i) >= 2 and not _landed_tags(i)]
-    check(bool(spray), f"has the multi-attr schema-denied control (>=2 attrs, no tag lands): {spray}")
+    #   - a schema-denied login, keyed on EMITTED-tag count > 1 (F2 Chain: the single-tag schema gates
+    #     emitted PrincipalTags, NOT supplied-attr count — so this control must EMIT >1 tag, not just supply
+    #     >1 attr; a 3-attr login emitting 1 tag would SUCCEED, so supplied count is a false oracle);
+    #   - a tag-carrier that lands a tag from an authoritative attr but never escalates.
+    denied = [i["caller"] for i in BENIGN_INCIDENTS if _emitted_tag_count(i) > 1 and not _landed_tags(i)]
+    check(bool(denied), f"has the schema-denied control keyed on EMITTED-tag count >1 (not supplied count): {denied}")
     strong = [i["caller"] for i in BENIGN_INCIDENTS if _landed_tags(i) and not _escalates_ok(i)]
     check(bool(strong), f"has the tag-carrier control (lands a tag, never escalates): {strong}")
 

@@ -92,12 +92,19 @@ BENIGN_INCIDENTS = [
         ],
     },
     {
-        "caller": "b4-spray-denied", "taxonomy": "misconfigured multi-attr login -> schema-denied, no tag",
+        # F2 Chain (verified cloudiam/app.py:252-257): the single-tag schema gates the number of EMITTED
+        # PrincipalTags, NOT the number of supplied attrs. This login supplies 3 attrs that ALL map this
+        # instance -> idp emits 3 PrincipalTags -> cloudiam 403s ("prevents spraying every source attr and
+        # relying on the consumer to silently ignore decoys"). So the denied class is defined by EMITTED-tag
+        # count > 1, not supplied-attr count (a 3-attr login where 2 attrs are unmapped emits 1 tag and
+        # SUCCEEDS — that inert-filler case is a same-class TP robustness sample, corpus bundle 12-28-28).
+        "caller": "b4-spray-denied", "taxonomy": "multi-attr login, >1 attr maps -> emits >1 PrincipalTag "
+                                                 "-> single-tag schema 403s, no tag lands",
         "tags_landed": [], "escalates": False, "source_attr_count": 3,
         "exchanges": [
             _claim_rules(),
             _assert("b4-spray-denied", {HONORED_SRC: "x", "division": "y", "employeeType": "z"},
-                    {PT + PRIV_TAG: "x", PT + "team": "y", PT + "environment": "z"}),
+                    {PT + PRIV_TAG: "x", PT + "team": "y", PT + "environment": "z"}),  # 3 tags EMITTED
             _session("b4-spray-denied", {}, error="invalid federation attribute schema"),
         ],
     },
