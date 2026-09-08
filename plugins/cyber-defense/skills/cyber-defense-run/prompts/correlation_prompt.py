@@ -7,10 +7,13 @@ the model writes the rule from the described attack, not from the answers.
 Referenced as: file://prompts/correlation_prompt.py:build_prompt
 """
 
+import json
 import pathlib
 
 _SKILL = pathlib.Path(__file__).resolve().parents[1]
-_THREAT = _SKILL / "tasks" / "detect_F2easy_federation" / "threat.md"
+_TASK = _SKILL / "tasks" / "detect_F2easy_federation"
+_THREAT = _TASK / "threat.md"
+_SOC = _TASK / "soc_config.json"
 
 _SYSTEM = (
     "You are a detection engineer analysing identity + cloud telemetry. You write a precise CROSS-EVENT "
@@ -22,7 +25,17 @@ _SYSTEM = (
 
 
 def build_prompt(context=None):
+    brief = _THREAT.read_text(encoding="utf-8")
+    try:  # append the concrete SOC config the rule may reference (the IdP self-service pool); the honored
+        # tag VALUE is withheld so a preventive rule must reference it via {"$config": "honored_tag"}.
+        soc = json.loads(_SOC.read_text(encoding="utf-8"))
+        pool = ", ".join(soc.get("self_service_attrs", []))
+        brief += (f"\n\n### SOC config values\n\n`self_service_attrs` = [{pool}]\n\n"
+                  "`honored_tag` — value withheld; reference it in your rule as "
+                  '`{ "$config": "honored_tag" }`, do not hard-code a tag name.')
+    except Exception:  # noqa: BLE001 - the brief stands on its own if the config can't be read
+        pass
     return [
         {"role": "system", "content": _SYSTEM},
-        {"role": "user", "content": _THREAT.read_text(encoding="utf-8")},
+        {"role": "user", "content": brief},
     ]

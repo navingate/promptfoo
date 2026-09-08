@@ -7,7 +7,6 @@ prompt builder presents the threat brief. Proves the task is model-runnable end-
 """
 
 import json
-import subprocess
 import sys
 from pathlib import Path
 
@@ -23,8 +22,9 @@ def reply(rule_json: str, prose: str = "") -> str:
 
 
 def main() -> int:
+    # The assertion (verify_correlation.verify) scores against the GROUNDED real-attack corpus, assembled
+    # from the committed bundles — no synthetic regeneration needed here.
     print("[selftest_correlation_glue]")
-    subprocess.run([sys.executable, str(TASK / "corpus_gen.py"), "0"], check=True, capture_output=True)
     ok = True
 
     def check(c, m):
@@ -63,6 +63,27 @@ def main() -> int:
     inv = get_assert("I could not determine a rule.")
     check(inv["pass_"] is False and inv["named_scores"].get("run_valid") == 0.0,
           f"unparseable output -> run_status invalid (run_valid=0), pass=False")
+
+    # the PREVENTIVE rule uses {"$config": "honored_tag"} — the assertion threads soc_config.json into the
+    # scorer so it resolves + passes, and reports the timing diagnostic (pre_privesc_rate) end to end.
+    preventive = (TASK / "fixtures" / "correct_preventive.json").read_text()
+    p = get_assert(reply(preventive, "Preventive rule:"))
+    check(p["pass_"] is True and p["named_scores"].get("pre_privesc_rate") is not None,
+          f"preventive $config rule -> PASS with timing diagnostic "
+          f"(pre_privesc_rate={p['named_scores'].get('pre_privesc_rate')})")
+
+    # the prompt exposes the SOC config so a model can actually write a config-driven rule
+    up = build_prompt()[1]["content"]
+    check("$config" in up and "honored_tag" in up,
+          "prompt exposes SOC config ($config / honored_tag) for a preventive rule")
+
+    # a rule referencing an UNKNOWN $config key is surfaced as invalid, not silently mis-scored
+    badcfg = json.dumps({"require": "all", "conditions": [
+        {"type": "field", "event": "session_tag_applied", "field": "tag_name", "op": "eq",
+         "value": {"$config": "no_such_key"}}]})
+    bc = get_assert(reply(badcfg))
+    check(bc["pass_"] is False and bc["named_scores"].get("run_valid") == 0.0,
+          "rule with unknown $config key -> run_status invalid (surfaced)")
 
     print("[selftest_correlation_glue]", "PASS" if ok else "FAIL")
     return 0 if ok else 1
