@@ -56,6 +56,15 @@ def _assume(caller, role, *, error=None):
 
 # `tags_landed` = the tag names this benign login lands on its session (for the selftest to confirm the
 # de-oracle); `escalates` = whether it SUCCESSFULLY escalates (all benign: False).
+#
+# KNOWN v1.2 GAP (documented, not hidden): because NO benign here escalates, a cruder "an escalation
+# happened at all" rule still separates this corpus perfectly — v1.1 killed the tag-PRESENCE oracle but an
+# escalation-PRESENCE shortcut survives (selftest_grounded_corpus asserts this as a tripwire). Closing it
+# needs a benign LEGITIMATE-escalation incident (an authoritative-source tag lands and the user assumes a
+# role they are genuinely entitled to). That control would false-positive the current escalation-join
+# reference rule, so it is COUPLED with re-keying correct.json onto a 3rd provenance leg — the tag's source
+# attribute is caller-editable/self-service (the smuggle vector) vs authoritative — plus the telemetry to
+# expose source-attr editability. Until then the number is a milestone, not a gameproof detection score.
 BENIGN_INCIDENTS = [
     {
         "caller": "b1-env-tag", "taxonomy": "legit login: an authoritative attr lands a NON-privileged tag",

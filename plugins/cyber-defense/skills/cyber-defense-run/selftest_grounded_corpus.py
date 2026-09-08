@@ -27,6 +27,13 @@ from translate import event_from_request  # noqa: E402
 
 RULE = json.loads((TASK / "fixtures" / "correct.json").read_text())
 ORACLE = {"require": "all", "conditions": [{"type": "exists", "event": "session_tag_applied"}]}
+# KNOWN v1.2 GAP (documented as a tripwire, not a passing property): the de-oracled benign land tags but
+# never ESCALATE, so a cruder "an escalation happened at all" rule still separates this corpus perfectly.
+# v1.1 killed the tag-PRESENCE oracle; the escalation-PRESENCE shortcut survives until a benign
+# legitimate-escalation control lands (v1.2, coupled with a 3-way provenance rule keyed on source-attr
+# editability). This assertion trips when that control lands, forcing the number's claim to be re-earned.
+ESCALATION_SHORTCUT = {"require": "all",
+                       "conditions": [{"type": "exists_any", "events": ["role_assumed", "grant_issued"]}]}
 
 
 def load_tp():
@@ -78,6 +85,14 @@ def main() -> int:
     check(o.precision < 1.0 and o.fp >= 1,
           f"tag-presence ORACLE is DEAD: {{exists session_tag_applied}} precision {o.precision:.2f} "
           f"(false-alarms on {o.fp} tag-bearing benign) — the v1 shortcut no longer scores 1.0")
+
+    # HONEST tripwire (NOT a win): the escalation-PRESENCE shortcut still reaches 1.0/1.0 because no benign
+    # escalates yet. Asserting the gap keeps it visible and trips when the v1.2 benign legit-escalation
+    # control lands (which will also require re-keying correct.json onto the 3-way source-attr provenance).
+    s = score_corpus(ESCALATION_SHORTCUT, events, truth)
+    check(s.recall == 1.0 and s.precision == 1.0,
+          f"KNOWN v1.2 GAP: escalation-presence shortcut still scores {s.recall:.2f}/{s.precision:.2f} "
+          "(no benign escalates) — number is NOT yet gameproof; needs the benign legit-escalation control")
 
     prof = timing_profile(RULE, events, truth, ledger, target_hop="h4_federation")
     detected = sum(v["timing"] != "missed" for k, v in prof["per_incident"].items() if truth[k] == "malicious")
