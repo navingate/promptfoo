@@ -1,0 +1,10 @@
+{
+  "_note": "Handles only the passrole-runas family (role_assumed) and misses the confused-deputy (grant_issued) malicious variant -> recall < 1.",
+  "require": "all",
+  "conditions": [
+    { "type": "exists", "event": "claim_rules_read" },
+    { "type": "field", "event": "assertion_issued", "field": "source_attrs", "op": "nonempty" },
+    { "type": "exists", "event": "session_tag_applied" },
+    { "type": "exists", "event": "role_assumed" }
+  ]
+}
