@@ -26,7 +26,9 @@ sys.path.insert(0, str(TASK))
 from benign_incidents import to_bundles  # noqa: E402
 
 PT = "https://aws.amazon.com/SAML/Attributes/PrincipalTag:"
-CALLER = "atk-real-timing"
+import telemetry  # noqa: E402
+
+CALLER = telemetry.pseudo("prin", "atk-real-timing")  # actors must be pseudonyms (telemetry contract)
 EXCHANGES = [
     ("/idp/claim-rules", {}, {"rules": [{"source": "extensionAttribute7", "emits_tag": "deploy-eligibility"}]}),
     ("/idp/assert", {"role": "cloud-operator", "attributes": {"extensionAttribute7": "proj-DEPLOY"}},

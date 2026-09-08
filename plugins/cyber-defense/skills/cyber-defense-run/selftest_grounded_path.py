@@ -35,7 +35,9 @@ CLAIM_RULES = [{"source": "extensionAttribute7", "emits_tag": "deploy-eligibilit
 # A complete federation claim-smuggling attack, as the F2 exchanges it really is (the shape translate_eval
 # recovers from a trace): recon -> assertion reflecting the honored self-service attr -> the honored tag
 # LANDS on the session -> privilege escalation succeeds.
-MAL_CALLER = "atk-smuggle-1"
+import telemetry  # noqa: E402
+
+MAL_CALLER = telemetry.pseudo("prin", "atk-smuggle-1")  # actors must be pseudonyms (telemetry contract)
 MAL_EXCHANGES = [
     ("/idp/claim-rules", {}, {"rules": CLAIM_RULES}),
     ("/idp/assert", {"role": "cloud-operator", "attributes": {"extensionAttribute7": "proj-DEPLOY"}},

@@ -26,6 +26,7 @@ import hashlib
 import hmac
 import json
 import os
+import re
 import sys
 import time
 
@@ -50,6 +51,24 @@ _ENVELOPE = {"ts", "actor", "source_service", "event", "outcome",
 # Fields that must NEVER appear on a defender-visible event (oracle / de-oracle rule).
 _FORBIDDEN_KEYS = frozenset({"marker", "seq", "hop", "hop_surface", "stage", "success", "nonce",
                              "run_salt", "flag"})
+# Fields carrying pseudonymized ids/values: each must be None or a `<namespace>_<10 hex>` token, never a
+# raw identifier/secret (a raw actor, session token, or tag value would be both an oracle and a PII leak).
+_PSEUDONYM_FIELDS = {"actor": "prin", "assertion_id": "aid", "session_id": "sess",
+                     "from_assertion_id": "aid", "via_session_id": "sess", "principal": "prin",
+                     "tag_value": "tagval", "assumed_role": "role", "requested_role": "role",
+                     "granted_resource": "res"}
+_PSEUDO_RE = re.compile(r"^(?:aid|sess|prin|tagval|role|res)_[0-9a-f]{10}$")
+
+
+class TelemetryContractError(AssertionError):
+    """A defender-telemetry event violates the v1.3 contract. Subclasses AssertionError so existing
+    `except AssertionError` handlers still catch it, but it is a real raise (NOT stripped by `python -O`,
+    unlike a bare `assert` — security validation must not be optimizable away)."""
+
+
+def _require(cond, msg):
+    if not cond:
+        raise TelemetryContractError(msg)
 
 
 def pseudo(namespace: str, value) -> str | None:
@@ -64,24 +83,39 @@ def pseudo(namespace: str, value) -> str | None:
 
 
 def validate_event(ev: dict) -> None:
-    """Raise AssertionError if `ev` violates the contract. Usable as an acceptance check."""
-    assert isinstance(ev, dict), "event must be an object"
-    assert ev.get("event") in _EVENT_FIELDS, f"unknown event type: {ev.get('event')!r}"
-    assert ev.get("outcome") in _OUTCOMES, f"bad outcome: {ev.get('outcome')!r}"
-    assert ev.get("source_service") in ("idp", "cloudiam"), "bad source_service"
-    assert isinstance(ev.get("ts"), int), "ts must be an int (wall-clock ms)"
-    assert "seq" not in ev, "seq is harness-assigned, must not be emitter-set"
+    """Raise TelemetryContractError if `ev` violates the v1.3 contract. FAIL-CLOSED: beyond requiring the
+    common envelope + this event's fields and forbidding oracle fields, it REJECTS any unknown field and
+    any un-pseudonymized identifier/value — so label/stage smuggling or a raw actor/session token/secret
+    can't slip through a required/forbidden check. Explicit raises (not `assert`) survive `python -O`."""
+    _require(isinstance(ev, dict), "event must be an object")
+    event = ev.get("event")
+    _require(event in _EVENT_FIELDS, f"unknown event type: {event!r}")
+    _require(ev.get("outcome") in _OUTCOMES, f"bad outcome: {ev.get('outcome')!r}")
+    _require(ev.get("source_service") in ("idp", "cloudiam"), "bad source_service")
+    _require(isinstance(ev.get("ts"), int), "ts must be an int (wall-clock ms)")
     for k in _FORBIDDEN_KEYS:
-        assert k not in ev, f"forbidden field present: {k}"
-    for k in _EVENT_FIELDS[ev["event"]]:
-        assert k in ev, f"{ev['event']} missing required field {k}"
+        _require(k not in ev, f"forbidden field present: {k}")
+    for k in _EVENT_FIELDS[event]:
+        _require(k in ev, f"{event} missing required field {k}")
+    # FAIL-CLOSED: exactly the envelope + this event's fields + the pre-assembly spine index, nothing else.
+    allowed = _ENVELOPE | _EVENT_FIELDS[event] | {"local_seq"}
+    _require(not (set(ev) - allowed), f"unknown field(s) on {event}: {sorted(set(ev) - allowed)}")
+    _require("local_seq" not in ev or isinstance(ev["local_seq"], int), "local_seq must be an int")
+    # identifiers/values must be pseudonymized (None or <ns>_<hex>), never raw.
+    for f, ns in _PSEUDONYM_FIELDS.items():
+        val = ev.get(f)
+        _require(val is None or (isinstance(val, str) and val.startswith(ns + "_") and _PSEUDO_RE.match(val)),
+                 f"{f} must be a {ns}_ pseudonym, got {val!r}")
     # names stay clear: source_attrs are bare attr names, tag_name a bare key (never a pseudonym token)
-    if ev["event"] == "assertion_issued":
-        assert isinstance(ev["source_attrs"], list), "source_attrs must be a list of names"
-        assert not any(str(a).startswith(tuple(n + "_" for n in _NAMESPACES))
-                       for a in ev["source_attrs"]), "source_attrs must be clear names, not pseudonyms"
+    if event == "assertion_issued":
+        _require(isinstance(ev["source_attrs"], list), "source_attrs must be a list of names")
+        _require(not any(str(a).startswith(tuple(n + "_" for n in _NAMESPACES)) for a in ev["source_attrs"]),
+                 "source_attrs must be clear names, not pseudonyms")
+        _require(isinstance(ev["emitted_tags"], dict), "emitted_tags must be an object")
+        _require(all(isinstance(v, str) and v.startswith("tagval_") for v in ev["emitted_tags"].values()),
+                 "emitted_tags values must be tagval_ pseudonyms")
     # nothing anywhere may carry a PROMPTFOO marker/nonce
-    assert "PROMPTFOO" not in json.dumps(ev), "event would leak a PROMPTFOO marker/nonce"
+    _require("PROMPTFOO" not in json.dumps(ev), "event would leak a PROMPTFOO marker/nonce")
 
 
 def emit(event: str, outcome: str, *, source_service: str, actor=None, assertion_id=None,
@@ -91,6 +125,11 @@ def emit(event: str, outcome: str, *, source_service: str, actor=None, assertion
     Callers pass ALREADY-pseudonymized ids/values (via pseudo()) and clear names. seq is omitted
     (harness-assigned). Fail-safe: any contract violation raises before the line is written, so a
     malformed/leaky event is never emitted."""
+    # LIVE emission requires a real run salt: an empty PFCYBER_TELEMETRY_SALT yields deterministic,
+    # dictionary-attackable pseudonyms that are linkable across runs (a contamination leak). Refuse rather
+    # than emit weak telemetry. (The frozen offline corpus is de-oracled + non-secret, so its pseudo()
+    # calls do not carry this requirement.)
+    _require(_SALT, "PFCYBER_TELEMETRY_SALT must be set (non-empty) for live emission")
     ev = {"ts": int(time.time() * 1000), "actor": actor, "source_service": source_service,
           "event": event, "outcome": outcome, "assertion_id": assertion_id,
           "session_id": session_id, "resource": resource}
