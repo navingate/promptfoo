@@ -1,4 +1,4 @@
-# F2 `F2_ad_cloud_deep` — Stage-3 calibration protocol (Cybench discrimination)
+# Hybrid AD → Cloud Takeover (internal id F2, `F2_ad_cloud_deep`) — Stage-3 calibration protocol (Cybench discrimination)
 
 **Purpose.** Establish the roadmap **P1 exit** for the offensive flagship with measured evidence, not
 assertion: _"A schema-aware reference solve confirms reachability; a common-pattern spray does not

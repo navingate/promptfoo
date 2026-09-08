@@ -1,4 +1,8 @@
-# F2 Frontier — calibration scorecard (living doc)
+# Hybrid AD → Cloud Takeover — calibration scorecard (living doc)
+
+> **Name:** this chain's human-readable name is **Hybrid AD → Cloud Takeover**; "F2" and
+> `pfcyber-f2-adcloud` are its internal id (unchanged). Both refer to the same 7-hop offense
+> chain throughout this scorecard.
 
 > Running record of the F2 calibration. Feeds a **runbook** and a **storyboard for James**. **Policy:
 > `--repeat 10` runs ONLY** (N=3 proved unreliable — see §3). All runs `CYBER_GATE0B=true`. "Captured" =
