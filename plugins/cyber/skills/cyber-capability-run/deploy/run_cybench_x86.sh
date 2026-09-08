@@ -175,6 +175,15 @@ if [ -n "${CYBER_SUT_ENDPOINT:-}" ]; then
   [ -n "$MODEL_API_KEY" ] || fail "endpoint '$CYBER_SUT_ENDPOINT' needs \$${_ke:-<api_key_env>} in the env (inline or in $HALO_ENV)"
   unset _ke
   log "endpoint from SUT_ENDPOINTS registry: $CYBER_SUT_ENDPOINT"
+  # setup_caisi.sh reads the model endpoint from $HALO_ENV as AZURE_AI_* (mapping them to OPENAI_* in the
+  # harness .env) and hard-requires them. On the registry path the repo .env need not carry AZURE_AI_*, so
+  # hand setup_caisi.sh a private temp creds file with the RESOLVED endpoint and repoint HALO_ENV at it
+  # (every setup_caisi.sh call site forwards "$HALO_ENV"). Mirrors run_0a.sh's vm.env carrier.
+  _caisi_creds="$(mktemp "${TMPDIR:-/tmp}/pfcyber-caisi-creds.XXXXXX")" || fail "could not create temp creds file"
+  chmod 600 "$_caisi_creds"
+  trap 'rm -f "$_caisi_creds"' EXIT
+  { printf 'AZURE_AI_BASE_URL=%s\n' "$MODEL_BASE_URL"; printf 'AZURE_AI_API_KEY=%s\n' "$MODEL_API_KEY"; } > "$_caisi_creds"
+  HALO_ENV="$_caisi_creds"
 else
   # Legacy: inline AZURE_AI_BASE_URL/AZURE_AI_API_KEY win; otherwise pull from the repo-root .env ($HALO_ENV).
   if [ -z "${AZURE_AI_BASE_URL:-}" ] || [ -z "${AZURE_AI_API_KEY:-}" ]; then
@@ -394,8 +403,15 @@ docker image inspect alpine:latest >/dev/null 2>&1 || docker pull alpine:latest 
   || log "WARN: alpine pull failed — the container-context self-test may fail"
 
 # --- Pin the model host, then lock egress down to it only ---
-MODEL_IP="$(getent hosts "$MODEL_HOST" | awk '{print $1; exit}')"
-[ -n "${MODEL_IP:-}" ] || fail "could not resolve $MODEL_HOST"
+# Resolve to IPv4 ONLY: the egress lockdown is IPv4 (iptables) and drops IPv6 wholesale, but a
+# dual-stack / Cloudflare-fronted endpoint (e.g. engy → api.engy.ai) has both A and AAAA records.
+# `getent hosts` returns the IPv6 first and `getent ahostsv4` returns nothing under systemd-resolved's
+# nss-resolve on some hosts — both break the IPv4 lockdown. Prefer Python getaddrinfo(AF_INET), then
+# fall back to getent-filtered-to-IPv4 and dig, so any host with an A record yields its IPv4.
+MODEL_IP="$(python3 -c 'import socket,sys;print(socket.getaddrinfo(sys.argv[1],None,socket.AF_INET,socket.SOCK_STREAM)[0][4][0])' "$MODEL_HOST" 2>/dev/null)"
+[ -n "$MODEL_IP" ] || MODEL_IP="$(getent hosts "$MODEL_HOST" | awk '$1 ~ /^[0-9]+\./ {print $1; exit}')"
+[ -n "$MODEL_IP" ] || { command -v dig >/dev/null 2>&1 && MODEL_IP="$(dig +short A "$MODEL_HOST" | grep -m1 -E '^[0-9]+\.')"; }
+[ -n "${MODEL_IP:-}" ] || fail "could not resolve $MODEL_HOST to an IPv4 address (egress lockdown is IPv4-only; an IPv6-only endpoint is unsupported)"
 sudo bash -c "sed -i.bak '/[[:space:]]${MODEL_HOST}\$/d' /etc/hosts 2>/dev/null; printf '%s %s\n' '${MODEL_IP}' '${MODEL_HOST}' >> /etc/hosts" \
   || log "WARN: could not pin ${MODEL_HOST} in /etc/hosts"
 log "locking down egress; only ${MODEL_HOST} (${MODEL_IP}:${MODEL_PORT}) allowed ..."
