@@ -13,7 +13,7 @@ import json
 import sys
 from pathlib import Path
 
-from correlation_eval import CorrelationUnsupported, flagged_incidents
+from correlation_eval import CorrelationUnsupported, build_incidents, flagged_incidents
 from result import DefenseResult
 from timed_eval import event_anchored_ledger, timing_profile
 from verify_detection import Metrics, grade
@@ -44,13 +44,16 @@ def _scoring_corpus(task_dir: Path):
 
 
 def score_corpus(rule: dict, events: list[dict], ground_truth: dict[str, str], config=None) -> Metrics:
-    """Per-INCIDENT confusion counts: an incident is malicious per the ground-truth ledger; the rule
-    flags a set of incident keys. Pure. `config` supplies per-instance SOC-config values (e.g. the honored
-    tag key) for rules that reference them via {"$config": <key>}."""
+    """Per-INCIDENT confusion counts over the FULL incident universe. An incident is malicious per the
+    ground-truth ledger; the rule flags a set of incident keys. Any incident that build_incidents produces
+    but ground_truth does NOT label (an orphan/unlinked group) is treated as BENIGN — a flag on it is a
+    false alarm (reviewer P1: such alerts must be counted, not silently dropped by iterating ground_truth
+    alone). Pure. `config` supplies per-instance SOC-config values for {"$config": <key>} references."""
     flagged = flagged_incidents(rule, events, config)
+    universe = set(build_incidents(events)) | set(ground_truth)  # every incident, labelled or orphan
     tp = fp = tn = fn = 0
-    for key, label in ground_truth.items():
-        malicious = label == "malicious"
+    for key in universe:
+        malicious = ground_truth.get(key) == "malicious"  # orphan (label None) counts as benign
         fired = key in flagged
         if fired and malicious:
             tp += 1

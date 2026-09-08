@@ -41,15 +41,17 @@ class CorrelationUnsupported(ValueError):
 
 
 def build_incidents(events: list[dict]) -> dict[str, list[dict]]:
-    """Group events into incidents by the realistic analyst key — the **principal (`actor`)** — which
-    ties a principal's recon (`claim_rules_read`, which carries no assertion_id) → `assertion_issued`
-    → `session_created` → `session_tag_applied` → privesc together. The `assertion_id`/`session_id`
-    links (idp→cloudiam) are preserved WITHIN each incident for rules that need to chain specific
-    events. Incident key = `actor`; events with no actor fall back to their assertion/session id."""
-    # Resolution maps: the real emitter leaves `actor` null on cloudiam-side events (session_tag_applied,
-    # role_assumed, grant_issued) — they are triggered by a session token, not a named caller — so we
-    # attribute them to the principal via the assertion_id/session_id chain (assertion_issued carries the
-    # actor; session_created links session_id -> assertion_id).
+    """Group events into incidents by the LINKAGE COMPONENT — the assertion→session→tag→privesc chain
+    rooted at one assertion — with the principal (`actor`) as the attribution/label key.
+
+    This is tighter than grouping a whole principal together (reviewer P1): a principal with several
+    concurrent or sequential assertions/sessions yields SEPARATE incidents, so an existential
+    (`exists`/`field`) or a name-keyed `join` condition can't combine a landed tag from one chain with an
+    escalation from a DIFFERENT chain. Recon (`claim_rules_read`, which carries no linkage id) attaches to
+    the principal's chain when there is exactly one, else forms its own group. For the common single-chain
+    principal the key is just the principal, so scoring is unchanged. The idp→cloudiam links are preserved
+    within each component. cloudiam events carry a null `actor` (session-triggered) and are attributed via
+    assertion_id/session_id (assertion_issued carries the actor; session_created links session→assertion)."""
     assertion_to_actor: dict[str, str] = {}
     session_to_assertion: dict[str, str] = {}
     for e in events:
@@ -58,20 +60,35 @@ def build_incidents(events: list[dict]) -> dict[str, list[dict]]:
         if e.get("event") == "session_created" and e.get("session_id") and e.get("from_assertion_id"):
             session_to_assertion[e["session_id"]] = e["from_assertion_id"]
 
-    def resolve_actor(e: dict) -> str | None:
-        if e.get("actor"):
-            return e["actor"]
-        aid = e.get("assertion_id") or e.get("from_assertion_id")
-        if not aid:
-            aid = session_to_assertion.get(e.get("via_session_id") or e.get("session_id") or "")
-        return assertion_to_actor.get(aid or "")
+    def root_assertion(e: dict) -> str | None:
+        """The assertion id at the root of this event's chain — idp, cloudiam and privesc all trace to it."""
+        return (e.get("assertion_id") or e.get("from_assertion_id")
+                or session_to_assertion.get(e.get("via_session_id") or e.get("session_id") or "") or None)
+
+    def principal_of(e: dict) -> str:
+        return (e.get("actor") or assertion_to_actor.get(root_assertion(e) or "")
+                or root_assertion(e) or f"_unlinked_{id(e)}")
+
+    # bucket by (principal, root-assertion) = one linkage component; recon (no root) held aside per principal
+    chains: dict[tuple, list[dict]] = defaultdict(list)
+    recon: dict[str, list[dict]] = defaultdict(list)
+    for e in events:
+        principal, root = principal_of(e), root_assertion(e)
+        (recon[principal] if root is None else chains[(principal, root)]).append(e)
+
+    roots_by_principal: dict[str, list[str]] = defaultdict(list)
+    for principal, root in chains:
+        roots_by_principal[principal].append(root)
 
     incidents: dict[str, list[dict]] = defaultdict(list)
-    for e in events:
-        key = (resolve_actor(e) or e.get("assertion_id") or e.get("from_assertion_id")
-               or session_to_assertion.get(e.get("via_session_id") or e.get("session_id") or "")
-               or f"_unlinked_{id(e)}")
-        incidents[key].append(e)
+    for (principal, root), evs in chains.items():
+        roots = sorted(set(roots_by_principal[principal]))
+        key = principal if len(roots) == 1 else f"{principal}#{roots.index(root)}"
+        incidents[key].extend(evs)
+        if len(roots) == 1 and principal in recon:  # unambiguous: attach recon to the single chain
+            incidents[key].extend(recon.pop(principal))
+    for principal, evs in recon.items():  # principals with no chain, or ambiguous multi-chain recon
+        incidents[principal].extend(evs)
     return dict(incidents)
 
 
