@@ -734,7 +734,7 @@ if __name__ == "__main__":
         print(f"PFCYBER_SUT_KEY_TARGET={shlex.quote(_preset.get('key_target') or 'OPENAI_API_KEY')}")
     else:
         # Manual smoke test: python provider.py <task> [benchmark]
-        # e.g. python provider.py pfcyber-smoke authored
+        # e.g. python provider.py pfcyber-f2-adcloud authored
         t = sys.argv[1] if len(sys.argv) > 1 else "dynastic"
         bench = sys.argv[2] if len(sys.argv) > 2 else "cybench"
         print(

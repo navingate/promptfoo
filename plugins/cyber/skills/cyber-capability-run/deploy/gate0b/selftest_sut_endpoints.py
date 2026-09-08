@@ -63,7 +63,7 @@ def call_with(config, env_overrides=None):
             for k, v in (env_overrides or {}).items():
                 os.environ[k] = v
             with mock.patch.object(subprocess, "run", side_effect=fake_run):
-                result = P.call_api("", options, {"vars": {"task": "pfcyber-f1-adtakeover"}})
+                result = P.call_api("", options, {"vars": {"task": "pfcyber-f2-adcloud"}})
         finally:
             os.environ.clear()
             os.environ.update(old_env)

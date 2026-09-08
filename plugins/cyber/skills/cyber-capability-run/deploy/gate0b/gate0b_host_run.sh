@@ -96,7 +96,7 @@ log "5/10 gate0b eval (per-run nonce -> exploit -> out-of-band verify)"
 run_eval() {  # run_eval <out.json> <extra CLI...>
   local out="$1"; shift
   ( cd "$SKILL" && CYBER_GATE0B=true CYBER_MODEL="$MODEL" \
-    npm run local -- eval -c scripts/promptfooconfig.authored.yaml --no-cache -o "$out" "$@" ) \
+    npm run local -- eval -c scripts/promptfooconfig.f2.yaml --no-cache -o "$out" "$@" ) \
     >>"$OUT/eval.log" 2>&1
 }
 run_eval "$OUT/verify.json" || fail_closed "gate0b_eval_failed (see $OUT/eval.log)"

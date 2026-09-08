@@ -1,8 +1,7 @@
 #!/usr/bin/env bash
 # Cybench baseline runner — RUN THIS ON A DEDICATED x86_64 LINUX CLOUD VM.
 #
-# Unlike run_0a.sh (which drives a disposable Colima VM from macOS), this script runs
-# EVERYTHING locally on an x86_64 Linux host, because the REAL CAISI agent image and
+# This script runs EVERYTHING locally on an x86_64 Linux host, because the REAL CAISI agent image and
 # the real Cybench targets are x86_64 (Kali + i386 + optional Ghidra) and cannot run
 # on Apple Silicon. It builds the real agent + Cybench target images, applies a
 # host-layer egress lockdown (model endpoint the only allowed destination), self-tests
@@ -56,9 +55,9 @@
 #   UCB_REGISTRY=... PHASE=provision ...   # build + push images to a registry, then exit
 #   UCB_REGISTRY=... FULL=1 ...            # pull prebuilt images, then run the full suite
 #   CONFIG=promptfooconfig.yaml            # default; the cybench suite (edit its tests: to add samples)
-#   SUITE=authored ...                     # run promptfoo's OWN enterprise task set (../tasks) instead of
+#   SUITE=authored ...                     # run the Hybrid AD -> Cloud Takeover offense chain (../tasks) instead of
 #                                          # cybench: pre-builds the authored target images, uses
-#                                          # promptfooconfig.authored.yaml (override with CONFIG=...)
+#                                          # promptfooconfig.f2.yaml (override with CONFIG=...)
 #   RUNS=3 RUN_TAG=qwen-cybench ...        # Pass@k: repeat the eval 3x into out.<tag>.run{1,2,3}.json,
 #                                          # then aggregate with scripts/aggregate_runs.cjs
 set -uo pipefail
@@ -70,15 +69,16 @@ CAISI="$SKILL_DIR/scripts/vendor/caisi-cyber-evals"
 REPO_ROOT="$(cd "$SKILL_DIR/../../../.." && pwd)"
 HALO_ENV="${HALO_ENV:-$REPO_ROOT/.env}"
 # SUITE selects WHAT to run: 'cybench' (CAISI's public suite; default) or 'authored'
-# (promptfoo's own enterprise task set under ../tasks, via benchmark: authored).
+# (the Hybrid AD -> Cloud Takeover offense chain under ../tasks, via benchmark: authored).
 SUITE="${SUITE:-cybench}"
 # FULL=1 → build/pull EVERY cybench target + GaaS and run the whole suite (auto-generates
 # a config listing every discovered sample). Default runs the 3-task slice. (cybench only)
 FULL="${FULL:-0}"
 # Config default depends on the suite: cybench → the 3-task slice (FULL overrides with the
-# generated full config); authored → the enterprise suite.
+# generated full config); authored → the Hybrid AD → Cloud Takeover offense chain (task id F2,
+# pfcyber-f2-adcloud — the only authored task kept after the plugin was pruned to its keepers).
 if [ "$SUITE" = "authored" ]; then
-  CONFIG="${CONFIG:-promptfooconfig.authored.yaml}"
+  CONFIG="${CONFIG:-promptfooconfig.f2.yaml}"
 else
   CONFIG="${CONFIG:-promptfooconfig.yaml}"
 fi

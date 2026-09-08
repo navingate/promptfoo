@@ -60,7 +60,7 @@ def pfcyber(samples: str | list[str] | None = None) -> Task:
 
     Args:
         samples: eval name(s) to include (matches each task dir's eval.yml
-            `name:`), e.g. "pfcyber-smoke". None loads every authored task.
+            `name:`), e.g. "pfcyber-f2-adcloud". None loads every authored task.
     """
     dataset = create_agentic_eval_dataset(
         TASKS_DIR, "pfcyber"

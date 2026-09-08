@@ -107,8 +107,8 @@ chmod 600 "$CAISI_DIR/.env" 2>/dev/null || true
 #    that `ucb build --only-core` would also build). The real CAISI agent image is
 #    an x86_64 Kali build (i386 multiarch + Playwright); on an arm64 host it can't
 #    build natively and is heavy to emulate. BUILD_AGENT_IMAGE=0 skips it so the
-#    caller can supply a lightweight multi-arch stand-in for the Gate-0A/authored
-#    path (run_0a.sh does exactly this). Default 1 keeps the real build for an
+#    caller can supply a lightweight multi-arch stand-in for the authored
+#    path (e.g. an arm64 authoring host). Default 1 keeps the real build for an
 #    x86_64 runner (Gate 0B / real cyber tasks).
 if [ "${BUILD_AGENT_IMAGE:-1}" = "1" ]; then
   log "building core agent image ($AGENT_IMAGE) ..."
