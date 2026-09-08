@@ -42,9 +42,15 @@
 #   bash plugins/cyber/skills/cyber-capability-run/deploy/run_cybench_x86.sh   # creds from the repo-root .env
 #   FULL=1 ...              # build/pull EVERY cybench target + GaaS and run the whole suite
 #   BUILD_GAAS=1 ...        # also build/start the Ghidra service (needed only for rev tasks)
-#   MODEL=openai/DeepSeek-V4-Flash ...     # override the target model for THIS run (no YAML edit);
-#                                          # the endpoint (AZURE_AI_BASE_URL/AZURE_AI_API_KEY) comes from the
-#                                          # repo-root .env — or pass those two inline for a one-off endpoint.
+#   CYBER_SUT_ENDPOINT=engy CYBER_MODEL=openai/glm-5.3 ...   # PREFERRED: pick a registered endpoint
+#                                          # (engy/chutes/azure/openai) from provider.py's SUT_ENDPOINTS —
+#                                          # same interface as F2 offense/defense. base_url + key + the egress
+#                                          # lockdown all resolve from the registry; needs that endpoint's key
+#                                          # (e.g. ENGY_API_KEY) in the repo-root .env. anthropic/local are
+#                                          # rejected here (no host to pin) — use scripts/run_cybench.sh.
+#   MODEL=openai/DeepSeek-V4-Flash ...     # override the target model for THIS run (no YAML edit; CYBER_MODEL
+#                                          # is the alias). Endpoint unset → legacy AZURE_AI_BASE_URL/
+#                                          # AZURE_AI_API_KEY from the repo-root .env (or pass those inline).
 #   PATCH_ROT=1 FULL=1 ...                 # repoint EOL-Debian task Dockerfiles at archive.debian.org
 #                                          # before building, to recover apt-rot'd image tasks
 #   UCB_REGISTRY=... PHASE=provision ...   # build + push images to a registry, then exit
@@ -81,7 +87,7 @@ TIMEOUT_SECS="${TIMEOUT_SECS:-$([ "$FULL" = 1 ] || [ "$SUITE" = authored ] && ec
 # --- Registry-backed image caching (build-once / pull-many; see the header) ---
 UCB_REGISTRY="${UCB_REGISTRY:-}"                  # e.g. ghcr.io/you/  (empty = local build, no cache)
 PHASE="${PHASE:-eval}"                            # 'provision' = build+push then exit; 'eval' = pull(if registry)+run
-MODEL="${MODEL:-}"                                # optional Inspect model id override (e.g. openai/DeepSeek-V4-Flash); blank = the config's model
+MODEL="${MODEL:-${CYBER_MODEL:-}}"                # optional Inspect model id override (MODEL= or the uniform CYBER_MODEL=, e.g. openai/glm-5.3); blank = the config's model
 PATCH_ROT="${PATCH_ROT:-0}"                       # 1 = repoint EOL-Debian task Dockerfiles at archive.debian.org before building (recovers apt-rot images)
 # --- Pass@k: repeat the eval to average out run-to-run variance ---
 RUNS="${RUNS:-1}"                                 # >1 = run the eval N times into per-run JSONs, then aggregate
@@ -137,22 +143,55 @@ fi
 
 # --- Read the target model endpoint (never echoed) ---
 # Both phases read it: eval uses it to lock egress + run; provision only needs the creds
-# file present so setup_caisi.sh can populate the harness .env (it is NOT used to build).
-# Model endpoint creds: inline AZURE_AI_BASE_URL/AZURE_AI_API_KEY win; otherwise pull them from the
-# consolidated repo-root .env ($HALO_ENV). Override the whole file with HALO_ENV=/path if you must.
-if [ -z "${AZURE_AI_BASE_URL:-}" ] || [ -z "${AZURE_AI_API_KEY:-}" ]; then
-  [ -f "$HALO_ENV" ] || fail "creds not found: add AZURE_AI_BASE_URL + AZURE_AI_API_KEY to $HALO_ENV, or pass them inline"
-  set -a; . "$HALO_ENV"; set +a
+# present so setup_caisi.sh can populate the harness .env (it is NOT used to build).
+#
+# Endpoint resolution — uniform with F2 offense/defense and the arm64 run_cybench.sh:
+#   CYBER_SUT_ENDPOINT=<name>  → resolve base_url + key from the shared SUT_ENDPOINTS registry
+#     (scripts/provider.py, the single source of truth) via `provider.py --resolve-endpoint`.
+#     Keys the registry references (ENGY_API_KEY, CHUTES_API_KEY, …) come from the repo-root .env.
+#   unset                      → legacy: AZURE_AI_BASE_URL/AZURE_AI_API_KEY (inline or repo-root .env).
+# The resolved base_url drives BOTH the model call AND the egress lockdown (its host is pinned as the
+# ONLY allowed destination below), so an endpoint with no base_url (anthropic/local) is REJECTED on
+# this locked path — use scripts/run_cybench.sh for those, or pass AZURE_AI_BASE_URL for a one-off.
+if [ -n "${CYBER_SUT_ENDPOINT:-}" ]; then
+  # Resolve via the single-source registry. Capture FIRST so the resolver's non-zero exit is caught:
+  # `eval "$(cmd)" || fail` does NOT catch cmd's failure (its status is discarded as an arg to eval).
+  _sut_env="$(python3 "$SKILL_DIR/scripts/provider.py" --resolve-endpoint "$CYBER_SUT_ENDPOINT")" \
+    || fail "unknown CYBER_SUT_ENDPOINT '$CYBER_SUT_ENDPOINT' (see scripts/provider.py SUT_ENDPOINTS)"
+  # Only eval output that matches the resolver contract — never stale/garbage output (e.g. an older
+  # provider.py without --resolve-endpoint), which would otherwise mis-resolve the egress-locked endpoint.
+  case "$_sut_env" in PFCYBER_SUT_*) : ;; *) fail "provider.py --resolve-endpoint gave unexpected output — is it present and up to date?" ;; esac
+  eval "$_sut_env"; unset _sut_env
+  [ -n "${PFCYBER_SUT_BASE_URL:-}" ] \
+    || fail "endpoint '$CYBER_SUT_ENDPOINT' has no base_url (anthropic/local) — the egress-locked x86 runner needs a host to pin; use scripts/run_cybench.sh, or set AZURE_AI_BASE_URL for a one-off"
+  MODEL_BASE_URL="$PFCYBER_SUT_BASE_URL"
+  _ke="${PFCYBER_SUT_KEY_ENV:-}"
+  # Pull the key from the repo-root .env ONLY if it is not already in the env — so an inline key
+  # wins and an empty .env placeholder can't clobber it.
+  if [ -n "$_ke" ] && [ -z "$(printenv "$_ke" || true)" ] && [ -f "$HALO_ENV" ]; then
+    set -a; . "$HALO_ENV"; set +a
+  fi
+  MODEL_API_KEY="$(printenv "$_ke" 2>/dev/null || true)"
+  [ -n "$MODEL_API_KEY" ] || fail "endpoint '$CYBER_SUT_ENDPOINT' needs \$${_ke:-<api_key_env>} in the env (inline or in $HALO_ENV)"
+  unset _ke
+  log "endpoint from SUT_ENDPOINTS registry: $CYBER_SUT_ENDPOINT"
+else
+  # Legacy: inline AZURE_AI_BASE_URL/AZURE_AI_API_KEY win; otherwise pull from the repo-root .env ($HALO_ENV).
+  if [ -z "${AZURE_AI_BASE_URL:-}" ] || [ -z "${AZURE_AI_API_KEY:-}" ]; then
+    [ -f "$HALO_ENV" ] || fail "creds not found: add AZURE_AI_BASE_URL + AZURE_AI_API_KEY to $HALO_ENV, pass them inline, or use CYBER_SUT_ENDPOINT=<name>"
+    set -a; . "$HALO_ENV"; set +a
+  fi
+  : "${AZURE_AI_BASE_URL:?AZURE_AI_BASE_URL missing (add it to $HALO_ENV or pass inline)}"
+  : "${AZURE_AI_API_KEY:?AZURE_AI_API_KEY missing (add it to $HALO_ENV or pass inline)}"
+  MODEL_BASE_URL="$AZURE_AI_BASE_URL"
+  MODEL_API_KEY="$AZURE_AI_API_KEY"
 fi
-: "${AZURE_AI_BASE_URL:?AZURE_AI_BASE_URL missing (add it to $HALO_ENV or pass inline)}"
-: "${AZURE_AI_API_KEY:?AZURE_AI_API_KEY missing (add it to $HALO_ENV or pass inline)}"
-MODEL_BASE_URL="$AZURE_AI_BASE_URL"
 read -r MODEL_HOST MODEL_PORT < <(python3 -c '
 import sys, urllib.parse
 u = urllib.parse.urlparse(sys.argv[1])
 print(u.hostname, u.port or (443 if u.scheme=="https" else 80))
 ' "$MODEL_BASE_URL")
-[ -n "${MODEL_HOST:-}" ] || fail "could not parse host from AZURE_AI_BASE_URL"
+[ -n "${MODEL_HOST:-}" ] || fail "could not parse host from the resolved model base URL"
 log "target endpoint: ${MODEL_HOST}:${MODEL_PORT} (key hidden)"
 
 # --- Toolchain (internet ON — before lockdown) ---
@@ -335,7 +374,8 @@ fi
 # line in the config we're about to run, into a throwaway promptfooconfig.run.yaml — so
 # you can retarget (e.g. the local Qwen vs an Azure DeepSeek endpoint) without editing
 # the committed default. Uniform for slice and full: it operates on whatever CONFIG is.
-# The matching endpoint/key still come from $HALO_ENV (the repo-root .env; AZURE_AI_BASE_URL/AZURE_AI_API_KEY).
+# The matching endpoint/key come from the resolved endpoint above (CYBER_SUT_ENDPOINT=<name> via the
+# SUT_ENDPOINTS registry, or the legacy AZURE_AI_* creds) — MODEL/CYBER_MODEL rewrites only the model NAME.
 if [ -n "$MODEL" ]; then
   RUNCFG="$SKILL_DIR/scripts/promptfooconfig.run.yaml"
   sed -E "s|^([[:space:]]*)model:[[:space:]].*|\1model: ${MODEL}|" \
@@ -370,7 +410,7 @@ bash "$SCRIPT_DIR/egress-selftest.sh" "$MODEL_IP" "$MODEL_PORT" \
 log "running ${SUITE} through promptfoo (config=${CONFIG}; runs=${RUNS}; tag=${RUN_TAG}) ..."
 cd "$SKILL_DIR/scripts" || fail "cannot cd into scripts"
 export PROMPTFOO_PYTHON="$SKILL_DIR/scripts/vendor/caisi-cyber-evals/.venv/bin/python"
-export OPENAI_BASE_URL="$MODEL_BASE_URL" OPENAI_API_KEY="$AZURE_AI_API_KEY"
+export OPENAI_BASE_URL="$MODEL_BASE_URL" OPENAI_API_KEY="$MODEL_API_KEY"
 # Make the eval-time compose resolve the SAME registry-prefixed tags `ucb pull` fetched
 # (provider.py copies this process env into the Inspect subprocess). Empty for the local
 # path — bare tags — which is exactly what a local `ucb build`/slice/authored produced.
