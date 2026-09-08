@@ -63,6 +63,14 @@ def _cfg(options, key, default=None):
     return env if env not in (None, "") else default
 
 
+def _api_model(model: str) -> str:
+    """CYBER_MODEL uses the inspect-style provider selector `openai/<deployment>` (e.g.
+    openai/DeepSeek-V4-Flash, openai/glm-5.3). The OpenAI-compatible API wants just the deployment/model
+    name — inspect strips the `openai/` selector the same way; leaving it on makes Azure/Chutes 404 with
+    DeploymentNotFound. Strip a single leading `openai/` and pass the rest through unchanged."""
+    return model[len("openai/"):] if model.startswith("openai/") else model
+
+
 def call_api(prompt=None, options=None, context=None):
     from prompts.correlation_prompt import build_prompt
 
@@ -82,8 +90,9 @@ def call_api(prompt=None, options=None, context=None):
     if not api_key:
         return {"error": f"API key env {api_key_env!r} is empty for endpoint {endpoint!r}"}
 
+    api_model = _api_model(model)
     body = json.dumps({
-        "model": model,
+        "model": api_model,
         "messages": build_prompt(),
         "temperature": float(_cfg(options, "temperature", 0.7)),
         "max_tokens": int(_cfg(options, "max_tokens", 4000)),
@@ -97,6 +106,6 @@ def call_api(prompt=None, options=None, context=None):
         return {"output": data["choices"][0]["message"]["content"]}
     except urllib.error.HTTPError as e:  # surface the endpoint's own error (e.g. an unknown model id 404)
         detail = e.read()[:400].decode(errors="replace")
-        return {"error": f"{e.code} {e.reason} from {endpoint}/{model}: {detail}"}
+        return {"error": f"{e.code} {e.reason} from {endpoint}/{api_model}: {detail}"}
     except Exception as e:  # noqa: BLE001
         return {"error": f"{type(e).__name__}: {e}"}

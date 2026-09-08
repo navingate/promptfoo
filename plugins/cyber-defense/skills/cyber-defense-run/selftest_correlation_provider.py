@@ -38,6 +38,10 @@ def main() -> int:
     check("azure" in reg and "chutes" in reg,
           f"reuses the offense endpoint registry (azure/chutes present): {sorted(reg)}")
 
+    check(cp._api_model("openai/DeepSeek-V4-Flash") == "DeepSeek-V4-Flash"
+          and cp._api_model("openai/glm-5.3") == "glm-5.3" and cp._api_model("glm-5.3") == "glm-5.3",
+          "the inspect-style 'openai/' provider prefix is stripped before the API call (DeploymentNotFound fix)")
+
     os.environ["CYBER_MODEL"] = "openai/glm-5.3"
     os.environ["CYBER_SUT_ENDPOINT"] = "engy"
     check(cp._cfg(None, "model", "d") == "openai/glm-5.3" and cp._cfg(None, "sut_endpoint", "chutes") == "engy",
