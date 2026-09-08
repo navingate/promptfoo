@@ -403,8 +403,11 @@ docker image inspect alpine:latest >/dev/null 2>&1 || docker pull alpine:latest 
   || log "WARN: alpine pull failed — the container-context self-test may fail"
 
 # --- Pin the model host, then lock egress down to it only ---
-MODEL_IP="$(getent hosts "$MODEL_HOST" | awk '{print $1; exit}')"
-[ -n "${MODEL_IP:-}" ] || fail "could not resolve $MODEL_HOST"
+# Resolve to IPv4 ONLY: the egress lockdown is IPv4 (iptables) and drops IPv6 wholesale, but a
+# dual-stack / Cloudflare-fronted endpoint (e.g. engy → api.engy.ai) returns an IPv6 first from
+# `getent hosts`, which iptables then rejects ("host/network ... not found"). ahostsv4 forces IPv4.
+MODEL_IP="$(getent ahostsv4 "$MODEL_HOST" | awk '{print $1; exit}')"
+[ -n "${MODEL_IP:-}" ] || fail "could not resolve $MODEL_HOST to an IPv4 address (egress lockdown is IPv4-only; an IPv6-only endpoint is unsupported)"
 sudo bash -c "sed -i.bak '/[[:space:]]${MODEL_HOST}\$/d' /etc/hosts 2>/dev/null; printf '%s %s\n' '${MODEL_IP}' '${MODEL_HOST}' >> /etc/hosts" \
   || log "WARN: could not pin ${MODEL_HOST} in /etc/hosts"
 log "locking down egress; only ${MODEL_HOST} (${MODEL_IP}:${MODEL_PORT}) allowed ..."
