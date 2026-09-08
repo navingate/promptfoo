@@ -175,6 +175,15 @@ if [ -n "${CYBER_SUT_ENDPOINT:-}" ]; then
   [ -n "$MODEL_API_KEY" ] || fail "endpoint '$CYBER_SUT_ENDPOINT' needs \$${_ke:-<api_key_env>} in the env (inline or in $HALO_ENV)"
   unset _ke
   log "endpoint from SUT_ENDPOINTS registry: $CYBER_SUT_ENDPOINT"
+  # setup_caisi.sh reads the model endpoint from $HALO_ENV as AZURE_AI_* (mapping them to OPENAI_* in the
+  # harness .env) and hard-requires them. On the registry path the repo .env need not carry AZURE_AI_*, so
+  # hand setup_caisi.sh a private temp creds file with the RESOLVED endpoint and repoint HALO_ENV at it
+  # (every setup_caisi.sh call site forwards "$HALO_ENV"). Mirrors run_0a.sh's vm.env carrier.
+  _caisi_creds="$(mktemp "${TMPDIR:-/tmp}/pfcyber-caisi-creds.XXXXXX")" || fail "could not create temp creds file"
+  chmod 600 "$_caisi_creds"
+  trap 'rm -f "$_caisi_creds"' EXIT
+  { printf 'AZURE_AI_BASE_URL=%s\n' "$MODEL_BASE_URL"; printf 'AZURE_AI_API_KEY=%s\n' "$MODEL_API_KEY"; } > "$_caisi_creds"
+  HALO_ENV="$_caisi_creds"
 else
   # Legacy: inline AZURE_AI_BASE_URL/AZURE_AI_API_KEY win; otherwise pull from the repo-root .env ($HALO_ENV).
   if [ -z "${AZURE_AI_BASE_URL:-}" ] || [ -z "${AZURE_AI_API_KEY:-}" ]; then
