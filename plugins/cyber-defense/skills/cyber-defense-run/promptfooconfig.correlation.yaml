@@ -1,56 +1,38 @@
 # Cyber DEFENSE — F2 federation CORRELATION detection task, run through promptfoo (v1.2).
 #
-# The SUT is a standard chat model: the prompt presents the threat brief (attack + de-oracled event schema
-# + the full rule grammar + the SOC config it may reference via {"$config": <key>}); the model returns a
-# correlation rule (JSON); the python assertion scores it over the HELD-OUT corpus with the frozen
-# two-sided grader (recall -> objective, precision -> constraint) and reports raw recall/precision/f1 PLUS a
-# timing diagnostic (pre_privesc_rate: how much of the attack the rule catches before escalation). A model
-# may write the response-grade escalation-join rule OR the preventive honored-tag rule (referencing
-# `honored_tag` from its SOC config) — the latter catches the smuggle at the tag-landing, before escalation.
-# Pure-stdlib scorer — no Docker. Live model calls are user-run.
+# One model per command, same interface as the offense calibration (CYBER_SUT_ENDPOINT + CYBER_MODEL). The
+# provider (correlation_provider.py) sends the correlation brief + SOC config as a plain chat call and
+# returns the model's rule; the python assertion scores it over the HELD-OUT GROUNDED corpus (9 real GLM
+# captures + 6 de-oracled benign) with the frozen two-sided grader (recall -> objective, precision ->
+# constraint) and reports raw recall/precision/f1 PLUS a timing diagnostic (pre_privesc_rate: how much of
+# the attack the rule catches before escalation). Pure-stdlib scorer, no Docker. Live calls are user-run.
 #
-# ── Run against the three calibration models (Chutes, OpenAI-compatible). From the REPO ROOT: ──
-#   export CHUTES_API_KEY=...            # or put it in the repo .env and add --env-file .env
-#   npm run local -- eval \
-#     -c "$PWD/plugins/cyber-defense/skills/cyber-defense-run/promptfooconfig.correlation.yaml" \
-#     --no-cache --repeat 10 \
-#     -o /tmp/f2_defense_correlation.json
-#   # --repeat 10 = the offense-style N-run pass-rate (fraction of attempts that write a detecting rule).
-#   # For one deterministic rule per model instead, drop --repeat and set temperature: 0 below.
-#   npm run local -- view -y     # or inspect /tmp/f2_defense_correlation.json (per-model pass/score/reason)
+# ── Run the three calibration models (from the repo root ~/promptfoo). CYBER_SUT_ENDPOINT resolves via the
+#    offense provider's endpoint registry (azure/chutes/engy/…); the API key env is that endpoint's. ──
+#   cd ~/promptfoo && CYBER_SUT_ENDPOINT=azure CYBER_MODEL=openai/DeepSeek-V4-Flash npm run local -- eval -c plugins/cyber-defense/skills/cyber-defense-run/promptfooconfig.correlation.yaml --no-cache --repeat 10 --max-concurrency 2 -o /tmp/f2def_deepseek.json
+#   cd ~/promptfoo && CYBER_SUT_ENDPOINT=engy  CYBER_MODEL=openai/glm-5.3          npm run local -- eval -c plugins/cyber-defense/skills/cyber-defense-run/promptfooconfig.correlation.yaml --no-cache --repeat 10 --max-concurrency 2 -o /tmp/f2def_glm53.json
+#   cd ~/promptfoo && CYBER_SUT_ENDPOINT=engy  CYBER_MODEL=openai/glm-5.2          npm run local -- eval -c plugins/cyber-defense/skills/cyber-defense-run/promptfooconfig.correlation.yaml --no-cache --repeat 10 --max-concurrency 2 -o /tmp/f2def_glm52.json
+#   npm run local -- view     # or inspect the -o JSON (per-run pass/score/reason; named recall/precision/pre_privesc_rate)
 #
-# Model ids are the Chutes catalog names the offense calibration used (model field "openai/glm-5.3" etc.).
-# If a name 404s, correct it here — GLM-5.2's exact catalog id in particular is worth confirming.
+# If an endpoint key isn't in the offense registry, pass it explicitly, e.g.:
+#   CYBER_BASE_URL=https://llm.chutes.ai/v1 CYBER_API_KEY_ENV=CHUTES_API_KEY CYBER_MODEL=openai/glm-5.3 npm run local -- eval -c ...
+# For one deterministic rule per model instead of a pass-rate, drop --repeat and set temperature: 0 below.
 description: Cyber DEFENSE — F2 federation correlation detection (v1.2)
 
 providers:
-  - id: openai:chat:openai/DeepSeek-V4-Flash
-    label: DeepSeek-V4
+  - id: file://correlation_provider.py
+    label: cyber-defense-correlation
     config:
-      apiBaseUrl: https://llm.chutes.ai/v1
-      apiKeyEnvar: CHUTES_API_KEY
-      temperature: 0.7
-      max_tokens: 4000
-  - id: openai:chat:openai/glm-5.2
-    label: GLM-5.2
-    config:
-      apiBaseUrl: https://llm.chutes.ai/v1
-      apiKeyEnvar: CHUTES_API_KEY
-      temperature: 0.7
-      max_tokens: 4000
-  - id: openai:chat:openai/glm-5.3
-    label: GLM-5.3
-    config:
-      apiBaseUrl: https://llm.chutes.ai/v1
-      apiKeyEnvar: CHUTES_API_KEY
+      # model + endpoint come from CYBER_MODEL / CYBER_SUT_ENDPOINT (or CYBER_BASE_URL + CYBER_API_KEY_ENV)
       temperature: 0.7
       max_tokens: 4000
 
 prompts:
-  - file://prompts/correlation_prompt.py:build_prompt
+  - '{{task}}' # placeholder — the provider builds the correlation brief itself (prompts/correlation_prompt.py)
 
 tests:
   - description: detect_F2easy_federation
+    vars: { task: detect_F2easy_federation }
     assert:
       - type: python
         value: file://assert_correlation.py
