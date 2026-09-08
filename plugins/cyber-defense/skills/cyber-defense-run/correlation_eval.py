@@ -13,11 +13,22 @@ Rule format (JSON/dict), all conditions must hold over one incident (`require: a
       "conditions": [
         {"type": "field",  "event": <event-type>, "field": <name>, "op": <op>, "value": <v?>},
         {"type": "exists", "event": <event-type>},
-        {"type": "absent", "event": <event-type>}
+        {"type": "exists_any", "events": [<event-type>, ...]},
+        {"type": "absent", "event": <event-type>},
+        {"type": "join",   "a": {"event": <A>, "field": <fa>}, "b": {"event": <B>, "field": <fb>},
+                           "on": "eq"|"a_in_b"|"b_in_a", "where_b": {"field","op","value"}?}
       ] }
 
-field ops: nonempty | empty | eq | in | contains | ge (numeric). A `field` condition holds if ANY
-event of that type in the incident satisfies the predicate. Unknown ops raise CorrelationUnsupported.
+field ops: nonempty | empty | eq | in | contains | ge (numeric) | len_eq | len_le | len_ge (cardinality
+of a list/str/dict field — e.g. source_attrs len_eq 1 = a single-attribute smuggle, not a spray). A
+`field` condition holds if ANY event of that type in the incident satisfies the predicate.
+
+`join` is CROSS-EVENT correlation (what single-event conditions can't express): it links two distinct
+events in the incident by their fields and optionally checks a predicate on the matched B — e.g. a tag
+that landed on the SAME session that then successfully escalated, or the provenance link between a landed
+tag and the assertion that emitted it. These are the primitives the v1.1 provenance reference rule needs.
+
+Unknown ops / condition types raise CorrelationUnsupported.
 """
 
 from __future__ import annotations
@@ -85,8 +96,67 @@ def _field_ok(events: list[dict], event_type: str, field: str, op: str, value) -
                     return True
             except (TypeError, ValueError):
                 pass
-        if op not in {"nonempty", "empty", "eq", "in", "contains", "ge"}:
+        if op in ("len_eq", "len_le", "len_ge") and isinstance(v, (list, tuple, str, dict)):
+            n = len(v)
+            if ((op == "len_eq" and n == value) or (op == "len_le" and n <= value)
+                    or (op == "len_ge" and n >= value)):
+                return True
+        if op not in {"nonempty", "empty", "eq", "in", "contains", "ge", "len_eq", "len_le", "len_ge"}:
             raise CorrelationUnsupported(f"unsupported field op: {op!r}")
+    return False
+
+
+def _member(x, container) -> bool:
+    """True iff x is an element of a list/tuple/set/str, or a KEY of a dict."""
+    if isinstance(container, dict):
+        return x in container
+    if isinstance(container, (list, tuple, set, str)):
+        return x in container
+    return False
+
+
+def _join_ok(events: list[dict], cond: dict) -> bool:
+    """Cross-event CORRELATION — the primitive single-event conditions can't express. True iff there exist
+    an event A (`a.event`) and a distinct event B (`b.event`) in the incident whose linking fields relate
+    per `on`, and (optionally) B satisfies `where_b`:
+
+        on: "eq"      -> A[a.field] == B[b.field]
+            "a_in_b"  -> A[a.field] is an element/key of B[b.field]
+            "b_in_a"  -> B[b.field] is an element/key of A[a.field]
+        where_b: {field, op, value}  -> a `field`-op predicate on the matched B (e.g. outcome == "ok")
+
+    e.g. a tag that landed on the SAME session that then successfully escalated:
+      {"type":"join","a":{"event":"session_tag_applied","field":"session_id"},
+       "b":{"event":"role_assumed","field":"via_session_id"},"on":"eq",
+       "where_b":{"field":"outcome","op":"eq","value":"ok"}}
+    or the provenance link — a landed tag whose name was emitted by an assertion in the incident:
+      {"type":"join","a":{"event":"session_tag_applied","field":"tag_name"},
+       "b":{"event":"assertion_issued","field":"emitted_tags"},"on":"a_in_b"}
+    """
+    a, b = cond.get("a") or {}, cond.get("b") or {}
+    on = cond.get("on", "eq")
+    where_b = cond.get("where_b")
+    a_evs = [e for e in events if e.get("event") == a.get("event")]
+    b_evs = [e for e in events if e.get("event") == b.get("event")]
+    for ea in a_evs:
+        av = ea.get(a.get("field"))
+        if av is None:
+            continue
+        for eb in b_evs:
+            if ea is eb:
+                continue
+            bv = eb.get(b.get("field"))
+            if on == "eq":
+                linked = bv is not None and av == bv
+            elif on == "a_in_b":
+                linked = _member(av, bv)
+            elif on == "b_in_a":
+                linked = _member(bv, av)
+            else:
+                raise CorrelationUnsupported(f"unsupported join `on`: {on!r}")
+            if linked and (where_b is None or _field_ok(
+                    [eb], eb.get("event"), where_b["field"], where_b["op"], where_b.get("value"))):
+                return True
     return False
 
 
@@ -101,6 +171,8 @@ def _cond_ok(events: list[dict], cond: dict) -> bool:
         return not any(e.get("event") == cond["event"] for e in events)
     if ctype == "field":
         return _field_ok(events, cond["event"], cond["field"], cond["op"], cond.get("value"))
+    if ctype == "join":
+        return _join_ok(events, cond)
     raise CorrelationUnsupported(f"unsupported condition type: {ctype!r}")
 
 

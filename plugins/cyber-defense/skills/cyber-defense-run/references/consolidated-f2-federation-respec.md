@@ -95,7 +95,11 @@ Benign (must NOT flag): non-honored tag from an authoritative attr; no-tag login
    authoritative source (transfer variant) so provenance, not tag presence/name, is the discriminator.
 3. **Near-miss set** (me + L3): spray→`denied_schema`, decoy→tag-less→`denied_trust`, wrong-value→
    tag-lands→`denied_trust`.
-4. **Reference-rule re-key** (me): §5 above.
+4. **Reference-rule re-key** (me): §5 above. **UNBLOCKED** — the cross-event `join` + cardinality
+   (`len_eq`/`len_ge`) primitives it needs are now built + tested in `correlation_eval` (`selftest_join`),
+   additively (v1 rule/corpus untouched). The escalation-join (tag landed on the SAME session that then
+   escalated OK) is oracle-resistant by construction — it does NOT fire on a benign tag that never
+   escalates — so the re-key is pure rule composition, no more engine work.
 5. **Contract patch** (me): §6 notes.
 6. **Re-score + re-calibrate**; the oracle check (`{exists session_tag_applied}`) must now FAIL (benign
    carry tags), and a provenance rule must be the only one that stays clean.
