@@ -105,7 +105,37 @@ def main() -> int:
         raised = True
     check(raised, "a $config reference with no SOC config raises CorrelationUnsupported (not a silent pass)")
 
-    # (4) single-instance scope, documented so the claim isn't overread.
+    # (4) INSTANCE-INDEPENDENCE (mechanism proof). A synthetic SECOND instance where the honored tag is a
+    # DIFFERENT name -- exactly what a different generator seed produces (L3: the honored source/tag varies
+    # per seed, e.g. userType->estate-tier; the synthesizer infers it, never a literal). The SAME preventive
+    # rule, given that instance's honored_tag as config, still scores 1.0/1.0 -- while a HARD-CODED
+    # "deploy-eligibility" rule now FAILS on it. This proves the config-driven rule is instance-independent.
+    honored_new = "estate-tier"
+    tp2 = []
+    for m2 in json.loads((GROUNDED / "corpus-manifest.json").read_text()):
+        bd = json.loads((GROUNDED / m2["file"]).read_text())  # fresh copy from disk (no mutation leak)
+        for e in bd["events"]:
+            if e["event"] == "assertion_issued" and SOC["honored_tag"] in e.get("emitted_tags", {}):
+                e["emitted_tags"][honored_new] = e["emitted_tags"].pop(SOC["honored_tag"])
+            if e["event"] == "session_tag_applied" and e.get("tag_name") == SOC["honored_tag"]:
+                e["tag_name"] = honored_new
+        tp2.append({"key": bd["key"], "label": "malicious", "events": bd["events"],
+                    "ledger": event_anchored_ledger(bd["events"])})
+    ev2, truth2, _ = assemble(tp2 + to_bundles(event_from_request), seed="preventive-inst2")
+
+    m2 = score_corpus(PREVENTIVE, ev2, truth2, config={**SOC, "honored_tag": honored_new})
+    check(m2.recall == 1.0 and m2.precision == 1.0 and m2.tp == 9,
+          f"instance-independent: the SAME rule scores {m2.recall:.2f}/{m2.precision:.2f} on a 2nd instance "
+          f"(honored tag {honored_new!r}) via config alone — no rule change")
+    literal = {"require": "all", "conditions": [{"type": "field", "event": "session_tag_applied",
+               "field": "tag_name", "op": "eq", "value": SOC["honored_tag"]}]}
+    ml = score_corpus(literal, ev2, truth2)
+    check(ml.recall == 0.0,
+          f"a HARD-CODED {SOC['honored_tag']!r} rule FAILS on the 2nd instance (recall {ml.recall:.2f}) — "
+          "the literal the config-driven rule avoids")
+
+    # (5) scope: the mechanism is proven synthetically above; the REAL multi-instance corpus (navnn's
+    # different-seed VM campaign, handed over by L3) adds ecological validity across genuine instances.
     honored_tags = set()
     for m2 in json.loads((GROUNDED / "corpus-manifest.json").read_text()):
         bd = json.loads((GROUNDED / m2["file"]).read_text())
@@ -113,8 +143,8 @@ def main() -> int:
             if e["event"] == "assertion_issued":
                 honored_tags |= set(e["emitted_tags"])
     check(honored_tags == {SOC["honored_tag"]},
-          f"KNOWN SCOPE: corpus is single-instance (all honored tags = {honored_tags}); instance-independence "
-          "across different honored tags needs a multi-instance corpus (requested from L3)")
+          f"SCOPE: grounded corpus is single-instance ({honored_tags}) — instance-independence proven "
+          "synthetically above; real different-seed captures (L3/navnn campaign) add ecological validity")
 
     print("[selftest_preventive]", "PASS" if ok else "FAIL")
     return 0 if ok else 1
