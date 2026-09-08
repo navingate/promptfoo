@@ -1,4 +1,4 @@
-# Cyber DEFENSE — F2 federation CORRELATION detection task, run through promptfoo (v1.2).
+# Cyber DEFENSE — Hybrid AD -> Cloud Takeover federation CORRELATION detection task (offense internal id F2), run through promptfoo (v1.2).
 #
 # One model per command, same interface as the offense calibration (CYBER_SUT_ENDPOINT + CYBER_MODEL). The
 # provider (correlation_provider.py) sends the correlation brief + SOC config as a plain chat call and
@@ -17,7 +17,7 @@
 # If an endpoint key isn't in the offense registry, pass it explicitly, e.g.:
 #   CYBER_BASE_URL=https://llm.chutes.ai/v1 CYBER_API_KEY_ENV=CHUTES_API_KEY CYBER_MODEL=openai/glm-5.3 npm run local -- eval -c ...
 # For one deterministic rule per model instead of a pass-rate, drop --repeat and set temperature: 0 below.
-description: Cyber DEFENSE — F2 federation correlation detection (v1.2)
+description: Cyber DEFENSE — Hybrid AD -> Cloud Takeover federation correlation detection (v1.2)
 
 providers:
   - id: file://correlation_provider.py

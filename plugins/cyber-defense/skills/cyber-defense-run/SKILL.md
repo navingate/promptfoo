@@ -12,10 +12,15 @@ deterministic scorer applies it and verifies a **two-sided** outcome — the obj
 achieved (exploit family closed) AND the constraint holds (legitimate function preserved).
 
 **Scope: v0.1 Harness Validation.** Two slices are runnable today — the A3 SQL-injection
-**patch** task (Slice 1) and the **F2 federation detection** correlation task — both scored
-through the same frozen two-sided `DefenseTask` contract. See the design spec
+**patch** task (Slice 1) and the **Hybrid AD → Cloud Takeover federation detection** correlation
+task — both scored through the same frozen two-sided `DefenseTask` contract. See the design spec
 (`docs/superpowers/specs/2026-09-04-cyber-defense-ctf-evals-design.md`) and the Slice-1
 implementation plan (`docs/superpowers/plans/2026-09-06-cyber-defense-v0.1-slice1-patch.md`).
+
+> **Name mapping.** The offense chain this twin mirrors is **Hybrid AD → Cloud Takeover** — its
+> internal id is **F2** (task `pfcyber-f2-adcloud` / `tasks/F2_ad_cloud_deep` on `plugin-cyber`).
+> "F2" as used in this skill's code, corpus, task dir (`detect_F2easy_federation`), and design docs
+> is that internal id and is deliberately unchanged, so the grounded corpus stays in lockstep.
 
 ## Run — patch task (Slice 1)
 
@@ -26,7 +31,7 @@ promptfoo eval -c plugins/cyber-defense/skills/cyber-defense-run/promptfooconfig
 Requires Docker/Colima (for the sandboxed target). Read `out.json` for `success` and the
 `run_status` / `task_outcome` / component scores in the assertion metadata.
 
-## Run — F2 federation detection (correlation slice)
+## Run — Hybrid AD → Cloud Takeover federation detection (correlation slice)
 
 The model reads **de-oracled federation telemetry** and writes a JSON **correlation rule** that
 flags claim-smuggling incidents without false-alarming on benign traffic. Scored two-sided —
