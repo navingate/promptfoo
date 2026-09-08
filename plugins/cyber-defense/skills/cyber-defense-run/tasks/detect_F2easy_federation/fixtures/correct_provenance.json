@@ -8,7 +8,11 @@
       "b": { "event": "assertion_issued", "field": "emitted_tags" },
       "on": "a_in_b",
       "where_a": { "field": "tag_name", "op": "eq", "value": { "$config": "honored_tag" } },
-      "where_b": { "field": "source_attrs", "op": "overlaps", "value": { "$config": "self_service_attrs" } }
+      "where_b": {
+        "field": "source_attrs",
+        "op": "overlaps",
+        "value": { "$config": "self_service_attrs" }
+      }
     }
   ]
 }
