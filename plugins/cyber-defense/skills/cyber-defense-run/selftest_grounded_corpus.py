@@ -27,11 +27,15 @@ from translate import event_from_request  # noqa: E402
 
 RULE = json.loads((TASK / "fixtures" / "correct.json").read_text())
 ORACLE = {"require": "all", "conditions": [{"type": "exists", "event": "session_tag_applied"}]}
-# KNOWN v1.2 GAP (documented as a tripwire, not a passing property): the de-oracled benign land tags but
-# never ESCALATE, so a cruder "an escalation happened at all" rule still separates this corpus perfectly.
-# v1.1 killed the tag-PRESENCE oracle; the escalation-PRESENCE shortcut survives until a benign
-# legitimate-escalation control lands (v1.2, coupled with a 3-way provenance rule keyed on source-attr
-# editability). This assertion trips when that control lands, forcing the number's claim to be re-earned.
+# ESCALATION-PRESENCE is FAITHFUL-BUT-NON-GENERALIZING on this estate (documented as a tripwire). F2 Chain
+# verified (cloudiam/app.py:210-219): the /iam/assume|/iam/grant gate requires the smuggled honored tag at
+# the correct value, and NO benign principal holds it — so in the F2 estate AS BUILT, escalation IS the
+# attack, and a cruder "an escalation happened at all" rule scores 1.0 faithfully, not as a shortcut. The
+# limitation is GENERALIZATION: a real estate has legit deploy engineers who assume the role, where
+# escalation-presence would false-alarm and only PROVENANCE (was the honored tag smuggled via a
+# self-service source attr, per correct.json's legs) separates. This corpus can't yet DEMONSTRATE that gap
+# because the estate models no benign escalation; a benign legit-escalation twin is an OFFENSE-side change
+# (add a legit escalation path — navnn's call, F2 Chain flagging). This assertion trips if such a twin lands.
 ESCALATION_SHORTCUT = {"require": "all",
                        "conditions": [{"type": "exists_any", "events": ["role_assumed", "grant_issued"]}]}
 
@@ -100,13 +104,15 @@ def main() -> int:
           f"tag-presence ORACLE is DEAD: {{exists session_tag_applied}} precision {o.precision:.2f} "
           f"(false-alarms on {o.fp} tag-bearing benign) — the v1 shortcut no longer scores 1.0")
 
-    # HONEST tripwire (NOT a win): the escalation-PRESENCE shortcut still reaches 1.0/1.0 because no benign
-    # escalates yet. Asserting the gap keeps it visible and trips when the v1.2 benign legit-escalation
-    # control lands (which will also require re-keying correct.json onto the 3-way source-attr provenance).
+    # HONEST tripwire: the escalation-PRESENCE shortcut also scores 1.0/1.0. On THIS estate that is FAITHFUL,
+    # not a defect — F2 Chain verified escalation is inherently the attack (the assume/grant gate requires the
+    # smuggled tag; no benign principal holds it). The limitation is that the corpus can't DEMONSTRATE the
+    # generalizing provenance discriminator vs a mere escalation-presence rule, because it models no benign
+    # escalation. Trips if an offense-side benign legit-escalation twin is added (navnn's call).
     s = score_corpus(ESCALATION_SHORTCUT, events, truth)
     check(s.recall == 1.0 and s.precision == 1.0,
-          f"KNOWN v1.2 GAP: escalation-presence shortcut still scores {s.recall:.2f}/{s.precision:.2f} "
-          "(no benign escalates) — number is NOT yet gameproof; needs the benign legit-escalation control")
+          f"escalation-presence scores {s.recall:.2f}/{s.precision:.2f} — FAITHFUL on this estate (escalation "
+          "IS the attack) but non-generalizing; provenance (correct.json) is the generalizing discriminator")
 
     prof = timing_profile(RULE, events, truth, ledger, target_hop="h4_federation")
     detected = sum(v["timing"] != "missed" for k, v in prof["per_incident"].items() if truth[k] == "malicious")

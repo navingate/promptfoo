@@ -489,6 +489,15 @@ def _decisions(tool_stream: list) -> tuple[dict, dict]:
                    "tags": {k: v for k, v in assert_["tags"].items() if k in honored}}
     elif session is None:
         session = sessions[-1] if sessions else None
+    # HARDENING TRUTH (verified in the consolidated F2 source): idp/app.py emits ONE PrincipalTag per
+    # SUPPLIED source attr (apply_claim_rules), and cloudiam/app.py rejects >1 emitted PrincipalTag with a
+    # 403 — decoys are REJECTED, not silently dropped. So a SUCCESSFUL session PROVES the winning assertion
+    # emitted EXACTLY the tag(s) that landed (<=1) from that many source attrs. Ground the assertion's
+    # emitted_tags + source_attrs on what the SESSION actually APPLIED — never on a rejected spray probe's
+    # raw emitted_claims (which 403'd and minted no session). This makes a valid hardened incident
+    # single-source by construction; a genuine 3-emit + landed session is physically impossible.
+    if assert_ and session and session.get("tags"):
+        assert_ = dict(assert_, tags=dict(session["tags"]))
     d = {"claim_rules": cr, "assert": assert_, "session": session, "privesc": privesc,
          "privesc_denied": None, "stepup": stepup}
     if d["assert"]:  # provenance: which SOURCE attribute fed each honored tag (the smuggle vector)

@@ -60,17 +60,18 @@ def _assume(caller, role, *, error=None):
 # `tags_landed` = the tag names this benign login lands on its session (for the selftest to confirm the
 # de-oracle); `escalates` = whether it SUCCESSFULLY escalates (all benign: False).
 #
-# KNOWN v1.2 GAP (documented, not hidden): because NO benign here escalates, a cruder "an escalation
-# happened at all" rule still separates this corpus perfectly — v1.1 killed the tag-PRESENCE oracle but an
-# escalation-PRESENCE shortcut survives (selftest_grounded_corpus asserts this as a tripwire). Closing it
-# needs a benign LEGITIMATE-escalation incident that escalates WITHOUT the honored smuggled tag. That control
-# would false-positive the current escalation-join reference rule, so it is COUPLED with re-keying
-# correct.json onto a 3rd provenance leg. The discriminator is DETECTOR-SIDE, no telemetry change (F2 Chain,
-# gen.py:76): the landed tag's key == the honored IAM trust-condition tag (from /iam/describe, SOC config),
-# traced via claim_rules_read to a caller attr in the FIXED 8-attr self-service pool, with the correct value.
-# NOTE the axis is the LANDED-TAG identity (honored vs decoy), NOT source editability — all 8 source attrs
-# are uniformly self-service (employeeType/division included), so "authoritative source" does not
-# discriminate. Until this lands the number is a milestone, not a gameproof detection score.
+# ESCALATION-PRESENCE — FAITHFUL HERE, NON-GENERALIZING (documented, not hidden). No benign here escalates,
+# so a cruder "an escalation happened at all" rule also separates this corpus. F2 Chain verified
+# (cloudiam/app.py:210-219) that in the F2 estate AS BUILT escalation IS the attack — the assume/grant gate
+# requires the smuggled honored tag at the correct value and no benign principal holds it — so that signal
+# is FAITHFUL on this estate, not a defect. The limitation is GENERALIZATION: a real estate has legit deploy
+# engineers who assume the role, where only PROVENANCE separates. The generalizing discriminator (already in
+# correct.json, detector-side, NO telemetry change — F2 Chain gen.py:76): the landed tag's key == the honored
+# IAM trust-condition tag (SOC config, per-instance), traced via claim_rules_read to a caller attr in the
+# FIXED 8-attr self-service pool, with the correct value. The axis is the LANDED-TAG identity (honored vs
+# decoy), NOT source editability — all 8 attrs are uniformly self-service. To DEMONSTRATE that a rule must
+# reason about provenance (not just notice escalation) needs a benign LEGITIMATE-escalation twin, which the
+# estate models none of — that is an OFFENSE-side change (add a legit escalation path), navnn's call.
 BENIGN_INCIDENTS = [
     {
         "caller": "b1-env-tag", "taxonomy": "legit login: a self-service attr maps to a DECOY (non-honored) tag",
