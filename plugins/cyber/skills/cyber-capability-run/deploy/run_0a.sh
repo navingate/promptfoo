@@ -15,7 +15,13 @@
 # Usage:
 #   bash run_0a.sh [taskid ...]         # reads creds from HALO_ENV (default path)
 #   HALO_ENV=/path/.env bash run_0a.sh  # point at a different creds file
-# Creds file must define AZURE_AI_BASE_URL + AZURE_AI_API_KEY (OpenAI-compatible).
+#   CYBER_SUT_ENDPOINT=engy CYBER_MODEL=openai/glm-5.3 bash run_0a.sh   # PREFERRED: pick a registered
+#                                       # endpoint (engy/chutes/azure/openai) from provider.py's
+#                                       # SUT_ENDPOINTS — same interface as the Cybench runners + F2. Its
+#                                       # base_url host + key drive the VM egress lockdown; needs that
+#                                       # endpoint's key (e.g. ENGY_API_KEY) in the repo-root .env.
+#                                       # anthropic/local are rejected here (no host to pin).
+# Endpoint unset → legacy AZURE_AI_BASE_URL + AZURE_AI_API_KEY from the repo-root .env (OpenAI-compatible).
 # Default task: pfcyber-smoke (Wave 0 plumbing).
 set -uo pipefail
 
@@ -63,21 +69,51 @@ if [ "$(uname -m)" = "arm64" ] && command -v file >/dev/null; then
   fi
 fi
 
-# --- Read the target endpoint + key (never echoed) ---
-[ -f "$HALO_ENV" ] || fail "creds file not found: $HALO_ENV (set HALO_ENV)"
-set -a
-# shellcheck disable=SC1090
-source "$HALO_ENV"
-set +a
-: "${AZURE_AI_BASE_URL:?AZURE_AI_BASE_URL missing from $HALO_ENV}"
-: "${AZURE_AI_API_KEY:?AZURE_AI_API_KEY missing from $HALO_ENV}"
-MODEL_BASE_URL="$AZURE_AI_BASE_URL"
+# --- Read the target model endpoint (never echoed) ---
+# Endpoint resolution — uniform with F2 offense/defense and the Cybench runners:
+#   CYBER_SUT_ENDPOINT=<name>  → resolve base_url + key from the shared SUT_ENDPOINTS registry
+#     (scripts/provider.py, the single source of truth) via `provider.py --resolve-endpoint`.
+#     Keys the registry references (ENGY_API_KEY, CHUTES_API_KEY, …) come from the repo-root .env.
+#   unset                      → legacy: AZURE_AI_BASE_URL/AZURE_AI_API_KEY from the repo-root .env ($HALO_ENV).
+# The resolved base_url drives BOTH the model call AND the VM egress lockdown (its host is pinned as the
+# ONLY allowed destination), so a base_url-absent endpoint (anthropic/local) is REJECTED here.
+if [ -n "${CYBER_SUT_ENDPOINT:-}" ]; then
+  # Resolve via the single-source registry. Capture FIRST so the resolver's non-zero exit is caught:
+  # `eval "$(cmd)" || fail` does NOT catch cmd's failure (its status is discarded as an arg to eval).
+  _sut_env="$(python3 "$SKILL_DIR/scripts/provider.py" --resolve-endpoint "$CYBER_SUT_ENDPOINT")" \
+    || fail "unknown CYBER_SUT_ENDPOINT '$CYBER_SUT_ENDPOINT' (see scripts/provider.py SUT_ENDPOINTS)"
+  # Only eval output matching the resolver contract — never stale/garbage (e.g. an older provider.py).
+  case "$_sut_env" in PFCYBER_SUT_*) : ;; *) fail "provider.py --resolve-endpoint gave unexpected output — is it present and up to date?" ;; esac
+  eval "$_sut_env"; unset _sut_env
+  [ -n "${PFCYBER_SUT_BASE_URL:-}" ] \
+    || fail "endpoint '$CYBER_SUT_ENDPOINT' has no base_url (anthropic/local) — the egress-locked Gate-0A VM needs a host to pin; use a base_url endpoint, or the arm64 scripts/run_cybench.sh"
+  MODEL_BASE_URL="$PFCYBER_SUT_BASE_URL"
+  _ke="${PFCYBER_SUT_KEY_ENV:-}"
+  # Pull the key from the repo-root .env ONLY if it is not already in the env — so an inline key
+  # wins and an empty .env placeholder can't clobber it.
+  if [ -n "$_ke" ] && [ -z "$(printenv "$_ke" || true)" ] && [ -f "$HALO_ENV" ]; then set -a; . "$HALO_ENV"; set +a; fi
+  MODEL_API_KEY="$(printenv "$_ke" 2>/dev/null || true)"
+  [ -n "$MODEL_API_KEY" ] || fail "endpoint '$CYBER_SUT_ENDPOINT' needs \$${_ke:-<api_key_env>} in the env (inline or in $HALO_ENV)"
+  unset _ke
+  log "endpoint from SUT_ENDPOINTS registry: $CYBER_SUT_ENDPOINT"
+else
+  # Legacy: AZURE_AI_BASE_URL/AZURE_AI_API_KEY from the repo-root .env.
+  [ -f "$HALO_ENV" ] || fail "creds file not found: $HALO_ENV (set HALO_ENV, or use CYBER_SUT_ENDPOINT=<name>)"
+  set -a
+  # shellcheck disable=SC1090
+  source "$HALO_ENV"
+  set +a
+  : "${AZURE_AI_BASE_URL:?AZURE_AI_BASE_URL missing from $HALO_ENV}"
+  : "${AZURE_AI_API_KEY:?AZURE_AI_API_KEY missing from $HALO_ENV}"
+  MODEL_BASE_URL="$AZURE_AI_BASE_URL"
+  MODEL_API_KEY="$AZURE_AI_API_KEY"
+fi
 read -r MODEL_HOST MODEL_PORT < <(python3 -c '
 import sys, urllib.parse
 u = urllib.parse.urlparse(sys.argv[1])
 print(u.hostname, u.port or (443 if u.scheme=="https" else 80))
 ' "$MODEL_BASE_URL")
-[ -n "${MODEL_HOST:-}" ] || fail "could not parse host from AZURE_AI_BASE_URL"
+[ -n "${MODEL_HOST:-}" ] || fail "could not parse host from the resolved model base URL"
 log "target endpoint: ${MODEL_HOST}:${MODEL_PORT} (full base URL used verbatim; key hidden)"
 
 # --- Refuse sensitive/gated tasks: Gate 0A is non-sensitive diagnostics only ---
@@ -129,10 +165,12 @@ tar -C "$SKILL_DIR" \
 vmssh sudo chown -R "$(vmssh whoami)" /opt/cyber || true
 vmssh mkdir -p /opt/cyber/scripts/vendor || true
 # Write a VM-local creds file (chmod 600, never printed) so setup_caisi.sh maps
-# AZURE_AI_* -> OPENAI_* inside the VM without needing the laptop path.
+# AZURE_AI_* -> OPENAI_* inside the VM without needing the laptop path. Values are the
+# RESOLVED endpoint (CYBER_SUT_ENDPOINT registry, or the legacy AZURE_AI_* creds); the
+# AZURE_AI_* names are just the carriers setup_caisi.sh reads.
 vmssh bash -c 'umask 077; cat > /opt/cyber/vm.env' <<EOF
 AZURE_AI_BASE_URL=${MODEL_BASE_URL}
-AZURE_AI_API_KEY=${AZURE_AI_API_KEY}
+AZURE_AI_API_KEY=${MODEL_API_KEY}
 EOF
 # The disposable VM starts bare — install the toolchain the harness + promptfoo
 # need (internet ON, before lockdown). NodeSource gives a modern Node for the
@@ -218,12 +256,23 @@ log "running egress self-test (hard gate) ..."
 vmssh bash /opt/cyber/deploy/egress-selftest.sh "$MODEL_IP" "$MODEL_PORT" \
   || fail "egress self-test FAILED — refusing to run diagnostics"
 
+# --- Optional model override (CYBER_MODEL=<id>): rewrite the config's model: line IN THE VM ---
+# The config copied into the VM hardcodes a default model; CYBER_MODEL rewrites ONLY that line into a
+# throwaway promptfooconfig.run.yaml (uniform with the Cybench x86 runner). Unset → the committed model.
+RUN_CONFIG="$CONFIG"
+if [ -n "${CYBER_MODEL:-}" ]; then
+  vmssh bash -c "sed -E 's|^([[:space:]]*)model:[[:space:]].*|\1model: ${CYBER_MODEL}|' /opt/cyber/scripts/${CONFIG} > /opt/cyber/scripts/promptfooconfig.run.yaml && grep -qE '^[[:space:]]*model:[[:space:]]*${CYBER_MODEL}\$' /opt/cyber/scripts/promptfooconfig.run.yaml" \
+    || fail "CYBER_MODEL override did not take (no provider model: line in ${CONFIG}?)"
+  RUN_CONFIG="promptfooconfig.run.yaml"
+  log "CYBER_MODEL override → ${CYBER_MODEL} (running promptfooconfig.run.yaml in the VM)"
+fi
+
 # --- Run the diagnostics inside the VM ---
 # The task set comes from the config's `tests:` (task guard above validated the
 # requested ids; the smoke config runs pfcyber-smoke). `--description` stamps the
 # run development-only. Full base URL used verbatim (handles Azure's /openai/v1);
 # the key comes from the VM-local vm.env, never a command line.
-log "running the authored eval inside the VM (config=${CONFIG}; label=gate0a-dev) ..."
+log "running the authored eval inside the VM (config=${RUN_CONFIG}; label=gate0a-dev) ..."
 # The wall-clock guard MUST run inside the VM: `timeout` is GNU coreutils, present
 # on the Linux VM but NOT on the macOS host (there it's `gtimeout`, and only if
 # coreutils is installed). Running it host-side failed with "command not found".
@@ -233,7 +282,7 @@ vmssh bash -lc "
   export PROMPTFOO_PYTHON=/opt/cyber/scripts/vendor/caisi-cyber-evals/.venv/bin/python &&
   export OPENAI_BASE_URL='${MODEL_BASE_URL}' OPENAI_API_KEY=\"\$AZURE_AI_API_KEY\" &&
   export PROMPTFOO_DISABLE_TELEMETRY=1 PROMPTFOO_DISABLE_UPDATE=1 &&
-  timeout ${TIMEOUT_SECS} promptfoo eval -c ${CONFIG} --no-cache --description 'gate0a-dev (development-only; not assurance-grade)' -o /opt/cyber/out.json
+  timeout ${TIMEOUT_SECS} promptfoo eval -c ${RUN_CONFIG} --no-cache --description 'gate0a-dev (development-only; not assurance-grade)' -o /opt/cyber/out.json
 "
 rc=$?
 [ "$rc" -eq 124 ] && fail "run exceeded ${TIMEOUT_SECS}s — VM will be force-deleted by teardown"
