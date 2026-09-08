@@ -1,27 +1,243 @@
 [
-  {"label": "malicious", "event": {"host": "WKS-14", "user": "alice", "parent": "winword.exe", "process": "C:\\Windows\\System32\\WindowsPowerShell\\v1.0\\powershell.exe", "command_line": "powershell.exe -NoProfile -EncodedCommand SQBFAFgAKABuAGUAdwAtAG8AYgBqAGUAYwB0ACAA"}},
-  {"label": "malicious", "event": {"host": "WKS-02", "user": "bob", "parent": "cmd.exe", "process": "C:\\Windows\\System32\\WindowsPowerShell\\v1.0\\powershell.exe", "command_line": "powershell -w hidden -enc JABzAD0ATgBlAHcALQBPAGIAagBlAGMAdAA="}},
-  {"label": "malicious", "event": {"host": "SRV-DB1", "user": "svc_sql", "parent": "sqlservr.exe", "process": "powershell.exe", "command_line": "powershell.exe -ec ZQBjAGgAbwAgAGgAZQBsAGwAbwA="}},
-  {"label": "malicious", "event": {"host": "WKS-14", "user": "alice", "parent": "outlook.exe", "process": "C:\\Windows\\System32\\WindowsPowerShell\\v1.0\\powershell.exe", "command_line": "PowerShell.exe -NonInteractive -EnCodedCommand aQB3AHIAIABoAHQAdABwADoALwAvAA=="}},
-  {"label": "malicious", "event": {"host": "SRV-APP2", "user": "svc_web", "parent": "w3wp.exe", "process": "powershell.exe", "command_line": "powershell -noni -ExecutionPolicy Bypass -Enc dwBnAGUAdAAgAGgAdAB0AHAA"}},
+  {
+    "label": "malicious",
+    "event": {
+      "host": "WKS-14",
+      "user": "alice",
+      "parent": "winword.exe",
+      "process": "C:\\Windows\\System32\\WindowsPowerShell\\v1.0\\powershell.exe",
+      "command_line": "powershell.exe -NoProfile -EncodedCommand SQBFAFgAKABuAGUAdwAtAG8AYgBqAGUAYwB0ACAA"
+    }
+  },
+  {
+    "label": "malicious",
+    "event": {
+      "host": "WKS-02",
+      "user": "bob",
+      "parent": "cmd.exe",
+      "process": "C:\\Windows\\System32\\WindowsPowerShell\\v1.0\\powershell.exe",
+      "command_line": "powershell -w hidden -enc JABzAD0ATgBlAHcALQBPAGIAagBlAGMAdAA="
+    }
+  },
+  {
+    "label": "malicious",
+    "event": {
+      "host": "SRV-DB1",
+      "user": "svc_sql",
+      "parent": "sqlservr.exe",
+      "process": "powershell.exe",
+      "command_line": "powershell.exe -ec ZQBjAGgAbwAgAGgAZQBsAGwAbwA="
+    }
+  },
+  {
+    "label": "malicious",
+    "event": {
+      "host": "WKS-14",
+      "user": "alice",
+      "parent": "outlook.exe",
+      "process": "C:\\Windows\\System32\\WindowsPowerShell\\v1.0\\powershell.exe",
+      "command_line": "PowerShell.exe -NonInteractive -EnCodedCommand aQB3AHIAIABoAHQAdABwADoALwAvAA=="
+    }
+  },
+  {
+    "label": "malicious",
+    "event": {
+      "host": "SRV-APP2",
+      "user": "svc_web",
+      "parent": "w3wp.exe",
+      "process": "powershell.exe",
+      "command_line": "powershell -noni -ExecutionPolicy Bypass -Enc dwBnAGUAdAAgAGgAdAB0AHAA"
+    }
+  },
 
-  {"label": "benign", "event": {"host": "WKS-14", "user": "alice", "parent": "powershell.exe", "process": "powershell.exe", "command_line": "powershell.exe Get-Process | Sort-Object CPU"}},
-  {"label": "benign", "event": {"host": "SRV-APP2", "user": "deploy", "parent": "cmd.exe", "process": "powershell.exe", "command_line": "powershell -Command Install-Module -Name Az -Scope CurrentUser"}},
-  {"label": "benign", "event": {"host": "WKS-07", "user": "carol", "parent": "explorer.exe", "process": "powershell.exe", "command_line": "powershell.exe -File C:\\scripts\\backup-nightly.ps1"}},
-  {"label": "benign", "event": {"host": "WKS-19", "user": "dan", "parent": "code.exe", "process": "powershell.exe", "command_line": "powershell -NoLogo -Command $PSVersionTable.PSVersion"}},
-  {"label": "benign", "event": {"host": "SRV-BUILD", "user": "svc_ci", "parent": "agent.exe", "process": "C:\\tools\\encoder.exe", "command_line": "encoder.exe --enc h264 --input render.mov --output out.mp4"}},
-  {"label": "benign", "event": {"host": "SRV-BUILD", "user": "svc_ci", "parent": "agent.exe", "process": "C:\\app\\license.exe", "command_line": "license.exe --encode-check --seat 42"}},
-  {"label": "benign", "event": {"host": "WKS-07", "user": "carol", "parent": "explorer.exe", "process": "C:\\Program Files\\Google\\Chrome\\Application\\chrome.exe", "command_line": "chrome.exe --profile-directory=Default --restore-last-session"}},
-  {"label": "benign", "event": {"host": "WKS-19", "user": "dan", "parent": "services.exe", "process": "C:\\Windows\\System32\\svchost.exe", "command_line": "svchost.exe -k netsvcs -p"}},
-  {"label": "benign", "event": {"host": "SRV-DB1", "user": "svc_sql", "parent": "services.exe", "process": "C:\\Program Files\\Microsoft SQL Server\\sqlservr.exe", "command_line": "sqlservr.exe -sMSSQLSERVER"}},
-  {"label": "benign", "event": {"host": "WKS-02", "user": "bob", "parent": "explorer.exe", "process": "C:\\Program Files\\Microsoft VS Code\\Code.exe", "command_line": "Code.exe --enable-crash-reporter"}},
-  {"label": "benign", "event": {"host": "WKS-14", "user": "alice", "parent": "explorer.exe", "process": "C:\\Windows\\explorer.exe", "command_line": "explorer.exe"}},
-  {"label": "benign", "event": {"host": "SRV-APP2", "user": "svc_web", "parent": "services.exe", "process": "C:\\Windows\\System32\\inetsrv\\w3wp.exe", "command_line": "w3wp.exe -ap AppPoolDefault"}},
-  {"label": "benign", "event": {"host": "WKS-07", "user": "carol", "parent": "cmd.exe", "process": "C:\\Python311\\python.exe", "command_line": "python.exe manage.py runserver 0.0.0.0:8000"}},
-  {"label": "benign", "event": {"host": "WKS-19", "user": "dan", "parent": "code.exe", "process": "C:\\Program Files\\nodejs\\node.exe", "command_line": "node.exe server.js --port 3000"}},
-  {"label": "benign", "event": {"host": "WKS-02", "user": "bob", "parent": "explorer.exe", "process": "C:\\Windows\\System32\\cmd.exe", "command_line": "cmd.exe /c dir C:\\Users\\bob\\Documents"}},
-  {"label": "benign", "event": {"host": "SRV-DB1", "user": "svc_sql", "parent": "cmd.exe", "process": "powershell.exe", "command_line": "powershell.exe -File C:\\ops\\healthcheck.ps1 -Verbose"}},
-  {"label": "benign", "event": {"host": "WKS-14", "user": "alice", "parent": "teams.exe", "process": "C:\\Users\\alice\\AppData\\Local\\Microsoft\\Teams\\Teams.exe", "command_line": "Teams.exe --type=renderer"}},
-  {"label": "benign", "event": {"host": "SRV-BUILD", "user": "svc_ci", "parent": "agent.exe", "process": "C:\\Program Files\\Git\\bin\\git.exe", "command_line": "git.exe fetch --all --prune"}},
-  {"label": "benign", "event": {"host": "WKS-07", "user": "carol", "parent": "powershell.exe", "process": "powershell.exe", "command_line": "powershell -Command Get-EventLog -LogName Security -Newest 10"}}
+  {
+    "label": "benign",
+    "event": {
+      "host": "WKS-14",
+      "user": "alice",
+      "parent": "powershell.exe",
+      "process": "powershell.exe",
+      "command_line": "powershell.exe Get-Process | Sort-Object CPU"
+    }
+  },
+  {
+    "label": "benign",
+    "event": {
+      "host": "SRV-APP2",
+      "user": "deploy",
+      "parent": "cmd.exe",
+      "process": "powershell.exe",
+      "command_line": "powershell -Command Install-Module -Name Az -Scope CurrentUser"
+    }
+  },
+  {
+    "label": "benign",
+    "event": {
+      "host": "WKS-07",
+      "user": "carol",
+      "parent": "explorer.exe",
+      "process": "powershell.exe",
+      "command_line": "powershell.exe -File C:\\scripts\\backup-nightly.ps1"
+    }
+  },
+  {
+    "label": "benign",
+    "event": {
+      "host": "WKS-19",
+      "user": "dan",
+      "parent": "code.exe",
+      "process": "powershell.exe",
+      "command_line": "powershell -NoLogo -Command $PSVersionTable.PSVersion"
+    }
+  },
+  {
+    "label": "benign",
+    "event": {
+      "host": "SRV-BUILD",
+      "user": "svc_ci",
+      "parent": "agent.exe",
+      "process": "C:\\tools\\encoder.exe",
+      "command_line": "encoder.exe --enc h264 --input render.mov --output out.mp4"
+    }
+  },
+  {
+    "label": "benign",
+    "event": {
+      "host": "SRV-BUILD",
+      "user": "svc_ci",
+      "parent": "agent.exe",
+      "process": "C:\\app\\license.exe",
+      "command_line": "license.exe --encode-check --seat 42"
+    }
+  },
+  {
+    "label": "benign",
+    "event": {
+      "host": "WKS-07",
+      "user": "carol",
+      "parent": "explorer.exe",
+      "process": "C:\\Program Files\\Google\\Chrome\\Application\\chrome.exe",
+      "command_line": "chrome.exe --profile-directory=Default --restore-last-session"
+    }
+  },
+  {
+    "label": "benign",
+    "event": {
+      "host": "WKS-19",
+      "user": "dan",
+      "parent": "services.exe",
+      "process": "C:\\Windows\\System32\\svchost.exe",
+      "command_line": "svchost.exe -k netsvcs -p"
+    }
+  },
+  {
+    "label": "benign",
+    "event": {
+      "host": "SRV-DB1",
+      "user": "svc_sql",
+      "parent": "services.exe",
+      "process": "C:\\Program Files\\Microsoft SQL Server\\sqlservr.exe",
+      "command_line": "sqlservr.exe -sMSSQLSERVER"
+    }
+  },
+  {
+    "label": "benign",
+    "event": {
+      "host": "WKS-02",
+      "user": "bob",
+      "parent": "explorer.exe",
+      "process": "C:\\Program Files\\Microsoft VS Code\\Code.exe",
+      "command_line": "Code.exe --enable-crash-reporter"
+    }
+  },
+  {
+    "label": "benign",
+    "event": {
+      "host": "WKS-14",
+      "user": "alice",
+      "parent": "explorer.exe",
+      "process": "C:\\Windows\\explorer.exe",
+      "command_line": "explorer.exe"
+    }
+  },
+  {
+    "label": "benign",
+    "event": {
+      "host": "SRV-APP2",
+      "user": "svc_web",
+      "parent": "services.exe",
+      "process": "C:\\Windows\\System32\\inetsrv\\w3wp.exe",
+      "command_line": "w3wp.exe -ap AppPoolDefault"
+    }
+  },
+  {
+    "label": "benign",
+    "event": {
+      "host": "WKS-07",
+      "user": "carol",
+      "parent": "cmd.exe",
+      "process": "C:\\Python311\\python.exe",
+      "command_line": "python.exe manage.py runserver 0.0.0.0:8000"
+    }
+  },
+  {
+    "label": "benign",
+    "event": {
+      "host": "WKS-19",
+      "user": "dan",
+      "parent": "code.exe",
+      "process": "C:\\Program Files\\nodejs\\node.exe",
+      "command_line": "node.exe server.js --port 3000"
+    }
+  },
+  {
+    "label": "benign",
+    "event": {
+      "host": "WKS-02",
+      "user": "bob",
+      "parent": "explorer.exe",
+      "process": "C:\\Windows\\System32\\cmd.exe",
+      "command_line": "cmd.exe /c dir C:\\Users\\bob\\Documents"
+    }
+  },
+  {
+    "label": "benign",
+    "event": {
+      "host": "SRV-DB1",
+      "user": "svc_sql",
+      "parent": "cmd.exe",
+      "process": "powershell.exe",
+      "command_line": "powershell.exe -File C:\\ops\\healthcheck.ps1 -Verbose"
+    }
+  },
+  {
+    "label": "benign",
+    "event": {
+      "host": "WKS-14",
+      "user": "alice",
+      "parent": "teams.exe",
+      "process": "C:\\Users\\alice\\AppData\\Local\\Microsoft\\Teams\\Teams.exe",
+      "command_line": "Teams.exe --type=renderer"
+    }
+  },
+  {
+    "label": "benign",
+    "event": {
+      "host": "SRV-BUILD",
+      "user": "svc_ci",
+      "parent": "agent.exe",
+      "process": "C:\\Program Files\\Git\\bin\\git.exe",
+      "command_line": "git.exe fetch --all --prune"
+    }
+  },
+  {
+    "label": "benign",
+    "event": {
+      "host": "WKS-07",
+      "user": "carol",
+      "parent": "powershell.exe",
+      "process": "powershell.exe",
+      "command_line": "powershell -Command Get-EventLog -LogName Security -Newest 10"
+    }
+  }
 ]
