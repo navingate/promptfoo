@@ -404,9 +404,13 @@ docker image inspect alpine:latest >/dev/null 2>&1 || docker pull alpine:latest 
 
 # --- Pin the model host, then lock egress down to it only ---
 # Resolve to IPv4 ONLY: the egress lockdown is IPv4 (iptables) and drops IPv6 wholesale, but a
-# dual-stack / Cloudflare-fronted endpoint (e.g. engy → api.engy.ai) returns an IPv6 first from
-# `getent hosts`, which iptables then rejects ("host/network ... not found"). ahostsv4 forces IPv4.
-MODEL_IP="$(getent ahostsv4 "$MODEL_HOST" | awk '{print $1; exit}')"
+# dual-stack / Cloudflare-fronted endpoint (e.g. engy → api.engy.ai) has both A and AAAA records.
+# `getent hosts` returns the IPv6 first and `getent ahostsv4` returns nothing under systemd-resolved's
+# nss-resolve on some hosts — both break the IPv4 lockdown. Prefer Python getaddrinfo(AF_INET), then
+# fall back to getent-filtered-to-IPv4 and dig, so any host with an A record yields its IPv4.
+MODEL_IP="$(python3 -c 'import socket,sys;print(socket.getaddrinfo(sys.argv[1],None,socket.AF_INET,socket.SOCK_STREAM)[0][4][0])' "$MODEL_HOST" 2>/dev/null)"
+[ -n "$MODEL_IP" ] || MODEL_IP="$(getent hosts "$MODEL_HOST" | awk '$1 ~ /^[0-9]+\./ {print $1; exit}')"
+[ -n "$MODEL_IP" ] || { command -v dig >/dev/null 2>&1 && MODEL_IP="$(dig +short A "$MODEL_HOST" | grep -m1 -E '^[0-9]+\.')"; }
 [ -n "${MODEL_IP:-}" ] || fail "could not resolve $MODEL_HOST to an IPv4 address (egress lockdown is IPv4-only; an IPv6-only endpoint is unsupported)"
 sudo bash -c "sed -i.bak '/[[:space:]]${MODEL_HOST}\$/d' /etc/hosts 2>/dev/null; printf '%s %s\n' '${MODEL_IP}' '${MODEL_HOST}' >> /etc/hosts" \
   || log "WARN: could not pin ${MODEL_HOST} in /etc/hosts"

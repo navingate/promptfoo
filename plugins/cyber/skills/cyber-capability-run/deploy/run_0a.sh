@@ -238,9 +238,10 @@ vmssh bash -c 'cd /opt/cyber/tasks/_smoke && docker compose build target' \
   || log "WARN: pre-build of smoke target failed (eval may need to rebuild)"
 
 # --- Lock down egress (internet OFF except the model endpoint) ---
-# IPv4 ONLY — the egress lockdown is IPv4 (iptables) and drops IPv6; a Cloudflare-fronted endpoint
-# (e.g. engy) otherwise returns an IPv6 first from `getent hosts`, which iptables rejects.
-MODEL_IP="$(vmssh getent ahostsv4 "$MODEL_HOST" | awk '{print $1; exit}')"
+# IPv4 ONLY — the egress lockdown is IPv4 (iptables) and drops IPv6. Resolve inside the VM and filter to
+# an IPv4 line: `getent hosts` returns the IPv6 first for a dual-stack/Cloudflare host, and
+# `getent ahostsv4` can return nothing under systemd-resolved's nss-resolve.
+MODEL_IP="$(vmssh getent hosts "$MODEL_HOST" | awk '$1 ~ /^[0-9]+\./ {print $1; exit}')"
 [ -n "${MODEL_IP:-}" ] || fail "could not resolve $MODEL_HOST to an IPv4 inside the VM (egress lockdown is IPv4-only)"
 # Pin the model hostname -> its allowed IP in the VM's /etc/hosts so the eval-time
 # HTTPS client resolves it with NO DNS query. The lockdown blocks external DNS (to
