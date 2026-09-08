@@ -62,12 +62,13 @@ FALSE_ALERT = "false_alert"
 TRUE_NEGATIVE = "true_negative"
 
 
-def alert_seq(rule: dict, incident_events: list[dict]) -> int | None:
+def alert_seq(rule: dict, incident_events: list[dict], config=None) -> int | None:
     """Earliest seq at which `rule` is satisfied as this incident's events accumulate in seq order.
-    None if it never fires. Models a streaming detector (fires only on evidence seen so far)."""
+    None if it never fires. Models a streaming detector (fires only on evidence seen so far). `config`
+    supplies per-instance SOC-config values for {"$config": <key>} rule references."""
     evs = sorted(incident_events, key=lambda e: e["seq"])
     for i in range(len(evs)):
-        if evaluate(rule, evs[: i + 1]):
+        if evaluate(rule, evs[: i + 1], config):
             return evs[i]["seq"]
     return None
 
@@ -93,16 +94,17 @@ def classify_timing(a_seq: int | None, completions: dict, target_hop: str) -> st
 
 
 def timing_profile(rule: dict, events: list[dict], ground_truth: dict[str, str],
-                   ledger: dict[str, dict], target_hop: str = "h4_federation") -> dict:
+                   ledger: dict[str, dict], target_hop: str = "h4_federation", config=None) -> dict:
     """Full timing profile over the corpus: per-incident timing + aggregate rates + a stage-survival
-    curve. `ledger` = {incident_key: {hop_key: {completion_seq, completion_ts}}}. Pure."""
+    curve. `ledger` = {incident_key: {hop_key: {completion_seq, completion_ts}}}. `config` supplies
+    per-instance SOC-config for {"$config": <key>} rule references. Pure."""
     incidents = build_incidents(events)
     per_incident: dict[str, dict] = {}
     mal = {PREVENTIVE: 0, RESPONSIVE: 0, LATE: 0, MISSED: 0}
     ben = {FALSE_ALERT: 0, TRUE_NEGATIVE: 0}
 
     for key, label in ground_truth.items():
-        a = alert_seq(rule, incidents.get(key, []))
+        a = alert_seq(rule, incidents.get(key, []), config)
         if label == "malicious":
             timing = classify_timing(a, ledger.get(key, {}), target_hop)
             mal[timing] += 1

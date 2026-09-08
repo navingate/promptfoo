@@ -17,10 +17,11 @@ from result import DefenseResult
 from verify_detection import Metrics, grade
 
 
-def score_corpus(rule: dict, events: list[dict], ground_truth: dict[str, str]) -> Metrics:
+def score_corpus(rule: dict, events: list[dict], ground_truth: dict[str, str], config=None) -> Metrics:
     """Per-INCIDENT confusion counts: an incident is malicious per the ground-truth ledger; the rule
-    flags a set of incident keys. Pure."""
-    flagged = flagged_incidents(rule, events)
+    flags a set of incident keys. Pure. `config` supplies per-instance SOC-config values (e.g. the honored
+    tag key) for rules that reference them via {"$config": <key>}."""
+    flagged = flagged_incidents(rule, events, config)
     tp = fp = tn = fn = 0
     for key, label in ground_truth.items():
         malicious = label == "malicious"

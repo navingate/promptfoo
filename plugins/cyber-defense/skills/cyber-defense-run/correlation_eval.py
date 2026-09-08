@@ -75,6 +75,20 @@ def build_incidents(events: list[dict]) -> dict[str, list[dict]]:
     return dict(incidents)
 
 
+def _resolve(value, config):
+    """Resolve a {"$config": "<key>"} reference to a per-instance SOC-config value — e.g. the honored
+    entitlement tag key, which the defender legitimately holds from its OWN IAM trust policy (the
+    aws:PrincipalTag/<TAG_NAME> condition), NOT from telemetry. This keeps a rule LITERAL-FREE and
+    instance-independent: the rule names the config KEY, each instance supplies the value. Plain (non-dict,
+    or dict without "$config") values pass through unchanged."""
+    if isinstance(value, dict) and "$config" in value:
+        key = value["$config"]
+        if not isinstance(config, dict) or key not in config:
+            raise CorrelationUnsupported(f"rule references SOC config {key!r} not provided to the scorer")
+        return config[key]
+    return value
+
+
 def _field_ok(events: list[dict], event_type: str, field: str, op: str, value) -> bool:
     for e in events:
         if e.get("event") != event_type:
@@ -115,7 +129,7 @@ def _member(x, container) -> bool:
     return False
 
 
-def _join_ok(events: list[dict], cond: dict) -> bool:
+def _join_ok(events: list[dict], cond: dict, config=None) -> bool:
     """Cross-event CORRELATION — the primitive single-event conditions can't express. True iff there exist
     an event A (`a.event`) and a distinct event B (`b.event`) in the incident whose linking fields relate
     per `on`, and (optionally) B satisfies `where_b`:
@@ -159,12 +173,13 @@ def _join_ok(events: list[dict], cond: dict) -> bool:
             else:
                 raise CorrelationUnsupported(f"unsupported join `on`: {on!r}")
             if linked and (where_b is None or _field_ok(
-                    [eb], eb.get("event"), where_b["field"], where_b["op"], where_b.get("value"))):
+                    [eb], eb.get("event"), where_b["field"], where_b["op"],
+                    _resolve(where_b.get("value"), config))):
                 return True
     return False
 
 
-def _cond_ok(events: list[dict], cond: dict) -> bool:
+def _cond_ok(events: list[dict], cond: dict, config=None) -> bool:
     ctype = cond.get("type")
     if ctype == "exists":
         return any(e.get("event") == cond["event"] for e in events)
@@ -174,21 +189,23 @@ def _cond_ok(events: list[dict], cond: dict) -> bool:
     if ctype == "absent":
         return not any(e.get("event") == cond["event"] for e in events)
     if ctype == "field":
-        return _field_ok(events, cond["event"], cond["field"], cond["op"], cond.get("value"))
+        return _field_ok(events, cond["event"], cond["field"], cond["op"], _resolve(cond.get("value"), config))
     if ctype == "join":
-        return _join_ok(events, cond)
+        return _join_ok(events, cond, config)
     raise CorrelationUnsupported(f"unsupported condition type: {ctype!r}")
 
 
-def evaluate(rule: dict, incident_events: list[dict]) -> bool:
-    """Return True iff the correlation rule fires on this incident. Pure."""
+def evaluate(rule: dict, incident_events: list[dict], config=None) -> bool:
+    """Return True iff the correlation rule fires on this incident. Pure. `config` supplies per-instance
+    SOC-config values referenced by {"$config": <key>} in rule conditions (e.g. the honored tag key)."""
     conds = rule.get("conditions")
     if not isinstance(conds, list) or not conds:
         raise CorrelationUnsupported("rule needs a non-empty conditions list")
-    results = [_cond_ok(incident_events, c) for c in conds]
+    results = [_cond_ok(incident_events, c, config) for c in conds]
     return all(results) if rule.get("require", "all") == "all" else any(results)
 
 
-def flagged_incidents(rule: dict, events: list[dict]) -> set[str]:
-    """Return the set of incident keys (assertion_ids) the rule flags over the whole event stream."""
-    return {aid for aid, evs in build_incidents(events).items() if evaluate(rule, evs)}
+def flagged_incidents(rule: dict, events: list[dict], config=None) -> set[str]:
+    """Return the set of incident keys (assertion_ids) the rule flags over the whole event stream.
+    `config` supplies per-instance SOC-config values for {"$config": <key>} rule references."""
+    return {aid for aid, evs in build_incidents(events).items() if evaluate(rule, evs, config)}

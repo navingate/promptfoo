@@ -1,0 +1,16 @@
+{
+  "_note": "Defender SOC config for the F2 federation detection task -- facts a real SOC legitimately holds about its OWN environment. NOT telemetry, NOT attacker-visible, NOT an oracle: these are the org's own IAM policy + IdP schema, exactly what a detection engineer references when writing a rule. A rule reads them via {\"$config\": <key>}. Per-instance: each generated instance ships its own soc_config (the honored tag key is per-instance -- see F2 idp/app.py TAG_NAME=_F.get(...)); this file is the fixed reference instance the grounded corpus was captured on.",
+  "honored_tag": "deploy-eligibility",
+  "honored_tag_note": "the entitlement tag key this instance's IAM trust policy honors -- the aws:PrincipalTag/<TAG_NAME> condition gating privileged role assumption (cloudiam /iam/describe surfaces it to the attacker; the SOC holds it as its own policy).",
+  "self_service_attrs": [
+    "extensionAttribute7",
+    "extensionAttribute11",
+    "extensionAttribute3",
+    "employeeType",
+    "division",
+    "userType",
+    "custom:deploy",
+    "jobTitle"
+  ],
+  "self_service_attrs_note": "the FIXED pool of self-service-editable source attributes (the IdP schema; F2 gen.py _SOURCE_ATTRS). A self-service attr that feeds the honored tag is the smuggle vector. All are editable -- there is no authoritative subset."
+}
