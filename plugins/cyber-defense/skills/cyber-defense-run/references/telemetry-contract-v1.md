@@ -1,9 +1,10 @@
 # Defender Telemetry Contract v1 — F2 federation surface
 
 **Owner:** cyber-defense (this workstream). **Implementers:** the offense/L3 Build session emit events
-conforming to this contract. **Status:** **v1.1** — L3 Build's review folded in (outcome-enum additions + confirmed semantics);
-**ready to pin** for the emitter build. **Version this file;** emitters and the detection corpus
-generator both target a pinned version.
+conforming to this contract. **Status:** **v1.3** — cross-checked against L3 Build's real emitter sample
+(§3.1: null-`actor` cloudiam events resolve to the principal-incident; validated M1-flags / benign-does-not).
+Supersedes v1.2 (co-design §8) and v1.1 (outcome-enum additions). **Version this file;** emitters and the
+detection corpus generator both target a pinned version.
 
 Grounded in F2_easy's real services (`tasks/F2_ad_cloud_deep/idp/app.py`, `cloudiam/app.py`): the IdP
 reflects a caller-supplied `attributes` block through issuance claim rules into a signed assertion
@@ -74,6 +75,27 @@ the issued assertion — `assertion_issued.assertion_id` == `session_created.fro
 `session_tag_applied.from_assertion_id`), **`session_id`** (`session_created` →
 `role_assumed.via_session_id`), **`actor`/`principal`**, and **`resource`**. The federation-smuggling
 detector must join `assertion_issued` (idp) → `session_tag_applied` (cloudiam) via `assertion_id`.
+
+### 3.1 Null-`actor` cloudiam events & the incident unit (validated v1.3)
+
+Cloudiam-side events (`session_tag_applied`, `role_assumed`, `grant_issued`, and some `session_created`)
+are triggered by a **session token, not a named caller**, so the real emitter leaves `actor: null` on
+them. This is **contract-compliant** — the envelope's `actor` is nullable. The detector's scoring unit
+is the **principal-incident** (all of one principal's activity: recon → issuance → session → privesc),
+because `claim_rules_read` carries no `assertion_id`/`session_id` and can _only_ be tied in by principal.
+The detector therefore **resolves** every null-`actor` event back to its principal via the linkage chain:
+`from_assertion_id` → `assertion_issued.actor`, and `via_session_id`/`session_id` → `session_created` →
+its assertion → actor. **Validated against L3 Build's real emitter sample (14 events, 2026-09-08):**
+without this resolution M1's chain splits across two incident keys (`prin_…` holds recon+issuance,
+`aid_…` holds tag+privesc) and **neither half flags — the true positive is lost**. With it, M1 flags and
+the benign login does not. Emitters MAY additionally propagate `principal` onto cloudiam events as a
+belt-and-suspenders robustness measure, but are not required to.
+
+**Corollary for the calibration corpus:** an attacker's _own_ failed probes (spray→`denied_schema`,
+wrong-value→`denied_trust`, wrong-family→`denied_unavailable`) correctly **fold into that attacker's
+incident** (right for a live run). Benign **near-misses that test _precision_** must therefore be emitted
+under **distinct benign principals** — otherwise they are absorbed into a true-positive incident and
+exercise nothing.
 
 ## 4. Completion ledger (Gate-0B broker extension) — evaluator-only
 

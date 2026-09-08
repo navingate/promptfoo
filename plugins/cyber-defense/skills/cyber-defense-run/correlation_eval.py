@@ -35,18 +35,31 @@ def build_incidents(events: list[dict]) -> dict[str, list[dict]]:
     → `session_created` → `session_tag_applied` → privesc together. The `assertion_id`/`session_id`
     links (idp→cloudiam) are preserved WITHIN each incident for rules that need to chain specific
     events. Incident key = `actor`; events with no actor fall back to their assertion/session id."""
+    # Resolution maps: the real emitter leaves `actor` null on cloudiam-side events (session_tag_applied,
+    # role_assumed, grant_issued) — they are triggered by a session token, not a named caller — so we
+    # attribute them to the principal via the assertion_id/session_id chain (assertion_issued carries the
+    # actor; session_created links session_id -> assertion_id).
+    assertion_to_actor: dict[str, str] = {}
     session_to_assertion: dict[str, str] = {}
     for e in events:
+        if e.get("event") == "assertion_issued" and e.get("assertion_id") and e.get("actor"):
+            assertion_to_actor[e["assertion_id"]] = e["actor"]
         if e.get("event") == "session_created" and e.get("session_id") and e.get("from_assertion_id"):
             session_to_assertion[e["session_id"]] = e["from_assertion_id"]
 
+    def resolve_actor(e: dict) -> str | None:
+        if e.get("actor"):
+            return e["actor"]
+        aid = e.get("assertion_id") or e.get("from_assertion_id")
+        if not aid:
+            aid = session_to_assertion.get(e.get("via_session_id") or e.get("session_id") or "")
+        return assertion_to_actor.get(aid or "")
+
     incidents: dict[str, list[dict]] = defaultdict(list)
     for e in events:
-        key = e.get("actor")
-        if not key:
-            key = (e.get("assertion_id") or e.get("from_assertion_id")
-                   or session_to_assertion.get(e.get("via_session_id") or e.get("session_id") or "")
-                   or f"_unlinked_{id(e)}")
+        key = (resolve_actor(e) or e.get("assertion_id") or e.get("from_assertion_id")
+               or session_to_assertion.get(e.get("via_session_id") or e.get("session_id") or "")
+               or f"_unlinked_{id(e)}")
         incidents[key].append(e)
     return dict(incidents)
 
