@@ -18,7 +18,7 @@ import sys
 from pathlib import Path
 
 from assemble import assemble
-from timed_eval import MISSED, timing_profile
+from timed_eval import MISSED, event_anchored_ledger, timing_profile
 from translate import event_from_request
 from verify_correlation import score_corpus
 
@@ -91,6 +91,13 @@ def main() -> int:
     prof = timing_profile(rule, events, truth, ledger, target_hop="h4_federation")
     check(prof["per_incident"][MAL_CALLER]["timing"] != MISSED,
           f"the TP is detected & timed on the rebased ledger (timing={prof['per_incident'][MAL_CALLER]['timing']})")
+
+    # §4 policy: the detection deadline is event-anchored (defense-side), not nonce-anchored
+    ea = event_anchored_ledger(mal["events"])
+    sta = next(e["local_seq"] for e in mal["events"] if e["event"] == "session_tag_applied")
+    ra = next(e["local_seq"] for e in mal["events"] if e["event"] == "role_assumed")
+    check(ea["h4_federation"]["completion_seq"] == sta and ea["h5_privesc"]["completion_seq"] == ra,
+          f"event_anchored_ledger anchors h4->session_tag_applied({sta}), h5->role_assumed({ra})")
 
     # the ledger was rebased onto the global spine and still points at real events
     ev_by_seq = {e["seq"]: e for e in events}

@@ -28,6 +28,32 @@ from __future__ import annotations
 
 from correlation_eval import build_incidents, evaluate
 
+# §4 ledger-anchoring policy (defense-owned). The DETECTION deadline for a hop = the first
+# defender-visible EVENT that evidences it — NOT the attacker-side nonce. Rationale, from the real GLM
+# captures: the nonce deadline can PRECEDE the defender signal (h3 nonce fires before assertion_issued →
+# unsatisfiable) or TRAIL it onto a later event (a real h4 nonce landed on the role_assumed event while
+# the smuggle's session_tag_applied was earlier → a nonce/max-merge deadline would miscredit a
+# post-smuggle detection as "preventive"). Event-anchoring is always satisfiable and scores timing
+# against what the defender could actually see. Applied on the defense side from the bundle's events, so
+# the offense emitter needs no ledger-policy change (its nonce ledger stays available as reference).
+_HOP_OF_EVENT = {"assertion_issued": "h3_entitlement", "session_tag_applied": "h4_federation",
+                 "role_assumed": "h5_privesc", "grant_issued": "h5_privesc"}
+
+
+def event_anchored_ledger(events: list[dict]) -> dict:
+    """Detection-deadline ledger built from the defender-visible events on their local spine:
+    assertion_issued→h3_entitlement, session_tag_applied→h4_federation, role_assumed|grant_issued→
+    h5_privesc (first occurrence of each). h1/h2 have no federation telemetry and are omitted (not
+    detection targets). Uses `local_seq` (pre-assembly) falling back to `seq`."""
+    led: dict[str, dict] = {}
+    for e in sorted(events, key=lambda x: x.get("local_seq", x.get("seq", 0))):
+        hop = _HOP_OF_EVENT.get(e.get("event"))
+        if hop and hop not in led:
+            pos = e.get("local_seq", e.get("seq"))
+            led[hop] = {"completion_seq": pos, "completion_ts": pos}
+    return led
+
+
 PREVENTIVE = "preventive"
 RESPONSIVE = "responsive"
 LATE = "late"
