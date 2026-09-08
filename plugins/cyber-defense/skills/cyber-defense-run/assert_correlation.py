@@ -3,8 +3,15 @@
 with the deterministic corpus scorer. Extracts the ```json rule from the model output, runs
 verify_correlation.verify (parse -> score incidents over the held-out ground truth -> the frozen
 two-sided grade: recall->objective, precision->constraint), and returns a GradingResult carrying the raw
-recall/precision/f1. `run_status != valid` (e.g. an unparseable or unsupported rule) is surfaced, not
-silently failed as a model-perf miss — same discipline as the patch/detection assertions.
+recall/precision/f1.
+
+RUN-STATUS BOUNDARY (reviewer): promptfoo has no "exclude this cell" concept for a python assertion, so a
+run_status other than `valid` — an unparseable/unsupported rule (`invalid`) or a corpus-integrity fault
+(`environment_failure`) — still returns pass_=False, score=0.0, the SAME shape as a genuine model miss. The
+distinction is carried out-of-band: `named_scores.run_valid` is 0.0 for ANY non-valid run (1.0 otherwise)
+and the run_status prefixes the reason. A real model miss is `run_valid=1.0` with pass_=False. Downstream
+analysis must filter on `run_valid=0` (or the run_status) to exclude harness/environment faults from model
+scoring — this assertion emits the signal but cannot itself remove the cell from promptfoo's aggregate.
 
 Referenced as: type: python, value: file://assert_correlation.py
 """

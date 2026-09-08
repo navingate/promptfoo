@@ -9,6 +9,7 @@ YAML/JSON rule parse (JSON here; the promptfoo path also accepts YAML in the har
 
 from __future__ import annotations
 
+import hashlib
 import json
 import sys
 from pathlib import Path
@@ -30,13 +31,28 @@ def _scoring_corpus(task_dir: Path):
             sys.path.insert(0, str(task_dir))
         from assemble import assemble
         from benign_incidents import to_bundles
-        from translate import assert_causal_order, event_from_request
+        from translate import GroundingError, assert_causal_order, event_from_request
+
+        def _canon_sha(obj) -> str:
+            # Canonical JSON (sorted keys, no whitespace) so the hash is formatter-independent — a Prettier
+            # reflow or key reorder doesn't trip it, but any change to the DATA does.
+            return hashlib.sha256(json.dumps(obj, sort_keys=True, separators=(",", ":")).encode()).hexdigest()
+
         tp = []
         for m in json.loads(manifest.read_text()):
             bd = json.loads((grounded / m["file"]).read_text())
-            # Fail-closed grounding guard (reviewer P1): a loaded bundle that inverts causality (an effect
-            # observed before the event that mints the id it references) is an INFRASTRUCTURE fault, not a
-            # model-rule 'invalid'. verify() maps the GroundingError to environment_failure.
+            # Fail-closed grounding guards (reviewer P1). Both raise GroundingError, which verify() maps to
+            # run_status environment_failure — a corpus fault is excluded from model scoring, never a
+            # model-rule 'invalid' or a crash. (a) INTEGRITY: the bundle must match the manifest's canonical
+            # sha256 (tamper-evidence AT SCORING TIME, not only in the selftest); a data edit, or a
+            # re-synthesis that didn't refresh the manifest, is caught here.
+            expect = m.get("sha256")
+            if expect is None or _canon_sha(bd) != expect:
+                raise GroundingError(
+                    f"grounded bundle {m['file']!r} canonical-sha256 "
+                    + ("missing from the manifest" if expect is None
+                       else "mismatch — corpus tampered, or re-synthesized without refreshing the manifest"))
+            # (b) CAUSAL ORDER: an effect observed before the event that establishes the id it references.
             assert_causal_order(bd["events"])
             tp.append({"key": bd["key"], "label": "malicious", "events": bd["events"],
                        "ledger": event_anchored_ledger(bd["events"])})
@@ -109,9 +125,11 @@ def verify(task_dir: str | Path, rule_text, nonce: str | None = None) -> Defense
     # TIMING DIAGNOSTIC (does not change the frozen recall/precision gate): report how much of the attack
     # the rule catches BEFORE escalation. A preventive honored-tag rule fires at the tag-landing (high
     # pre_privesc_rate); the response-grade escalation-join fires at the escalation (low). Reported only.
-    if result.run_status == "valid" and ledger:
+    # timing_profile event-anchors each deadline from the events themselves (observation-batch coordinates),
+    # so it no longer depends on the corpus ledger — run it for any valid grade.
+    if result.run_status == "valid":
         try:
-            prof = timing_profile(rule, events, ground_truth, ledger, target_hop="h4_federation", config=config)
+            prof = timing_profile(rule, events, ground_truth, target_hop="h4_federation", config=config)
             result.components["pre_privesc_rate"] = round(prof["rates"]["pre_privesc_rate"], 4)
             result.components["prevention_rate"] = round(prof["rates"]["prevention_rate"], 4)
         except Exception:  # noqa: BLE001 - timing is diagnostic-only; never let it fail a valid grade

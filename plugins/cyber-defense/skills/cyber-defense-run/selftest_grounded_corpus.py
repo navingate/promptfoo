@@ -82,6 +82,31 @@ def main() -> int:
             inverted.append((bd["key"], str(x)))
     check(not inverted, f"every grounded bundle is causally sound (inversions: {inverted})")
 
+    # CO-OBSERVATION STRUCTURE (reviewer P1 — batch-timing tripwire). The honest pre_privesc_rate depends on
+    # the producer preserving TOOL-RESULT grouping: co-observed events share a local_seq, so a tag landing
+    # and its escalation seen in ONE observation stay co-observed (-> LATE, no pre-escalation credit). Assert
+    # that structure on the frozen 9 so a future producer that assigned a PER-EVENT local_seq (which would
+    # silently re-inflate pre_privesc toward 1.0, inside the 0<..<1 band selftest_preventive checks) is
+    # caught here: every attack has tag-landing batch <= escalation batch (h4<=h5), and exactly the 2 known
+    # co-observed traces share a batch.
+    def _batch(e):
+        return e.get("obs_batch", e.get("local_seq", e.get("seq", 0)))
+
+    with_both = tag_le_esc = co_obs = 0
+    for _, bd in tp_raw:
+        tb = min([_batch(e) for e in bd["events"] if e["event"] == "session_tag_applied"], default=None)
+        eb = min([_batch(e) for e in bd["events"] if e["event"] in ("role_assumed", "grant_issued")], default=None)
+        if tb is None or eb is None:
+            continue
+        with_both += 1
+        tag_le_esc += tb <= eb
+        co_obs += tb == eb
+    check(with_both == 9 and tag_le_esc == 9,
+          f"every grounded attack has the tag landing no later than its escalation, h4<=h5 ({tag_le_esc}/{with_both})")
+    check(co_obs == 2,
+          f"exactly 2 traces co-observe tag+escalation in one tool-result (the honest pre_privesc=0.78 split); "
+          f"got {co_obs} — a change means the producer's tool-result grouping drifted (batch-timing tripwire)")
+
     vbad, forb = [], []
     for _, bd in tp_raw:
         for e in bd["events"]:

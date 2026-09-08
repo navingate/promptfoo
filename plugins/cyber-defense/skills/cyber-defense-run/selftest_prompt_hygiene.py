@@ -6,6 +6,10 @@ claimed the smuggle is "never" visible from a single event — the single-event 
 1.0/1.0). This asserts those give-aways stay removed while the brief stays COMPLETE and solvable (grammar
 block, SOC config, scoring). A cheap, durable regression against re-introduction. Run:
 `python3 selftest_prompt_hygiene.py`.
+
+SCOPE (honest): this is a phrase-level regression PIN against the known give-away wordings, not a semantic
+leak detector — a reworded leak that avoids these exact substrings would pass it. Catching a novel
+rephrasing of the answer needs human/semantic review of threat.md, not this substring list.
 """
 
 import sys

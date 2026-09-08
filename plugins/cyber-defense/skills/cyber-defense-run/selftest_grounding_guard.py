@@ -10,6 +10,7 @@ to run_status `environment_failure` — excluded from model scoring, never a mod
 Run: `python3 selftest_grounding_guard.py`.
 """
 
+import hashlib
 import json
 import shutil
 import sys
@@ -22,6 +23,10 @@ from verify_correlation import verify
 HERE = Path(__file__).resolve().parent
 TASK = HERE / "tasks" / "detect_F2easy_federation"
 GROUNDED = TASK / "grounded"
+
+
+def _canon_sha(obj) -> str:
+    return hashlib.sha256(json.dumps(obj, sort_keys=True, separators=(",", ":")).encode()).hexdigest()
 
 
 def _ev(event, batch, **f):
@@ -51,11 +56,14 @@ def _raises(events) -> bool:
 
 
 def _poison_copy(dst: Path) -> str:
-    """Copy the real task to dst and invert ONE bundle: push every assertion_issued to a late batch so a
-    session_created that references it is now observed BEFORE its cause. Returns the poisoned file name."""
+    """Copy the real task to dst and CAUSALLY invert ONE bundle: push every assertion_issued to a late
+    batch so a session_created that references it is now observed BEFORE its cause. REFRESHES that bundle's
+    manifest sha256 so the data-integrity guard passes and the CAUSAL-ORDER guard is the one that trips
+    (isolates it from the hash guard). Returns the poisoned file name."""
     shutil.copytree(TASK, dst)
     g = dst / "grounded"
-    for m in json.loads((g / "corpus-manifest.json").read_text()):
+    mani = json.loads((g / "corpus-manifest.json").read_text())
+    for m in mani:
         bd = json.loads((g / m["file"]).read_text())
         aids = {e["assertion_id"] for e in bd["events"]
                 if e["event"] == "assertion_issued" and e.get("assertion_id")}
@@ -68,8 +76,32 @@ def _poison_copy(dst: Path) -> str:
             if e["event"] == "assertion_issued":
                 e["local_seq"] = late
         (g / m["file"]).write_text(json.dumps(bd))
+        m["sha256"] = _canon_sha(bd)  # refresh so ONLY causal order is violated, not the hash
+        (g / "corpus-manifest.json").write_text(json.dumps(mani, indent=2))
         return m["file"]
     raise AssertionError("no bundle had an in-incident assertion->session link to poison")
+
+
+def _tamper_copy(dst: Path) -> str:
+    """Copy the real task to dst and edit ONE bundle's DATA (a tag value) WITHOUT refreshing the manifest
+    sha256 and WITHOUT breaking causal order — so the canonical-hash INTEGRITY guard is the one that trips.
+    Returns the tampered file name."""
+    shutil.copytree(TASK, dst)
+    g = dst / "grounded"
+    mani = json.loads((g / "corpus-manifest.json").read_text())
+    m = mani[0]
+    bd = json.loads((g / m["file"]).read_text())
+    for e in bd["events"]:
+        if e["event"] == "session_tag_applied" and "tag_value" in e:
+            e["tag_value"] = "tagval_deadbeef00"  # a DATA change; causal order untouched
+            break
+    else:  # no tag event to edit — fall back to an assertion's emitted-tag value
+        for e in bd["events"]:
+            if e["event"] == "assertion_issued" and e.get("emitted_tags"):
+                e["emitted_tags"][next(iter(e["emitted_tags"]))] = "tagval_deadbeef00"
+                break
+    (g / m["file"]).write_text(json.dumps(bd))  # manifest sha256 deliberately NOT refreshed -> mismatch
+    return m["file"]
 
 
 def main() -> int:
@@ -96,6 +128,15 @@ def main() -> int:
         _ev("role_assumed", 2, session_id="sess_x", via_session_id="sess_x", assumed_role="r"),  # before session
     ]
     check(_raises(inv_privesc), "role_assumed observed before the session it cites -> GroundingError")
+    # the tag->escalation edge (keeps h4 <= h5, which classify_timing assumes): an escalation observed
+    # before the tag it used landed on its session must be rejected, or the timing scorer mis-credits it.
+    inv_tag_after_esc = [
+        _ev("session_created", 0, session_id="sess_x", from_assertion_id=None),
+        _ev("role_assumed", 2, session_id="sess_x", via_session_id="sess_x", assumed_role="r"),
+        _ev("session_tag_applied", 5, session_id="sess_x", tag_name="deploy-eligibility", tag_value="tagval_x"),
+    ]
+    check(_raises(inv_tag_after_esc),
+          "escalation observed before its session's tag landing (h5 < h4) -> GroundingError")
 
     # (3) an UNRESOLVED reference (cited id minted nowhere in the incident) is NOT an inversion here — it is
     # the incident-boundary layer's concern. The guard must stay silent so it doesn't mask that separation.
@@ -122,6 +163,17 @@ def main() -> int:
               f"reason: {res.reason}")
         check(res.task_outcome is None,
               "an environment_failure carries no task_outcome — excluded from model scoring")
+
+    # (6) end-to-end: a DATA-tampered bundle whose manifest sha256 was NOT refreshed (causal order intact)
+    # also fails closed via the load-time integrity guard — tamper-evidence AT SCORING TIME, not only in the
+    # selftest (reviewer P1). Same environment_failure, so a poisoned corpus can't be scored as genuine.
+    with tempfile.TemporaryDirectory() as td:
+        dst = Path(td) / "task"
+        tampered = _tamper_copy(dst)
+        res = verify(dst, rule)
+        check(res.run_status == "environment_failure",
+              f"data-tampered bundle {tampered} (sha256 mismatch) -> verify run_status={res.run_status!r} "
+              f"(want environment_failure); reason: {res.reason}")
 
     print("[selftest_grounding_guard]", "PASS" if ok else "FAIL")
     return 0 if ok else 1

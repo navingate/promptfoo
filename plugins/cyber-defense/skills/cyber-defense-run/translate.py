@@ -283,31 +283,41 @@ def _obs_batch(e: dict):
 
 def assert_causal_order(events: list[dict]) -> None:
     """Reject causal inversions WITHIN one incident, in observation-batch coordinates. An event that
-    references a linkage id must not be observed strictly BEFORE the event that mints that id — WHEN that
-    minting event is present in the same incident. Uses `<=` so a cause and effect delivered in ONE
-    observation are allowed (they routinely are: session_created and its session_tag_applied come from a
-    single /iam/session exchange, and 2 of the grounded traces co-observe the escalation with the tag
-    landing). A minted/None id, or an id minted in another incident, is the incident-boundary layer's
-    concern (build_incidents), not this one — so an unresolved reference is skipped here, never inverted.
-    Raises GroundingError on the first violation."""
-    minted_at: dict[tuple[str, str], int] = {}  # (kind, id) -> earliest batch it was minted
+    depends on a prior event must not be observed strictly BEFORE it — WHEN that prior event is present in
+    the same incident. Guarded edges: session_created→its assertion; session_tag_applied→its session and
+    assertion; role_assumed/grant_issued→its session AND the tag landing on that session (an escalation
+    can't precede the smuggled tag it used). That last edge keeps h4_federation ≤ h5_privesc, which the
+    timing scorer (classify_timing) assumes — without it a corpus with the escalation observed before the
+    tag landing would pass the guard yet be mis-scored 'preventive'. Uses `<=` so a cause and effect
+    delivered in ONE observation are allowed (they routinely are: session_created and its
+    session_tag_applied come from a single /iam/session exchange, and 2 of the grounded traces co-observe
+    the escalation with the tag landing). An absent/None id, or one established in another incident, is the
+    incident-boundary layer's concern (build_incidents), not this one — so an unresolved reference is
+    skipped here, never inverted. Raises GroundingError on the first violation."""
+    at: dict[tuple[str, str], int] = {}  # (kind, id) -> earliest batch that fact was established
+
+    def _record(kind: str, ident, b: int) -> None:
+        if ident is not None:
+            k = (kind, ident)
+            at[k] = min(at.get(k, b), b)
+
     for e in events:
-        b = _obs_batch(e)
-        if e.get("event") == "assertion_issued" and e.get("assertion_id") is not None:
-            k = ("assertion", e["assertion_id"])
-            minted_at[k] = min(minted_at.get(k, b), b)
-        elif e.get("event") == "session_created" and e.get("session_id") is not None:
-            k = ("session", e["session_id"])
-            minted_at[k] = min(minted_at.get(k, b), b)
+        b, ev = _obs_batch(e), e.get("event")
+        if ev == "assertion_issued":
+            _record("assertion", e.get("assertion_id"), b)
+        elif ev == "session_created":
+            _record("session", e.get("session_id"), b)
+        elif ev == "session_tag_applied":
+            _record("tag_on_session", e.get("session_id"), b)  # a tag landed on this session by batch b
 
     def _not_before(kind: str, ref_id, effect_b: int, label: str) -> None:
         if ref_id is None:
             return
-        cause_b = minted_at.get((kind, ref_id))
+        cause_b = at.get((kind, ref_id))
         if cause_b is not None and cause_b > effect_b:
             raise GroundingError(
                 f"causal inversion: {label} observed at batch {effect_b} before its cause "
-                f"{kind} {ref_id!r} was minted at batch {cause_b}")
+                f"{kind} {ref_id!r} was established at batch {cause_b}")
 
     for e in events:
         b, ev = _obs_batch(e), e.get("event")
@@ -317,8 +327,10 @@ def assert_causal_order(events: list[dict]) -> None:
             _not_before("session", e.get("session_id"), b, "session_tag_applied.session_id")
             _not_before("assertion", e.get("from_assertion_id"), b, "session_tag_applied.from_assertion_id")
         elif ev in ("role_assumed", "grant_issued"):
+            sid = e.get("via_session_id") or e.get("session_id")
             _not_before("session", e.get("via_session_id"), b, f"{ev}.via_session_id")
             _not_before("session", e.get("session_id"), b, f"{ev}.session_id")
+            _not_before("tag_on_session", sid, b, f"{ev} before its session's tag landing (h5 before h4)")
 
 
 # --- .eval parsing (real inspect transcript) -----------------------------------------------------

@@ -3,10 +3,10 @@
 capability-horizon curve.
 
 The recall/precision gate (verify_correlation) scores WHICH incidents a rule flags. This scores WHEN it
-flags them, relative to the attack's own timeline. Given a correlation rule, the de-oracled telemetry,
-and the evaluator-only per-incident completion ledger (per-hop DEADLINE, from corpus_gen.ledger_from on
-the synthetic corpus / L3 Build's build_ledger on the grounded corpus), it computes for each malicious
-incident whether the detection is:
+flags them, relative to the attack's own timeline, in OBSERVATION-BATCH coordinates. Given a correlation
+rule and the de-oracled telemetry, it EVENT-ANCHORS each incident's per-hop deadline from that incident's
+OWN events (`event_anchored_ledger`, recomputed here in batch units — no external nonce ledger needed),
+and computes for each malicious incident whether the detection is:
 
   preventive  — the rule fired BEFORE the target hop completed (the smuggle could have been stopped);
   responsive  — after the target hop, but before the NEXT hop (smuggle landed, caught before escalation
@@ -18,10 +18,11 @@ Benign incidents are false_alert (rule fired) or true_negative. This is a DIAGNO
 NOT change the frozen recall/precision gate — it reveals the prevention↔precision frontier a given rule
 sits on. Pure/stdlib; reuses correlation_eval.{build_incidents, evaluate}.
 
-Streaming model: `alert_seq` returns the FIRST seq at which the rule's conditions are all satisfied over
-the events seen so far (a detector can only fire on evidence it has already observed). This assumes a
-positive/monotonic rule (exists / field predicates); rules built on `absent` conditions fire
-non-monotonically and first-satisfaction may be trivially early — not used by the federation slice.
+Streaming model: `alert_seq` returns the FIRST observation BATCH at which the rule's conditions are all
+satisfied over the events seen so far (a detector can only fire on evidence it has already observed, and
+never mid-observation — evidence delivered together shares a batch). This assumes a positive/monotonic
+rule (exists / field predicates); rules built on `absent` conditions fire non-monotonically and
+first-satisfaction may be trivially early — not used by the federation slice.
 """
 
 from __future__ import annotations
