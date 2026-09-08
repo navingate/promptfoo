@@ -122,7 +122,7 @@ def to_bundles(event_from_request, *, label: str = "benign") -> list[dict]:
         caller, events, seq = inc["caller"], [], 0
         for x in inc["exchanges"]:
             for ev in event_from_request(x["path"], x["request"], x["response"], caller=caller):
-                seq += 1
-                events.append({**ev, "seq": seq})
+                events.append({**ev, "local_seq": seq})  # one exchange's events share a local position
+            seq += 1
         bundles.append({"key": caller, "label": label, "events": events})
     return bundles

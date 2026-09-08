@@ -67,11 +67,16 @@ def assemble(incidents: list[dict], *, seed: str = "0") -> tuple[list[dict], dic
             raise ValueError(f"bad label for {key!r}: {inc['label']!r}")
         truth[key] = inc["label"]
 
+        # pre-assembly events carry a `local_seq` (the shaper forbids `seq`); older synthetic bundles use
+        # `seq` as their local ordering — accept either. The global `seq` is what the assembler assigns.
+        def _local(ev):
+            return ev.get("local_seq", ev.get("seq"))
+
         local_to_global: dict[int, int] = {}
-        for e in sorted(inc["events"], key=lambda ev: ev["seq"]):
+        for e in sorted(inc["events"], key=_local):
             g += 1
-            local_to_global[e["seq"]] = g
-            events_out.append({**e, "seq": g})
+            local_to_global[_local(e)] = g
+            events_out.append({**{k: v for k, v in e.items() if k != "local_seq"}, "seq": g})
 
         led = inc.get("ledger") or {}
         if led:
