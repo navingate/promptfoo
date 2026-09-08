@@ -89,7 +89,20 @@ def _resolve(value, config):
     return value
 
 
+_FIELD_OPS = frozenset({"nonempty", "empty", "eq", "in", "contains", "ge",
+                        "len_eq", "len_le", "len_ge"})
+
+
 def _field_ok(events: list[dict], event_type: str, field: str, op: str, value) -> bool:
+    # Validate op + operand type UP FRONT (not inside the per-event loop, where an unknown op on an
+    # event type absent from the incident would never be reached). A malformed rule from an untrusted
+    # model must raise CorrelationUnsupported -> graded `invalid`, never KeyError/TypeError -> crash.
+    if op not in _FIELD_OPS:
+        raise CorrelationUnsupported(f"unsupported field op: {op!r}")
+    if op in ("len_eq", "len_le", "len_ge") and not isinstance(value, int):
+        raise CorrelationUnsupported(f"field op {op!r} needs an integer value, got {type(value).__name__}")
+    if op == "in" and not isinstance(value, (list, tuple, set)):
+        raise CorrelationUnsupported(f"field op 'in' needs a list value, got {type(value).__name__}")
     for e in events:
         if e.get("event") != event_type:
             continue
@@ -100,9 +113,9 @@ def _field_ok(events: list[dict], event_type: str, field: str, op: str, value) -
             return True
         if op == "eq" and v == value:
             return True
-        if op == "in" and v in (value or []):
+        if op == "in" and v in value:
             return True
-        if op == "contains" and isinstance(v, (list, str)) and value in v:
+        if op == "contains" and isinstance(v, (list, str, dict)) and value in v:
             return True
         if op == "ge":
             try:
@@ -115,8 +128,6 @@ def _field_ok(events: list[dict], event_type: str, field: str, op: str, value) -
             if ((op == "len_eq" and n == value) or (op == "len_le" and n <= value)
                     or (op == "len_ge" and n >= value)):
                 return True
-        if op not in {"nonempty", "empty", "eq", "in", "contains", "ge", "len_eq", "len_le", "len_ge"}:
-            raise CorrelationUnsupported(f"unsupported field op: {op!r}")
     return False
 
 
@@ -147,9 +158,25 @@ def _join_ok(events: list[dict], cond: dict, config=None) -> bool:
       {"type":"join","a":{"event":"session_tag_applied","field":"tag_name"},
        "b":{"event":"assertion_issued","field":"emitted_tags"},"on":"a_in_b"}
     """
-    a, b = cond.get("a") or {}, cond.get("b") or {}
+    a, b = cond.get("a"), cond.get("b")
     on = cond.get("on", "eq")
     where_b = cond.get("where_b")
+    # strict structure validation (untrusted rule -> CorrelationUnsupported, never a raw KeyError/TypeError)
+    if not isinstance(a, dict) or not isinstance(b, dict):
+        raise CorrelationUnsupported("join needs object 'a' and 'b'")
+    if on not in ("eq", "a_in_b", "b_in_a"):
+        raise CorrelationUnsupported(f"unsupported join `on`: {on!r}")
+    for spec, nm in ((a, "a"), (b, "b")):
+        if not isinstance(spec.get("field"), str):
+            raise CorrelationUnsupported(f"join side {nm!r} needs a string 'field'")
+        if not (isinstance(spec.get("event"), str)
+                or (isinstance(spec.get("events"), list) and spec["events"]
+                    and all(isinstance(x, str) for x in spec["events"]))):
+            raise CorrelationUnsupported(f"join side {nm!r} needs 'event' or a non-empty 'events' list")
+    if where_b is not None and (not isinstance(where_b, dict)
+                                or not isinstance(where_b.get("field"), str)
+                                or not isinstance(where_b.get("op"), str)):
+        raise CorrelationUnsupported("join 'where_b' needs string 'field' and 'op'")
 
     def _evs(spec):  # accept a single "event" or a list of "events" (e.g. role_assumed | grant_issued)
         types = set(spec.get("events") or ([spec["event"]] if spec.get("event") else []))
@@ -180,15 +207,27 @@ def _join_ok(events: list[dict], cond: dict, config=None) -> bool:
 
 
 def _cond_ok(events: list[dict], cond: dict, config=None) -> bool:
+    # Every access is guarded so a malformed condition from an untrusted model raises
+    # CorrelationUnsupported (-> graded `invalid`), never a bare KeyError/TypeError that crashes grading.
+    if not isinstance(cond, dict):
+        raise CorrelationUnsupported(f"condition must be an object, got {type(cond).__name__}")
     ctype = cond.get("type")
-    if ctype == "exists":
-        return any(e.get("event") == cond["event"] for e in events)
+    if ctype in ("exists", "absent"):
+        ev = cond.get("event")
+        if not isinstance(ev, str):
+            raise CorrelationUnsupported(f"{ctype!r} condition needs a string 'event'")
+        present = any(e.get("event") == ev for e in events)
+        return present if ctype == "exists" else not present
     if ctype == "exists_any":
-        types = set(cond.get("events", []))
+        evs = cond.get("events")
+        if not isinstance(evs, list) or not evs or not all(isinstance(x, str) for x in evs):
+            raise CorrelationUnsupported("'exists_any' needs a non-empty list of event-type strings")
+        types = set(evs)
         return any(e.get("event") in types for e in events)
-    if ctype == "absent":
-        return not any(e.get("event") == cond["event"] for e in events)
     if ctype == "field":
+        for k in ("event", "field", "op"):
+            if not isinstance(cond.get(k), str):
+                raise CorrelationUnsupported(f"'field' condition needs a string {k!r}")
         return _field_ok(events, cond["event"], cond["field"], cond["op"], _resolve(cond.get("value"), config))
     if ctype == "join":
         return _join_ok(events, cond, config)
@@ -197,12 +236,18 @@ def _cond_ok(events: list[dict], cond: dict, config=None) -> bool:
 
 def evaluate(rule: dict, incident_events: list[dict], config=None) -> bool:
     """Return True iff the correlation rule fires on this incident. Pure. `config` supplies per-instance
-    SOC-config values referenced by {"$config": <key>} in rule conditions (e.g. the honored tag key)."""
+    SOC-config values referenced by {"$config": <key>} in rule conditions (e.g. the honored tag key).
+    A structurally malformed rule raises CorrelationUnsupported (never a crash)."""
+    if not isinstance(rule, dict):
+        raise CorrelationUnsupported(f"rule must be an object, got {type(rule).__name__}")
+    require = rule.get("require", "all")
+    if require not in ("all", "any"):
+        raise CorrelationUnsupported(f"'require' must be 'all' or 'any', got {require!r}")
     conds = rule.get("conditions")
     if not isinstance(conds, list) or not conds:
         raise CorrelationUnsupported("rule needs a non-empty conditions list")
     results = [_cond_ok(incident_events, c, config) for c in conds]
-    return all(results) if rule.get("require", "all") == "all" else any(results)
+    return all(results) if require == "all" else any(results)
 
 
 def flagged_incidents(rule: dict, events: list[dict], config=None) -> set[str]:

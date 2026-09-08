@@ -84,6 +84,8 @@ def verify(task_dir: str | Path, rule_text, nonce: str | None = None) -> Defense
         metrics = score_corpus(rule, events, ground_truth, config)
     except CorrelationUnsupported as exc:
         return DefenseResult("invalid", None, {}, f"rule uses an unsupported construct: {exc}", [])
+    except Exception as exc:  # noqa: BLE001 - untrusted model rule: ANY eval error is `invalid`, never a crash
+        return DefenseResult("invalid", None, {}, f"rule evaluation failed: {type(exc).__name__}: {exc}", [])
 
     # thresholds: catch every smuggling incident, tolerate zero false alarms on this clean corpus.
     result = grade(metrics, recall_min=1.0, precision_min=1.0)
@@ -96,6 +98,6 @@ def verify(task_dir: str | Path, rule_text, nonce: str | None = None) -> Defense
             prof = timing_profile(rule, events, ground_truth, ledger, target_hop="h4_federation", config=config)
             result.components["pre_privesc_rate"] = round(prof["rates"]["pre_privesc_rate"], 4)
             result.components["prevention_rate"] = round(prof["rates"]["prevention_rate"], 4)
-        except (CorrelationUnsupported, KeyError, ValueError):
-            pass  # timing is diagnostic-only; never let it fail a valid grade
+        except Exception:  # noqa: BLE001 - timing is diagnostic-only; never let it fail a valid grade
+            pass
     return result
