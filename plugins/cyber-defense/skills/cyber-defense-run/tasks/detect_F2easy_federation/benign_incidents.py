@@ -1,18 +1,28 @@
 #!/usr/bin/env python3
-"""Benign / precision (TRUE-NEGATIVE) incidents for the grounded F2 federation detection corpus — v1.1
-DE-ORACLED. The v1 benign set carried NO session_tag_applied, which made the mere PRESENCE of a landed
-tag an oracle (a one-line rule scored 1.0/1.0 without understanding the smuggle). v1.1 fixes that: benign
-logins now LEGITIMATELY land session tags — the defense telemetry models a realistic enterprise SIEM where
-many session tags (environment, team, ...) land from self-service attrs that map to NON-honored (decoy)
-tags this instance, most of them benign. (F2 Chain: ALL 8 source attrs are a fixed self-service pool —
-there is no separate authoritative pool — so the benign/malicious line is the LANDED TAG, honored vs decoy,
-not the source's editability.)
+"""Benign / precision (TRUE-NEGATIVE) incidents for the grounded F2 federation detection corpus — v1.3
+PROVENANCE. Two de-oracle layers stacked here:
 
-So `session_tag_applied` is common and mostly benign; the malicious signal is PROVENANCE + CONSEQUENCE — a
-privilege-granting tag that LANDED and then ENABLED a successful escalation (the frozen reference rule keys
-on the session-tag -> successful-privesc join, literal-free and count-agnostic). Every benign incident here
-therefore lands a NON-privileged tag (or none) and NEVER successfully escalates, so the reference rule
-stays clean while the tag-presence shortcut now false-alarms on the tag-bearing benign.
+  v1.1 killed the TAG-PRESENCE oracle: the v1 benign set carried NO session_tag_applied, so a one-line
+  `{exists session_tag_applied}` rule scored 1.0 without understanding the smuggle. Fixed by having benign
+  logins LEGITIMATELY land session tags — a realistic SIEM where many session tags (environment, team, ...)
+  land from self-service attrs that map to NON-honored (decoy) tags, mostly benign (b1-b6).
+
+  v1.3 kills the two REMAINING non-generalizing shortcuts — HONORED-TAG-presence and ESCALATION-presence —
+  by adding the PROVENANCE TWIN (b7-legit-escalation, navnn-authorized): a benign LEGITIMATE deploy
+  principal whose honored tag `deploy-eligibility` lands AND who SUCCESSFULLY escalates, identical to the
+  attack on every axis EXCEPT that its honored tag was provisioned from an AUTHORITATIVE source attr
+  (soc_config.authoritative_attrs, e.g. memberOf — a directory group the caller cannot self-edit), not
+  smuggled through a self-service attr. So there now IS an authoritative pool, and the benign/malicious line
+  is PROVENANCE (self-service vs authoritative SOURCE of the honored tag), not the landed tag's identity and
+  not the presence of an escalation.
+
+The discriminator is therefore PROVENANCE: the honored tag emitted from a self-service source attr is the
+smuggle; from an authoritative attr it is a legitimate entitlement. On this corpus the crude rules —
+`{exists session_tag_applied}` (tag presence), correct_preventive.json (honored-tag presence) and
+correct.json (escalation-join) — EACH false-alarm on some benign (b1-b6 for tag presence, b7 for the other
+two), and ONLY the v1.3 provenance rule (correct_provenance.json) stays clean at recall/precision 1.0.
+b1-b6 land a decoy tag (or none) and never escalate; b7 lands the honored tag from an authoritative source
+and DOES escalate — spared only by provenance.
 
 Authored as F2 service EXCHANGES through the SAME translate.event_from_request as the grounded TP, so
 benign and TP telemetry are shape-indistinguishable; the difference lives only in content (which tag, from
@@ -23,8 +33,14 @@ which source, and whether it escalates). Distinct `caller` per incident. Source:
 from __future__ import annotations
 
 PRIV_TAG = "deploy-eligibility"        # the privilege-granting honored tag (config id, clear)
-HONORED_SRC = "extensionAttribute7"    # the self-service source attr the honored tag maps from
+HONORED_SRC = "extensionAttribute7"    # the self-service source attr the MALICIOUS smuggle maps from
+AUTH_SRC = "memberOf"                   # the AUTHORITATIVE (admin-provisioned, NOT self-service) source attr
+#                                        a LEGIT deploy principal's honored tag is provisioned from -- see
+#                                        soc_config.authoritative_attrs. Provenance (self-service vs
+#                                        authoritative) is the generalizing discriminator; the honored tag's
+#                                        VALUE and the escalation are IDENTICAL to the malicious case.
 GRANTED_ROLE = "cloud-operator"
+DEPLOY_ROLE = "deploy-runner"          # the role a legit deploy engineer (b7) legitimately assumes
 PT = "https://aws.amazon.com/SAML/Attributes/PrincipalTag:"   # AWS PrincipalTag claim URI prefix
 
 CLAIM_RULES = [
@@ -58,20 +74,18 @@ def _assume(caller, role, *, error=None):
 
 
 # `tags_landed` = the tag names this benign login lands on its session (for the selftest to confirm the
-# de-oracle); `escalates` = whether it SUCCESSFULLY escalates (all benign: False).
+# de-oracle); `escalates` = whether it SUCCESSFULLY escalates (b1-b6: False; b7: True — the provenance twin).
 #
-# ESCALATION-PRESENCE — FAITHFUL HERE, NON-GENERALIZING (documented, not hidden). No benign here escalates,
-# so a cruder "an escalation happened at all" rule also separates this corpus. F2 Chain verified
-# (cloudiam/app.py:210-219) that in the F2 estate AS BUILT escalation IS the attack — the assume/grant gate
-# requires the smuggled honored tag at the correct value and no benign principal holds it — so that signal
-# is FAITHFUL on this estate, not a defect. The limitation is GENERALIZATION: a real estate has legit deploy
-# engineers who assume the role, where only PROVENANCE separates. The generalizing discriminator (already in
-# correct.json, detector-side, NO telemetry change — F2 Chain gen.py:76): the landed tag's key == the honored
-# IAM trust-condition tag (SOC config, per-instance), traced via claim_rules_read to a caller attr in the
-# FIXED 8-attr self-service pool, with the correct value. The axis is the LANDED-TAG identity (honored vs
-# decoy), NOT source editability — all 8 attrs are uniformly self-service. To DEMONSTRATE that a rule must
-# reason about provenance (not just notice escalation) needs a benign LEGITIMATE-escalation twin, which the
-# estate models none of — that is an OFFENSE-side change (add a legit escalation path), navnn's call.
+# ESCALATION-PRESENCE — the gap is now CLOSED (v1.3). Previously no benign escalated, so a cruder "an
+# escalation happened at all" rule (and a bare honored-tag-presence rule) separated this corpus FAITHFULLY
+# but did not GENERALIZE: a real estate has legit deploy engineers who hold the honored tag and assume the
+# role, where only PROVENANCE separates. b7-legit-escalation is that legit twin: it lands the honored tag
+# `deploy-eligibility` AND successfully escalates, so the escalation-presence and honored-tag-presence rules
+# now FALSE-ALARM on it. The GENERALIZING discriminator (correct_provenance.json): the landed honored tag
+# (SOC config $honored_tag) was EMITTED by an assertion whose source_attrs OVERLAP the self-service pool
+# (SOC config $self_service_attrs) — smuggled via a caller-editable attr, vs b7's authoritative memberOf.
+# b7 is authored SYNTHETICALLY on the defense side matching soc_config.authoritative_attrs; F2 Chain lands
+# the grounded offense-estate legit-escalation capture separately (same synthetic→grounded path as the TP).
 BENIGN_INCIDENTS = [
     {
         "caller": "b1-env-tag", "taxonomy": "legit login: a self-service attr maps to a DECOY (non-honored) tag",
@@ -127,6 +141,27 @@ BENIGN_INCIDENTS = [
         "caller": "b6-recon-only", "taxonomy": "config audit: reads the claim-rules, no session",
         "tags_landed": [], "escalates": False, "source_attr_count": 0,
         "exchanges": [_claim_rules()],
+    },
+    {
+        # THE PROVENANCE TWIN (navnn-authorized full-scope build). A LEGITIMATE deploy engineer: the SAME
+        # honored tag `deploy-eligibility`, at a value that passes the trust condition, LANDS on the session
+        # and the principal SUCCESSFULLY escalates -- indistinguishable from the attack on EVERY axis except
+        # PROVENANCE. The honored tag was provisioned from an AUTHORITATIVE source attr (memberOf, a directory
+        # group the caller cannot self-edit), NOT smuggled through a self-service attr. This is the benign
+        # incident that makes provenance GATE-LOAD-BEARING: the crude honored-tag rule (correct_preventive)
+        # and the escalation-join (correct.json) both FALSE-ALARM here (honored tag landed; escalation
+        # succeeded), while the v1.3 provenance rule (correct_provenance) SPARES it (source_attrs={memberOf}
+        # does not overlap self_service_attrs). SYNTHETIC on the defense side, matching the agreed
+        # authoritative-attr shape; F2 Chain lands the real offense-estate legit-escalation path separately.
+        "caller": "b7-legit-escalation",
+        "taxonomy": "legit deploy engineer: HONORED tag provisioned from an AUTHORITATIVE attr (memberOf, not "
+                    "self-service), lands, and the principal LEGITIMATELY escalates -- only provenance separates",
+        "tags_landed": [PRIV_TAG], "escalates": True, "source_attr_count": 1,
+        "exchanges": [
+            _assert("b7-legit-escalation", {AUTH_SRC: "deploy-engineers"}, {PT + PRIV_TAG: "proj-atlas"}),
+            _session("b7-legit-escalation", {PRIV_TAG: "proj-atlas"}),  # honored tag LANDS -- authoritative source
+            _assume("b7-legit-escalation", DEPLOY_ROLE),                # SUCCESSFUL escalation (role_assumed ok)
+        ],
     },
 ]
 

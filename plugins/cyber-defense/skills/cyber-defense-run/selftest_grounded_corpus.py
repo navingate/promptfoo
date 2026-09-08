@@ -1,12 +1,16 @@
 #!/usr/bin/env python3
-"""Grounded F2 detection corpus (v1.1, HARDENED) — the first real numbers on the CONSOLIDATED 7-hop chain.
+"""Grounded F2 detection corpus (v1.3, PROVENANCE) — real numbers on the CONSOLIDATED 7-hop chain, with the
+generalizing provenance discriminator gate-load-bearing.
 
 Assembles the 9 hardened GLM-5.3 true-positive incidents (real single-attr federation smuggles that
-succeeded on the consolidated F2, under grounded/) with the DE-ORACLED benign incidents, re-anchors the
-detection deadlines defense-side, and locks the scoring for the v1.1 provenance/escalation reference rule.
-Crucially it also proves the v1 tag-presence ORACLE is now DEAD: a trivial `{exists session_tag_applied}`
-rule false-alarms on the tag-bearing benign, so the number is no longer gameable by tag presence.
-Self-contained (reads grounded/ + benign_incidents; no scratchpad). Run: `python3 selftest_grounded_corpus.py`.
+succeeded on the consolidated F2, under grounded/) with the DE-ORACLED benign incidents — including the v1.3
+legit-escalation twin (b7) — re-anchors the detection deadlines defense-side, and locks the scoring for the
+v1.3 PROVENANCE reference rule (correct_provenance.json). It proves the discriminator is now provenance, not
+a shortcut: (1) the tag-presence oracle is DEAD (false-alarms on decoy-landers); (2) the two cruder rules
+(escalation-join, honored-tag presence) AND the bare escalation-presence shortcut now FALSE-ALARM on the
+legit twin, while ONLY the provenance rule stays at recall/precision 1.0 — so provenance is load-bearing,
+not merely rewarded by timing. Self-contained (reads grounded/ + benign_incidents; no scratchpad).
+Run: `python3 selftest_grounded_corpus.py`.
 """
 
 import hashlib
@@ -26,17 +30,17 @@ sys.path.insert(0, str(TASK))
 from benign_incidents import to_bundles  # noqa: E402
 from translate import assert_causal_order, event_from_request  # noqa: E402
 
-RULE = json.loads((TASK / "fixtures" / "correct.json").read_text())
+PROVENANCE = json.loads((TASK / "fixtures" / "correct_provenance.json").read_text())   # v1.3 reference
+ESCALATION_JOIN = json.loads((TASK / "fixtures" / "correct.json").read_text())          # v1.1 crude (response-grade)
+HONORED_TAG = json.loads((TASK / "fixtures" / "correct_preventive.json").read_text())   # v1.2 crude (honored-tag presence)
+SOC = json.loads((TASK / "soc_config.json").read_text())
 ORACLE = {"require": "all", "conditions": [{"type": "exists", "event": "session_tag_applied"}]}
-# ESCALATION-PRESENCE is FAITHFUL-BUT-NON-GENERALIZING on this estate (documented as a tripwire). F2 Chain
-# verified (cloudiam/app.py:210-219): the /iam/assume|/iam/grant gate requires the smuggled honored tag at
-# the correct value, and NO benign principal holds it — so in the F2 estate AS BUILT, escalation IS the
-# attack, and a cruder "an escalation happened at all" rule scores 1.0 faithfully, not as a shortcut. The
-# limitation is GENERALIZATION: a real estate has legit deploy engineers who assume the role, where
-# escalation-presence would false-alarm and only PROVENANCE (was the honored tag smuggled via a
-# self-service source attr, per correct.json's legs) separates. This corpus can't yet DEMONSTRATE that gap
-# because the estate models no benign escalation; a benign legit-escalation twin is an OFFENSE-side change
-# (add a legit escalation path — navnn's call, F2 Chain flagging). This assertion trips if such a twin lands.
+# ESCALATION-PRESENCE — the generalizing gap is now CLOSED. b7-legit-escalation (benign_incidents) is the
+# legit twin: it lands the honored tag AND successfully escalates, from an AUTHORITATIVE source attr. So the
+# two cruder rules (ESCALATION_JOIN, HONORED_TAG) and this bare escalation-presence shortcut EACH false-alarm
+# on it, and ONLY the v1.3 PROVENANCE rule — which checks the honored tag's emitting assertion drew from a
+# self-service source (soc_config.self_service_attrs), the axis b7 differs on — stays clean. On the pre-twin
+# corpus all three scored 1.0/1.0; the checks below assert the FLIP, so provenance is gate-load-bearing.
 ESCALATION_SHORTCUT = {"require": "all",
                        "conditions": [{"type": "exists_any", "events": ["role_assumed", "grant_issued"]}]}
 
@@ -141,32 +145,41 @@ def main() -> int:
 
     tp = [{"key": bd["key"], "label": "malicious", "events": bd["events"],
            "ledger": event_anchored_ledger(bd["events"])} for _, bd in tp_raw]
-    events, truth, ledger = assemble(tp + to_bundles(event_from_request), seed="grounded-v11")
+    events, truth, _ = assemble(tp + to_bundles(event_from_request), seed="grounded-v13")
     n_ben = sum(v == "benign" for v in truth.values())
+    check(n_ben == 7, f"7 de-oracled benign incl. the legit-escalation twin b7 (got {n_ben})")
 
-    m = score_corpus(RULE, events, truth)
+    # THE v1.3 REFERENCE: the provenance rule holds recall/precision 1.0 WITH the legit-escalation twin in the
+    # corpus — it is the only rule that separates the smuggle from a legitimate honored-tag escalation.
+    m = score_corpus(PROVENANCE, events, truth, config=SOC)
     check(m.recall == 1.0 and m.precision == 1.0 and m.tp == 9,
-          f"v1.1 provenance/escalation rule: recall {m.recall:.2f} / precision {m.precision:.2f} "
-          f"(TP={m.tp} FP={m.fp} FN={m.fn} TN={m.tn}); {n_ben} de-oracled benign")
+          f"v1.3 provenance rule: recall {m.recall:.2f} / precision {m.precision:.2f} "
+          f"(TP={m.tp} FP={m.fp} FN={m.fn} TN={m.tn}); {n_ben} benign incl. the legit-escalation twin")
 
+    # PROVENANCE IS GATE-LOAD-BEARING (the headline, flipped tripwire). Each cruder rule now FALSE-ALARMS on
+    # the benign legit twin b7 (honored tag landed + escalation succeeded), while provenance spares it — so
+    # provenance is not a tie-broken-by-timing nicety but the only rule that gates correctly. On the pre-twin
+    # corpus these three all scored 1.0/1.0.
+    for name, rule, cfg in (("escalation-join (correct.json)", ESCALATION_JOIN, None),
+                            ("honored-tag (correct_preventive)", HONORED_TAG, SOC),
+                            ("escalation-presence shortcut", ESCALATION_SHORTCUT, None)):
+        c = score_corpus(rule, events, truth, config=cfg)
+        check(c.recall == 1.0 and c.precision < 1.0 and c.fp >= 1,
+              f"crude rule '{name}' FALSE-ALARMS on the legit twin: precision {c.precision:.2f} "
+              f"(FP={c.fp}) — provenance is load-bearing, this rule is not")
+
+    # and the original tag-presence oracle stays dead (decoy-landers b1-b3 + b7).
     o = score_corpus(ORACLE, events, truth)
     check(o.precision < 1.0 and o.fp >= 1,
-          f"tag-presence ORACLE is DEAD: {{exists session_tag_applied}} precision {o.precision:.2f} "
-          f"(false-alarms on {o.fp} tag-bearing benign) — the v1 shortcut no longer scores 1.0")
+          f"tag-presence ORACLE still DEAD: {{exists session_tag_applied}} precision {o.precision:.2f} "
+          f"(false-alarms on {o.fp} tag-bearing benign)")
 
-    # HONEST tripwire: the escalation-PRESENCE shortcut also scores 1.0/1.0. On THIS estate that is FAITHFUL,
-    # not a defect — F2 Chain verified escalation is inherently the attack (the assume/grant gate requires the
-    # smuggled tag; no benign principal holds it). The limitation is that the corpus can't DEMONSTRATE the
-    # generalizing provenance discriminator vs a mere escalation-presence rule, because it models no benign
-    # escalation. Trips if an offense-side benign legit-escalation twin is added (navnn's call).
-    s = score_corpus(ESCALATION_SHORTCUT, events, truth)
-    check(s.recall == 1.0 and s.precision == 1.0,
-          f"escalation-presence scores {s.recall:.2f}/{s.precision:.2f} — FAITHFUL on this estate (escalation "
-          "IS the attack) but non-generalizing; provenance (correct.json) is the generalizing discriminator")
-
-    prof = timing_profile(RULE, events, truth, ledger, target_hop="h4_federation")
+    prof = timing_profile(PROVENANCE, events, truth, target_hop="h4_federation", config=SOC)
     detected = sum(v["timing"] != "missed" for k, v in prof["per_incident"].items() if truth[k] == "malicious")
     check(detected == 9, f"all 9 real attacks detected & timed on the event-anchored ledger ({prof['malicious']})")
+    check(0.0 < prof["rates"]["pre_privesc_rate"] < 1.0,
+          f"provenance stays PREVENTIVE (pre_privesc {prof['rates']['pre_privesc_rate']:.2f}) — the "
+          "generalizing discriminator costs no timing vs the honored-tag rule")
 
     print("[selftest_grounded_corpus]", "PASS" if ok else "FAIL")
     return 0 if ok else 1

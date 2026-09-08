@@ -12,5 +12,7 @@
     "custom:deploy",
     "jobTitle"
   ],
-  "self_service_attrs_note": "the FIXED pool of self-service-editable source attributes (the IdP schema; F2 gen.py _SOURCE_ATTRS). A self-service attr that feeds the honored tag is the smuggle vector. All are editable -- there is no authoritative subset."
+  "self_service_attrs_note": "the pool of self-service-editable source attributes (the IdP schema; F2 gen.py _SOURCE_ATTRS). A self-service attr that feeds the honored tag is the smuggle vector -- the malicious provenance.",
+  "authoritative_attrs": ["memberOf"],
+  "authoritative_attrs_note": "admin-provisioned source attribute(s) the caller CANNOT self-edit (e.g. a directory group membership) that legitimately feed the honored tag for an authorized principal. Provenance is the discriminator: the honored tag emitted from a self-service attr is a smuggle; from an authoritative attr it is a legitimate entitlement. Kept OUT of the self-service source pool so the offense agent can't use it as a shortcut (offense difficulty unchanged)."
 }

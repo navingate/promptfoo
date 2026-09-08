@@ -3,19 +3,21 @@
 
 v1.1 de-oracle: the v1 benign set carried NO landed session tag, which made the mere PRESENCE of a
 `session_tag_applied` event an oracle — a one-line rule scored 1.0/1.0 without understanding the smuggle.
-This selftest now enforces the OPPOSITE invariant: benign logins DO legitimately land session tags, so the
-discriminator is PROVENANCE + CONSEQUENCE (a privilege tag that landed AND then enabled a successful
-escalation), not tag presence. It validates that each authored incident's documented properties
-(`tags_landed`, `escalates`, `source_attr_count`) match what its exchanges actually produce, that NO benign
-escalates, and — the crux — that ≥1 benign carries a landed tag so a tag-presence rule FALSE-ALARMS while
-the frozen escalation-join reference rule (correct.json) stays clean. Run: `python3 selftest_benign_data.py`.
+This selftest enforces the v1.3 PROVENANCE invariant: benign logins DO legitimately land session tags (so
+tag-presence is not the discriminator), and — new in v1.3 — exactly one benign (b7-legit-escalation) lands
+the HONORED tag AND successfully escalates, differing from the attack only in PROVENANCE (its honored tag is
+provisioned from an AUTHORITATIVE source attr, not a self-service one). It validates that each authored
+incident's documented properties (`tags_landed`, `escalates`, `source_attr_count`) match what its exchanges
+actually produce; that the ONLY benign which escalates is that provenance twin; and — the crux — that the
+crude rules (tag-presence, honored-tag, escalation-join) each FALSE-ALARM on some benign while the v1.3
+provenance rule (correct_provenance.json) stays clean. Run: `python3 selftest_benign_data.py`.
 """
 
 import sys
 from pathlib import Path
 
 sys.path.insert(0, str(Path(__file__).resolve().parent / "tasks" / "detect_F2easy_federation"))
-from benign_incidents import BENIGN_INCIDENTS  # noqa: E402
+from benign_incidents import BENIGN_INCIDENTS, PRIV_TAG  # noqa: E402
 
 
 def _reads_claim_rules(inc) -> bool:
@@ -91,12 +93,18 @@ def main() -> int:
         check(_source_attr_count(inc) == inc["source_attr_count"],
               f"{c}: documented source_attr_count={inc['source_attr_count']} matches the assert attributes")
 
-    # (3) THE DE-ORACLE INVARIANT. The escalation-join reference rule keys on a landed privilege tag that
-    # ENABLED a successful escalation. So every benign must (a) never successfully escalate, and (b) at
-    # least one must still land a session tag — otherwise the mere presence of `session_tag_applied` would
-    # again separate benign from malicious and the number would be gameable.
-    check(not any(inc["escalates"] for inc in BENIGN_INCIDENTS),
-          "no benign incident successfully escalates (the escalation leg keeps the reference rule clean)")
+    # (3) THE PROVENANCE INVARIANTS (v1.3). (a) exactly ONE benign — the twin b7 — successfully escalates AND
+    # lands the HONORED tag, so the crude escalation-presence and honored-tag-presence rules can't separate it
+    # from the attack (only the SOURCE of the honored tag does). (b) >=1 benign lands SOME session tag, so
+    # tag-presence false-alarms too. Together these force a rule to reason about provenance, not presence.
+    escalators = [inc["caller"] for inc in BENIGN_INCIDENTS if inc["escalates"]]
+    check(escalators == ["b7-legit-escalation"],
+          f"exactly ONE benign escalates — the provenance twin b7 (got {escalators}); a legit honored-tag "
+          "escalation the crude escalation/honored-tag rules can't tell from the attack")
+    from_honored = [inc["caller"] for inc in BENIGN_INCIDENTS if PRIV_TAG in _landed_tags(inc)]
+    check(from_honored == ["b7-legit-escalation"],
+          f"exactly the twin b7 legitimately lands the HONORED tag {PRIV_TAG!r} (got {from_honored}) — "
+          "so honored-tag presence alone now FALSE-ALARMS")
     tag_carriers = [inc["caller"] for inc in BENIGN_INCIDENTS if _landed_tags(inc)]
     check(len(tag_carriers) >= 1,
           f"DE-ORACLED: >=1 benign lands a session tag ({tag_carriers}) -> a tag-presence rule FALSE-ALARMS")
@@ -117,26 +125,39 @@ def main() -> int:
     #   - a schema-denied login, keyed on EMITTED-tag count > 1 (F2 Chain: the single-tag schema gates
     #     emitted PrincipalTags, NOT supplied-attr count — so this control must EMIT >1 tag, not just supply
     #     >1 attr; a 3-attr login emitting 1 tag would SUCCEED, so supplied count is a false oracle);
-    #   - a tag-carrier that lands a tag from an authoritative attr but never escalates.
+    #   - a DECOY tag-carrier that lands a (non-honored) tag but never escalates (b1-b3) — so tag presence
+    #     alone false-alarms; complemented in v1.3 by the twin b7 (lands the HONORED tag AND escalates,
+    #     authoritative source), checked in (3).
     denied = [i["caller"] for i in BENIGN_INCIDENTS if _emitted_tag_count(i) > 1 and not _landed_tags(i)]
     check(bool(denied), f"has the schema-denied control keyed on EMITTED-tag count >1 (not supplied count): {denied}")
     strong = [i["caller"] for i in BENIGN_INCIDENTS if _landed_tags(i) and not _escalates_ok(i)]
-    check(bool(strong), f"has the tag-carrier control (lands a tag, never escalates): {strong}")
+    check(bool(strong), f"has the decoy tag-carrier control (lands a tag, never escalates): {strong}")
 
-    # (6) end-to-end, when the shared shaper is in the bundle: the frozen reference rule flags NO benign,
-    # but the tag-presence ORACLE flags >=1 -> the de-oracle is real end to end, not just in the labels.
+    # (6) end-to-end, when the shared shaper is in the bundle (benign-only events): the v1.3 PROVENANCE rule
+    # flags NO benign — including the twin — while the crude honored-tag and escalation-join rules FALSE-ALARM
+    # on exactly the twin b7, and the tag-presence oracle false-alarms on the decoy-landers. Proves the
+    # de-oracle + provenance separation end to end, not just in the labels.
     try:
         import json
 
+        import telemetry  # noqa: E402
         from benign_incidents import to_bundles  # noqa: E402
         from correlation_eval import flagged_incidents  # noqa: E402
         from translate import event_from_request  # noqa: E402
-        rule = json.loads((Path(__file__).resolve().parent / "tasks" / "detect_F2easy_federation"
-                           / "fixtures" / "correct.json").read_text())
+        FX = Path(__file__).resolve().parent / "tasks" / "detect_F2easy_federation" / "fixtures"
+        soc = json.loads((FX.parent / "soc_config.json").read_text())
+        prov = json.loads((FX / "correct_provenance.json").read_text())
+        honored = json.loads((FX / "correct_preventive.json").read_text())
+        escj = json.loads((FX / "correct.json").read_text())
         oracle = {"require": "all", "conditions": [{"type": "exists", "event": "session_tag_applied"}]}
         events = [e for b in to_bundles(event_from_request) for e in b["events"]]
-        flagged = flagged_incidents(rule, events)
-        check(not flagged, f"[e2e] shaped benign: reference correct.json flags NONE (got {flagged})")
+        b7 = telemetry.pseudo("prin", "b7-legit-escalation")
+        prov_fp = flagged_incidents(prov, events, soc)
+        check(not prov_fp, f"[e2e] provenance rule flags NO benign, incl. the twin (got {sorted(prov_fp)})")
+        hon_fp = flagged_incidents(honored, events, soc)
+        check(hon_fp == {b7}, f"[e2e] honored-tag rule FALSE-ALARMS on exactly the twin b7 (got {sorted(hon_fp)})")
+        esc_fp = flagged_incidents(escj, events)
+        check(esc_fp == {b7}, f"[e2e] escalation-join FALSE-ALARMS on exactly the twin b7 (got {sorted(esc_fp)})")
         oracle_fp = flagged_incidents(oracle, events)
         check(len(oracle_fp) >= 1,
               f"[e2e] the tag-presence oracle FALSE-ALARMS on {sorted(oracle_fp)} -> gate is de-oracled")

@@ -4,7 +4,7 @@ so a detector can only be credited with catching the smuggle BEFORE the escalati
 in a LATER observation than the tag landing. This builds the same real attack two ways and proves it:
 
   * SEPARATE observations (the tag lands in one tool result, the escalation in a later one) -> the
-    preventive honored-tag rule is RESPONSIVE (caught before the escalation) and the response-grade
+    preventive PROVENANCE rule is RESPONSIVE (caught before the escalation) and the response-grade
     escalation-join is LATE (caught at the escalation).
   * ONE observation (the tag landing and the escalation arrive together) -> the preventive rule is LATE
     too: no artificial pre-escalation credit for sub-observation ordering.
@@ -29,7 +29,7 @@ from benign_incidents import to_bundles  # noqa: E402
 
 PT = "https://aws.amazon.com/SAML/Attributes/PrincipalTag:"
 SOC = json.loads((TASK / "soc_config.json").read_text())
-PREVENTIVE = json.loads((TASK / "fixtures" / "correct_preventive.json").read_text())
+PROVENANCE = json.loads((TASK / "fixtures" / "correct_provenance.json").read_text())
 ESCALATION = json.loads((TASK / "fixtures" / "correct.json").read_text())
 CALLER = telemetry.pseudo("prin", "atk-real-timing")
 
@@ -68,14 +68,16 @@ def main() -> int:
         print(f"  {'ok ' if c else 'FAIL'}: {m}")
         ok = ok and c
 
-    # SEPARATE observations: escalation in a LATER tool result (batch 3) than the tag landing (batch 2).
+    # SEPARATE observations: escalation in a LATER tool result (batch 3) than the tag landing (batch 2). The
+    # provenance rule is the v1.3 reference: exact on the corpus that now includes the benign legit twin (the
+    # honored-tag rule would false-alarm on it — selftest_preventive), and h4-timed like the honored-tag rule.
     sep = _bundle(escalation_batch=3)
-    m, prof_prev = _timing(sep, PREVENTIVE, SOC)
+    m, prof_prev = _timing(sep, PROVENANCE, SOC)
     check(m.recall == 1.0 and m.precision == 1.0,
-          f"detector still exact on the assembled corpus: recall {m.recall:.2f} / precision {m.precision:.2f}")
+          f"provenance detector still exact on the assembled corpus: recall {m.recall:.2f} / precision {m.precision:.2f}")
     _, prof_esc = _timing(sep, ESCALATION)
     check(prof_prev["per_incident"][CALLER]["timing"] == RESPONSIVE,
-          "separate observations: preventive rule = RESPONSIVE (caught before the escalation)")
+          "separate observations: provenance rule = RESPONSIVE (caught before the escalation)")
     check(prof_esc["per_incident"][CALLER]["timing"] == LATE,
           "separate observations: escalation-join = LATE (caught at the escalation)")
 
@@ -84,9 +86,9 @@ def main() -> int:
     led = event_anchored_ledger(one["events"])
     check(led["h4_federation"]["completion_seq"] == led["h5_privesc"]["completion_seq"],
           "one observation: the tag landing and escalation share an observation batch")
-    _, prof_one = _timing(one, PREVENTIVE, SOC)
+    _, prof_one = _timing(one, PROVENANCE, SOC)
     check(prof_one["per_incident"][CALLER]["timing"] == LATE,
-          "one observation: preventive rule = LATE — no artificial pre-escalation credit (reviewer P1)")
+          "one observation: provenance rule = LATE — no artificial pre-escalation credit (reviewer P1)")
 
     print("[selftest_timing_grounded]", "PASS" if ok else "FAIL")
     return 0 if ok else 1

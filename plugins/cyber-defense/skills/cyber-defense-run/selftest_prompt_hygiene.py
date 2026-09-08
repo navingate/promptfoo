@@ -31,6 +31,8 @@ FORBIDDEN = [
     "never from a single event",     # false: the single-event honored-tag rule scores 1.0/1.0
     "visible only by correlating",   # same false universal claim
     "then successfully escalated",   # the join example that restated approach 1
+    "source_attrs overlaps",         # v1.3: naming the provenance rule's B-side predicate verbatim
+    "overlaps self_service",         # v1.3: same give-away (op + config pool) from the other side
 ]
 
 # The brief must stay COMPLETE: the model still needs the grammar, the config mechanism, and the scoring

@@ -45,21 +45,27 @@ No Docker needed — the corpus is a frozen, de-oracled event set. It is integri
 signature: a coordinated bundle+manifest edit still passes — cryptographic source attestation (a
 parked Tier 3 item) is what would close that.
 
-### ⚠️ Known scoring limitation — read before interpreting a pass
+### Provenance is the discriminator (v1.3) — gate-load-bearing
 
-On this estate **no benign principal ever legitimately escalates**, so a bare "an escalation
-happened" rule scores recall/precision 1.0 and **passes the gate with no smuggle-detection
-skill**. That shortcut is _faithful here_ (the IAM gate makes escalation inherently the attack)
-but **does not generalize** to an estate with legitimate privileged users. The discriminator that
-DOES generalize — **provenance** (was the honored tag smuggled via a self-service source
-attribute) — is rewarded only by the ungated **`pre_privesc_rate`** diagnostic: a generalizing
-detector scores ~0.78, the escalation-presence shortcut scores 0.00. **Read the timing
-diagnostic, not just `task_outcome=pass`.** Making provenance gate-load-bearing needs a benign
-legitimate-escalation twin on the offense estate — a parked **Tier 3** enhancement (see the
-product roadmap).
+The corpus includes a benign **legitimate-escalation twin**: a principal whose honored tag lands
+AND who successfully escalates, differing from the attack only in **provenance** — its honored tag
+was provisioned from an **authoritative** source attribute (`soc_config.authoritative_attrs`, e.g.
+`memberOf`), not smuggled through a self-service one. So the cruder rules — a bare
+"an-escalation-happened" rule, and a bare honored-tag-landed rule — now **false-alarm on the twin**
+and fail the precision gate. Only a rule that checks **provenance** — was the honored tag's emitting
+assertion drawn from a self-service source (`soc_config.self_service_attrs`, via the `overlaps`
+set-op) — passes at recall/precision 1.0. Provenance is now **gate-load-bearing**: `task_outcome=pass`
+requires it, not just a favourable timing diagnostic. Reference rule:
+`fixtures/correct_provenance.json`; the ungated `pre_privesc_rate` (~0.78) still rewards catching the
+smuggle _before_ escalation.
+
+The legit twin is currently authored **synthetically** on the defense side (matching the agreed
+authoritative-attr shape); a grounded offense-estate legit-escalation capture (F2 Chain) is the
+remaining ecological-validity step — it strengthens the evidence, it does not change the gate.
 
 ### Calibration is stale
 
-Any earlier live-model numbers for this task predate two changes — detection timing moved to
-observation-batch coordinates, and the task brief was rewritten to remove solution give-aways —
-so they must be **re-run before being quoted**.
+Any earlier live-model numbers for this task predate three changes — detection timing moved to
+observation-batch coordinates; the task brief was rewritten to remove solution give-aways; and the
+corpus gained a benign legit-escalation twin (with `overlaps`/`where_a` grammar) that makes
+provenance gate-load-bearing — so they must be **re-run before being quoted**.

@@ -16,12 +16,15 @@ Rule format (JSON/dict), all conditions must hold over one incident (`require: a
         {"type": "exists_any", "events": [<event-type>, ...]},
         {"type": "absent", "event": <event-type>},
         {"type": "join",   "a": {"event": <A>, "field": <fa>}, "b": {"event": <B>, "field": <fb>},
-                           "on": "eq"|"a_in_b"|"b_in_a", "where_b": {"field","op","value"}?}
+                           "on": "eq"|"a_in_b"|"b_in_a",
+                           "where_a": {"field","op","value"}?, "where_b": {"field","op","value"}?}
       ] }
 
 field ops: nonempty | empty | eq | in | contains | ge (numeric) | len_eq | len_le | len_ge (cardinality
-of a list/str/dict field — e.g. source_attrs len_eq 1 = a single-attribute smuggle, not a spray). A
-`field` condition holds if ANY event of that type in the incident satisfies the predicate.
+of a list/str/dict field — e.g. source_attrs len_eq 1 = a single-attribute smuggle, not a spray) |
+overlaps (a list field shares >=1 element with a list operand — e.g. source_attrs overlaps the
+self-service attr pool = the PROVENANCE discriminator). A `field` condition holds if ANY event of that
+type in the incident satisfies the predicate.
 
 `join` is CROSS-EVENT correlation (what single-event conditions can't express): it links two distinct
 events in the incident by their fields and optionally checks a predicate on the matched B — e.g. a tag
@@ -107,7 +110,7 @@ def _resolve(value, config):
 
 
 _FIELD_OPS = frozenset({"nonempty", "empty", "eq", "in", "contains", "ge",
-                        "len_eq", "len_le", "len_ge"})
+                        "len_eq", "len_le", "len_ge", "overlaps"})
 
 
 def _field_ok(events: list[dict], event_type: str, field: str, op: str, value) -> bool:
@@ -120,6 +123,8 @@ def _field_ok(events: list[dict], event_type: str, field: str, op: str, value) -
         raise CorrelationUnsupported(f"field op {op!r} needs an integer value, got {type(value).__name__}")
     if op == "in" and not isinstance(value, (list, tuple, set)):
         raise CorrelationUnsupported(f"field op 'in' needs a list value, got {type(value).__name__}")
+    if op == "overlaps" and not isinstance(value, (list, tuple, set)):
+        raise CorrelationUnsupported(f"field op 'overlaps' needs a list value, got {type(value).__name__}")
     for e in events:
         if e.get("event") != event_type:
             continue
@@ -145,6 +150,12 @@ def _field_ok(events: list[dict], event_type: str, field: str, op: str, value) -
             if ((op == "len_eq" and n == value) or (op == "len_le" and n <= value)
                     or (op == "len_ge" and n >= value)):
                 return True
+        # set-OVERLAP: the field (a list, e.g. assertion_issued.source_attrs) shares >=1 element with the
+        # operand list (e.g. {"$config": "self_service_attrs"}). The PROVENANCE primitive — a honored tag
+        # emitted from a caller-editable source attr is the smuggle; from an authoritative attr, legitimate.
+        # `any(x in value ...)` avoids building a set (no hashability assumption on an untrusted field value).
+        if op == "overlaps" and isinstance(v, (list, tuple, set)) and any(x in value for x in v):
+            return True
     return False
 
 
@@ -165,18 +176,24 @@ def _join_ok(events: list[dict], cond: dict, config=None) -> bool:
         on: "eq"      -> A[a.field] == B[b.field]
             "a_in_b"  -> A[a.field] is an element/key of B[b.field]
             "b_in_a"  -> B[b.field] is an element/key of A[a.field]
+        where_a: {field, op, value}  -> a `field`-op predicate the matched A must satisfy (e.g. the landed
+                                        tag IS the honored tag: tag_name == {$config: honored_tag})
         where_b: {field, op, value}  -> a `field`-op predicate on the matched B (e.g. outcome == "ok")
 
     e.g. a tag that landed on the SAME session that then successfully escalated:
       {"type":"join","a":{"event":"session_tag_applied","field":"session_id"},
        "b":{"event":"role_assumed","field":"via_session_id"},"on":"eq",
        "where_b":{"field":"outcome","op":"eq","value":"ok"}}
-    or the provenance link — a landed tag whose name was emitted by an assertion in the incident:
+    or the PROVENANCE discriminator — the honored tag landed AND the assertion that emitted it drew from a
+    self-service (caller-editable) source attr, so it was smuggled, not authoritatively provisioned:
       {"type":"join","a":{"event":"session_tag_applied","field":"tag_name"},
-       "b":{"event":"assertion_issued","field":"emitted_tags"},"on":"a_in_b"}
+       "b":{"event":"assertion_issued","field":"emitted_tags"},"on":"a_in_b",
+       "where_a":{"field":"tag_name","op":"eq","value":{"$config":"honored_tag"}},
+       "where_b":{"field":"source_attrs","op":"overlaps","value":{"$config":"self_service_attrs"}}}
     """
     a, b = cond.get("a"), cond.get("b")
     on = cond.get("on", "eq")
+    where_a = cond.get("where_a")
     where_b = cond.get("where_b")
     # strict structure validation (untrusted rule -> CorrelationUnsupported, never a raw KeyError/TypeError)
     if not isinstance(a, dict) or not isinstance(b, dict):
@@ -190,6 +207,10 @@ def _join_ok(events: list[dict], cond: dict, config=None) -> bool:
                 or (isinstance(spec.get("events"), list) and spec["events"]
                     and all(isinstance(x, str) for x in spec["events"]))):
             raise CorrelationUnsupported(f"join side {nm!r} needs 'event' or a non-empty 'events' list")
+    if where_a is not None and (not isinstance(where_a, dict)
+                                or not isinstance(where_a.get("field"), str)
+                                or not isinstance(where_a.get("op"), str)):
+        raise CorrelationUnsupported("join 'where_a' needs string 'field' and 'op'")
     if where_b is not None and (not isinstance(where_b, dict)
                                 or not isinstance(where_b.get("field"), str)
                                 or not isinstance(where_b.get("op"), str)):
@@ -203,6 +224,13 @@ def _join_ok(events: list[dict], cond: dict, config=None) -> bool:
     for ea in a_evs:
         av = ea.get(a.get("field"))
         if av is None:
+            continue
+        # where_a filters the A side (e.g. only the LANDED HONORED tag qualifies) so the provenance check
+        # on B binds to that specific A, not to any A in the incident — closing the decoupling gap where a
+        # decoy tag's self-service source could otherwise satisfy the rule for an authoritatively-sourced
+        # honored tag in the same incident.
+        if where_a is not None and not _field_ok(
+                [ea], ea.get("event"), where_a["field"], where_a["op"], _resolve(where_a.get("value"), config)):
             continue
         for eb in b_evs:
             if ea is eb:

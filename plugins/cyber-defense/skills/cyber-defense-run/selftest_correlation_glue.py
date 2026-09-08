@@ -39,13 +39,15 @@ def main() -> int:
     check("correlation rule" in msgs[1]["content"].lower() or "correlation" in json.dumps(msgs).lower(),
           "prompt presents the correlation threat brief")
 
-    correct = (TASK / "fixtures" / "correct.json").read_text()
+    provenance = (TASK / "fixtures" / "correct_provenance.json").read_text()
     match_none = (TASK / "fixtures" / "match_none.json").read_text()
 
-    # a good rule in a fenced block -> pass, with recall/precision surfaced
-    g = get_assert(reply(correct, "Here is my correlation rule:"))
+    # the v1.3 PROVENANCE reference rule in a fenced block -> pass at score 1.0, with recall/precision
+    # surfaced. (It uses {"$config"} for both honored_tag and self_service_attrs; verify() threads
+    # soc_config.json in, so this also exercises the config path end to end.)
+    g = get_assert(reply(provenance, "Here is my correlation rule:"))
     check(g["pass_"] is True and g["score"] == 1.0,
-          f"correct rule (fenced, with prose) -> PASS score={g['score']:.2f} "
+          f"provenance rule (fenced, with prose) -> PASS score={g['score']:.2f} "
           f"[recall={g['named_scores'].get('recall')} precision={g['named_scores'].get('precision')}]")
     check(g["named_scores"].get("run_valid") == 1.0 and g["component_results"],
           "grading result carries run_valid + per-check component_results")
@@ -56,7 +58,7 @@ def main() -> int:
           f"match_none rule -> not pass ({b['reason'][:60]}...)")
 
     # a bare JSON rule with no code fence still extracts
-    bare = get_assert(json.dumps(json.loads(correct)))
+    bare = get_assert(json.dumps(json.loads(provenance)))
     check(bare["pass_"] is True, "bare JSON (no fence) still parses + scores")
 
     # malformed output -> run_status invalid (surfaced, not a silent perf miss)
@@ -64,12 +66,16 @@ def main() -> int:
     check(inv["pass_"] is False and inv["named_scores"].get("run_valid") == 0.0,
           f"unparseable output -> run_status invalid (run_valid=0), pass=False")
 
-    # the PREVENTIVE rule uses {"$config": "honored_tag"} — the assertion threads soc_config.json into the
-    # scorer so it resolves + passes, and reports the timing diagnostic (pre_privesc_rate) end to end.
-    preventive = (TASK / "fixtures" / "correct_preventive.json").read_text()
-    p = get_assert(reply(preventive, "Preventive rule:"))
-    check(p["pass_"] is True and p["named_scores"].get("pre_privesc_rate") is not None,
-          f"preventive $config rule -> PASS with timing diagnostic "
+    # the honored-tag PREVENTIVE rule also uses {"$config"} and fires preventively, but on the v1.3 twin
+    # corpus it is now IMPRECISE (false-alarms on the benign legit-escalation twin) -> it does NOT pass, yet
+    # the glue still threads soc_config.json and surfaces the timing diagnostic (pre_privesc_rate) end to end.
+    # This proves the grade correctly FAILS an imprecise rule while still reporting its (ungated) timing.
+    honored = (TASK / "fixtures" / "correct_preventive.json").read_text()
+    p = get_assert(reply(honored, "Honored-tag rule:"))
+    check(p["pass_"] is False and p["named_scores"].get("precision") < 1.0
+          and p["named_scores"].get("pre_privesc_rate") is not None,
+          f"honored-tag $config rule -> NOT pass (imprecise on the twin, precision "
+          f"{p['named_scores'].get('precision')}) but timing diagnostic surfaced "
           f"(pre_privesc_rate={p['named_scores'].get('pre_privesc_rate')})")
 
     # the prompt exposes the SOC config so a model can actually write a config-driven rule

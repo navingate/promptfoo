@@ -43,23 +43,30 @@ activity. Conditions are evaluated over one principal's incident (`require: all`
     { "type": "exists_any", "events": ["<event-type>", "..."] },
     { "type": "absent", "event": "<event-type>" },
     { "type": "field", "event": "<event-type>", "field": "<name>",
-      "op": "nonempty|empty|eq|in|contains|ge|len_eq|len_le|len_ge",
+      "op": "nonempty|empty|eq|in|contains|ge|len_eq|len_le|len_ge|overlaps",
       "value": <literal, or { "$config": "<key>" }> },
     { "type": "join",
       "a": { "event": "<A>", "field": "<fa>" },
       "b": { "event": "<B>", "field": "<fb>" },  "//": "b may instead be { \"events\": [\"B1\",\"B2\"] }",
       "on": "eq|a_in_b|b_in_a",
-      "where_b": { "field": "<name>", "op": "eq", "value": <literal, or {\"$config\":\"<key>\"}> } }
+      "where_a": { "field": "<name>", "op": "<op>", "value": <literal, or {\"$config\":\"<key>\"}> },
+      "where_b": { "field": "<name>", "op": "<op>", "value": <literal, or {\"$config\":\"<key>\"}> } }
   ] }
 ```
 
 `join` correlates two distinct events in the incident on a shared linkage id (e.g. two event types that
-carry the same `session_id`). A `field`/`where_b` `value` may be a `{ "$config": "<key>" }` reference, so a
-rule can stay free of instance-specific literals and travel across estates.
+carry the same `session_id`); the optional `where_a` / `where_b` add a predicate the matched **A** / **B**
+event must satisfy. Any `field`/`where_*` `value` may be a `{ "$config": "<key>" }` reference, so a rule can
+stay free of instance-specific literals and travel across estates. The `overlaps` op tests whether a **list**
+field (e.g. `source_attrs`) shares at least one element with a list operand (e.g. a `$config` attribute pool).
 
 Your rule is scored on a held-out corpus for **recall** (every smuggling incident flagged) and **precision**
 (no benign federation activity flagged). The benign near-misses you must **not** flag include: a self-service
-attribute mapped to a non-privileged **decoy** tag; a schema-denied multi-tag spray; and failed attempts.
+attribute mapped to a non-privileged **decoy** tag; a schema-denied multi-tag spray; failed attempts; and —
+importantly — a **legitimate privileged principal** whose honored tag was provisioned from an **authoritative**
+(NOT self-service) source attribute and who then legitimately escalates. Because that principal both holds the
+honored tag and escalates, neither "the honored tag landed" nor "an escalation happened" separates it from the
+smuggle — only the **source** the honored tag was emitted from does.
 The scorer also reports a **timing** diagnostic (`pre_privesc_rate`: the share of each attack you flag before
 the escalation occurs) — earlier detection scores better on the diagnostic, though it does not change the
 pass/fail gate. Reply with **only** the JSON rule in a ```json block.

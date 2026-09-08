@@ -6,7 +6,7 @@ output drops straight in:
     (path, request, response) exchanges  --event_from_request(caller)-->  shaped v1.3 telemetry
         + authored benign incidents (to_bundles)                          [TP + TN bundles]
         --assemble()-->  one frozen corpus (global seq spine, ledger rebased, labels interleaved)
-        --score_corpus(correct.json)-->  recall 1.0 / precision 1.0
+        --score_corpus(correct_provenance.json)-->  recall 1.0 / precision 1.0
         --timing_profile()-->  the TP is detected (timed on the rebased ledger)
 
 Uses a stand-in malicious incident built from exchanges (a real one comes from translate_eval on a `.eval`).
@@ -82,15 +82,18 @@ def main() -> int:
 
     bundles = [mal] + to_bundles(event_from_request)
     events, truth, ledger = assemble(bundles, seed="grounded")
-    rule = json.loads((TASK / "fixtures" / "correct.json").read_text())
+    # v1.3 reference: the PROVENANCE rule stays exact on a corpus that now includes the benign legit-escalation
+    # twin (correct.json / correct_preventive.json would false-alarm on it — see selftest_grounded_corpus).
+    rule = json.loads((TASK / "fixtures" / "correct_provenance.json").read_text())
+    soc = json.loads((TASK / "soc_config.json").read_text())
 
-    m = score_corpus(rule, events, truth)
+    m = score_corpus(rule, events, truth, config=soc)
     check(m.recall == 1.0 and m.precision == 1.0,
-          f"detector on the assembled TP+TN corpus: recall {m.recall:.2f} / precision {m.precision:.2f} "
+          f"provenance detector on the assembled TP+TN corpus: recall {m.recall:.2f} / precision {m.precision:.2f} "
           f"(TP={m.tp} FP={m.fp} FN={m.fn} TN={m.tn})")
     check(m.tp == 1 and m.tn == len(bundles) - 1, "exactly the malicious incident flags; all benign clean")
 
-    prof = timing_profile(rule, events, truth, ledger, target_hop="h4_federation")
+    prof = timing_profile(rule, events, truth, ledger, target_hop="h4_federation", config=soc)
     check(prof["per_incident"][MAL_CALLER]["timing"] != MISSED,
           f"the TP is detected & timed on the rebased ledger (timing={prof['per_incident'][MAL_CALLER]['timing']})")
 

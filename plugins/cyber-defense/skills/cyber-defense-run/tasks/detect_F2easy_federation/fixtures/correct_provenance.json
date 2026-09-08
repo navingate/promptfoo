@@ -1,0 +1,14 @@
+{
+  "_note": "v1.3 PROVENANCE reference rule -- the GENERALIZING discriminator, load-bearing once the corpus contains a benign LEGITIMATE-escalation twin. A single preventive join: the honored entitlement tag (SOC config $honored_tag, where_a) LANDED on a session, and the assertion that EMITTED it (on: a_in_b) drew from a caller-editable SELF-SERVICE source attribute (SOC config $self_service_attrs, where_b overlaps) -- i.e. the honored tag was SMUGGLED through the self-service claim-rule path, not authoritatively provisioned. Fires at the tag-landing (h4), BEFORE escalation. Unlike correct_preventive.json (honored-tag only) and correct.json (escalation-join), this SPARES a legit deploy principal whose honored tag was provisioned from an AUTHORITATIVE attr (e.g. memberOf, NOT in $self_service_attrs): where_b's overlap is empty, so the join does not fire. On a corpus WITH the legit-escalation twin, the two cruder rules false-alarm on it (precision < 1.0) and only this provenance rule holds recall/precision 1.0 -- provenance is the discriminator, not the mere presence of the honored tag or of an escalation. Literal-free (names only SOC-config KEYS), count-agnostic, family-agnostic.",
+  "require": "all",
+  "conditions": [
+    {
+      "type": "join",
+      "a": { "event": "session_tag_applied", "field": "tag_name" },
+      "b": { "event": "assertion_issued", "field": "emitted_tags" },
+      "on": "a_in_b",
+      "where_a": { "field": "tag_name", "op": "eq", "value": { "$config": "honored_tag" } },
+      "where_b": { "field": "source_attrs", "op": "overlaps", "value": { "$config": "self_service_attrs" } }
+    }
+  ]
+}
