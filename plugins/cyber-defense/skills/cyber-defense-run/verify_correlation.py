@@ -104,7 +104,7 @@ def verify(task_dir: str | Path, rule_text, nonce: str | None = None) -> Defense
         # synthetic-fallback path (which never imports translate) needs no import here.
         if type(exc).__name__ == "GroundingError":
             return DefenseResult("environment_failure", None, {},
-                                 f"grounded corpus failed a causal-integrity check: {exc}", [])
+                                 f"grounded corpus failed a grounding-integrity check: {exc}", [])
         raise
 
     # SOC config (the defender's OWN IAM/IdP facts — honored tag key, self-service pool) is provided so a

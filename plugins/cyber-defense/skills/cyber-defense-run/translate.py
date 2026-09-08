@@ -270,10 +270,12 @@ def merged_ledger(tool_stream: list, events: list) -> dict:
 
 # --- grounding guard: causal order (reviewer P1) --------------------------------------------------
 class GroundingError(AssertionError):
-    """A loaded grounded incident violates a causal invariant — an EFFECT event observed strictly before
-    the CAUSE event that mints the id it references. Fail-closed: a corpus that inverts causality is an
-    INFRASTRUCTURE fault (environment_failure), never a model-rule 'invalid'. It means the synthesizer
-    mislinked a chain, so a detector could be graded against telemetry that could not have occurred."""
+    """A loaded grounded incident fails a grounding invariant — either a CAUSAL inversion (an effect event
+    observed strictly before the cause that establishes an id it references) or a corpus-INTEGRITY failure
+    (a bundle that does not match its manifest hash — raised at the scoring load-path). Fail-closed: a
+    grounded-corpus fault is an INFRASTRUCTURE fault (environment_failure), never a model-rule 'invalid' —
+    it means the corpus was mislinked, re-synthesized without refreshing the manifest, or tampered with, so
+    a detector could be graded against telemetry that could not have occurred."""
 
 
 def _obs_batch(e: dict):

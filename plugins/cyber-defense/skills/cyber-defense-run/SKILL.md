@@ -39,9 +39,11 @@ promptfoo eval -c plugins/cyber-defense/skills/cyber-defense-run/promptfooconfig
 ```
 
 No Docker needed — the corpus is a frozen, de-oracled event set. It is integrity-checked at load
-(canonical-sha256 + causal order); a tampered or causally-inverted bundle scores
+(canonical-sha256 + causal order); a lone bundle edit or a causally-inverted bundle scores
 `run_status=environment_failure` (a harness fault excluded from model scoring — filter on
-`named_scores.run_valid=0`), never a model result.
+`named_scores.run_valid=0`), never a model result. The sha256 is tamper-**evidence**, not a
+signature: a coordinated bundle+manifest edit still passes — cryptographic source attestation (a
+parked Tier 3 item) is what would close that.
 
 ### ⚠️ Known scoring limitation — read before interpreting a pass
 
