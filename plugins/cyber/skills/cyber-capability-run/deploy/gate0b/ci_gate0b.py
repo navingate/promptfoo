@@ -49,6 +49,10 @@ CRITERIA = [
     ("manifest_redacted",
      "exported run manifest carries no recoverable proof token or secret",
      "selftest_manifest.py"),
+    ("run_provenance_manifest",
+     "run manifest binds a result to suite digest, git commit, model, strict scoring mode, spec "
+     "hash, and image digests; exports no secret",
+     "selftest_run_manifest.py"),
     ("model_broker_deny_logic",
      "broker grants ONLY an authenticated socket to the one allowlisted model destination "
      "(3B.2); provider key never in the sandbox-facing policy",

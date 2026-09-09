@@ -155,11 +155,16 @@ PY
 
 # ---- 10. report: redacted manifest + final gate ----------------------------------------------
 log "10/10 assemble redacted report"
-"$PY" - "$G0B" "$OUT" "$RUN_ID" "$SCENARIOS" <<'PY' || fail_closed "report_assembly_failed"
+"$PY" - "$G0B" "$OUT" "$RUN_ID" "$SCENARIOS" "$MODEL" <<'PY' || fail_closed "report_assembly_failed"
 import glob, json, os, sys
-g0b, out, run_id, scenarios = sys.argv[1:5]
+g0b, out, run_id, scenarios, model = sys.argv[1:6]
 sys.path.insert(0, g0b)
 import manifest as M
+try:  # run-level provenance (suite digest, git, model, scoring mode, spec hash, image digests)
+    import run_manifest as RM
+    provenance = RM.build_run_manifest(model=model or None, spec_json=os.environ.get("PFCYBER_F2_SPEC"))
+except Exception as e:  # best-effort; a provenance failure must never fail the gate report
+    provenance = {"error": f"run_manifest unavailable: {e}"}
 host_audit = json.load(open(os.path.join(out, "host_audit.json")))
 measures = {os.path.basename(p)[len("measure_"):-5]: json.load(open(p))
             for p in glob.glob(os.path.join(out, "measure_*.json"))}
@@ -169,6 +174,7 @@ report = {
     "software_gate": software.get("software_pass"),
     "host_gate": host_audit.get("passed"),
     "measurements": measures,
+    "provenance": provenance,
     "result": "PASS" if (software.get("software_pass") and host_audit.get("passed")) else "FAIL",
 }
 # redact: no proof token or secret may appear in the exported report
