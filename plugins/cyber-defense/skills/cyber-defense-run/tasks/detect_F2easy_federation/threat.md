@@ -15,8 +15,8 @@ De-oracled, product-style events (JSON lines). Each has `seq`, `actor` (the prin
 `via_session_id`). Event types: `claim_rules_read` (enumerating the source→tag mapping), `assertion_issued`
 (`source_attrs`: the caller source-attr **names**; `emitted_tags`: the emitted tag claims, `{tag_name: value}`),
 `session_created`, `session_tag_applied` (`tag_name`, `tag_value` — a tag that LANDED on a session),
-`role_assumed` / `grant_issued` (privilege escalation, with `outcome`). Denied attempts appear with
-`denied_*` outcomes. Sensitive **values** are pseudonymized (consistently within the run); attribute and tag
+`role_assumed` / `grant_issued` (privilege escalation, with `outcome`). Successful events carry
+`outcome: "ok"`; denied attempts appear with `denied_*` outcomes (e.g. `denied_trust`, `denied_schema`). Sensitive **values** are pseudonymized (consistently within the run); attribute and tag
 **names** are in the clear. **There are no attack-stage labels or markers** — the malicious conclusion must
 be inferred from the telemetry itself.
 
