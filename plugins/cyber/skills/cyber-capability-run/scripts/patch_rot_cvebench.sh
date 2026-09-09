@@ -28,7 +28,10 @@
 #     and a partially-patched tree are no-ops.
 #   - Targeted + safe: only touches the three named Dockerfiles; a missing target is a skip
 #     (the vendored tree may be the 8-task or the 40-task CVE set); the injected apt RUN
-#     swallows errors so a differing apt layout is a no-op, not a build failure.
+#     swallows errors so a differing apt layout is a no-op, not a build failure. Class 1
+#     also repoints deb822 `*.sources` (not just classic sources.list) to future-proof it.
+#   - Exit code: 0 on success / skip / absent; non-zero ONLY when a MATCHED target fails to
+#     rewrite — so the runner's `|| log` surfaces a genuine failure, not an expected skip.
 #   - Run AFTER setup_caisi.sh and BEFORE `ucb build`. run_cybench_x86.sh calls this
 #     alongside patch_rot.sh when PATCH_ROT=1 (keep BOTH: idempotent markers make re-runs
 #     safe, and patch_rot.sh still covers future generic distro-string CVEs).
@@ -54,6 +57,7 @@ patched=0
 already=0
 skipped=0
 missing=0
+failed=0
 
 # --- Class 1: apt-rot — CVE-2024-4701 (Genie): inject archive-repoint after the FROM ---
 GENIE="$CVEB/CVE-2024-4701/target/Dockerfile"
@@ -61,7 +65,7 @@ MARK1="# pf-rot-cvebench (archive.debian.org)"
 # Resilient RUN: repoint apt to the archive across sources.list AND sources.list.d, disable
 # the (expired) Valid-Until check. All failures swallowed -> no-op on a non-Debian/deb822
 # layout. Injected right after the FROM so it precedes the target's apt-get update.
-FIX1="RUN (for f in /etc/apt/sources.list /etc/apt/sources.list.d/*.list; do sed -i 's|deb.debian.org|archive.debian.org|g; s|security.debian.org|archive.debian.org|g' \"\$f\" 2>/dev/null || true; done; echo 'Acquire::Check-Valid-Until \"false\";' > /etc/apt/apt.conf.d/99pf-archive 2>/dev/null) ; true"
+FIX1="RUN (for f in /etc/apt/sources.list /etc/apt/sources.list.d/*.list /etc/apt/sources.list.d/*.sources; do sed -i 's|deb.debian.org|archive.debian.org|g; s|security.debian.org|archive.debian.org|g' \"\$f\" 2>/dev/null || true; done; echo 'Acquire::Check-Valid-Until \"false\";' > /etc/apt/apt.conf.d/99pf-archive 2>/dev/null) ; true"
 if [ -f "$GENIE" ]; then
   if grep -qF "$MARK1" "$GENIE"; then
     already=$((already + 1))
@@ -75,6 +79,7 @@ if [ -f "$GENIE" ]; then
       echo "[patch_rot_cvebench] patched: CVE-2024-4701 (apt-rot archive repoint)"
     else
       rm -f "$GENIE.pf.tmp"
+      failed=$((failed + 1))
       echo "[patch_rot_cvebench] WARN: failed to patch CVE-2024-4701" >&2
     fi
   else
@@ -98,6 +103,7 @@ if [ -f "$LOBE" ]; then
       patched=$((patched + 1))
       echo "[patch_rot_cvebench] patched: CVE-2024-32964 (mv wildcard)"
     else
+      failed=$((failed + 1))
       echo "[patch_rot_cvebench] WARN: failed to patch CVE-2024-32964" >&2
     fi
   else
@@ -121,6 +127,7 @@ if [ -f "$SPIN" ]; then
       patched=$((patched + 1))
       echo "[patch_rot_cvebench] patched: CVE-2024-32980 (rust 1.79.0 -> 1.85)"
     else
+      failed=$((failed + 1))
       echo "[patch_rot_cvebench] WARN: failed to patch CVE-2024-32980" >&2
     fi
   else
@@ -132,4 +139,11 @@ else
   echo "[patch_rot_cvebench] absent: CVE-2024-32980"
 fi
 
-echo "[patch_rot_cvebench] done — patched $patched, already $already, skipped $skipped, absent $missing."
+echo "[patch_rot_cvebench] done — patched $patched, already $already, skipped $skipped, absent $missing, failed $failed."
+# Exit non-zero ONLY on a genuine patch failure (a matched target we could not rewrite),
+# so the runner's `|| log` fires. skip/absent (upstream changed, or target not in this CVE
+# set) are expected states, not errors, and stay exit 0.
+if [ "$failed" -gt 0 ]; then
+  echo "[patch_rot_cvebench] ERROR: $failed patch(es) matched but failed to apply — see WARN lines." >&2
+  exit 1
+fi
