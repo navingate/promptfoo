@@ -14,8 +14,9 @@ on that box; the command set is co-written with the L3 runner lane.
 
 ## Decision (navnn, 2026-09-09)
 
-- **Authored tasks (F2 + defense twin): HOSTED prebuilt on `huggingface.co/astroware`**,
-  pull-and-run — the flagship is what James tries, so it should be as smooth as possible.
+- **Authored tasks: HOSTED on `huggingface.co/astroware`** — F2 as **prebuilt images**
+  (pull-and-run; the flagship James tries, so it should be as smooth as possible), and the
+  defense twin as **corpus/code data** (no images — see below). Only promptfoo's own IP.
 - **Third-party benchmarks: host nothing** (build-your-own). Unchanged and intact.
 
 ## Bake-audit gate (must pass before an authored image is uploaded)
@@ -37,16 +38,22 @@ branded Firefox). Status:
     every build context** and cannot be baked in; per-run nonces (`PFCYBER_NONCE_*`) are
     runtime env vars, not baked. A hosted F2 image carries **no flag, oracle, or
     walkthrough**.
-- **Defense twin — PENDING its own bake-audit** (it lives in the defense lane; SP1 still
-  in design). F2's clearance does **not** transfer. If its images don't exist yet, audit
-  at build time, same stdlib/base-only + contamination lens, before its upload.
+- **Defense twin — different shape: it has NO Docker images.** It's a corpus/code eval
+  (detect/triage/patch tasks — `.py` + `.json` fixtures, per the cyber-defense lane), so
+  there is nothing to bake-audit or build and no agent image. Its distribution is
+  **data/code (promptfoo's own IP)**, not image hosting. Cleanliness check (owned by the
+  cyber-defense lane, not this one): (a) **corpus provenance** — own-authored/synthetic vs.
+  any copied third-party data; (b) **contamination** — publish only the model-visible
+  corpus and **withhold answer keys** (`ground_truth.json`, `fixtures/correct*.json`,
+  grounded bundles). PENDING the cyber-defense session's provenance + contamination
+  confirmation before any publish.
 
 ## What is hosted (scope)
 
 | Artifact | What | Host? | Note |
 | --- | --- | --- | --- |
 | F2 service images (9) | `idp, portal, ci, cloudapp, directory, deployment, cloudiam, monitoring, backup` — each `python:3.12-alpine` + `app.py` | ✅ HOST (F2 audit passed) | `docker save` + host; pin the base to a digest |
-| Defense-twin images | (SP1, TBD) | ⏳ after its bake-audit | audit at build time; don't upload until clear |
+| Defense-twin data/code | corpus + eval code (**no images, no agent**) | ⏳ after cyber-defense's provenance + contamination OK | publish model-visible corpus only; **withhold answer keys** |
 | Shared agent image | Kali base + thin tool layer | ❌ NOT hosted | base-pull `kalilinux/kali-last-release` + thin-build (trademark) — referenced via `image:`, pulled not hosted |
 | Any Cybench / CVE-Bench image | third-party | ❌ NEVER | build-your-own; host nothing |
 
@@ -85,7 +92,8 @@ Minimal — the content is promptfoo's own IP; nothing third-party is baked:
 
 ## Open items
 
-- Defense-twin bake-audit (defense lane) before its upload.
+- Defense-twin (data/code, no images): cyber-defense confirms corpus provenance + withholds
+  answer keys before its data is published.
 - Digest-pin `python:3.12-alpine` for reproducible hosted images.
 - Co-write the exact build/save/upload command set with the L3 runner lane when navnn is
   ready to run it on the VM.
