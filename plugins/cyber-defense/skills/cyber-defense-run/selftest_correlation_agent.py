@@ -64,6 +64,9 @@ def test_feedback_teaches_provenance():
     check("feedback flags the FALSE ALARM", "FALSE ALARM" in fb)
     check("feedback exposes the authoritative source (memberOf)", "memberOf" in fb)
     check("feedback reports the precision miss", "precision" in fb and "false alarm" in fb.lower())
+    # the honored tag NAME is withheld by the brief; it must NOT leak through TEST feedback.
+    check("feedback REDACTS the literal honored tag", config["honored_tag"] not in fb
+          and "<honored_tag>" in fb)
     perfect = agent._feedback(PROV_RULE, events, truth, config)
     check("provenance rule gets a PERFECT/ SUBMIT prompt", "PERFECT" in perfect and "SUBMIT" in perfect)
 
@@ -143,6 +146,17 @@ def test_prose_only_errors():
     check("prose-only -> error (no usable rule)", "error" in res and "no usable rule" in res["error"])
 
 
+def test_prose_submit_does_not_end_loop():
+    # 'SUBMIT' mentioned in prose (not alone on its line) must NOT end the loop on an untested rule.
+    res = _run([
+        ("I'm not ready to SUBMIT yet — let me TEST first.\n" + _fence(TAG_RULE), "stop", None),
+        ("SUBMIT\n" + _fence(PROV_RULE), "stop", None),
+    ])
+    check("prose 'SUBMIT' is ignored (t1 is TEST, not SUBMIT)",
+          res.get("metadata", {}).get("trace") == ["t1:TEST", "t2:SUBMIT"])
+    check("real standalone SUBMIT on t2 ends the loop", res.get("metadata", {}).get("submitted") is True)
+
+
 def test_held_out_isolation():
     # scan the CODE, not the module docstring (which documents, in prose, the loaders it avoids).
     import re
@@ -168,4 +182,5 @@ if __name__ == "__main__":
     test_never_submit_hits_cap()
     test_spiral_is_non_fatal()
     test_prose_only_errors()
+    test_prose_submit_does_not_end_loop()
     print("\nall agentic-provider selftests passed")

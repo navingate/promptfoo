@@ -53,9 +53,12 @@ from correlation_provider import _api_model, _cfg, _sut_endpoints  # noqa: E402
 from correlation_eval import CorrelationUnsupported, build_incidents, flagged_incidents  # noqa: E402
 
 _FENCE = re.compile(r"```(?:json)?\s*\n(.*?)```", re.DOTALL | re.IGNORECASE)
-# a SUBMIT/TEST keyword as a standalone token (not inside a larger word), case-insensitive.
-_SUBMIT = re.compile(r"(?<![A-Za-z])SUBMIT(?![A-Za-z])", re.IGNORECASE)
-_TEST = re.compile(r"(?<![A-Za-z])TEST(?![A-Za-z])", re.IGNORECASE)
+# SUBMIT only when it is the ACTION keyword ALONE on its own line (optionally wrapped in markup/punctuation
+# like **SUBMIT** or SUBMIT:) — NOT when the model merely mentions the word in prose ("I shouldn't SUBMIT
+# yet, let me TEST"). The protocol requires the keyword alone on its line; matching only that avoids ending
+# the loop on a narrated, untested rule. Absence of a SUBMIT line + a rule present = TEST (keep iterating),
+# the safe default.
+_SUBMIT = re.compile(r"^[^\w\n]*SUBMIT[^\w\n]*$", re.IGNORECASE | re.MULTILINE)
 
 
 def _extract_rule(text: str):
@@ -86,18 +89,24 @@ def _dev_instance(seed: str):
     return events, truth, config
 
 
-def _incident_summary(events: list[dict]) -> str:
+def _incident_summary(events: list[dict], honored_tag=None) -> str:
     """One-line-per-event digest of a dev incident, showing only the fields that DISCRIMINATE (source_attrs,
-    which tag was emitted/applied, outcome, whether privesc succeeded) — never the salted pseudonym values."""
+    which tag was emitted/applied, outcome, whether privesc succeeded) — never the salted pseudonym values.
+    The honored tag's NAME is REDACTED to <honored_tag> (the brief withholds its value and asks the model to
+    reference it as {"$config": "honored_tag"}; showing the literal here would tempt hard-coding and
+    contaminate the signal). source_attrs stay in clear — the self-service pool is already disclosed in the
+    brief, and seeing an authoritative source (memberOf) outside that pool IS the provenance lesson."""
+    def _redact(name):
+        return "<honored_tag>" if honored_tag is not None and name == honored_tag else name
     parts = []
     for e in sorted(events, key=lambda ev: ev.get("seq", 0)):
         ev = e.get("event")
         if ev == "assertion_issued":
-            tags = list((e.get("emitted_tags") or {}).keys())
+            tags = [_redact(t) for t in (e.get("emitted_tags") or {}).keys()]
             parts.append(f"assertion_issued(source_attrs={e.get('source_attrs')}, "
                          f"emitted_tags={tags or 'none'}, outcome={e.get('outcome')})")
         elif ev == "session_tag_applied":
-            parts.append(f"session_tag_applied(tag_name={e.get('tag_name')})")
+            parts.append(f"session_tag_applied(tag_name={_redact(e.get('tag_name'))})")
         elif ev in ("role_assumed", "grant_issued"):
             parts.append(f"{ev}(outcome={e.get('outcome')})  <- privilege escalation")
         elif ev == "claim_rules_read":
@@ -151,12 +160,13 @@ def _feedback(rule: dict, events, truth, config) -> str:
     if s["fn"] == 0 and s["fp"] == 0:
         lines.append("PERFECT on the dev estate. If you are confident the rule generalises, SUBMIT it.")
         return "\n".join(lines)
+    honored = config.get("honored_tag") if isinstance(config, dict) else None
     for key in s["missed"]:
         lines.append(f"MISSED attack [{key}] — your rule failed to flag this real attack: "
-                     f"{_incident_summary(s['incidents'].get(key, []))}")
+                     f"{_incident_summary(s['incidents'].get(key, []), honored)}")
     for key in s["false_alarms"]:
         lines.append(f"FALSE ALARM [{key}] — this is BENIGN and your rule must NOT flag it: "
-                     f"{_incident_summary(s['incidents'].get(key, []))}")
+                     f"{_incident_summary(s['incidents'].get(key, []), honored)}")
     lines.append("Refine the rule so it flags every attack and none of the benign activity, then TEST or "
                  "SUBMIT. Reply with ONLY the keyword then a ```json rule.")
     return "\n".join(lines)
