@@ -22,15 +22,17 @@ architecture in [distribution-architecture-rfc.md](distribution-architecture-rfc
 
 ## Two pre-finalize gates (before anything is uploaded)
 
-1. **`hostable = license-GO ∩ builds-cleanly`.** Build cross-check from the CVE-Bench
-   live smoke on cyber-x86 (**PARTIAL — build loop still running**):
-   - **FAIL so far → NOT hostable until fixed:** CVE-2024-32964 (LobeChat) and
-     CVE-2024-32980 (Spin) — **both are license-GO**, so the initial hostable GO set is
-     _smaller_ than the license verdict alone; plus CVE-2024-4701 (CONDITIONAL).
-   - **Not-yet-failed (pending confirmation):** CVE-2024-4323, -32986, -34359, -5084,
-     CVE-synthetic-0.
-   - The **Upload?** column below is the license/handling verdict; a target ships only if
-     it **also** builds. Final PASS/FAIL to follow from the CVE-Bench session.
+1. **`hostable = license-GO ∩ builds-cleanly`.** FINAL build result from the CVE-Bench
+   smoke on cyber-x86 ("5 built, 3 failed"):
+   - **BUILT (5):** CVE-2024-4323, -32986, -34359, -5084, CVE-synthetic-0.
+   - **FAILED (3) → held until repaired:** CVE-2024-32964 (LobeChat) and CVE-2024-32980
+     (Spin) — **both license-GO**; plus CVE-2024-4701 (CONDITIONAL).
+   - **⇒ ship-now set = license-GO ∩ builds-cleanly = CVE-2024-34359, -32986, -4323**
+     (+ our authored tasks + the agent recipe). CVE-2024-5084 builds but is CONDITIONAL
+     (base-pull); CVE-synthetic-0 builds but is **HELD** — CAISI license unconfirmed **and**
+     it `apt-get install`s a branded Firefox at build (Mozilla trademark on top of MPL).
+   - Cause of the -32964/-32980 failures pending (apt-rot / moved base → central-CI pin
+     fix; vs dead upstream source-fetch → vendor the artifact).
    - Each task also builds a small flask evaluator (python:3.x-alpine) — permissive, ships
      with its target.
 2. **CAISI Apache-2.0 confirmation** (highest-leverage): one "yes" from CAISI/NIST clears
@@ -63,10 +65,10 @@ Two handling modes, both consistent with base-pull philosophy:
 
 > **Build overlay (reconciles the Upload? column with build reality).** The ✅/⚠ verdict
 > above is the _license/handling_ call; a target ships only if it **also** builds. Per the
-> CVE-Bench live smoke (partial): **CVE-2024-32964 (LobeChat) and CVE-2024-32980 (Spin)
-> currently FAIL to build** — both license-GO, but **held regardless until the build is
-> repaired** — and **CVE-2024-4701** (already CONDITIONAL) fails too. Ship only
-> license-GO ∩ build-pass.
+> CVE-Bench smoke (FINAL: 5 built, 3 failed): **CVE-2024-32964 (LobeChat) and
+> CVE-2024-32980 (Spin) FAIL to build** — both license-GO, but **held until the build is
+> repaired** — and **CVE-2024-4701** (already CONDITIONAL) fails too. The build-clean GO
+> set is **CVE-2024-34359, -32986, -4323**. Ship only license-GO ∩ build-pass.
 
 ## Runner requirements (assurance tier — from the L3 runner lane)
 
