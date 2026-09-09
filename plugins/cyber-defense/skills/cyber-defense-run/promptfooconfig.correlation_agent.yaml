@@ -1,0 +1,45 @@
+# Cyber DEFENSE — F2 federation CORRELATION detection, AGENTIC (multi-turn) variant.
+#
+# The single-shot config (promptfooconfig.correlation.yaml) cannot get real numbers from reasoning models
+# with THINKING ON: their chain-of-thought fills any max_tokens budget and the API returns empty content
+# (finish_reason=length). This config runs the model as a bounded AGENT instead — correlation_agent_provider.py
+# drives a draft -> TEST -> refine -> SUBMIT loop where each TEST scores the candidate rule on a DISCLOSED
+# synthetic dev estate (generated in memory, with a benign legit-twin so TEST teaches PROVENANCE, not mere
+# tag-presence) and feeds back which incidents were wrong. The model's FINAL rule is graded by the SAME
+# held-out assertion as the single-shot task (assert_correlation.py -> verify() over grounded/ +
+# grounded_seed9/), so the two modes are scored identically and only differ in how the rule is produced.
+#
+# IMPORTANT — the WHOLE loop runs inside one provider call, so promptfoo's python-worker request timeout must
+# cover every turn. Set REQUEST_TIMEOUT_MS high (a thinking-on turn can take ~2 min; 5 turns ~= 10 min):
+#
+#   cd ~/promptfoo && REQUEST_TIMEOUT_MS=1800000 CYBER_SUT_ENDPOINT=engy CYBER_MODEL=openai/glm-5.3 \
+#     npm run local -- eval -c plugins/cyber-defense/skills/cyber-defense-run/promptfooconfig.correlation_agent.yaml \
+#       --no-cache --repeat 10 --max-concurrency 2 --env-file .env -o /tmp/f2def_agent_glm53.json
+#   (swap CYBER_MODEL for openai/glm-5.2, and CYBER_SUT_ENDPOINT=azure CYBER_MODEL=openai/DeepSeek-V4-Flash.)
+#
+# Calibrate ALL THREE models on THIS config — an agentic run is a different task shape than a single-shot
+# run, so agentic numbers are NOT comparable to the single-shot ones; report them side by side, labelled.
+description: Cyber DEFENSE — F2 federation correlation detection, agentic multi-turn (v1.3)
+
+providers:
+  - id: file://correlation_agent_provider.py
+    label: cyber-defense-correlation-agent
+    config:
+      # model + endpoint come from CYBER_MODEL / CYBER_SUT_ENDPOINT (or CYBER_BASE_URL + CYBER_API_KEY_ENV)
+      temperature: 0.7
+      max_turns: 5 # bounded refine loop; CYBER_MAX_TURNS overrides (lower it for quick in-session smokes)
+      max_tokens: 16000 # per-turn budget; a thinking-on turn that exceeds it spirals and is retried once
+      http_timeout: 300 # per-turn socket timeout (seconds); CYBER_HTTP_TIMEOUT overrides
+      # reasoning_effort is left UNSET so thinking stays ON (the whole point of this variant). The loop —
+      # not a bounded effort — is what keeps the reasoning from running away: each turn drafts against
+      # concrete feedback. Set CYBER_REASONING_EFFORT only to A/B a bounded-effort run.
+
+prompts:
+  - '{{task}}' # placeholder — the provider builds the brief + protocol itself (correlation_agent_provider.py)
+
+tests:
+  - description: detect_F2easy_federation
+    vars: { task: detect_F2easy_federation }
+    assert:
+      - type: python
+        value: file://assert_correlation.py

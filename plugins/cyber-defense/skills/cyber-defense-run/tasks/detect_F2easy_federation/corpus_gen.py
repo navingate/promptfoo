@@ -28,6 +28,7 @@ from pathlib import Path
 HERE = Path(__file__).resolve().parent
 PRIV_TAG = "deploy-eligibility"          # the privilege-granting tag (a config id, in clear)
 SELF_SERVICE = "extensionAttribute7"     # a self-service-editable source attr (in clear)
+AUTHORITATIVE = "memberOf"               # an admin-provisioned source attr (in clear) — legit provenance
 
 
 def _mk(seed: str):
@@ -36,7 +37,13 @@ def _mk(seed: str):
     return p
 
 
-def generate(seed: str = "0"):
+def generate(seed: str = "0", with_legit_twin: bool = False):
+    """`with_legit_twin` adds benign incident B7: the honored tag LANDS and privesc succeeds, but the
+    tag comes from an AUTHORITATIVE source attr (memberOf), so it is legitimate and a provenance rule
+    SPARES it while a tag-presence rule false-alarms on it. Kept OFF by default so the committed
+    corpus.json is byte-identical (existing selftests unaffected); the agentic loop's DEV set turns it
+    ON so TEST feedback can teach provenance rather than mere tag-presence. Mirrors the grounded
+    benign legit-twin (source memberOf -> honored tag -> escalation, spared)."""
     p = _mk(seed)
     events: list[dict] = []
     truth: dict[str, str] = {}
@@ -93,6 +100,13 @@ def generate(seed: str = "0"):
                    tag_applied=("team", "B3"), privesc=None)] = "benign"              # decoy tag, no privesc
     truth[incident("B4", "frank", recon=True, source_attrs=["employeeType"], emitted_tags={},
                    tag_applied=None, privesc=None, assertion_ok=False)] = "benign"    # failed spray
+    if with_legit_twin:
+        # B7 legit escalation: SAME honored tag lands and privesc succeeds, but from the AUTHORITATIVE
+        # source attr (memberOf) — legitimate provenance. Tag-presence rules FALSE-ALARM here; a
+        # provenance rule (source ∈ self_service pool) spares it. Mirrors the grounded benign twin.
+        truth[incident("B7", "grace", recon=True, source_attrs=[AUTHORITATIVE],
+                       emitted_tags={PRIV_TAG: "B7"}, tag_applied=(PRIV_TAG, "B7"),
+                       privesc="role")] = "benign"
 
     return events, truth
 
