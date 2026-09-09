@@ -9,6 +9,19 @@ is the **gating** foundation and is summarized in §7.
 session's license audit. Any actual edits to shared runner files are out of scope here
 and must be coordinated with their owners (see §12).
 
+> **DECISION RECORD — 2026-09-09 (navnn, via the L3 Build session; supersedes the earlier
+> "publish to `astroware`" direction): BUILD-YOUR-OWN for BOTH Cybench and CVE-Bench; host
+> NO prebuilt benchmark images anywhere.** This is license-clean — build-your-own is _use_,
+> not redistribution: promptfoo hosts nothing third-party; users build locally from the
+> upstream clone. **Win A below (a public prebuilt-image store) is DROPPED** and replaced
+> by _build-your-own + a maintained central build-recipe_ (CI-pinned / `PATCH_ROT`-
+> equivalent Dockerfiles) that makes local builds reliable without hosting anything.
+> **Win B (the no-`sudo` Inspect-sandbox default), the tiered UX, and the SUT front-door
+> all stand.** The license audit ([sandbox-license-audit.md](sandbox-license-audit.md)) is
+> retained as the **record of why** build-your-own was chosen. Authored tasks (F2/defense)
+> default to build-your-own too, so `astroware` is not needed. Sections below that still
+> describe hosting are historical context; §5.1, §5.6, §7, §9, §10 carry the update.
+
 ---
 
 ## 1. Summary
@@ -17,16 +30,19 @@ Make the cyber-eval plugin "run like butter": a user with a Docker host runs one
 command and gets a working eval — **no cold builds, no host-level `sudo`/`iptables`,
 no bespoke VM scripts**. We get there with two independent wins:
 
-- **A) Pull, don't build.** Distribute prebuilt sandbox images from a public store so
-  users PULL them instead of building ~40 targets from scratch (several pin EOL Debian
-  and fail to build). _Bounded by licensing — see §7._
+- **A) ~~Pull, don't build~~ → Build-your-own, made reliable.** _(revised — see decision
+  record.)_ We host **no** prebuilt benchmark images. Instead, users build locally from
+  the upstream clone, and a **maintained central build-recipe** (CI-pinned /
+  `PATCH_ROT`-equivalent Dockerfiles) fixes apt-rot **once, centrally** so those local
+  builds are reliable. This keeps the whole thing license-clean (use, not redistribution).
 - **B) A lighter default execution model.** Make the default run use **Inspect's
   per-task Docker sandbox** (container isolation, no host changes). Demote today's
   host-level egress lockdown to an **opt-in "assurance mode."**
 
-Win B helps **everyone immediately** (even for images that must still be built);
-win A helps the **licensed subset** of images. promptfoo stays the control surface and
-system of record; it never hosts offensive agents (self-hosted throughout).
+Both help **everyone**: Win B removes the `sudo`/`iptables` cold-start pain for every
+run; the maintained build-recipe makes build-your-own reliable for every benchmark.
+promptfoo stays the control surface and system of record; it hosts nothing third-party
+and never hosts offensive agents (self-hosted throughout).
 
 ---
 
@@ -51,7 +67,7 @@ that shape to the default and productizes it.
 **Goals**
 
 - One-command default run on any Docker host (laptop included, via the arm64 dev path).
-- Eliminate cold-build friction for every image we are legally permitted to host.
+- Eliminate cold-build friction for every benchmark image (via the maintained recipe).
 - Remove `sudo`/`iptables` from the default; keep a rigorous mode for assurance runs.
 - Keep promptfoo as orchestration + reporting + system of record; keep offense
   self-hosted.
@@ -68,7 +84,9 @@ that shape to the default and productizes it.
 
 ## 4. Core principles
 
-1. **Pull, not build.** Prebuilt images from a public store are the default source.
+1. **Build-your-own, made reliable.** Users build locally from the upstream clone; a
+   maintained central build-recipe (pinned Dockerfiles) keeps that reliable. promptfoo
+   hosts **no** third-party images — build-your-own is use, not redistribution.
 2. **Self-hosted.** Promptfoo is the control surface + system of record; the user's own
    Docker host runs the sandboxes and the model calls. Promptfoo never hosts the
    offensive agents or targets.
@@ -77,8 +95,8 @@ that shape to the default and productizes it.
 4. **Tiered UX.** Make the easy thing easy and the rigorous thing available: Quickstart
    → Full → Assurance.
 5. **Isolation is the safety story — but it is tiered, and the tiers differ.** These are
-   offensive-eval sandboxes (vulnerable targets + exploits) that are already public
-   upstream, so re-hosting prebuilt images is a convenience, not a new disclosure. The
+   offensive-eval sandboxes (vulnerable targets + exploits); they are already public
+   upstream and we host nothing (users build locally), so this adds no new disclosure. The
    default tier isolates process + filesystem but **does not** contain the agent's
    network; the enforced network boundary exists only in assurance mode (§5.2). Users
    running an untrusted/offensive model must pick the tier that matches the risk.
@@ -94,18 +112,21 @@ that shape to the default and productizes it.
    provider.py  ──►  Inspect / inspect_cyber  ──►  per-task Docker sandbox (compose.yml)
      │  SUT registry (CYBER_SUT_ENDPOINT + CYBER_MODEL, one key)          │
      │                                                                    ▼
-     │                                            PULL prebuilt images from public store
-     ▼                                              (HF; §7 license-gated subset)
-   any OpenAI-compatible model endpoint            ── fallback: build locally / BYO registry
+     │                                            BUILD locally from the upstream clone
+     ▼                                              (maintained build-recipe; host nothing)
+   any OpenAI-compatible model endpoint
 ```
 
-### 5.1 Prebuilt sandboxes on a public store _(win A — license-gated, §7)_
+### 5.1 Build-your-own + a maintained central build-recipe _(win A, revised)_
 
-Host the **permitted** prebuilt images publicly; the plugin pulls + `docker load`s them.
-Replaces "build ~40 targets" and the bring-your-own-registry requirement for the
-licensed subset. **Storage mechanism is TBD in Step 2** (options: `docker save` tarballs
-or an OCI layout on HF via git-LFS with a pull→`docker load` flow, **or** a GHCR/OCI
-container registry — trade-offs to be worked out then, not decided here).
+**No public image store; promptfoo hosts nothing.** Users build the benchmark images
+locally from the upstream clone (`setup_caisi.sh` + `ucb build`, or the per-task
+`compose.yml`). What makes this reliable — instead of the fragile cold build that fails
+on EOL-Debian apt-rot — is a **maintained central build-recipe**: CI-pinned /
+`PATCH_ROT`-equivalent Dockerfiles (seeded by the existing `scripts/patch_rot.sh`) that
+repoint rotted bases at archives and pin fetched artifacts, so a fresh `build` succeeds.
+The recipe is versioned in-repo and refreshed by CI (§5.6). This keeps the whole flow
+license-clean (build-your-own = use, not redistribution) — see the decision record and §7.
 
 ### 5.2 THE BIG UX UNLOCK: default = Inspect per-task Docker sandbox _(win B)_
 
@@ -144,8 +165,8 @@ container registry — trade-offs to be worked out then, not decided here).
 | Tier           | Host                                                                               | Images                                                                                                                        | Isolation                                                                                                    | For                                 |
 | -------------- | ---------------------------------------------------------------------------------- | ----------------------------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------ | ----------------------------------- |
 | **Quickstart** | any Docker host incl. laptop (arm64), via the `BUILD_AGENT_IMAGE=0` stand-in agent | **authored tasks (F2/defense)** on the stand-in agent; the Cybench 3-task slice needs an **x86** host for the real Kali agent | process/fs only — **network NOT egress-restricted**                                                          | first run / demo / model spot-check |
-| **Full**       | **x86** Docker host (real Kali agent + full targets)                               | pull the full permitted set                                                                                                   | process/fs only — **network NOT egress-restricted**                                                          | full-suite comparison               |
-| **Assurance**  | dedicated x86 VM                                                                   | pull (or build)                                                                                                               | **enforced network boundary** (host egress lockdown) + Gate-0B (nonce/verifier/stats; microVM = design goal) | cross-check / assurance verdicts    |
+| **Full**       | **x86** Docker host (real Kali agent + full targets)                               | build the full set (maintained recipe)                                                                                        | process/fs only — **network NOT egress-restricted**                                                          | full-suite comparison               |
+| **Assurance**  | dedicated x86 VM                                                                   | build during provision (before lockdown)                                                                                      | **enforced network boundary** (host egress lockdown) + Gate-0B (nonce/verifier/stats; microVM = design goal) | cross-check / assurance verdicts    |
 
 **Gate-0B (assurance) — grounded** (`deploy/gate0b/` + `references/`): (1) per-run,
 per-stage **nonces minted out-of-band** by `nonce_broker.py` so the flag is not baked
@@ -166,19 +187,23 @@ key, resolved from `provider.py`'s `SUT_ENDPOINTS` — any OpenAI-compatible end
 Both runners already honor this uniform interface. No new work; document it as the front
 door.
 
-### 5.6 CI that rebuilds/pins the public images centrally
+### 5.6 CI that maintains the central build-recipe _(now the PRIMARY deliverable)_
 
-A scheduled CI job handles apt-rot **once**, centrally, not by every user (replacing the
-per-user `PATCH_ROT` hack). Note the split, since apt-rot only affects the set we
-**can't** host: **Cybench** is the only apt-rot sufferer (CVE-Bench pulls vendor images;
-F2 is fresh Alpine). So CI produces two different deliverables:
+With hosting dropped, this is the core of Win A. A scheduled CI job maintains a
+**pinned, build-verified recipe for BOTH benchmarks** — Cybench and CVE-Bench — so a
+user's local `build` succeeds without per-user apt-rot firefighting. It **publishes no
+images**; it publishes reliable **build instructions**:
 
-- **Hosted set (CVE-Bench + authored):** rebuild + re-pin the **published images**.
-- **Cybench (NO-GO to host):** maintain a `PATCH_ROT`-equivalent **pinned Dockerfile
-  set** users apply locally — a maintained build-recipe, not a pull. Still central, still
-  valuable; just not published images.
+- A `PATCH_ROT`-equivalent pinned-Dockerfile set (seeded by `scripts/patch_rot.sh`) that
+  repoints EOL-Debian bases at `archive.debian.org` and pins fetched artifacts
+  (e.g. the base-pull vendor images, and source downloads like the LobeChat release zip
+  or the Fermyon Spin installer that otherwise 404).
+- CI periodically runs the full `build` on a clean host and fails when a target rots,
+  so the recipe is fixed centrally, once — before users hit it.
+- Empirically motivated: a fresh CVE-Bench smoke already shows 3 of 8 targets failing to
+  build (LobeChat, Spin, Genie); that is exactly the rot this recipe exists to absorb.
 
-Cadence + ownership are a maintenance cost (§8).
+Cadence + ownership are a maintenance cost (§8) and the main open decision (§10).
 
 ---
 
@@ -187,15 +212,16 @@ Cadence + ownership are a maintenance cost (§8).
 ```bash
 # Quickstart — any Docker host:
 export CYBER_SUT_ENDPOINT=openai CYBER_MODEL=gpt-5 OPENAI_API_KEY=...
-promptfoo eval -c plugins/cyber/.../promptfooconfig.yaml     # pulls the slice, runs, no sudo
+promptfoo eval -c plugins/cyber/.../promptfooconfig.yaml     # builds the slice (recipe), runs, no sudo
 promptfoo view                                               # model comparison
 ```
 
-No **image** build, no VM, no root. One caveat to be honest about: the **first run still
-clones the CAISI harness and installs its Python deps** (`setup_caisi.sh` → `git clone`
-then `uv sync`), because `provider.py` imports `inspect_ai` and `ucb`. That is a one-time,
-network-required step — fast and reliable, unlike building 40 images — but it is not
-zero-setup. Whether we may _vendor_ (ship) the harness code to remove even that clone is
+No VM, no root, no `sudo` in the default tier. It **does** build the images locally —
+that's the build-your-own model — but the maintained recipe (§5.6) makes that reliable
+instead of the old apt-rot lottery. Two honest caveats: (a) the first full build still
+costs time + several GB (§8 resource floor); (b) the **first run also clones the CAISI
+harness and installs its Python deps** (`setup_caisi.sh` → `git clone` then `uv sync`),
+because `provider.py` imports `inspect_ai` and `ucb` — a one-time, network-required step. Whether we may _vendor_ (ship) the harness code to remove even that clone is
 the same CAISI-confirmation gate as audit open item 1 (§7). Assurance mode is a
 documented opt-in flag/runner for users who need an enforced egress boundary and
 assurance-grade stats.
@@ -204,8 +230,10 @@ assurance-grade stats.
 
 ## 7. Licensing — the gating section
 
-Full analysis: **[sandbox-license-audit.md](sandbox-license-audit.md)**. The public
-store (§5.1) may contain **only** what that audit clears. Verdict summary:
+Full analysis: **[sandbox-license-audit.md](sandbox-license-audit.md)**. With hosting
+dropped, this section is no longer a gate on an upload — it is the **record of _why_ we
+chose build-your-own**: it enumerates the redistribution constraints that made hosting
+not worth it. Verdict summary (retained as that record):
 
 | Bucket                                       | Count | Verdict                                                                                                                                 | Consequence for the public store                                                                                                                                                                                 |
 | -------------------------------------------- | ----- | --------------------------------------------------------------------------------------------------------------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
@@ -215,12 +243,14 @@ store (§5.1) may contain **only** what that audit clears. Verdict summary:
 | promptfoo-authored tasks (F2 + defense twin) | —     | **GO** — promptfoo's own IP                                                                                                             | Host freely.                                                                                                                                                                                                     |
 | CAISI harness code (`inspect_ai` + `ucb`)    | —     | **unlicensed** — avoid redistributing                                                                                                   | Not hosted as an image. Consequence: even in pull-mode the first run still `git clone`s CAISI + `uv sync` (§6). Whether we may _vendor_ it to skip the clone is the same CAISI-confirmation gate as open item 1. |
 
-**Honest consequence for "all customers":** the pull-not-build win (win A) is **partial**
-— it covers CVE-Bench + our own tasks, **not** the 40 Cybench images, which are the bulk
-of the suite and the worst apt-rot offenders. Win B (the Inspect-sandbox default, §5.2)
-still improves the experience for **everyone**, including users who must still build
-Cybench locally. A **single Apache-2.0 confirmation from CAISI** unblocks all 8 CVE
-targets + the synthetic + the agent recipe at once (audit open item 1).
+**Consequence under build-your-own:** because promptfoo hosts nothing, **none of these
+redistribution constraints bite** — building and running locally is _use_, not
+distribution, so even the Cybench NO-GO images and the unlicensed CAISI harness are fine
+for a user to build and run. The table stays as the record of why hosting was rejected.
+Value now flows through the maintained build-recipe (§5.6), which must cover the same
+targets the audit lists. _(If hosting were ever revisited, every constraint above
+reopens, and a single Apache-2.0 confirmation from CAISI would be the highest-leverage
+unlock — for the CVE-Bench wrappers, the synthetic target, and the agent recipe.)_
 
 ---
 
@@ -228,45 +258,54 @@ targets + the synthetic + the agent recipe at once (audit open item 1).
 
 - **Maintenance burden.** Central CI rebuild/pin needs an owner and a cadence; stale
   pins reintroduce apt-rot; new upstream tasks need onboarding + a license check.
-- **Licensing (gating).** A majority of images (Cybench) are NO-GO to host — the
-  headline limit on win A. Hosting must honor per-artifact attribution/copyleft/trademark
-  obligations from §7.
+- **Licensing.** Resolved by build-your-own: hosting nothing means **no redistribution
+  exposure at all** (§7). The residual is upstream — a user obtains benchmark content
+  under its own terms by cloning, exactly as they do to run the benchmark today.
 - **Dual-use / security.** These are offensive-eval sandboxes. Mitigations: the
-  benchmarks are already public upstream (re-hosting = convenience, not new disclosure);
-  self-hosted (promptfoo never runs the agents). **Isolation is the safety story, but be
+  benchmarks are already public upstream and **we host nothing** (users build locally —
+  no new disclosure); self-hosted (promptfoo never runs the agents). **Isolation is the
+  safety story, but be
   honest that it is tiered:** the default tier does **not** network-contain the agent, so
   an untrusted/offensive model can reach the internet in it; the enforced egress boundary
   is assurance-only (§5.2). The docs/UX must state each tier's containment level so users
   match the tier to the risk. navnn should confirm public availability is intended.
 - **Resource floor.** Docker + several GB + hours for a full run. Quickstart shrinks it
   (3-task slice, laptop-capable) but it will never be as light as an API-only eval.
-- **Productization work.** Today's bespoke VM scripts → a coherent, tiered, pull-based
-  plugin: real engineering (default/assurance split, pull+load flow, tiered docs, CI).
+- **Productization work.** Today's bespoke VM scripts → a coherent, tiered plugin: real
+  engineering (default/assurance split, the maintained build-recipe + its CI, tiered
+  docs). No upload/pull pipeline to build — one fewer moving part than the hosting plan.
 
 ---
 
 ## 9. Migration path
 
-License gate is first; each step is independently shippable.
+No hosting/upload step exists any more. Each step is independently shippable.
 
-1. **Publish the permitted images** to the public store (HF) — _after_ navnn's go + the
-   confirmed HF repo (audit §Step 2). GO set only.
-2. **Flip the plugin default to pull** (fallback: build / BYO registry) for the hosted set.
-3. **Split default vs. assurance:** default = Inspect per-task sandbox (no host lockdown);
-   assurance = opt-in egress lockdown + Gate-0B. (Coordinate with session-f8f158.)
-4. **Tiered docs:** Quickstart / Full / Assurance, with the simple model-config front door.
-5. **CI rebuilds/pins** the public images centrally (apt-rot handled once).
+1. **Stand up the maintained build-recipe** (§5.6) — the Win-A replacement: pin the
+   rotted Dockerfiles + source fetches for **both** benchmarks; add CI that runs the full
+   `build` on a clean host and fails on rot. (Coordinate with the CVE-Bench + runner
+   lanes; seed from `scripts/patch_rot.sh`.)
+2. **Split default vs. assurance:** default = Inspect per-task sandbox (no host lockdown);
+   assurance = opt-in egress lockdown + Gate-0B, with the provision-phase build/pre-pull
+   **before** lockdown. (Coordinate with the offense/L3 runner lane.)
+3. **Tiered docs:** Quickstart / Full / Assurance, with the simple model-config front door.
+4. **Verify** a clean-host build-and-run of the whole suite via the recipe (no apt-rot).
 
 ---
 
 ## 10. Open questions / decisions for navnn
 
-1. Confirm public availability is intended for the offensive-eval sandboxes.
-2. Confirm the exact HF repo/namespace + explicit go (blocks step 1).
-3. Pursue Cybench permission (HTB/Glacier/HKCERT + Sekai NC) or accept Cybench stays
-   build-only/BYO-registry?
-4. Agent-image handling: base-pull + thin build vs. rename + disclaimer?
-5. Who owns the CI rebuild cadence, and at what frequency?
+**Resolved by the 2026-09-09 decision record:** public availability, the HF repo,
+Cybench permission, and agent-image hosting are all moot — we host nothing; everything is
+build-your-own.
+
+Remaining:
+
+1. **Recipe/CI ownership + cadence:** who maintains the build-recipe, and how often does
+   CI run the clean-host build? (The one real ongoing cost.)
+2. **Authored tasks (F2/defense):** default is build-your-own too (so `astroware` isn't
+   needed at all). Host them only if you want a convenience distribution of promptfoo's
+   own IP — the L3 Build session is confirming your preference.
 
 ## 11. What we are NOT proposing to change silently
 

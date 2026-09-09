@@ -1,5 +1,11 @@
 # Cyber-eval sandbox redistribution — license audit (Step 1)
 
+> **Outcome (2026-09-09):** this audit drove the decision to **build-your-own for both
+> benchmarks and host nothing** — the redistribution constraints below (Cybench NO-GO;
+> CVE-Bench mixed; CAISI/agent conditions) made hosting not worth it. The audit is kept as
+> the **record of why**. It remains accurate; it is simply no longer a gate on an upload.
+> Live direction: [distribution-architecture-rfc.md](distribution-architecture-rfc.md).
+
 **Purpose.** Determine whether the prebuilt cyber-eval sandbox images/assets may be
 **saved and redistributed** (so users PULL prebuilt images instead of building ~40
 Docker targets from scratch). This is the gating audit; **no upload has been

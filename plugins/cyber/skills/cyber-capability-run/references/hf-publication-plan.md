@@ -1,5 +1,12 @@
 # Step-1 HuggingFace publication plan — GO set only
 
+> **⛔ SUPERSEDED — 2026-09-09.** navnn chose **build-your-own for BOTH Cybench and
+> CVE-Bench; host nothing.** No HuggingFace upload happens. This plan is retained only as
+> a record of the hosting approach that was considered and dropped. The live direction is
+> in [distribution-architecture-rfc.md](distribution-architecture-rfc.md) (build-your-own
+> + a maintained central build-recipe); the _why_ is in
+> [sandbox-license-audit.md](sandbox-license-audit.md). Everything below is historical.
+
 **Status:** Plan for review (proposal). **No upload happens from any Claude session.**
 The build → `docker save` → upload runs on the **x86 VM, navnn-driven**; the HF token
 lives on that box, never in a session. This doc + the command set (co-written with the
