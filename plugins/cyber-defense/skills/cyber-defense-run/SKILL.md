@@ -73,9 +73,47 @@ marker are oracle-unsafe and deliberately not reproduced, so the grounding claim
 `memberOf → honored tag → escalation` legit path is real), not byte-for-byte. It strengthens the evidence;
 it does not change the gate.
 
-### Calibration is stale
+## Run — agentic (multi-turn) variant: real numbers for reasoning models with thinking ON
 
-Any earlier live-model numbers for this task predate three changes — detection timing moved to
-observation-batch coordinates; the task brief was rewritten to remove solution give-aways; and the
-corpus gained a benign legit-escalation twin (with `overlaps`/`where_a` grammar) that makes
-provenance gate-load-bearing — so they must be **re-run before being quoted**.
+Reasoning models (GLM-5.2/5.3) cannot solve the **single-shot** task with **thinking on**: their
+chain-of-thought fills any `max_tokens` budget and the API returns empty content
+(`finish_reason=length`). Single-shot can only measure them with thinking _off_, which understates
+them. The **agentic** config measures them with thinking **on** by running the model as a bounded
+agent:
+
+```bash
+REQUEST_TIMEOUT_MS=1800000 CYBER_SUT_ENDPOINT=engy CYBER_MODEL=openai/glm-5.3 \
+  promptfoo eval -c plugins/cyber-defense/skills/cyber-defense-run/promptfooconfig.correlation_agent.yaml \
+    --no-cache --repeat 10 --max-concurrency 2 --env-file .env -o out.json
+```
+
+`correlation_agent_provider.py` drives a **draft → TEST → refine → SUBMIT** loop. Each `TEST` scores
+the candidate rule on a **disclosed synthetic dev estate** (generated in memory, carrying the benign
+legit-twin so the score teaches provenance) and returns the confusion **summary only** by default
+(`feedback_detail: aggregate` — recall/precision + how many missed/false-alarmed, **not** which
+incidents or their fields; set `incidents` for the richer per-incident mode). The model's FINAL rule
+is graded by the **same held-out scorer** as single-shot (`assert_correlation.py` over `grounded/` +
+`grounded_seed9/`), so the two modes score identically and differ only in how the rule is produced.
+Oracle-safe by construction: the loop imports only the pure evaluator, never the held-out corpus
+loaders. Because it is a different task shape (iteration + a practice set), agentic numbers are **not
+comparable** to the single-shot thinking-off numbers — report them separately.
+
+### Calibration (v1.3)
+
+**Agentic, thinking ON, aggregate feedback, 10 repeats each (2026-09-09, live):**
+
+| Model             | pass | invalid grammar | precision | hard-coded                               |
+| ----------------- | ---- | --------------- | --------- | ---------------------------------------- |
+| GLM-5.2           | 9/10 | 0               | 0.99      | 0                                        |
+| DeepSeek-V4-Flash | 8/10 | 0               | 1.00      | 0                                        |
+| GLM-5.3           | 7/10 | 0               | 1.00      | 1 (failed — the 2-estate gate caught it) |
+
+0 crashes / 0 harness errors across all 30 runs; **0 invalid-grammar** (the loop's TEST feedback lets
+every model fix syntax iteratively); the failures are recall misses, never false alarms. Contrast the
+**single-shot, thinking-OFF** baseline on the same held-out scorer — GLM-5.2 2/10, DeepSeek 1/10,
+GLM-5.3 0/10 — which forced thinking off and understated the reasoning models. `n=10` (wide
+confidence intervals); treat as calibration, not a leaderboard.
+
+Any OTHER earlier live numbers predate three changes — detection timing moved to observation-batch
+coordinates; the brief was rewritten to remove give-aways; the corpus gained the provenance
+legit-twin — so they must be **re-run before being quoted**.
