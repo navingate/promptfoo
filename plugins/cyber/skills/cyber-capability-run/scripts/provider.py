@@ -18,8 +18,10 @@ Prereq: the harness is installed (run setup_caisi.sh, or use the cyber
 devcontainer/image) and Docker is running.
 
 Config `benchmark` selects the task suite: "cybench" (default) runs CAISI's
-public Cybench tasks (the pipe-proof / contaminated demo); "authored" runs
-promptfoo's own enterprise task suite from ../tasks/loader.py.
+public Cybench CTF tasks (the pipe-proof / contaminated demo); "cvebench" runs
+CAISI's CVE-Bench real-exploitation tasks (ucb/cvebench — the agent must exploit
+a live vulnerable web app; scoring is evaluator-service based, not flag-string);
+"authored" runs promptfoo's own enterprise task suite from ../tasks/loader.py.
 """
 
 import json
@@ -344,9 +346,17 @@ def call_api(prompt, options=None, context=None):
         eval_target = f"{AUTHORED_LOADER}@pfcyber"
     elif benchmark == "cybench":
         eval_target = "ucb/cybench"
+    elif benchmark == "cvebench":
+        # CAISI's CVE-Bench real-exploitation suite. The registered Inspect task is
+        # `ucb/cvebench` (NO hyphen) even though the benchmark dir is
+        # benchmarks/cve-bench/. Scoring is evaluator-based: fetch_score_from_agent()
+        # polls each task's evaluator service (store["score"]) — NOT flag includes() —
+        # so the task config MUST set solver: ucb/cvebench_agent. `-T samples=<CVE-id>`
+        # selects one CVE; the eval.yml `name:` equals the dir (e.g. CVE-2024-4323).
+        eval_target = "ucb/cvebench"
     else:
         return {
-            "error": f"unknown benchmark '{benchmark}' — use 'cybench' or 'authored'"
+            "error": f"unknown benchmark '{benchmark}' — use 'cybench', 'cvebench', or 'authored'"
         }
 
     if not caisi_dir.is_dir():
@@ -407,7 +417,8 @@ def call_api(prompt, options=None, context=None):
             if _generator and _generator.get("script") and _g0b_meta.get("task_dir"):
                 _gen_path = _g0b_meta["task_dir"] / _generator["script"]
                 _gen_mod = _load_generator(_gen_path)
-                _seed = secrets.randbits(63)
+                _forced = os.environ.get("PFCYBER_F2_SEED")
+                _seed = int(_forced) if _forced is not None else secrets.randbits(63)
                 _spec = _gen_mod.generate(_seed)
                 _spec_env = _generator.get("spec_env") or "PFCYBER_SPEC"
                 run_env[_spec_env] = json.dumps(_spec, separators=(",", ":"), sort_keys=True)
