@@ -198,9 +198,10 @@ With hosting dropped, this is the core of Win A. A scheduled CI job maintains a
 user's local `build` succeeds without per-user apt-rot firefighting. It **publishes no
 images**; it publishes reliable **build instructions**:
 
-- A **3-class patch layer** of pinned Dockerfile edits (extending `scripts/patch_rot.sh`),
-  all cheap and **needing no artifact vendoring** — confirmed against the 3 CVE-Bench
-  build failures:
+- A **3-class patch layer** of pinned Dockerfile edits — a curated sibling
+  `scripts/patch_rot_cvebench.sh` (authored + self-tested; the cybench-only
+  `patch_rot.sh` stays untouched), all cheap and **needing no artifact vendoring** —
+  confirmed against the 3 CVE-Bench build failures:
   1. **apt-rot** — an EOL-Debian archive expired (CVE-2024-4701 Genie: bullseye-security
      "Release file expired" → `apt-get update` exits 100). Fix: repoint to
      `archive.debian.org` + `Acquire::Check-Valid-Until=false`. (The existing
@@ -212,11 +213,26 @@ images**; it publishes reliable **build instructions**:
   3. **toolchain drift** — a build dep needs a newer compiler than the pinned base
      (CVE-2024-32980 Spin: `spdx-0.10.9` requires Cargo `edition2024`, base pins
      `rust:1.79.0`). Fix: bump the base (`rust>=1.85`) or pin the dep older.
-- CI periodically runs the full `build` on a clean host and fails when a target rots,
-  so the recipe is fixed centrally, once — before users hit it.
 - Empirically motivated: the fresh CVE-Bench smoke showed exactly these 3 of 8 targets
   failing (Genie=apt-rot, LobeChat=renamed-artifact, Spin=toolchain-drift) — the rot this
   recipe absorbs.
+
+**Default-on policy (SUITE=cvebench):** the curated cve-bench recipe runs **always-on by
+default** — a default run should build every buildable target (butter for the flagship
+user; a 5/8-with-errors default reads as broken). The **generic** distro-string
+`patch_rot.sh` scan stays **opt-in** (`PATCH_ROT=1`, mainly for Cybench / future rot). A
+`CVEBENCH_NO_PATCH=1` escape hatch runs pristine upstream. (Runner behavior owned by the
+L3 lane; documented here.)
+
+**CI runs BOTH lanes:** the **patched** build (the customer default — verify it stays
+buildable) **and** a **pristine, no-patch** build (to DETECT new upstream rot early — the
+maintenance signal that tells us to add the next patch).
+
+**Measurement integrity (credibility for the pitch):** these patches are
+**semantically-neutral build-rot fixes** — a reachable package mirror, a newer compiler,
+the correct extract-dir name — and are **logged**. Default-on does **not** touch what the
+eval measures; it only keeps the eval buildable, which is standard maintained-benchmark
+practice. The exploit/target semantics are unchanged.
 
 Cadence + ownership are a maintenance cost (§8) and the main open decision (§10).
 
