@@ -102,17 +102,19 @@ comparable** to the single-shot thinking-off numbers — report them separately.
 
 **Agentic, thinking ON, aggregate feedback, 10 repeats each (2026-09-09, live):**
 
-| Model             | pass | invalid grammar | precision | hard-coded                               |
-| ----------------- | ---- | --------------- | --------- | ---------------------------------------- |
-| GLM-5.2           | 9/10 | 0               | 0.99      | 0                                        |
-| DeepSeek-V4-Flash | 8/10 | 0               | 1.00      | 0                                        |
-| GLM-5.3           | 7/10 | 0               | 1.00      | 1 (failed — the 2-estate gate caught it) |
+| Model             | pass | invalid final rule | mean precision | hard-coded                               |
+| ----------------- | ---- | ------------------ | -------------- | ---------------------------------------- |
+| GLM-5.2           | 9/10 | 0                  | 0.99           | 0                                        |
+| DeepSeek-V4-Flash | 8/10 | 0                  | 1.00           | 0                                        |
+| GLM-5.3           | 7/10 | 0                  | 1.00           | 1 (failed — the 2-estate gate caught it) |
 
-0 crashes / 0 harness errors across all 30 runs; **0 invalid-grammar** (the loop's TEST feedback lets
-every model fix syntax iteratively); the failures are recall misses, never false alarms. Contrast the
-**single-shot, thinking-OFF** baseline on the same held-out scorer — GLM-5.2 2/10, DeepSeek 1/10,
-GLM-5.3 0/10 — which forced thinking off and understated the reasoning models. `n=10` (wide
-confidence intervals); treat as calibration, not a leaderboard.
+**0 crashes across all 30 runs. 0 invalid _final_ rules** — the loop's TEST feedback lets every model
+correct its grammar before submitting (single-shot DeepSeek was 9/10 invalid on the first try). Of the
+6 failures, 5 are recall misses (the rule doesn't fire on every attack) and 1 was a GLM-5.2 false alarm
+(precision 0.92 — the only false alarm in 30 runs). Contrast the **single-shot, thinking-OFF** baseline
+on the same held-out scorer — GLM-5.2 2/10, DeepSeek 1/10, GLM-5.3 0/10 — which forced thinking off and
+understated the reasoning models. **Run-to-run variance is real at `n=10`**: a repeat DeepSeek run
+landed 5/10, so treat ±2–3 passes as noise and this as calibration, not a leaderboard.
 
 Any OTHER earlier live numbers predate three changes — detection timing moved to observation-batch
 coordinates; the brief was rewritten to remove give-aways; the corpus gained the provenance
