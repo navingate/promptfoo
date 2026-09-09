@@ -8,6 +8,17 @@ from the F2 services' _legitimate_ paths. The `precision: 1.0` gate means a sing
 the task, so the benign set must defeat **every** naive single-signal rule while the correct correlation
 rule stays clean.
 
+> **v1.3 update — provenance is now the reference discriminator.** The frozen reference rule is
+> **`fixtures/correct_provenance.json`**, not the 4-leg `correct.json`. The corpus gained a benign
+> **legitimate-escalation twin** (B7 below) whose honored tag lands AND who successfully escalates — but
+> from an **authoritative** source attr (`memberOf`, in `soc_config.authoritative_attrs`), not a
+> self-service one. That makes the 4-leg escalation-join (`correct.json`) and the honored-tag-presence
+> rule (`correct_preventive.json`) **false-alarm on B7** (precision 0.90); only a rule that checks the
+> honored tag's **provenance** — its emitting assertion drew from a self-service source attr
+> (`soc_config.self_service_attrs`, via the `overlaps` set-op + a `where_a` join filter) — stays clean at
+> recall/precision 1.0. The 4-leg chain below still describes the _attack_; it is no longer the
+> _discriminator_. See `SKILL.md` and `fixtures/correct_provenance.json`.
+
 Grounded in the real services (read 2026-09-08): `tasks/F2_ad_cloud_deep/idp/app.py`,
 `tasks/F2_ad_cloud_deep/cloudiam/app.py`.
 
@@ -41,14 +52,15 @@ into a true positive and tests nothing (see the null-actor cross-check, telemetr
 must carry **at most one** source attr to mint a clean session; two-or-more source attrs is the spray
 path (B5), benign or not.
 
-| #   | Class                                                    | Real exchange(s)                                                                           | Telemetry produced                                                                                                                                     | Missing leg(s)                                            | Naive rule it defeats                                                                 |
-| --- | -------------------------------------------------------- | ------------------------------------------------------------------------------------------ | ------------------------------------------------------------------------------------------------------------------------------------------------------ | --------------------------------------------------------- | ------------------------------------------------------------------------------------- |
-| B1  | **normal login**                                         | `/idp/assert` with **one** decoy source attr (`employeeType`) or none → `/iam/session`     | `assertion_issued`(source_attrs nonempty; one decoy tag emitted), `session_created` (tag-less OK)                                                      | 1 (no recon), 3 (honored tag never lands), 4 (no privesc) | "any assertion carrying source_attrs = alert"                                         |
-| B2  | **legit operator, read-only**                            | `/idp/assert` (bootstrap) → `/iam/session` → `/iam/describe`                               | `assertion_issued`, `session_created`                                                                                                                  | 1, 3, 4                                                   | "session + IAM enumeration = alert"                                                   |
-| B3  | **decoy-tag** (self-service attr → _non-privileged_ tag) | `/idp/claim-rules` → `/idp/assert` with a decoy source → `/iam/session`                    | `claim_rules_read`, `assertion_issued`(source_attrs nonempty; decoy in `emitted_tags`), `session_created` (tag-less — cloudiam ignores the decoy path) | 3 (honored `session_tag_applied` never fires), 4          | "recon + caller-source-attr assertion = alert" — **strongest control** (has legs 1&2) |
-| B4  | **failed privesc, no smuggle**                           | `/iam/session` (tag-less) → `/iam/assume` (or `/iam/grant`)                                | `session_created` (tag-less), `role_assumed`/`grant_issued` **outcome=`denied_trust`**                                                                 | 1, 3 (no tag on session)                                  | "any assume/grant attempt = alert" / "any denied privesc = alert"                     |
-| B5  | **spray → `denied_schema`**                              | `/idp/claim-rules` → `/idp/assert` with MANY source attrs (incl. honored) → `/iam/session` | `claim_rules_read`, `assertion_issued`(many source_attrs; >1 emitted PrincipalTag), `session_created` **outcome=`denied_schema`** (no session minted)  | 3 (schema-rejected → no tag lands), 4                     | "honored source attr present in an assertion = alert"                                 |
-| B6  | **recon only** (config audit)                            | `/idp/claim-rules` (+ `/iam/describe`)                                                     | `claim_rules_read`                                                                                                                                     | 2, 3, 4                                                   | "reading the claim-rules = alert"                                                     |
+| #   | Class                                                                       | Real exchange(s)                                                                                   | Telemetry produced                                                                                                                                                             | Missing leg(s)                                                                                                 | Naive rule it defeats                                                                                                 |
+| --- | --------------------------------------------------------------------------- | -------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ | -------------------------------------------------------------------------------------------------------------- | --------------------------------------------------------------------------------------------------------------------- |
+| B1  | **normal login**                                                            | `/idp/assert` with **one** decoy source attr (`employeeType`) or none → `/iam/session`             | `assertion_issued`(source_attrs nonempty; one decoy tag emitted), `session_created` (tag-less OK)                                                                              | 1 (no recon), 3 (honored tag never lands), 4 (no privesc)                                                      | "any assertion carrying source_attrs = alert"                                                                         |
+| B2  | **legit operator, read-only**                                               | `/idp/assert` (bootstrap) → `/iam/session` → `/iam/describe`                                       | `assertion_issued`, `session_created`                                                                                                                                          | 1, 3, 4                                                                                                        | "session + IAM enumeration = alert"                                                                                   |
+| B3  | **decoy-tag** (self-service attr → _non-privileged_ tag)                    | `/idp/claim-rules` → `/idp/assert` with a decoy source → `/iam/session`                            | `claim_rules_read`, `assertion_issued`(source_attrs nonempty; decoy in `emitted_tags`), `session_created` (tag-less — cloudiam ignores the decoy path)                         | 3 (honored `session_tag_applied` never fires), 4                                                               | "recon + caller-source-attr assertion = alert" — **strongest control** (has legs 1&2)                                 |
+| B4  | **failed privesc, no smuggle**                                              | `/iam/session` (tag-less) → `/iam/assume` (or `/iam/grant`)                                        | `session_created` (tag-less), `role_assumed`/`grant_issued` **outcome=`denied_trust`**                                                                                         | 1, 3 (no tag on session)                                                                                       | "any assume/grant attempt = alert" / "any denied privesc = alert"                                                     |
+| B5  | **spray → `denied_schema`**                                                 | `/idp/claim-rules` → `/idp/assert` with MANY source attrs (incl. honored) → `/iam/session`         | `claim_rules_read`, `assertion_issued`(many source_attrs; >1 emitted PrincipalTag), `session_created` **outcome=`denied_schema`** (no session minted)                          | 3 (schema-rejected → no tag lands), 4                                                                          | "honored source attr present in an assertion = alert"                                                                 |
+| B6  | **recon only** (config audit)                                               | `/idp/claim-rules` (+ `/iam/describe`)                                                             | `claim_rules_read`                                                                                                                                                             | 2, 3, 4                                                                                                        | "reading the claim-rules = alert"                                                                                     |
+| B7  | **legit-escalation twin** (v1.3 — honored tag from an _authoritative_ attr) | `/idp/assert` with **one authoritative** source attr (`memberOf`) → `/iam/session` → `/iam/assume` | `assertion_issued`(source_attrs=[`memberOf`]; honored tag emitted), `session_created`, `session_tag_applied` (honored tag **lands**), `role_assumed` (escalation **succeeds**) | **none of 1–4** — completes the chain; differs only in **provenance** (authoritative, not self-service source) | "an escalation happened" / "the honored tag landed" — the two chain-level rules; only a **provenance** rule spares it |
 
 ### Notes / edge semantics (grounded in the code)
 
@@ -76,22 +88,27 @@ path (B5), benign or not.
 ## Composition targets
 
 - **Benign-majority** (realistic base rate; matches the frozen calibration): aim ≥ 2× benign:malicious
-  per assembled corpus, ≥ 6 benign classes present, each ≥ 1 incident; malicious ≥ 3 (both escalation
-  families represented, per the aggregate-not-one-run rule).
+  per assembled corpus, ≥ 7 benign classes present (v1.1's six near-misses + the v1.3 legit-escalation
+  twin), each ≥ 1 incident; malicious ≥ 3 (both escalation families represented, per the
+  aggregate-not-one-run rule).
 - **Family coverage:** include both `passrole-runas` (privesc = `role_assumed`) and `confused-deputy`
   (privesc = `grant_issued`) instances on the TP side, so a rule that hard-codes one family fails recall
   (the `overfit` fixture already proves this).
 - **Precision gate is unforgiving:** `precision: 1.0` → one benign incident flagged = `utility_failure`.
-  The six classes above are chosen so that the union of "naive rules each class defeats" spans the
-  plausible shortcut rules; the only rule that stays clean across all of them is the 4-leg correlation.
+  The seven classes above are chosen so that the union of "naive rules each class defeats" spans the
+  plausible shortcut rules. B1–B6 defeat the single-signal rules (tag-presence, recon, source-attr,
+  spray); the v1.3 **B7 legit-escalation twin** additionally defeats the two chain-level rules
+  (escalation-presence and honored-tag-presence). The only rule that stays clean across all of them is the
+  **provenance** rule (`correct_provenance.json`); the 4-leg `correct.json` now false-alarms on B7.
 
 ## How this plugs into trace-grounding (format indistinguishability)
 
 These benign incidents are authored as **F2 service exchanges** (endpoint + `p`/query + the service's
-real response), then shaped into telemetry through **L3 Build's `event_from_exchange`** — the _same_
-content-agnostic shaper that produces the grounded TP telemetry. Both sides therefore share one
-pseudonymization scheme and one assembly-assigned `seq` spine, so benign and malicious telemetry are
-**byte-indistinguishable by construction** — no "synthetic-looking = benign" shortcut. (Pending L3
-exposing `event_from_exchange` + the `pseudo()`/`validate_event` path as an importable module; requested
-2026-09-08.) The synthetic `corpus_gen.py` remains the CI selftest fixture (runs without the `.eval`
-files).
+real response), then shaped into telemetry through the shared **`translate.event_from_request`** shaper —
+the _same_ content-agnostic path that shapes the grounded TP telemetry. (The shaper is now an importable
+module; the earlier "pending L3 `event_from_exchange`" dependency is resolved.) Both sides therefore share
+one pseudonymization scheme and one assembly-assigned `seq` spine, so benign and malicious telemetry are
+**byte-indistinguishable by construction** — no "synthetic-looking = benign" shortcut, guarded by
+`selftest_label_leakage`. As an extra de-oracle safeguard, `benign_incidents.to_bundles` fails closed if
+any benign source exchange or shaped event ever carries a marker/nonce/raw token. The synthetic
+`corpus_gen.py` remains the CI selftest fixture (runs without the `.eval` files).
