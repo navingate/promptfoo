@@ -408,6 +408,12 @@ docker image inspect alpine:latest >/dev/null 2>&1 || docker pull alpine:latest 
 # `getent hosts` returns the IPv6 first and `getent ahostsv4` returns nothing under systemd-resolved's
 # nss-resolve on some hosts — both break the IPv4 lockdown. Prefer Python getaddrinfo(AF_INET), then
 # fall back to getent-filtered-to-IPv4 and dig, so any host with an A record yields its IPv4.
+# Scrub any stale pin for this host from a prior (possibly failed) run BEFORE resolving. A leftover
+# /etc/hosts line — e.g. an IPv6 left by a run that died at the iptables step — poisons resolution: nss
+# 'files' finds the host with no IPv4 and does NOT fall through to DNS → gaierror "No address associated
+# with hostname". Scrubbing first makes resolution query DNS fresh; the pin below re-adds the IPv4.
+sudo sed -i.bak "/[[:space:]]${MODEL_HOST}\$/d" /etc/hosts 2>/dev/null \
+  || log "WARN: could not scrub a stale ${MODEL_HOST} pin from /etc/hosts (need sudo?) — resolution may fail if one is present"
 MODEL_IP="$(python3 -c 'import socket,sys;print(socket.getaddrinfo(sys.argv[1],None,socket.AF_INET,socket.SOCK_STREAM)[0][4][0])' "$MODEL_HOST" 2>/dev/null)"
 [ -n "$MODEL_IP" ] || MODEL_IP="$(getent hosts "$MODEL_HOST" | awk '$1 ~ /^[0-9]+\./ {print $1; exit}')"
 [ -n "$MODEL_IP" ] || { command -v dig >/dev/null 2>&1 && MODEL_IP="$(dig +short A "$MODEL_HOST" | grep -m1 -E '^[0-9]+\.')"; }
