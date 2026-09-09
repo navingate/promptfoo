@@ -13,7 +13,7 @@ We set out to measure both — and we built it as a **plugin on [promptfoo](http
 - **Reproducible + shareable.** A plugin packages the tasks, the sandbox harness, the scorers and the run skills together, versioned in one place. Anyone with promptfoo — including a frontier lab reviewing our work — can run our evals with tooling they already use and trust.
 - **Run it where the work already happens.** Enterprises can run Cybench _and_ our authored cyber evals **directly from promptfoo** and review every result in the **same interface they already use** for their other model evals — no separate security-eval exercise, no bespoke harness to stand up. Cyber capability becomes one more thing the platform measures — so security evaluation lives alongside every other eval, and promptfoo becomes the **single hub through which all of an enterprise's evaluations run**, not a one-off tool reached for once.
 - **One control surface.** You define the target model once (an endpoint + model id) and every eval picks it up. No per-harness `.env` surgery.
-- **Results people can actually read.** Every run lands in promptfoo's grid and web UI: tasks × models, pass/fail per cell, the full agent transcript on drill-down, and named scores (hops-reached, exploit-demonstrated, recall/precision) that sort and aggregate like any metric.
+- **Results people can actually read.** Every run lands in promptfoo's grid and web UI: tasks × models, pass/fail per cell, the full agent transcript on drill-down, and named scores (hops-reached, strict-capture, recall/precision) that sort and aggregate like any metric.
 - **Reuse, don't reinvent.** Provider abstraction, assertion scoring, the view UI, the database — all already there.
 
 The goal of the plugin: measure a model's **offensive _and_ defensive** cyber capability with the same rigor, isolation and control surface as any other enterprise eval.
@@ -257,7 +257,7 @@ In the UI:
 
 - **Grid** — tasks as rows (tagged by track), models as columns, **pass/fail per cell**. For the offense chain, "pass" = the flag was captured; for the defense twin, the cell carries the recall/precision score.
 - **Drill-down** — click any cell to read the **full agent transcript** for that run: every tool call, every hop, exactly where it succeeded or died.
-- **Named scores** — hops-reached, exploit-demonstrated, recall/precision — sort and aggregate like any metric.
+- **Named scores** — hops-reached, strict-capture, recall/precision — sort and aggregate like any metric.
 - **Live** — the grid updates over a websocket as runs complete (results are written per-run), so you can watch a `--repeat 10` fill in. It must run on the **same host** as the eval (it reads that host's database) — on a headless VM, port-forward the UI port to your laptop.
 
 The two things a flat grid can't draw — the **per-hop horizon curve** (where models cliff) and the **profile × track matrix** — are a separate report layer built on the same run data.
