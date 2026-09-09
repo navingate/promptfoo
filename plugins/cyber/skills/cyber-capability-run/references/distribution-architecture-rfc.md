@@ -156,9 +156,8 @@ against the nonce, not a gameable in-image string; (3) **N-attempt pass@k stats*
 (`ci_gate0b.py`) + host runbook. Gate-0B stacks **on top of** the egress lockdown.
 **microVM-per-run** (fresh disposable VM per run vs. shared-kernel Docker) is the
 design's stronger-isolation goal — **not yet implemented**: today's x86 runner is Docker
-
-- the host egress lockdown, explicitly stamped "baseline/cross-check grade, NOT Gate-0B
-  assurance."
+plus the host egress lockdown, explicitly stamped "baseline/cross-check grade, NOT
+Gate-0B assurance."
 
 ### 5.5 Simple model config _(already built)_
 
@@ -194,13 +193,12 @@ promptfoo view                                               # model comparison
 
 No **image** build, no VM, no root. One caveat to be honest about: the **first run still
 clones the CAISI harness and installs its Python deps** (`setup_caisi.sh` → `git clone`
-
-- `uv sync`), because `provider.py` imports `inspect_ai` + `ucb`. That is a one-time,
-  network-required step — fast and reliable, unlike building 40 images — but it is not
-  zero-setup. Whether we may _vendor_ (ship) the harness code to remove even that clone is
-  the same CAISI-confirmation gate as audit open item 1 (§7). Assurance mode is a
-  documented opt-in flag/runner for users who need an enforced egress boundary and
-  assurance-grade stats.
+then `uv sync`), because `provider.py` imports `inspect_ai` and `ucb`. That is a one-time,
+network-required step — fast and reliable, unlike building 40 images — but it is not
+zero-setup. Whether we may _vendor_ (ship) the harness code to remove even that clone is
+the same CAISI-confirmation gate as audit open item 1 (§7). Assurance mode is a
+documented opt-in flag/runner for users who need an enforced egress boundary and
+assurance-grade stats.
 
 ---
 
