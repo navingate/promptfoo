@@ -160,11 +160,16 @@ class Handler(BaseHTTPRequestHandler):
                 return self._send(403, {"error": f"entitlement grants '{GRANTED_ROLE}', not "
                                                  f"'{role.split(';', 1)[0]}'"})
             if benign:
-                # AUTHORITATIVE emission: the deploy-authorized group membership (vouched by the
-                # directory-issued deploy-eligible entitlement) legitimately maps to the honored tag.
-                # The value is the correct project code sourced from the group, NOT a caller attribute —
-                # the lawful mirror of the attack. Same honored tag + role reach the session; only the
-                # provenance (memberOf, not a self-service attr) differs.
+                # AUTHORITATIVE emission. The deploy-eligible entitlement (issued by the directory only
+                # to a principal genuinely in the deploy-authorized group) authorizes this path AND the
+                # caller presents its authoritative group membership as the claim source
+                # (attributes.memberOf — an admin-assigned attribute, NOT in the self-service pool). The
+                # honored tag + role are identical to the attack; only the provenance differs. The
+                # attacker cannot obtain the entitlement, so putting memberOf in its OWN attributes does
+                # nothing — this branch is unreachable without the deploy-eligible token.
+                if not isinstance(attributes, dict) or AUTHORITATIVE_SOURCE not in attributes:
+                    return self._send(403, {"error": f"the deploy-eligible entitlement requires the "
+                                                     f"authoritative '{AUTHORITATIVE_SOURCE}' claim"})
                 if FED_FAMILY == "delimited-claim":
                     emitted = {DELIMITED_ATTR: f"{TAG_NAME}={HONORED_TAG_VALUE}"}
                 else:
