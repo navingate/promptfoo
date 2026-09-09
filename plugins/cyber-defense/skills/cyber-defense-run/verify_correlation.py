@@ -117,17 +117,58 @@ def grade_over_instances(rule: dict, instances, *, recall_min: float = 1.0, prec
     return result, per
 
 
+def _grounded_estate(task_dir: Path, dirname: str):
+    """Load a FULLY-GROUNDED estate — every incident a real capture carrying its OWN label — from `dirname`,
+    with the same fail-closed integrity guards as the reference corpus (each bundle matches its manifest
+    canonical sha256 and is causally sound). Used for the real different-seed estate(s) (grounded_seed9) that
+    Phase 2 pools into the live grade so a rule hard-coding instance-1's honored tag fails. Raises
+    GroundingError (-> environment_failure) if the estate is missing or tampered — never a silent fall-back.
+    Returns (events, truth, ledger)."""
+    grounded = task_dir / dirname
+    manifest = grounded / "corpus-manifest.json"
+    if str(task_dir) not in sys.path:
+        sys.path.insert(0, str(task_dir))
+    from assemble import assemble
+    from translate import GroundingError, assert_causal_order
+
+    def _canon_sha(obj) -> str:
+        return hashlib.sha256(json.dumps(obj, sort_keys=True, separators=(",", ":")).encode()).hexdigest()
+
+    if not manifest.exists():
+        raise GroundingError(f"grounded estate {dirname!r} is missing its corpus-manifest.json — the live "
+                             "eval requires it once promoted (it never silently falls back to one estate)")
+    bundles = []
+    for m in json.loads(manifest.read_text()):
+        bd = json.loads((grounded / m["file"]).read_text())
+        expect = m.get("sha256")
+        if expect is None or _canon_sha(bd) != expect:
+            raise GroundingError(f"grounded estate bundle {m['file']!r} canonical-sha256 "
+                                 + ("missing from the manifest" if expect is None
+                                    else "mismatch — tampered, or re-synthesized without refreshing the manifest"))
+        assert_causal_order(bd["events"])
+        b = {"key": bd["key"], "label": bd["label"], "events": bd["events"]}
+        if bd["label"] == "malicious":
+            b["ledger"] = event_anchored_ledger(bd["events"])
+        bundles.append(b)
+    return assemble(bundles, seed=f"estate-{dirname}")
+
+
 def _live_instances(task_dir: Path):
-    """The estate instances the LIVE eval scores, each as (label, events, ground_truth, soc_config). TODAY:
-    the single grounded reference estate (soc_config.json) — so behaviour is unchanged. PHASE 2 (when a REAL
-    different-seed capture lands under grounded_seed9/): append
-    ("seed9", *_scoring_corpus(task_dir, "grounded_seed9")[:2], <load soc_config_seed9.json>) here — a rule
-    that hard-codes deploy-eligibility then scores recall 0 on seed 9 and fails the pooled gate. Each
-    instance carries its OWN soc_config so {"$config": <key>} resolves per estate."""
+    """The estate instances the LIVE eval scores, each as (label, events, ground_truth, soc_config): the
+    grounded reference estate (soc_config.json, honored tag deploy-eligibility) AND the real seed-9 estate
+    (soc_config_seed9.json, honored tag provision-scope — a GLM-5.3 blind-solve on F2 gen.generate(9)). Both
+    are scored per-estate with their OWN config and pooled (grade_over_instances), so a rule that hard-codes
+    one estate's honored tag scores recall 0 on the other and fails the two-sided gate — only a
+    {"$config": <key>} rule passes both. The seed-9 estate is fail-closed: a missing/tampered grounded_seed9/
+    raises GroundingError -> environment_failure, never a silent single-estate fall-back."""
     events, ground_truth, _ = _scoring_corpus(task_dir)
     soc = task_dir / "soc_config.json"
     config = json.loads(soc.read_text()) if soc.exists() else None
-    return [("inst1", events, ground_truth, config)]
+    instances = [("inst1", events, ground_truth, config)]
+    ev9, tr9, _ = _grounded_estate(task_dir, "grounded_seed9")
+    cfg9 = json.loads((task_dir / "soc_config_seed9.json").read_text())
+    instances.append(("seed9", ev9, tr9, cfg9))
+    return instances
 
 
 def verify(task_dir: str | Path, rule_text, nonce: str | None = None) -> DefenseResult:

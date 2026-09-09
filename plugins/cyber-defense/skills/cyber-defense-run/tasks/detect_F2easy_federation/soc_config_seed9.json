@@ -1,0 +1,20 @@
+{
+  "_note": "Defender SOC config for the seed-9 estate (F2 gen.generate(9)). REAL second grounded estate \u2014 a GLM-5.3 blind-solve on a different seed, so a rule that hard-codes instance-1's honored tag fails here. Only honored_tag differs from soc_config.json; the IdP self-service pool is the same fictional company schema (F2 gen.py _SOURCE_ATTRS, a per-seed constant).",
+  "honored_tag": "provision-scope",
+  "honored_tag_note": "seed-9's honored PrincipalTag key (gen.generate(9).federation.tag_name).",
+  "self_service_attrs": [
+    "extensionAttribute7",
+    "extensionAttribute11",
+    "extensionAttribute3",
+    "employeeType",
+    "division",
+    "userType",
+    "custom:deploy",
+    "jobTitle"
+  ],
+  "self_service_attrs_note": "same IdP self-service pool as instance-1 (F2 gen.py _SOURCE_ATTRS is a per-seed constant); seed 9 smuggles via extensionAttribute7 as instance-1 does.",
+  "authoritative_attrs": [
+    "memberOf"
+  ],
+  "authoritative_attrs_note": "admin-provisioned; the benign legit-twin lands provision-scope from memberOf (group deploy-authorized) and is SPARED by provenance."
+}

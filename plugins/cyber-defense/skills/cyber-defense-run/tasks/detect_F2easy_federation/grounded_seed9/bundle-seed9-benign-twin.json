@@ -1,0 +1,67 @@
+{
+  "key": "prin_f70f06394d",
+  "label": "benign",
+  "model": null,
+  "captured": false,
+  "events": [
+    {
+      "ts": 0,
+      "source_service": "idp",
+      "event": "assertion_issued",
+      "outcome": "ok",
+      "actor": "prin_f70f06394d",
+      "assertion_id": "aid_3307b8887a",
+      "session_id": null,
+      "resource": null,
+      "requested_role": "role_1a50c07159",
+      "source_attrs": [
+        "memberOf"
+      ],
+      "emitted_tags": {
+        "provision-scope": "tagval_fb14fb0201"
+      },
+      "local_seq": 0
+    },
+    {
+      "ts": 0,
+      "source_service": "cloudiam",
+      "event": "session_created",
+      "outcome": "ok",
+      "actor": null,
+      "assertion_id": null,
+      "session_id": "sess_4b621c6d69",
+      "resource": null,
+      "from_assertion_id": "aid_3307b8887a",
+      "principal": "prin_6071f0fb1f",
+      "local_seq": 1
+    },
+    {
+      "ts": 0,
+      "source_service": "cloudiam",
+      "event": "session_tag_applied",
+      "outcome": "ok",
+      "actor": null,
+      "assertion_id": null,
+      "session_id": "sess_4b621c6d69",
+      "resource": null,
+      "from_assertion_id": "aid_3307b8887a",
+      "tag_name": "provision-scope",
+      "tag_value": "tagval_fb14fb0201",
+      "local_seq": 1
+    },
+    {
+      "ts": 0,
+      "source_service": "cloudiam",
+      "event": "role_assumed",
+      "outcome": "ok",
+      "actor": null,
+      "assertion_id": null,
+      "session_id": "sess_4b621c6d69",
+      "resource": null,
+      "assumed_role": "role_6402bd060b",
+      "via_session_id": "sess_4b621c6d69",
+      "local_seq": 2
+    }
+  ],
+  "ledger": {}
+}
