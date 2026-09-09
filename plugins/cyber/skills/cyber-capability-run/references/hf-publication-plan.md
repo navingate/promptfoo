@@ -70,24 +70,35 @@ branded Firefox). Status:
 
 ## Pull-and-run flow (for James) — honest about the one build step
 
-1. `huggingface-cli download` the 9 F2 image tarballs from `astroware` → `docker load`.
-2. **Tag-match:** each loaded image MUST be tagged to the task's compose `image:` ref, or
-   compose falls back to a Docker Hub pull.
+1. `SUITE=authored PULL_F2=1` (runner lane): `huggingface-cli download` the 9 F2 tarballs
+   from `astroware` → `docker load`.
+2. **Tag-match (Option A):** the F2 compose services carry stable `image: astroware/f2-<svc>:v1`
+   tags alongside their `build:`, so `docker compose up` uses the loaded images and only
+   falls back to building if one is absent. No fragile project-name dependency.
 3. The shared agent is **not** hosted: base-pull the official Kali image + thin-build the
    agent layer (one fast build; avoids re-hosting a "Kali"-named image). **So F2 is
    pull-and-run for the estate, but the agent is still a small local build — not literally
    zero-build.**
 4. `promptfoo eval` the F2 config. No from-scratch estate build, no `sudo` (default tier).
 
-## Upload procedure (co-written with the runner lane; navnn runs on the VM)
+## Upload procedure — `scripts/publish_f2_hf.sh` (navnn runs on the VM)
 
-1. Build the 9 F2 images (`docker compose build`, from each service subdir).
-2. `docker save <img> | gzip > <name>.tar.gz` for each; generate a `manifest.json`
-   (name → compose `image:` ref → sha256).
-3. `huggingface-cli upload` the tarballs + manifest + README to `astroware` (git-LFS).
-   HF token in the VM's env — **never pasted into a session**.
-4. Verify on a clean host: `download` → `docker load` → tag-match → base-pull+thin agent →
-   `promptfoo eval` F2 with no estate rebuild.
+Concrete runbook (Option A tag scheme `astroware/f2-<service>:v1`, 9 services). navnn runs
+on the x86 VM with `HF_TOKEN` in the env (never pasted into a session):
+
+```bash
+export HF_TOKEN=hf_...          # WRITE token for astroware; stays on the box
+bash scripts/publish_f2_hf.sh   # build (stable tags) → docker save+gzip ×9 → manifest.json → hf upload
+```
+
+The script: `docker compose build` (the compose `image:` tags apply `astroware/f2-<svc>:v1`)
+→ `docker save | gzip` each of the 9 → `manifest.json` (service → tag → image id → tarball
+sha256) → copies the README → `huggingface-cli upload astroware/f2`. Syntax-checked +
+flow/manifest self-tested with Docker/HF stubbed; the real build/save/upload run on the VM.
+Depends on: the F2 compose carrying the `image:` tags (Option A — F2 lane).
+
+Verify on a clean host afterward: `SUITE=authored PULL_F2=1` → download → `docker load` →
+base-pull + thin-build the agent → `promptfoo eval` F2 with **no estate rebuild**.
 
 ## Attribution package (ships in the `astroware` repo)
 
