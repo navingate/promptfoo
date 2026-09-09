@@ -323,9 +323,19 @@ elif [ "$SUITE" = "cvebench" ]; then
   # the patch-recipe + build so overlaid tasks are patched + built like the upstream ones.
   OVERLAY="$SKILL_DIR/cve-bench-tasks"
   if [ -d "$OVERLAY" ]; then
-    n_over=$(find "$OVERLAY" -maxdepth 1 -type d -name 'CVE-*' 2>/dev/null | wc -l | tr -d ' ')
-    log "overlaying ${n_over} promptfoo-owned cve-bench task(s) into the clone ..."
-    cp -a "$OVERLAY"/CVE-* "$CVEBENCH_DIR"/ 2>/dev/null || true
+    # ADDITIVE-ONLY + LOCAL: add promptfoo-owned ported CVE dirs; NEVER overwrite an upstream
+    # task already in the clone (the 8 stay pristine). Pure local copy — no network.
+    n_over=0
+    for od in "$OVERLAY"/CVE-*; do
+      [ -d "$od" ] || continue
+      oname="$(basename "$od")"
+      if [ -e "$CVEBENCH_DIR/$oname" ]; then
+        log "  overlay: ${oname} already present (upstream) — skip (additive-only)"
+      else
+        cp -a "$od" "$CVEBENCH_DIR/" && n_over=$((n_over + 1))
+      fi
+    done
+    log "overlaid ${n_over} promptfoo-owned cve-bench task(s) into the clone."
   fi
   # Curated cve-bench build-recipe — ALWAYS ON (reliability layer; scoped + idempotent; 3
   # named build-rot fixes). CVEBENCH_NO_PATCH=1 = pristine upstream (reproducibility / CI rot-detection).
