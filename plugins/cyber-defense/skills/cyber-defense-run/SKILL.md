@@ -100,21 +100,30 @@ comparable** to the single-shot thinking-off numbers — report them separately.
 
 ### Calibration (v1.3)
 
-**Agentic, thinking ON, aggregate feedback, 10 repeats each (2026-09-09, live):**
+**Agentic, thinking ON, aggregate feedback, 10 repeats each (2026-09-09, live).** The task's pass gate
+is **strict all-or-nothing** — recall 1.0 AND precision 1.0 on the pooled 2-estate grade — so at `n=10`
+the pass-rate is a noisy headline that can MISRANK close models. Read **mean recall / mean F1** as the
+capability signal:
 
-| Model             | pass | invalid final rule | mean precision | hard-coded                               |
-| ----------------- | ---- | ------------------ | -------------- | ---------------------------------------- |
-| GLM-5.2           | 9/10 | 0                  | 0.99           | 0                                        |
-| DeepSeek-V4-Flash | 8/10 | 0                  | 1.00           | 0                                        |
-| GLM-5.3           | 7/10 | 0                  | 1.00           | 1 (failed — the 2-estate gate caught it) |
+| Model             | mean recall | mean F1 | strict pass | invalid final | hard-coded         |
+| ----------------- | ----------- | ------- | ----------- | ------------- | ------------------ |
+| GLM-5.2           | 1.00        | 1.00    | 9/10        | 0             | 0                  |
+| GLM-5.3           | 0.86        | 0.88    | 7/10        | 0             | 1 (gate caught it) |
+| DeepSeek-V4-Flash | 0.80        | 0.80    | 8/10        | 0             | 0                  |
 
-**0 crashes across all 30 runs. 0 invalid _final_ rules** — the loop's TEST feedback lets every model
-correct its grammar before submitting (single-shot DeepSeek was 9/10 invalid on the first try). Of the
-6 failures, 5 are recall misses (the rule doesn't fire on every attack) and 1 was a GLM-5.2 false alarm
-(precision 0.92 — the only false alarm in 30 runs). Contrast the **single-shot, thinking-OFF** baseline
-on the same held-out scorer — GLM-5.2 2/10, DeepSeek 1/10, GLM-5.3 0/10 — which forced thinking off and
-understated the reasoning models. **Run-to-run variance is real at `n=10`**: a repeat DeepSeek run
-landed 5/10, so treat ±2–3 passes as noise and this as calibration, not a leaderboard.
+On rule QUALITY (mean recall/F1) the ordering is the expected **GLM-5.2 > GLM-5.3 > DeepSeek**. The
+strict pass-rate INVERTS GLM-5.3 and DeepSeek — because it is all-or-nothing, DeepSeek's 2 failures are
+degenerate rules that fire on nothing (recall 0), while GLM-5.3's are mostly near-misses (recall
+0.83/0.75 — sophisticated join rules that caught most attacks), which the binary gate scores identically
+to a total miss. So DeepSeek produced one more exactly-perfect rule in this sample; GLM-5.3 wrote better
+rules on average. **Report mean recall/F1, not the strict pass-rate, when comparing model capability.**
+
+**0 crashes / 0 invalid _final_ rules across all 30 runs** — the loop's TEST feedback lets every model
+correct its grammar before submitting (single-shot DeepSeek was 9/10 invalid on the first try).
+Precision is ~1.0 for all three (one GLM-5.2 false alarm, the only one in 30 runs). Contrast the
+**single-shot, thinking-OFF** baseline on the same held-out scorer — GLM-5.2 2/10, DeepSeek 1/10,
+GLM-5.3 0/10 — which forced thinking off and badly understated the reasoning models. `n=10` is noisy (a
+repeat DeepSeek run landed 5/10 strict); treat as calibration, not a leaderboard.
 
 Any OTHER earlier live numbers predate three changes — detection timing moved to observation-batch
 coordinates; the brief was rewritten to remove give-aways; the corpus gained the provenance
