@@ -58,8 +58,9 @@ def parse_compose(path):
         cm = re.search(r"context:\s*([^\s},]+)", ln)
         if cm:
             services[cur]["context"] = cm.group(1)
-        # a forwarded nonce key, tolerating a trailing `# comment` on the list entry
-        em = re.match(r"^\s*-\s*(PFCYBER_NONCE_\w+)\s*(?:#.*)?$", ln)
+        # a forwarded nonce key: bare (`- KEY`) or the default-value passthrough idiom
+        # (`- KEY=${KEY:-}`), tolerating a trailing `# comment` on the list entry
+        em = re.match(r"^\s*-\s*(PFCYBER_NONCE_\w+)(?:=\S*)?\s*(?:#.*)?$", ln)
         if em:
             services[cur]["env"].add(em.group(1))
     return services
