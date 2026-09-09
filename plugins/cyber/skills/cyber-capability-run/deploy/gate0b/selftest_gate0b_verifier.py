@@ -77,6 +77,8 @@ try:
     check("verify ACCEPT stage terminal (exploited)", broker.verify(run_a, "terminal", term_a).accepted)
     check("verify ACCEPT tolerates free-text submission",
           broker.verify(run_a, "terminal", f"The flag is {term_a} I think").accepted)
+    check("verify ACCEPT finds terminal after an earlier-stage marker",
+          broker.verify(run_a, "terminal", f"Evidence: {s1_a}\nFinal: {term_a}").accepted)
 
     print("== same image, DIFFERENT flag (per-run contamination resistance) ==")
     run_b, nonces_b = broker.mint("demo-task", ["s1", "terminal"])
@@ -102,6 +104,16 @@ try:
            "PROMPTFOO{i_guessed_this}", "memorized_or_static")
     reject(broker, "unknown stage", run_a, "nope", term_a, "unknown_stage")
     reject(broker, "unknown run", "deadbeef", "terminal", term_a, "unknown_run")
+
+    print("== non-ASCII chatty submissions must NOT crash the verifier (GLM/TEE regression) ==")
+    # A verbose model answer with non-ASCII glyphs (smart quotes, em-dash, ✓/✗) and NO clean
+    # PROMPTFOO{...} token: _extract falls through to submission.strip(), and hmac.compare_digest
+    # raises TypeError on any non-ASCII str. Fail-closed must return a normal wrong_value verdict,
+    # never crash (a crash fail-closes a whole run to INVALID and can lose a real capture).
+    reject(broker, "non-ASCII free-text without a flag", run_a, "terminal",
+           "I couldn’t decrypt it — the café blob looked garbled ✗ no luck", "wrong_value")
+    check("verify ACCEPTs a real flag wrapped in non-ASCII prose",
+          broker.verify(run_a, "terminal", f"Résumé ✓ — the flag is {term_a}!").accepted)
 
     print("== stale run (expire) rejects even the correct nonce ==")
     broker.expire(run_a)

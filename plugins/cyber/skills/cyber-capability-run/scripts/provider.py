@@ -24,6 +24,7 @@ promptfoo's own enterprise task suite from ../tasks/loader.py.
 
 import json
 import os
+import secrets
 import subprocess
 import sys
 import tempfile
@@ -62,6 +63,68 @@ def _venv_bin(caisi_dir, name):
 # ../references/build-plan.md.
 AUTHORED_LOADER = HERE.parent / "tasks" / "loader.py"
 TASKS_DIR = HERE.parent / "tasks"
+
+# Named SUT endpoints ANY task config can select — via `sut_endpoint:` in its provider config,
+# or CYBER_SUT_ENDPOINT env (same CYBER_<KEY> fallback every other setting already gets from
+# _cfg) — so F1, F2, scenarios, authored, and any future config can point at a different
+# target-model endpoint with a one-line env var, no per-endpoint config-file duplication.
+#   "local" (the default) is a no-op: base_url/api_key_env stay unset and CAISI's own
+#     vendor/caisi-cyber-evals/.env (the self-hosted vLLM box; setup_caisi.sh writes it from
+#     $HALO_ENV) wins — EXACTLY today's behavior for every existing config.
+#   "azure" points at halo-dataline's real Azure Foundry resource (its configs/pipeline.yaml
+#     confirms the request shape: flat OpenAI-compatible POST {base_url}/chat/completions,
+#     `model` in the JSON body — the same shape inspect_ai's client already uses, so no code
+#     path differs by endpoint). Confirmed reachable: DeepSeek-V4-Flash; other catalog names may
+#     404 (not deployed) — see that repo's azure_* profiles for what's actually live there.
+#     Needs HALO_AZURE_AI_API_KEY in the outer process env (e.g. via --env-file .env) — this
+#     reuses halo-dataline's Azure resource/billing, a deliberate per-run choice, not a default.
+#   "chutes" points at Chutes' shared inference gateway (llm.chutes.ai) — same flat
+#     OpenAI-compatible shape confirmed via halo-dataline's router.py/openai_compat.py (no
+#     Chutes-specific headers or auth scheme anywhere in that codebase). ANY model Chutes
+#     hosts is reachable by CYBER_MODEL alone — Chutes is a catalog gateway, not one-model-
+#     per-host, so this ONE registry entry covers every Chutes model, not just one. Model ids
+#     there are HuggingFace-style `org/model-name`, often with a `-TEE` (confidential-compute)
+#     suffix — e.g. openai/moonshotai/Kimi-K2.5-TEE, openai/Qwen/Qwen3-32B-TEE. Needs
+#     CHUTES_API_KEY in the outer process env — already a var name in this repo's own .env
+#     (no HALO_-style rename needed: unlike Azure, nothing else in this harness claims it).
+#   "engy" points at Engy's hosted OpenAI-compatible gateway (api.engy.ai/v1) — same flat
+#     {base_url}/chat/completions + Bearer-auth shape; a catalog gateway like Chutes, so any model
+#     Engy serves is reachable by CYBER_MODEL alone (e.g. openai/glm-5.3, openai/glm-5.3-flash,
+#     openai/glm-5.2). Needs ENGY_API_KEY in the outer process env. NOTE: Engy's docs do NOT
+#     document OpenAI tool/function-calling, which the agentic cyber tasks REQUIRE (the agent drives
+#     a bash tool) — verify tool-calls actually fire before trusting a full F2 run.
+#   "openai" / "anthropic" point at the REAL provider APIs (api.openai.com / api.anthropic.com) via
+#     inspect_ai's native providers: set CYBER_MODEL=openai/<name> or anthropic/<name> and put
+#     OPENAI_API_KEY / ANTHROPIC_API_KEY in the .env. (Any key already in the env also flows through
+#     since run_env inherits it, but the explicit preset validates it is present and, for Anthropic,
+#     routes it to ANTHROPIC_API_KEY — not OPENAI_API_KEY — via key_target.)
+# An explicit `base_url:`/`api_key_env:` in a config always overrides the registry, so a genuine
+# one-off endpoint still works without touching this table.
+SUT_ENDPOINTS = {
+    "local": {},
+    "azure": {
+        "base_url": "https://halo-dataline-resource.services.ai.azure.com/openai/v1",
+        "api_key_env": "HALO_AZURE_AI_API_KEY",
+    },
+    "chutes": {
+        "base_url": "https://llm.chutes.ai/v1",
+        "api_key_env": "CHUTES_API_KEY",
+    },
+    "engy": {
+        "base_url": "https://api.engy.ai/v1",
+        "api_key_env": "ENGY_API_KEY",
+    },
+    "openai": {
+        "base_url": "https://api.openai.com/v1",
+        "api_key_env": "OPENAI_API_KEY",
+    },
+    "anthropic": {
+        # Anthropic is NOT OpenAI-compatible — no base_url, and the key must land in
+        # ANTHROPIC_API_KEY (not OPENAI_API_KEY); key_target handles that. Use CYBER_MODEL=anthropic/<name>.
+        "api_key_env": "ANTHROPIC_API_KEY",
+        "key_target": "ANTHROPIC_API_KEY",
+    },
+}
 GATE0B_BROKER = HERE.parent / "deploy" / "gate0b" / "nonce_broker.py"
 
 
@@ -74,6 +137,22 @@ def _load_gate0b():
     spec = importlib.util.spec_from_file_location("pfcyber_nonce_broker", GATE0B_BROKER)
     mod = importlib.util.module_from_spec(spec)
     sys.modules["pfcyber_nonce_broker"] = mod
+    spec.loader.exec_module(mod)
+    return mod
+
+
+def _load_generator(gen_path):
+    """Load a task's per-run instance generator (its `generator.script`, e.g. F2's gen.py).
+
+    Same load-by-path pattern as `_load_gate0b`. The module must expose
+    `generate(seed: int | None) -> dict`; `generate(None)` is each generator's own
+    fixed Stage-1 default (see F2's gen.py), so a task with no live seed injected still
+    serves its committed reference instance unchanged.
+    """
+    import importlib.util
+
+    spec = importlib.util.spec_from_file_location(f"pfcyber_gen_{gen_path.stem}", gen_path)
+    mod = importlib.util.module_from_spec(spec)
     spec.loader.exec_module(mod)
     return mod
 
@@ -134,7 +213,7 @@ def _read_task_meta(task_name):
     credit, never a failed run. It runs in the inspect_ai context (or the harness-venv
     `--parse` fallback), where PyYAML is always present.
     """
-    empty = {"subtasks": [], "flag": None, "difficulty": None}
+    empty = {"subtasks": [], "flag": None, "difficulty": None, "generator": None, "task_dir": None}
     if not task_name:
         return empty
     try:
@@ -166,7 +245,17 @@ def _read_task_meta(task_name):
                     }
                 )
         difficulty = meta.get("difficulty") if isinstance(meta.get("difficulty"), dict) else None
-        return {"subtasks": subs, "flag": doc.get("flag"), "difficulty": difficulty}
+        # `generator`: a task opts into Stage-2 per-run STRUCTURAL variation (on top of the
+        # per-run nonces) by declaring `metadata.generator: {script, spec_env, ...}` in its
+        # eval.yml (see F2_ad_cloud_deep). `task_dir` lets the caller locate that script.
+        generator = meta.get("generator") if isinstance(meta.get("generator"), dict) else None
+        return {
+            "subtasks": subs,
+            "flag": doc.get("flag"),
+            "difficulty": difficulty,
+            "generator": generator,
+            "task_dir": path.parent,
+        }
     return empty
 
 
@@ -268,15 +357,24 @@ def call_api(prompt, options=None, context=None):
     # inject it into the Inspect subprocess env here. The client never edits the
     # harness .env — these values win.
     run_env = os.environ.copy()
-    base_url = _cfg(options, "base_url")
+    sut_endpoint = str(_cfg(options, "sut_endpoint", "local") or "local").strip().lower()
+    if sut_endpoint not in SUT_ENDPOINTS:
+        return {
+            "error": f"unknown sut_endpoint '{sut_endpoint}' — choose one of {sorted(SUT_ENDPOINTS)}"
+        }
+    preset = SUT_ENDPOINTS[sut_endpoint]
+    base_url = _cfg(options, "base_url") or preset.get("base_url")
     if base_url:
         run_env["OPENAI_BASE_URL"] = str(base_url)
     api_key = _cfg(options, "api_key")
-    api_key_env = _cfg(options, "api_key_env")
+    api_key_env = _cfg(options, "api_key_env") or preset.get("api_key_env")
+    # Which env var the key lands in: OPENAI_API_KEY for OpenAI-compatible endpoints
+    # (azure/chutes/engy/openai), ANTHROPIC_API_KEY for the native Anthropic provider.
+    key_target = str(_cfg(options, "key_target") or preset.get("key_target") or "OPENAI_API_KEY")
     if api_key:
-        run_env["OPENAI_API_KEY"] = str(api_key)
+        run_env[key_target] = str(api_key)
     elif api_key_env and os.environ.get(str(api_key_env)):
-        run_env["OPENAI_API_KEY"] = os.environ[str(api_key_env)]
+        run_env[key_target] = os.environ[str(api_key_env)]
 
     # Gate-0B (opt-in): mint a fresh per-run, per-stage nonce OUTSIDE any file/image and
     # inject it into the TARGET's env (PFCYBER_NONCE_*). The migrated targets read these
@@ -299,7 +397,21 @@ def call_api(prompt, options=None, context=None):
             _stages = _g0b.stage_keys(_g0b_meta.get("subtasks") or [], _g0b_meta.get("flag"))
             _g0b_run, _ = _broker.mint(task, _stages)
             run_env.update(_broker.env_for(_g0b_run))
-        except Exception as _e:  # noqa: BLE001 — any mint/inject failure fails closed
+            # Stage-2 structural variation (opt-in via metadata.generator; see F2_ad_cloud_deep):
+            # mint a fresh per-run SEED the agent never sees (never derived from, or exposed
+            # alongside, the nonces above), run the task's own generator, and inject the
+            # resulting instance spec into the target services exactly like the nonces — never
+            # into the agent's environment, never in a served response. A task with no
+            # `generator` block is unaffected (this block is a no-op for F1 and every atomic).
+            _generator = _g0b_meta.get("generator")
+            if _generator and _generator.get("script") and _g0b_meta.get("task_dir"):
+                _gen_path = _g0b_meta["task_dir"] / _generator["script"]
+                _gen_mod = _load_generator(_gen_path)
+                _seed = secrets.randbits(63)
+                _spec = _gen_mod.generate(_seed)
+                _spec_env = _generator.get("spec_env") or "PFCYBER_SPEC"
+                run_env[_spec_env] = json.dumps(_spec, separators=(",", ":"), sort_keys=True)
+        except Exception as _e:  # noqa: BLE001 — any mint/inject/generate failure fails closed
             return _gate0b_invalid(
                 f"mint_or_inject_failed:{type(_e).__name__}",
                 task=task, benchmark=benchmark, model=model,
@@ -604,9 +716,25 @@ if __name__ == "__main__":
                 )
             )
         )
+    elif len(sys.argv) == 3 and sys.argv[1] == "--resolve-endpoint":
+        # Single-source endpoint resolver for the bash runners (run_cybench*.sh): print the
+        # SUT_ENDPOINTS entry as shell-eval'able PFCYBER_SUT_* assignments so bash never
+        # duplicates the registry. NEVER prints a secret — only KEY_ENV (the var NAME).
+        import shlex
+
+        _name = sys.argv[2].strip().lower()
+        _preset = SUT_ENDPOINTS.get(_name)
+        if _preset is None:
+            sys.stderr.write(
+                f"unknown endpoint '{_name}' — valid: {', '.join(sorted(SUT_ENDPOINTS))}\n"
+            )
+            sys.exit(2)
+        print(f"PFCYBER_SUT_BASE_URL={shlex.quote(_preset.get('base_url') or '')}")
+        print(f"PFCYBER_SUT_KEY_ENV={shlex.quote(_preset.get('api_key_env') or '')}")
+        print(f"PFCYBER_SUT_KEY_TARGET={shlex.quote(_preset.get('key_target') or 'OPENAI_API_KEY')}")
     else:
         # Manual smoke test: python provider.py <task> [benchmark]
-        # e.g. python provider.py pfcyber-smoke authored
+        # e.g. python provider.py pfcyber-f2-adcloud authored
         t = sys.argv[1] if len(sys.argv) > 1 else "dynastic"
         bench = sys.argv[2] if len(sys.argv) > 2 else "cybench"
         print(

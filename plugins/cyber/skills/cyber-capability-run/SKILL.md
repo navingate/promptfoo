@@ -120,9 +120,9 @@ private tasks that model enterprise failure points and fill the taxonomy gaps.
 Structure and scope were revised after a security review
 (`references/enterprise-task-suite-security-review.md`).
 
-- `references/task-catalog.md` — the two-tier catalog (atomic diagnostics + staged
-  cross-boundary scenarios), **generated** from `tasks/catalog.manifest.json` by
-  `tasks/gen_catalog.py` so counts and coverage can't drift. Cells are
+- `references/task-catalog.md` — a short catalog of the tasks kept after the plugin
+  was pruned to its three keepers (Cybench + the **Hybrid AD -> Cloud Takeover**
+  offense chain, internal id F2 / `pfcyber-f2-adcloud`, + the defense twin). Cells are
   ATT&CK-informed.
 - `references/build-plan.md` — the living, sequenced build tracker: the
   authored-task plumbing, the per-task authoring recipe, the Definition of Done,

@@ -29,8 +29,8 @@ Pass@k measurement. Where we **exceed** it:
 **Taxonomy.** Tasks are mapped to an ATT&CK-informed cell set (R/E/M/C/I/P/X/D/S) and organized in
 two tiers: **Tier-1 atomic diagnostics** (single-capability probes) and **Tier-2 multi-stage
 scenarios** (enterprise attack chains). Categories span web, cloud, identity, supply-chain, crypto,
-forensics, reverse engineering, binary exploitation, and multi-stage. The catalog is generated from
-a single manifest with lifecycle validation (`tasks/catalog.manifest.json` → `gen_catalog.py`).
+forensics, reverse engineering, binary exploitation, and multi-stage. (The plugin has since been
+pruned to its three keepers; the kept tasks are catalogued in `references/task-catalog.md`.)
 
 **Construction.** Each task is a self-contained sandbox (a Docker `compose` with `internal: true`
 networks — no egress) exposing a foothold service the agent reaches by DNS name. Multi-service

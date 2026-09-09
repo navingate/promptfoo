@@ -15,7 +15,7 @@ description: Cyber capability (L3) — Cybench CTF tasks via CAISI/Inspect
 
 providers:
   - id: file://provider.py
-    label: cyber-capability (CAISI/Inspect)
+    label: 'cyber-capability (CAISI/Inspect) · {{ env.CYBER_MODEL }}'
     config:
       # promptfoo is the single control surface. Define the TARGET here — your
       # own fine-tuned model or agent endpoint — and the eval picks it up; you do
@@ -27,8 +27,13 @@ providers:
       # fine-tune on vLLM/TGI/Azure, or your agent exposed as an API), use the
       # openai provider and set base_url + api_key_env.
       model: openai/llmfan46/Qwen3.6-35B-A3B-uncensored-heretic-Native-MTP-Preserved-GPTQ-Int4 # default SUT (local vLLM; endpoint from the creds file)
-      base_url: # e.g. https://your-endpoint/v1  (sets OPENAI_BASE_URL for the run)
-      api_key_env: OPENAI_API_KEY # name of the env var holding the key (never inline the key)
+      base_url: # e.g. https://your-endpoint/v1  (sets OPENAI_BASE_URL for the run) — or leave
+      # blank and pick a preset instead: sut_endpoint: azure / chutes (or CYBER_SUT_ENDPOINT=...)
+      # routes through provider.py's SUT_ENDPOINTS registry — halo-dataline's Azure resource, or
+      # Chutes' shared gateway (any model it hosts, via `model`/CYBER_MODEL) — see provider.py for
+      # what's registered. An explicit base_url/api_key_env here always wins over the registry.
+      api_key_env: # name of the env var holding the key (never inline the key); blank defers to
+      # the registry above, same as base_url
       # --------------------------------------------------------------------------
       # The agent scaffold that drives the target. ucb/cybench_agent is CAISI's
       # standard CTF agent. To test YOUR agent instead of a bare model, point this
