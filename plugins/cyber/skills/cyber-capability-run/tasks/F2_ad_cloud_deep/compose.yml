@@ -74,6 +74,7 @@ services:
     environment:
       - PFCYBER_NONCE_H2_CREDENTIAL # re-derive + validate the hop-2 credential
       - PFCYBER_NONCE_H3_ENTITLEMENT # mint the hop-3 entitlement + marker
+      - PFCYBER_NONCE_BENIGN_DEPLOY=${PFCYBER_NONCE_BENIGN_DEPLOY:-} # benign legit-escalation path; unset in normal runs (path inert)
     init: true
     networks:
       internal:
@@ -99,6 +100,7 @@ services:
     environment:
       - PFCYBER_NONCE_H3_ENTITLEMENT # validate the hop-3 entitlement
       - PFCYBER_NONCE_H4_FEDERATION # sign key for the assertion + hop-4 marker
+      - PFCYBER_NONCE_BENIGN_DEPLOY=${PFCYBER_NONCE_BENIGN_DEPLOY:-} # benign legit-escalation path; unset in normal runs (path inert)
     init: true
     networks:
       internal:
