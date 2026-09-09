@@ -29,6 +29,10 @@ providers:
       temperature: 0.7
       max_turns: 5 # bounded refine loop; CYBER_MAX_TURNS overrides (lower it for quick in-session smokes)
       max_tokens: 16000 # per-turn budget; a thinking-on turn that exceeds it spirals and is retried once
+      # how much each TEST discloses: "aggregate" (default) = recall/precision + how many missed/false-alarmed
+      # ONLY (the model reasons out the fix from the brief, no per-incident hand-holding); "incidents" = also
+      # name each wrong incident with its discriminating fields. CYBER_FEEDBACK_DETAIL overrides.
+      feedback_detail: aggregate
       http_timeout: 300 # per-turn socket timeout (seconds); CYBER_HTTP_TIMEOUT overrides
       # reasoning_effort is left UNSET so thinking stays ON (the whole point of this variant). The loop —
       # not a bounded effort — is what keeps the reasoning from running away: each turn drafts against

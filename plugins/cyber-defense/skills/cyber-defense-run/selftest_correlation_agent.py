@@ -58,17 +58,28 @@ def test_discriminator():
     check("provenance spares the twin (fp=0, recall 1.0)", prov["fp"] == 0 and prov["recall"] == 1.0)
 
 
-def test_feedback_teaches_provenance():
+def test_feedback_aggregate_default():
     events, truth, config = agent._dev_instance("0")
-    fb = agent._feedback(TAG_RULE, events, truth, config)
-    check("feedback flags the FALSE ALARM", "FALSE ALARM" in fb)
-    check("feedback exposes the authoritative source (memberOf)", "memberOf" in fb)
-    check("feedback reports the precision miss", "precision" in fb and "false alarm" in fb.lower())
-    # the honored tag NAME is withheld by the brief; it must NOT leak through TEST feedback.
-    check("feedback REDACTS the literal honored tag", config["honored_tag"] not in fb
-          and "<honored_tag>" in fb)
+    fb = agent._feedback(TAG_RULE, events, truth, config)  # default detail = aggregate
+    check("aggregate feedback reports recall/precision + counts",
+          "recall" in fb and "precision" in fb and "false alarm" in fb.lower())
+    check("aggregate feedback does NOT name incidents (no per-incident detail)",
+          "FALSE ALARM" not in fb and "MISSED" not in fb)
+    check("aggregate feedback does NOT leak the authoritative source (memberOf)", "memberOf" not in fb)
+    check("aggregate feedback does NOT leak incident keys", "prin_" not in fb)
+    check("aggregate feedback never contains the literal honored tag", config["honored_tag"] not in fb)
     perfect = agent._feedback(PROV_RULE, events, truth, config)
     check("provenance rule gets a PERFECT/ SUBMIT prompt", "PERFECT" in perfect and "SUBMIT" in perfect)
+
+
+def test_feedback_incidents_optin():
+    events, truth, config = agent._dev_instance("0")
+    fb = agent._feedback(TAG_RULE, events, truth, config, detail="incidents")
+    check("incidents feedback flags the FALSE ALARM", "FALSE ALARM" in fb)
+    check("incidents feedback exposes the authoritative source (memberOf)", "memberOf" in fb)
+    # the honored tag NAME is withheld by the brief; it must NOT leak even in incidents mode.
+    check("incidents feedback REDACTS the literal honored tag", config["honored_tag"] not in fb
+          and "<honored_tag>" in fb)
 
 
 def test_grammar_error_is_fixable():
@@ -175,7 +186,8 @@ if __name__ == "__main__":
     # isolation check must run before anything imports verify_correlation transitively.
     test_held_out_isolation()
     test_discriminator()
-    test_feedback_teaches_provenance()
+    test_feedback_aggregate_default()
+    test_feedback_incidents_optin()
     test_grammar_error_is_fixable()
     test_extract_rule()
     test_draft_then_submit()

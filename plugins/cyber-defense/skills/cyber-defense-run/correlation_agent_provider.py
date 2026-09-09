@@ -144,10 +144,16 @@ def _score_dev(rule: dict, events, truth, config):
             "missed": missed, "false_alarms": false_alarms, "incidents": incidents}
 
 
-def _feedback(rule: dict, events, truth, config) -> str:
-    """Render the TEST result as concrete, actionable feedback (aggregate score + each wrong incident with
-    its discriminating fields). This is what bounds the model's reasoning: it drafts rough, sees exactly
-    which incidents it got wrong and why, and refines."""
+def _feedback(rule: dict, events, truth, config, detail: str = "aggregate") -> str:
+    """Render the TEST result as feedback the model refines against. Two disclosure levels:
+      - "aggregate" (default): the confusion SUMMARY only — recall/precision and HOW MANY attacks were
+        missed / benign incidents false-alarmed. The model is NOT shown which incidents or their fields, so
+        it must reason out the fix from the brief's provenance concept; the score bounds runaway reasoning
+        without hand-holding the answer.
+      - "incidents": additionally names each wrong incident with its DISCRIMINATING fields (source_attrs,
+        which tag emitted/applied, escalation) — richer, closer to a detection engineer reading each misfire.
+    The honored tag NAME is redacted in either case (the brief withholds it). A grammar-unsupported rule
+    always comes back as a fixable message."""
     try:
         s = _score_dev(rule, events, truth, config)
     except CorrelationUnsupported as exc:
@@ -160,13 +166,14 @@ def _feedback(rule: dict, events, truth, config) -> str:
     if s["fn"] == 0 and s["fp"] == 0:
         lines.append("PERFECT on the dev estate. If you are confident the rule generalises, SUBMIT it.")
         return "\n".join(lines)
-    honored = config.get("honored_tag") if isinstance(config, dict) else None
-    for key in s["missed"]:
-        lines.append(f"MISSED attack [{key}] — your rule failed to flag this real attack: "
-                     f"{_incident_summary(s['incidents'].get(key, []), honored)}")
-    for key in s["false_alarms"]:
-        lines.append(f"FALSE ALARM [{key}] — this is BENIGN and your rule must NOT flag it: "
-                     f"{_incident_summary(s['incidents'].get(key, []), honored)}")
+    if detail == "incidents":  # richer per-incident disclosure (opt-in); default stays aggregate-only
+        honored = config.get("honored_tag") if isinstance(config, dict) else None
+        for key in s["missed"]:
+            lines.append(f"MISSED attack [{key}] — your rule failed to flag this real attack: "
+                         f"{_incident_summary(s['incidents'].get(key, []), honored)}")
+        for key in s["false_alarms"]:
+            lines.append(f"FALSE ALARM [{key}] — this is BENIGN and your rule must NOT flag it: "
+                         f"{_incident_summary(s['incidents'].get(key, []), honored)}")
     lines.append("Refine the rule so it flags every attack and none of the benign activity, then TEST or "
                  "SUBMIT. Reply with ONLY the keyword then a ```json rule.")
     return "\n".join(lines)
@@ -238,6 +245,9 @@ def call_api(prompt=None, options=None, context=None):
     timeout = int(_cfg(options, "http_timeout", 300))
     effort = _cfg(options, "reasoning_effort")  # default unset -> thinking ON
     dev_seed = str(_cfg(options, "dev_seed", "0"))
+    # how much the TEST step discloses: "aggregate" (default, score+counts only) or "incidents" (per-incident
+    # fields). Aggregate keeps the loop from hand-holding the provenance answer; see _feedback.
+    feedback_detail = _cfg(options, "feedback_detail", "aggregate")
 
     events, truth, config = _dev_instance(dev_seed)
 
@@ -282,7 +292,7 @@ def call_api(prompt=None, options=None, context=None):
                     "metadata": {"turns_used": turn, "submitted": True, "trace": trace}}
 
         # TEST (default when a rule is present without SUBMIT): score on the dev estate, feed back.
-        fb = _feedback(rule, events, truth, config)
+        fb = _feedback(rule, events, truth, config, detail=feedback_detail)
         if not fb.startswith("Your rule did not evaluate"):
             last_valid_text = rule_text  # scored cleanly (grammar OK)
         trace.append(f"t{turn}:TEST")
