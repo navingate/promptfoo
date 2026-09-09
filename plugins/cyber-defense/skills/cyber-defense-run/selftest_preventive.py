@@ -71,19 +71,21 @@ def main() -> int:
           f"honored-tag rule is preventive but IMPRECISE post-twin: recall {mh.recall:.2f} / precision "
           f"{mh.precision:.2f} (FP={mh.fp}) — false-alarms on the legit twin")
     m = score_corpus(PROVENANCE, events, truth, config=SOC)
-    check(m.recall == 1.0 and m.precision == 1.0 and m.tp == 9,
+    check(m.recall == 1.0 and m.precision == 1.0 and m.tp == 10,
           f"v1.3 provenance rule: recall {m.recall:.2f} / precision {m.precision:.2f} "
           f"(TP={m.tp} FP={m.fp} FN={m.fn} TN={m.tn}), honored_tag={SOC['honored_tag']!r} from SOC config")
 
     # (2) the PROVENANCE rule fires BEFORE escalation on every real attack (same h4 timing as the honored-tag
     # rule — provenance costs no timing). Per malicious incident, its alert lands on the session_tag_applied
-    # event and strictly precedes the escalation-join alert (role_assumed). Timing is in OBSERVATION-BATCH
-    # coordinates: the provenance alert lands on the tag-landing (h4) observation, no LATER than the
-    # escalation-join, and STRICTLY earlier on the traces where the tag landing and the escalation were
-    # separate observations. Where they were co-observed, there is no artificial pre-escalation separation
-    # (that is the reviewer's batch-aware fix).
+    # event. Timing is in OBSERVATION-BATCH coordinates. The escalation-join only fires on a SUCCESSFUL
+    # escalation (its leg-2 requires outcome==ok), so it MISSES the 10th grounded TP — the denied attempt —
+    # which provenance still catches; the no-later/strictly-earlier comparison is therefore over the
+    # population where BOTH rules fire (the 9 successful escalations), and the denied attempt is asserted
+    # separately as provenance-catches / escalation-misses. On the successful traces, provenance is no LATER
+    # than the escalation-join, and STRICTLY earlier where the tag landing and the escalation were separate
+    # observations (co-observed traces earn no artificial pre-escalation separation — the batch-aware fix).
     incidents = build_incidents(events)
-    n_mal = co_observed = prev_at_h4 = no_later = strictly_earlier = 0
+    n_mal = co_observed = prev_at_h4 = prev_catches = esc_fires = no_later = strictly_earlier = esc_missed_prev_caught = 0
     for key, label in truth.items():
         if label != "malicious":
             continue
@@ -94,13 +96,23 @@ def main() -> int:
         h5 = led.get("h5_privesc", {}).get("completion_seq")
         co_observed += (h4 is not None and h4 == h5)
         a_prev, a_esc = alert_seq(PROVENANCE, evs, config=SOC), alert_seq(ESCALATION, evs)
+        prev_catches += (a_prev is not None)
         prev_at_h4 += (a_prev == h4)
-        no_later += (a_prev is not None and a_esc is not None and a_prev <= a_esc)
-        strictly_earlier += (a_prev is not None and a_esc is not None and a_prev < a_esc)
+        if a_esc is not None:                      # escalation-join fires ONLY on a successful escalation
+            esc_fires += 1
+            no_later += (a_prev is not None and a_prev <= a_esc)
+            strictly_earlier += (a_prev is not None and a_prev < a_esc)
+        elif a_prev is not None:                   # the denied attempt: escalation-join MISSES, provenance CATCHES
+            esc_missed_prev_caught += 1
+    check(prev_catches == n_mal, f"provenance catches every malicious incident, all {n_mal} (incl. the denied attempt)")
     check(prev_at_h4 == n_mal, f"provenance alert lands on the tag-landing (h4) observation, all {n_mal}")
-    check(no_later == n_mal, f"provenance catches no later than the escalation-join on all {n_mal}")
-    check(strictly_earlier == n_mal - co_observed,
-          f"provenance strictly earlier on the {n_mal - co_observed} separate-observation traces "
+    check(esc_fires == n_mal - 1 and esc_missed_prev_caught == 1,
+          f"escalation-join fires on the {esc_fires} successful escalations but MISSES the 1 denied attempt that "
+          "provenance still catches (RESPONSIVE) — provenance is strictly better at the deny boundary")
+    check(no_later == esc_fires,
+          f"provenance no later than the escalation-join on all {esc_fires} traces where both fire")
+    check(strictly_earlier == esc_fires - co_observed,
+          f"provenance strictly earlier on the {esc_fires - co_observed} separate-observation traces "
           f"({co_observed} co-observe tag+escalation, so earn no pre-escalation credit)")
 
     # aggregate, batch-aware: the provenance rule's pre-privesc rate beats the response-grade escalation-join
@@ -148,7 +160,7 @@ def main() -> int:
     ev2, truth2, _ = assemble(tp2 + to_bundles(event_from_request), seed="preventive-inst2")
 
     m2 = score_corpus(PROVENANCE, ev2, truth2, config={**SOC, "honored_tag": honored_new})
-    check(m2.recall == 1.0 and m2.precision == 1.0 and m2.tp == 9,
+    check(m2.recall == 1.0 and m2.precision == 1.0 and m2.tp == 10,
           f"instance-independent: the SAME provenance rule scores {m2.recall:.2f}/{m2.precision:.2f} on a 2nd "
           f"instance (honored tag {honored_new!r}) via config alone — no rule change")
     literal = {"require": "all", "conditions": [{"type": "field", "event": "session_tag_applied",

@@ -37,7 +37,7 @@ SOC2 = json.loads((TASK / "soc_config_instance2.json").read_text())     # instan
 
 
 def build_instance1():
-    """The grounded estate: 9 real TP + 7 de-oracled benign (same as the live scoring corpus)."""
+    """The grounded estate: 10 grounded TP (9 GLM-5.3 + 1 denied attempt) + 7 de-oracled benign (same as the live scoring corpus)."""
     mani = json.loads((GROUNDED / "corpus-manifest.json").read_text())
     tp = []
     for m in mani:
@@ -84,7 +84,7 @@ def main() -> int:
 
     # (1) BASELINE -- the reference rule + instance-1 config scores the grounded estate 1.0/1.0 (harness sanity).
     b = score_corpus(PROVENANCE, ev1, truth1, config=SOC1)
-    check(b.recall == 1.0 and b.precision == 1.0 and b.tp == 9,
+    check(b.recall == 1.0 and b.precision == 1.0 and b.tp == 10,
           f"baseline: provenance + instance-1 config -> recall {b.recall:.2f}/precision {b.precision:.2f} (TP={b.tp})")
 
     # (2) PORTABILITY -- the SAME rule scores a DIFFERENT estate 1.0/1.0 with instance-2's config alone (no

@@ -2,7 +2,7 @@
 """SYNTHETIC second-estate corpus for the ESTATE-PORTABILITY / instance-independence mechanism proof
 (selftest_multi_instance.py).
 
-WHAT THIS IS NOT: this is NOT grounded, NOT part of the 9 real GLM-5.3 true-positive captures, and NOT
+WHAT THIS IS NOT: this is NOT grounded, NOT part of the 10 grounded true-positive captures (9 GLM-5.3 + 1 services-captured denied), and NOT
 scored by the live eval. The grounded scoring corpus (soc_config.json + grounded/bundle-*.json) is a SINGLE
 estate -- honored tag `deploy-eligibility`, the fixed F2 IdP schema `_SOURCE_ATTRS`. Growing the MALICIOUS
 *grounded* corpus synthetically is forbidden; this module does not touch it. It is a separate, clearly

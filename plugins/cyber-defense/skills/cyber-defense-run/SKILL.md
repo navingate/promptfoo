@@ -61,7 +61,7 @@ and fail the precision gate. Only a rule that checks **provenance** — was the 
 assertion drawn from a self-service source (`soc_config.self_service_attrs`, via the `overlaps`
 set-op) — passes at recall/precision 1.0. Provenance is now **gate-load-bearing**: `task_outcome=pass`
 requires it, not just a favourable timing diagnostic. Reference rule:
-`fixtures/correct_provenance.json`; the ungated `pre_privesc_rate` (~0.78) still rewards catching the
+`fixtures/correct_provenance.json`; the ungated `pre_privesc_rate` (~0.80) still rewards catching the
 smuggle _before_ escalation.
 
 The legit twin (b7) stays **authored** on the defense side so the benchmark is self-contained, but its

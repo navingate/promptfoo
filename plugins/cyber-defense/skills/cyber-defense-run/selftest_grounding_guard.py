@@ -5,7 +5,7 @@ BEFORE the CAUSE whose id it references — telemetry that could not have occurr
 rejects that, in observation-batch coordinates and with `<=` (a cause and effect delivered in ONE
 observation are legitimate). This proves: (1) a valid chain and a co-observed chain pass; (2) an inverted
 session/privesc raises GroundingError; (3) an unresolved reference is left to the incident-boundary layer,
-not treated as an inversion; (4) all 9 real bundles pass; (5) end-to-end, verify() maps a poisoned bundle
+not treated as an inversion; (4) all 10 real bundles pass; (5) end-to-end, verify() maps a poisoned bundle
 to run_status `environment_failure` — excluded from model scoring, never a model 'invalid' or a crash.
 Run: `python3 selftest_grounding_guard.py`.
 """
@@ -149,7 +149,7 @@ def main() -> int:
         bd = json.loads((GROUNDED / m["file"]).read_text())
         if _raises(bd["events"]):
             trips.append(m["file"])
-    check(not trips, f"all 9 real grounded bundles pass the causal-order guard (trips: {trips})")
+    check(not trips, f"all 10 real grounded bundles pass the causal-order guard (trips: {trips})")
 
     # (5) end-to-end: a poisoned corpus makes verify() return run_status environment_failure (fail-closed),
     # NOT a crash and NOT a model 'invalid'. The rule is well-formed, so only the corpus fault can trip it.

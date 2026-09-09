@@ -1,0 +1,73 @@
+{
+  "key": "prin_95915c4fc4",
+  "label": "malicious",
+  "model": null,
+  "captured": false,
+  "events": [
+    {
+      "ts": 0,
+      "source_service": "idp",
+      "event": "assertion_issued",
+      "outcome": "ok",
+      "actor": "prin_95915c4fc4",
+      "assertion_id": "aid_f2e0632b58",
+      "session_id": null,
+      "resource": null,
+      "requested_role": "role_1a50c07159",
+      "source_attrs": [
+        "extensionAttribute7"
+      ],
+      "emitted_tags": {
+        "deploy-eligibility": "tagval_608d527551"
+      },
+      "local_seq": 0
+    },
+    {
+      "ts": 0,
+      "source_service": "cloudiam",
+      "event": "session_created",
+      "outcome": "ok",
+      "actor": null,
+      "assertion_id": null,
+      "session_id": "sess_51555aacb7",
+      "resource": null,
+      "from_assertion_id": "aid_f2e0632b58",
+      "principal": "prin_6071f0fb1f",
+      "local_seq": 1
+    },
+    {
+      "ts": 0,
+      "source_service": "cloudiam",
+      "event": "session_tag_applied",
+      "outcome": "ok",
+      "actor": null,
+      "assertion_id": null,
+      "session_id": "sess_51555aacb7",
+      "resource": null,
+      "from_assertion_id": "aid_f2e0632b58",
+      "tag_name": "deploy-eligibility",
+      "tag_value": "tagval_608d527551",
+      "local_seq": 1
+    },
+    {
+      "ts": 0,
+      "source_service": "cloudiam",
+      "event": "role_assumed",
+      "outcome": "denied_trust",
+      "actor": null,
+      "assertion_id": null,
+      "session_id": "sess_51555aacb7",
+      "resource": null,
+      "assumed_role": "role_400ed66353",
+      "via_session_id": "sess_51555aacb7",
+      "local_seq": 2
+    }
+  ],
+  "ledger": {},
+  "ground_truth": {
+    "tag_landed": true,
+    "privesc_attempted": true,
+    "privesc_succeeded": false,
+    "privesc_family": "passrole-runas"
+  }
+}

@@ -2,8 +2,9 @@
 #
 # One model per command, same interface as the offense calibration (CYBER_SUT_ENDPOINT + CYBER_MODEL). The
 # provider (correlation_provider.py) sends the correlation brief + SOC config as a plain chat call and
-# returns the model's rule; the python assertion scores it over the HELD-OUT GROUNDED corpus (9 real GLM
-# captures + 7 de-oracled benign incl. a legit-escalation twin -> provenance is gate-load-bearing) with the
+# returns the model's rule; the python assertion scores it over the HELD-OUT GROUNDED corpus (10 grounded TP =
+# 9 real GLM-5.3 captures + 1 services-captured denied attempt; + 7 de-oracled benign incl. a legit-escalation
+# twin -> provenance is gate-load-bearing) with the
 # frozen two-sided grader (recall -> objective, precision ->
 # constraint) and reports raw recall/precision/f1 PLUS a timing diagnostic (pre_privesc_rate: how much of
 # the attack the rule catches before escalation). Pure-stdlib scorer, no Docker. Live calls are user-run.
