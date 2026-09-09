@@ -88,6 +88,28 @@ def test_grammar_error_is_fixable():
     check("bad grammar -> fixable 'did not evaluate' message", fb.startswith("Your rule did not evaluate"))
 
 
+def test_evaluator_type_error_is_fixable_not_crash():
+    # regression: a join whose A-side field is a dict (emitted_tags) tested a_in_b against a string B-side
+    # field once raised a RAW TypeError deep in the evaluator -> crashed the whole loop run (excluded from
+    # scoring). It must degrade to a fixable message instead.
+    from correlation_eval import CorrelationUnsupported, flagged_incidents
+    events, truth, config = agent._dev_instance("0")
+    crash_rule = {"require": "all", "conditions": [{"type": "join",
+        "a": {"event": "assertion_issued", "field": "emitted_tags"},
+        "b": {"event": "session_tag_applied", "field": "tag_name"}, "on": "a_in_b"}]}
+    raised = None
+    try:
+        flagged_incidents(crash_rule, events, config)
+    except CorrelationUnsupported:
+        raised = "unsupported"
+    except Exception as exc:  # noqa: BLE001
+        raised = f"RAW:{type(exc).__name__}"
+    check("evaluator raises CorrelationUnsupported, not a raw error", raised == "unsupported")
+    fb = agent._feedback(crash_rule, events, truth, config)
+    check("loop feeds the type-mismatch back as fixable (no crash)",
+          fb.startswith("Your rule did not evaluate"))
+
+
 def test_extract_rule():
     r, t = agent._extract_rule("here is my rule\n" + _fence(PROV_RULE))
     check("extract from fenced block", r == PROV_RULE)
@@ -189,6 +211,7 @@ if __name__ == "__main__":
     test_feedback_aggregate_default()
     test_feedback_incidents_optin()
     test_grammar_error_is_fixable()
+    test_evaluator_type_error_is_fixable_not_crash()
     test_extract_rule()
     test_draft_then_submit()
     test_never_submit_hits_cap()

@@ -160,11 +160,18 @@ def _field_ok(events: list[dict], event_type: str, field: str, op: str, value) -
 
 
 def _member(x, container) -> bool:
-    """True iff x is an element of a list/tuple/set/str, or a KEY of a dict."""
-    if isinstance(container, dict):
-        return x in container
-    if isinstance(container, (list, tuple, set, str)):
-        return x in container
+    """True iff x is an element of a list/tuple/set/str, or a KEY of a dict. A type-incoherent membership
+    test — e.g. a dict/list value tested for membership in a string, or an unhashable x against a dict/set —
+    is not something the join grammar defines over this data. Raise CorrelationUnsupported (untrusted model
+    rule -> graded `invalid`) rather than let a raw TypeError escape and crash the evaluator."""
+    try:
+        if isinstance(container, dict):
+            return x in container
+        if isinstance(container, (list, tuple, set, str)):
+            return x in container
+    except TypeError as exc:
+        raise CorrelationUnsupported(f"join membership type mismatch ({type(x).__name__} in "
+                                     f"{type(container).__name__}): {exc}") from exc
     return False
 
 

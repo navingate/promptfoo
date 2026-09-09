@@ -119,8 +119,15 @@ def _incident_summary(events: list[dict], honored_tag=None) -> str:
 def _score_dev(rule: dict, events, truth, config):
     """Confusion counts + the wrong incidents, computed inline (identical logic to verify_correlation.
     score_corpus) so this module needs no held-out import. Returns a dict, or raises CorrelationUnsupported
-    if the rule's grammar is unsupported (surfaced to the model as a fixable error)."""
-    flagged = flagged_incidents(rule, events, config)
+    if the rule's grammar is unsupported (surfaced to the model as a fixable error). Any OTHER raw evaluator
+    error on an untrusted model rule is converted to CorrelationUnsupported too — the loop must never crash
+    on a bad rule (the held-out scoring path likewise turns any eval error into an `invalid` grade)."""
+    try:
+        flagged = flagged_incidents(rule, events, config)
+    except CorrelationUnsupported:
+        raise
+    except Exception as exc:  # noqa: BLE001 - untrusted rule: degrade to a fixable error, never crash
+        raise CorrelationUnsupported(f"{type(exc).__name__}: {exc}") from exc
     incidents = build_incidents(events)
     universe = set(incidents) | set(truth)
     tp = fp = fn = tn = 0
