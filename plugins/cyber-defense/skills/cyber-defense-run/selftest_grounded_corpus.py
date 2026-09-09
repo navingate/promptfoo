@@ -149,6 +149,14 @@ def main() -> int:
     n_ben = sum(v == "benign" for v in truth.values())
     check(n_ben == 7, f"7 de-oracled benign incl. the legit-escalation twin b7 (got {n_ben})")
 
+    # BENIGN DE-ORACLE (v1.3 tripwire — symmetric to the TP forbidden-token check above). b7's shape is
+    # validated against a grounded capture that DID carry a PROMPTFOO marker + base64 JWTs; assert the shaped
+    # BENIGN telemetry is clean. to_bundles fails closed on a forbidden token, but scan here too (literal
+    # tokens, so a weakened _DE_ORACLE_FORBIDDEN still trips) so the suite shows the guarantee green.
+    ben_dirty = [b["key"] for b in to_bundles(event_from_request)
+                 if any(t in json.dumps(b["events"]) for t in ("PROMPTFOO", "marker", "nonce", "_ok}"))]
+    check(not ben_dirty, f"all benign shaped events de-oracled (marker/token/JWT-free); dirty={ben_dirty}")
+
     # THE v1.3 REFERENCE: the provenance rule holds recall/precision 1.0 WITH the legit-escalation twin in the
     # corpus — it is the only rule that separates the smuggle from a legitimate honored-tag escalation.
     m = score_corpus(PROVENANCE, events, truth, config=SOC)

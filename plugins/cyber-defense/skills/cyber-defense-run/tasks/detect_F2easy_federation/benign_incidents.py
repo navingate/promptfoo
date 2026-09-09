@@ -28,6 +28,17 @@ Authored as F2 service EXCHANGES through the SAME translate.event_from_request a
 benign and TP telemetry are shape-indistinguishable; the difference lives only in content (which tag, from
 which source, and whether it escalates). Distinct `caller` per incident. Source: real
 `tasks/F2_ad_cloud_deep/idp/app.py` + `cloudiam/app.py`. See consolidated-f2-federation-respec.md.
+
+b7's provenance shape is ESTATE-VALIDATED, not merely assumed. F2 Chain's benign_capture.py
+(fork/plugin-cyber@7ef517d47) drives the REAL idp/cloudiam code down a legitimate deploy-engineer path and
+captured its exchanges; shaping that capture through this SAME event_from_request yields events STRUCTURALLY
+IDENTICAL to the authored b7 below — the honored tag `deploy-eligibility` emitted from the authoritative
+`memberOf` attr, landing and escalating — differing only in salted pseudonym hashes (verified in-session).
+b7 stays AUTHORED here (self-contained: the published benchmark must not depend on the offense estate), and
+the capture's raw JWT tokens / PROMPTFOO marker are deliberately NOT reproduced — they decode to / carry
+cleartext oracle signal, and values never reach the model anyway (pseudonymized). So the grounding claim is
+STRUCTURAL (memberOf → honored tag → escalation is a real legit path), not that every byte matches: b7's
+other pseudonymized values (assumed role, principal) are independently authored on the defense side.
 """
 
 from __future__ import annotations
@@ -42,6 +53,13 @@ AUTH_SRC = "memberOf"                   # the AUTHORITATIVE (admin-provisioned, 
 GRANTED_ROLE = "cloud-operator"
 DEPLOY_ROLE = "deploy-runner"          # the role a legit deploy engineer (b7) legitimately assumes
 PT = "https://aws.amazon.com/SAML/Attributes/PrincipalTag:"   # AWS PrincipalTag claim URI prefix
+
+# DE-ORACLE TRIPWIRE. Benign telemetry is AUTHORED, never captured, so it must never carry an oracle signal
+# (marker / nonce / raw token). The real risk is someone pasting a RAW grounded capture — which DOES carry a
+# PROMPTFOO marker and base64 JWTs — into BENIGN_INCIDENTS as a shortcut. to_bundles scans BOTH the source
+# exchanges and the shaped events for these tokens and fails closed. (The grounded TP path enforces the same
+# via selftest_grounded_corpus' forbidden-token check + telemetry.validate_event.)
+_DE_ORACLE_FORBIDDEN = ("PROMPTFOO", "marker", "nonce", "_ok}")
 
 CLAIM_RULES = [
     {"source": HONORED_SRC, "emits_tag": PRIV_TAG},
@@ -84,8 +102,11 @@ def _assume(caller, role, *, error=None):
 # now FALSE-ALARM on it. The GENERALIZING discriminator (correct_provenance.json): the landed honored tag
 # (SOC config $honored_tag) was EMITTED by an assertion whose source_attrs OVERLAP the self-service pool
 # (SOC config $self_service_attrs) — smuggled via a caller-editable attr, vs b7's authoritative memberOf.
-# b7 is authored SYNTHETICALLY on the defense side matching soc_config.authoritative_attrs; F2 Chain lands
-# the grounded offense-estate legit-escalation capture separately (same synthetic→grounded path as the TP).
+# b7's provenance shape is ESTATE-VALIDATED: F2 Chain's benign_capture.py (fork/plugin-cyber@7ef517d47)
+# exercises the real idp/cloudiam code on a legit deploy path, and shaping that capture yields events
+# structurally identical to the authored b7 (only salted hashes differ; verified in-session). b7 stays
+# AUTHORED here so the published benchmark is self-contained — see the module docstring for why the raw
+# capture (JWTs/marker) is not reproduced.
 BENIGN_INCIDENTS = [
     {
         "caller": "b1-env-tag", "taxonomy": "legit login: a self-service attr maps to a DECOY (non-honored) tag",
@@ -151,8 +172,10 @@ BENIGN_INCIDENTS = [
         # incident that makes provenance GATE-LOAD-BEARING: the crude honored-tag rule (correct_preventive)
         # and the escalation-join (correct.json) both FALSE-ALARM here (honored tag landed; escalation
         # succeeded), while the v1.3 provenance rule (correct_provenance) SPARES it (source_attrs={memberOf}
-        # does not overlap self_service_attrs). SYNTHETIC on the defense side, matching the agreed
-        # authoritative-attr shape; F2 Chain lands the real offense-estate legit-escalation path separately.
+        # does not overlap self_service_attrs). ESTATE-VALIDATED: this authoritative-attr shape is what F2
+        # Chain's benign_capture.py (fork/plugin-cyber@7ef517d47) captures from the real idp/cloudiam legit
+        # path; shaping that capture reproduces this structure (only salted hashes differ). AUTHORED here to
+        # keep the benchmark self-contained; the raw capture's JWTs/marker are oracle-unsafe, not reproduced.
         "caller": "b7-legit-escalation",
         "taxonomy": "legit deploy engineer: HONORED tag provisioned from an AUTHORITATIVE attr (memberOf, not "
                     "self-service), lands, and the principal LEGITIMATELY escalates -- only provenance separates",
@@ -177,14 +200,28 @@ def to_bundles(event_from_request, *, label: str = "benign") -> list[dict]:
     Previously benign actors were the raw `b1-env-tag` while malicious were `prin_<hex>`, so a rule keying
     on the actor format alone separated the labels. `selftest_label_leakage` guards this. Benign incidents
     carry no completion ledger; a local `seq` is assigned per exchange."""
+    import json
     import telemetry
     bundles = []
     for inc in BENIGN_INCIDENTS:
+        # DE-ORACLE TRIPWIRE (source side): the authored exchanges must never carry a marker/nonce/raw token.
+        src = json.dumps(inc["exchanges"])
+        hit = [t for t in _DE_ORACLE_FORBIDDEN if t in src]
+        if hit:
+            raise AssertionError(f"benign incident {inc['caller']!r} carries de-oracle token(s) {hit} in its "
+                                 "source exchanges — never paste a raw grounded capture into BENIGN_INCIDENTS")
         principal = telemetry.pseudo("prin", inc["caller"])  # prin_<hex> — matches the grounded TP actors
         events, seq = [], 0
         for x in inc["exchanges"]:
             for ev in event_from_request(x["path"], x["request"], x["response"], caller=principal):
                 events.append({**ev, "local_seq": seq})
             seq += 1
+        # DE-ORACLE TRIPWIRE (output side): the shaped events must be clean too (guards any field the shaper
+        # does not specifically pop).
+        blob = json.dumps(events)
+        hit = [t for t in _DE_ORACLE_FORBIDDEN if t in blob]
+        if hit:
+            raise AssertionError(f"benign incident {inc['caller']!r} shaped into events carrying de-oracle "
+                                 f"token(s) {hit}")
         bundles.append({"key": principal, "label": label, "events": events})
     return bundles

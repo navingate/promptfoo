@@ -64,9 +64,14 @@ requires it, not just a favourable timing diagnostic. Reference rule:
 `fixtures/correct_provenance.json`; the ungated `pre_privesc_rate` (~0.78) still rewards catching the
 smuggle _before_ escalation.
 
-The legit twin is currently authored **synthetically** on the defense side (matching the agreed
-authoritative-attr shape); a grounded offense-estate legit-escalation capture (F2 Chain) is the
-remaining ecological-validity step — it strengthens the evidence, it does not change the gate.
+The legit twin (b7) stays **authored** on the defense side so the benchmark is self-contained, but its
+provenance shape is now **estate-validated**: F2 Chain's `benign_capture.py` (fork/plugin-cyber@7ef517d47)
+drives the real idp/cloudiam code down a legitimate deploy path, and shaping that capture yields events
+structurally identical to b7 — the honored tag emitted from the authoritative `memberOf` attr, landing and
+escalating (verified in-session; only salted pseudonym hashes differ). The capture's raw JWTs / PROMPTFOO
+marker are oracle-unsafe and deliberately not reproduced, so the grounding claim is **structural** (the
+`memberOf → honored tag → escalation` legit path is real), not byte-for-byte. It strengthens the evidence;
+it does not change the gate.
 
 ### Calibration is stale
 
