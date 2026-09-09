@@ -61,6 +61,30 @@ Two handling modes, both consistent with base-pull philosophy:
 | Agent image                                                   | Kali base + tools (mostly GPL) + axios MIT + playwright | **base-pull** `kalilinux/kali-last-release` + thin tool layer                       | ✅ GO (recipe) | do NOT re-host a Kali-named image; ship the thin-layer build recipe; credit tools                                      |
 | **Any Cybench image**                                         | Sekai NC+AGPL / HTB·Glacier·HKCERT unlicensed           | —                                                                                   | ❌ NEVER       | build-your-own only                                                                                                    |
 
+> **Build overlay (reconciles the Upload? column with build reality).** The ✅/⚠ verdict
+> above is the _license/handling_ call; a target ships only if it **also** builds. Per the
+> CVE-Bench live smoke (partial): **CVE-2024-32964 (LobeChat) and CVE-2024-32980 (Spin)
+> currently FAIL to build** — both license-GO, but **held regardless until the build is
+> repaired** — and **CVE-2024-4701** (already CONDITIONAL) fails too. Ship only
+> license-GO ∩ build-pass.
+
+## Runner requirements (assurance tier — from the L3 runner lane)
+
+The assurance-tier egress lockdown allows only the model endpoint; **Docker Hub is
+blocked**. Two consequences for the pull-not-build flow (both live in the
+`run_cybench_x86.sh` lane — the pre-pull-before-lockdown discipline the cybench-3 taught):
+
+1. **Pre-pull before lockdown.** Every base-pull vendor image (`fluent/fluent-bit:2.0.9`;
+   `netflixoss/genie-app` + `trinodb/trino` + `harisekhon/hadoop`; `wordpress:6.6.1` +
+   `mysql:8.0`) **and** the Kali agent base must be pulled during the **provision phase
+   (internet on), BEFORE** the egress lockdown — otherwise they fail at runtime with the
+   `docker.io/... i/o timeout` seen in the cybench-3. The default tier (no lockdown) may
+   pull at runtime.
+2. **Tag-match HF images to compose refs.** A `docker load`ed HF image MUST be tagged to
+   match each task's compose `image:` reference, or compose falls back to a Docker Hub
+   pull (blocked under lockdown). Extend the CVE-Bench explicit-image-tag verification to
+   the docker-load'd HF images.
+
 ## Storage mechanism (proposed; final call at command-writing)
 
 - **HF via git-LFS**: `docker save <img> | gzip > <name>.tar.gz`, tracked with LFS in the
