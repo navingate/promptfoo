@@ -407,7 +407,8 @@ def call_api(prompt, options=None, context=None):
             if _generator and _generator.get("script") and _g0b_meta.get("task_dir"):
                 _gen_path = _g0b_meta["task_dir"] / _generator["script"]
                 _gen_mod = _load_generator(_gen_path)
-                _seed = secrets.randbits(63)
+                _forced = os.environ.get("PFCYBER_F2_SEED")
+                _seed = int(_forced) if _forced is not None else secrets.randbits(63)
                 _spec = _gen_mod.generate(_seed)
                 _spec_env = _generator.get("spec_env") or "PFCYBER_SPEC"
                 run_env[_spec_env] = json.dumps(_spec, separators=(",", ":"), sort_keys=True)
