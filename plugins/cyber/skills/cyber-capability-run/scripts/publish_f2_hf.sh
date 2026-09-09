@@ -71,14 +71,22 @@ for svc in $SERVICES; do
   id="$(docker image inspect --format '{{.Id}}' "$tag")"
   sha="$(sha256sum "$tarball" | cut -d' ' -f1)"
   [ "$first" = 1 ] && first=0 || echo "," >> "$MANIFEST"
-  printf '    { "service": "%s", "image": "%s", "image_id": "%s", "tarball": "%s", "sha256": "%s" }' \
+  # tarball_sha256 = SHA-256 of the .tar.gz FILE (PULL_F2 verifies the download BEFORE
+  # docker load — supply-chain guard). image_id = the docker image digest (informational).
+  printf '    { "service": "%s", "image": "%s", "image_id": "%s", "tarball": "%s", "tarball_sha256": "%s" }' \
     "$svc" "$tag" "$id" "$(basename "$tarball")" "$sha" >> "$MANIFEST"
 done
 { echo ""; echo "  ]"; echo "}"; } >> "$MANIFEST"
 cp "$README_SRC" "$OUT/README.md"
 
+# Ensure the repo exists and is PUBLIC — customers pull token-free, so it MUST be public.
+# `repo create` defaults to public (no --private); idempotent (a no-op if it already exists).
+huggingface-cli repo create "$REPO" --repo-type model -y >/dev/null 2>&1 || true
+echo "[publish_f2] NOTE: $REPO must be PUBLIC for token-free pulls. 'repo create' defaults public;"
+echo "[publish_f2]       if it pre-existed as PRIVATE, flip it to public in the HF repo settings."
+
 echo "[publish_f2] uploading $(ls "$OUT"/*.tar.gz | wc -l | tr -d ' ') tarballs + manifest.json + README.md to https://huggingface.co/$REPO ..."
-# huggingface-cli reads HF_TOKEN from the env; creates the repo on first upload.
+# huggingface-cli reads HF_TOKEN from the env (write token, publish side only).
 huggingface-cli upload "$REPO" "$OUT" . --repo-type model --commit-message "Publish F2 authored task images ($VER)"
 
 echo "[publish_f2] done. $REPO now holds the 9 F2 image tarballs + manifest.json + README.md."
