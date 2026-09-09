@@ -127,7 +127,8 @@ locally from the upstream clone (`setup_caisi.sh` + `ucb build`, or the per-task
 `compose.yml`). What makes this reliable — instead of the fragile cold build that fails
 on EOL-Debian apt-rot — is a **maintained central build-recipe**: CI-pinned /
 `PATCH_ROT`-equivalent Dockerfiles (seeded by the existing `scripts/patch_rot.sh`) that
-repoint rotted bases at archives and pin fetched artifacts, so a fresh `build` succeeds.
+apply a small set of cheap pinned-Dockerfile patches (archive-repoint, renamed-artifact,
+toolchain-bump — **no artifact vendoring**; taxonomy in §5.6), so a fresh `build` succeeds.
 The recipe is versioned in-repo and refreshed by CI (§5.6). This keeps the whole flow
 license-clean (build-your-own = use, not redistribution) — see the decision record and §7.
 
@@ -197,14 +198,25 @@ With hosting dropped, this is the core of Win A. A scheduled CI job maintains a
 user's local `build` succeeds without per-user apt-rot firefighting. It **publishes no
 images**; it publishes reliable **build instructions**:
 
-- A `PATCH_ROT`-equivalent pinned-Dockerfile set (seeded by `scripts/patch_rot.sh`) that
-  repoints EOL-Debian bases at `archive.debian.org` and pins fetched artifacts
-  (e.g. the base-pull vendor images, and source downloads like the LobeChat release zip
-  or the Fermyon Spin installer that otherwise 404).
+- A **3-class patch layer** of pinned Dockerfile edits (extending `scripts/patch_rot.sh`),
+  all cheap and **needing no artifact vendoring** — confirmed against the 3 CVE-Bench
+  build failures:
+  1. **apt-rot** — an EOL-Debian archive expired (CVE-2024-4701 Genie: bullseye-security
+     "Release file expired" → `apt-get update` exits 100). Fix: repoint to
+     `archive.debian.org` + `Acquire::Check-Valid-Until=false`. (The existing
+     `patch_rot.sh` class.)
+  2. **renamed artifact** — source URL still valid, but the extracted dir changed name
+     (CVE-2024-32964 LobeChat: the v0.150.5 zip now extracts to `lobehub-0.150.5` while the
+     Dockerfile `mv`s `lobe-chat-0.150.5`). Fix: wildcard the `mv`. One line — **not** a
+     dead source, so no vendoring.
+  3. **toolchain drift** — a build dep needs a newer compiler than the pinned base
+     (CVE-2024-32980 Spin: `spdx-0.10.9` requires Cargo `edition2024`, base pins
+     `rust:1.79.0`). Fix: bump the base (`rust>=1.85`) or pin the dep older.
 - CI periodically runs the full `build` on a clean host and fails when a target rots,
   so the recipe is fixed centrally, once — before users hit it.
-- Empirically motivated: a fresh CVE-Bench smoke already shows 3 of 8 targets failing to
-  build (LobeChat, Spin, Genie); that is exactly the rot this recipe exists to absorb.
+- Empirically motivated: the fresh CVE-Bench smoke showed exactly these 3 of 8 targets
+  failing (Genie=apt-rot, LobeChat=renamed-artifact, Spin=toolchain-drift) — the rot this
+  recipe absorbs.
 
 Cadence + ownership are a maintenance cost (§8) and the main open decision (§10).
 
@@ -284,10 +296,11 @@ unlock — for the CVE-Bench wrappers, the synthetic target, and the agent recip
 
 No hosting/upload step exists any more. Each step is independently shippable.
 
-1. **Stand up the maintained build-recipe** (§5.6) — the Win-A replacement: pin the
-   rotted Dockerfiles + source fetches for **both** benchmarks; add CI that runs the full
-   `build` on a clean host and fails on rot. (Coordinate with the CVE-Bench + runner
-   lanes; seed from `scripts/patch_rot.sh`.)
+1. **Stand up the maintained build-recipe** (§5.6) — the Win-A replacement: apply the
+   3-class patch layer (archive-repoint / renamed-artifact / toolchain-bump; no vendoring)
+   to the rotted Dockerfiles for **both** benchmarks; add CI that runs the full `build` on
+   a clean host and fails on rot. (Coordinate with the CVE-Bench + runner lanes; extend
+   `scripts/patch_rot.sh`.)
 2. **Split default vs. assurance:** default = Inspect per-task sandbox (no host lockdown);
    assurance = opt-in egress lockdown + Gate-0B, with the provision-phase build/pre-pull
    **before** lockdown. (Coordinate with the offense/L3 runner lane.)
