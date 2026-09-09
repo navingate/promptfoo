@@ -18,9 +18,12 @@ and must be coordinated with their owners (see §12).
 > equivalent Dockerfiles) that makes local builds reliable without hosting anything.
 > **Win B (the no-`sudo` Inspect-sandbox default), the tiered UX, and the SUT front-door
 > all stand.** The license audit ([sandbox-license-audit.md](sandbox-license-audit.md)) is
-> retained as the **record of why** build-your-own was chosen. Authored tasks (F2/defense)
-> default to build-your-own too, so `astroware` is not needed. Sections below that still
-> describe hosting are historical context; §5.1, §5.6, §7, §9, §10 carry the update.
+> retained as the **record of why** build-your-own was chosen. **Authored tasks
+> (F2/defense) are the ONE exception: HOSTED prebuilt on `astroware`, pull-and-run
+> (navnn, 2026-09-09)** — they are promptfoo's own IP with no third-party license barrier
+> (F2 bake-audit passed; defense-twin audit pending). Only promptfoo's own tasks are
+> hosted — **never** third-party benchmark content. Sections below that describe hosting
+> _third-party_ are historical context; §5.1, §5.6, §7, §9, §10 carry the update.
 
 ---
 
@@ -295,17 +298,20 @@ No hosting/upload step exists any more. Each step is independently shippable.
 
 ## 10. Open questions / decisions for navnn
 
-**Resolved by the 2026-09-09 decision record:** public availability, the HF repo,
-Cybench permission, and agent-image hosting are all moot — we host nothing; everything is
-build-your-own.
+**Resolved (2026-09-09):** third-party benchmarks (Cybench + CVE-Bench) = build-your-own,
+**host nothing** (so Cybench-permission and third-party HF hosting are moot). Authored
+tasks (F2 + defense twin) = **HOSTED on `astroware`**, pull-and-run — the one thing
+hosted, and only because it is promptfoo's own IP. Shared agent image =
+base-pull(Kali)+thin, referenced not hosted. See
+[hf-publication-plan.md](hf-publication-plan.md) for the authored publication plan.
 
 Remaining:
 
-1. **Recipe/CI ownership + cadence:** who maintains the build-recipe, and how often does
-   CI run the clean-host build? (The one real ongoing cost.)
-2. **Authored tasks (F2/defense):** default is build-your-own too (so `astroware` isn't
-   needed at all). Host them only if you want a convenience distribution of promptfoo's
-   own IP — the L3 Build session is confirming your preference.
+1. **Recipe/CI ownership + cadence:** who maintains the third-party build-recipe, and how
+   often does CI run the clean-host build? (The one real ongoing cost.)
+2. **Defense-twin bake-audit:** before the defense twin is hosted it needs the same
+   image-content audit F2 passed (defense lane; SP1 in design). F2 is cleared; the twin is
+   not — don't upload it until its audit clears.
 
 ## 11. What we are NOT proposing to change silently
 

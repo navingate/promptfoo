@@ -1,134 +1,94 @@
-# Step-1 HuggingFace publication plan — GO set only
+# Authored-tasks publication plan — F2 + defense twin → `astroware`
 
-> **⛔ SUPERSEDED — 2026-09-09.** navnn chose **build-your-own for BOTH Cybench and
-> CVE-Bench; host nothing.** No HuggingFace upload happens. This plan is retained only as
-> a record of the hosting approach that was considered and dropped. The live direction is
-> in [distribution-architecture-rfc.md](distribution-architecture-rfc.md) (build-your-own
-> + a maintained central build-recipe); the _why_ is in
-> [sandbox-license-audit.md](sandbox-license-audit.md). Everything below is historical.
+**Status:** active plan (revised 2026-09-09). Scoped to promptfoo's **own authored tasks
+only** (F2 "Hybrid AD → Cloud Takeover" + its defense twin). **No third-party benchmark
+content is hosted** — Cybench and CVE-Bench are build-your-own (see
+[distribution-architecture-rfc.md](distribution-architecture-rfc.md); the _why_ is in
+[sandbox-license-audit.md](sandbox-license-audit.md)). Nothing is uploaded from any Claude
+session: the build → `docker save` → upload runs on the **x86 VM, navnn-driven**, HF token
+on that box; the command set is co-written with the L3 runner lane.
 
-**Status:** Plan for review (proposal). **No upload happens from any Claude session.**
-The build → `docker save` → upload runs on the **x86 VM, navnn-driven**; the HF token
-lives on that box, never in a session. This doc + the command set (co-written with the
-L3 runner lane) are what navnn executes.
-**Date:** 2026-09-09. Gated by [sandbox-license-audit.md](sandbox-license-audit.md);
-architecture in [distribution-architecture-rfc.md](distribution-architecture-rfc.md).
+> _History: an earlier version of this file planned hosting a curated CVE-Bench set. That
+> was dropped when navnn chose build-your-own for all third-party benchmarks. The only
+> thing hosted is promptfoo's own authored tasks, below._
 
-## Confirmed decisions (navnn, via L3 Build)
+## Decision (navnn, 2026-09-09)
 
-- **Public availability: yes**, intended (benchmarks are already public; our added step
-  is prebuilt-image _redistribution_ — the license-gated part).
-- **HF repo: `huggingface.co/astroware`** — confirmed, explicit GO for step 1.
-- **Agent image: base-pull + thin layer** — pull the official Kali base, add only our
-  thin tool layer; do **not** re-host a "Kali"-named image (dodges the trademark; resolves
-  the agent-image gate on the CVE-Bench path).
-- **Scope: GO set only** — CVE-Bench license-permitted targets + our authored tasks.
-  **Never** any of the 40 Cybench images (all NO-GO).
-- **Pending:** #3 Cybench (lean: accept build-your-own now, chase permission later) and
-  #5 CI ownership/cadence. Neither blocks step 1.
+- **Authored tasks (F2 + defense twin): HOSTED prebuilt on `huggingface.co/astroware`**,
+  pull-and-run — the flagship is what James tries, so it should be as smooth as possible.
+- **Third-party benchmarks: host nothing** (build-your-own). Unchanged and intact.
 
-## Two pre-finalize gates (before anything is uploaded)
+## Bake-audit gate (must pass before an authored image is uploaded)
 
-1. **`hostable = license-GO ∩ builds-cleanly`.** FINAL build result from the CVE-Bench
-   smoke on cyber-x86 ("5 built, 3 failed"):
-   - **BUILT (5):** CVE-2024-4323, -32986, -34359, -5084, CVE-synthetic-0.
-   - **FAILED (3) → held until repaired:** CVE-2024-32964 (LobeChat) and CVE-2024-32980
-     (Spin) — **both license-GO**; plus CVE-2024-4701 (CONDITIONAL).
-   - **⇒ ship-now set = license-GO ∩ builds-cleanly = CVE-2024-34359, -32986, -4323**
-     (+ our authored tasks + the agent recipe). CVE-2024-5084 builds but is CONDITIONAL
-     (base-pull); CVE-synthetic-0 builds but is **HELD** — CAISI license unconfirmed **and**
-     it `apt-get install`s a branded Firefox at build (Mozilla trademark on top of MPL).
-   - Cause of the -32964/-32980 failures pending (apt-rot / moved base → central-CI pin
-     fix; vs dead upstream source-fetch → vendor the artifact).
-   - Each task also builds a small flask evaluator (python:3.x-alpine) — permissive, ships
-     with its target.
-2. **CAISI Apache-2.0 confirmation** (highest-leverage): one "yes" from CAISI/NIST clears
-   the CVE-Bench derivative wrapper, CVE-synthetic-0, and the agent build recipe at once.
-   Recommended before finalizing; CVE-synthetic-0 is **held** until it lands.
+The task _design_ is promptfoo's IP (clean), but a hosted _image_ must not bake in
+non-redistributable third-party content (the lens that held the CVE synthetic target's
+branded Firefox). Status:
 
-## Artifact list + handling
+- **F2 offense — PASSED (two independent audits concur, this session + the L3 lane).**
+  - All 9 services are identical: `FROM python:3.12-alpine` → `COPY app.py` → run. No
+    `pip`/`apk`/`wget`/`curl`/`apt`/`git-clone`, no requirements file, no bundled binaries
+    or OS images. `app.py` imports are **stdlib-only** (`http.server`, `base64`, `hashlib`,
+    `hmac`, `json`, `os`, `urllib`).
+  - ⇒ each image = redistributable base (official `python:3.12-alpine`; PSF Python +
+    Alpine/musl) + promptfoo's own code. The AD/LDAP/IdP estate is a **pure-Python
+    simulation**; `*.corp.internal` are network aliases. No Windows, Samba, or MS images.
+  - **Contamination-safe:** each service's build context is its own subdir (`./portal`,
+    `./directory`, …), so the task-root `solution/`, `gen.py`, `validate.py` sit **outside
+    every build context** and cannot be baked in; per-run nonces (`PFCYBER_NONCE_*`) are
+    runtime env vars, not baked. A hosted F2 image carries **no flag, oracle, or
+    walkthrough**.
+- **Defense twin — PENDING its own bake-audit** (it lives in the defense lane; SP1 still
+  in design). F2's clearance does **not** transfer. If its images don't exist yet, audit
+  at build time, same stdlib/base-only + contamination lens, before its upload.
 
-Two handling modes, both consistent with base-pull philosophy:
+## What is hosted (scope)
 
-- **Full save+host** — app built from source under a permissive license; `docker save`
-  the built image and host the tarball. Re-hosts only permissive software.
-- **Base-pull + thin** — target wraps a public vendor image; pull the vendor image from
-  Docker Hub at load time and redistribute only the thin (UIUC/CAISI-authored) wrapper.
-  Minimizes re-hosting, license surface, and trademark exposure.
+| Artifact | What | Host? | Note |
+| --- | --- | --- | --- |
+| F2 service images (9) | `idp, portal, ci, cloudapp, directory, deployment, cloudiam, monitoring, backup` — each `python:3.12-alpine` + `app.py` | ✅ HOST (F2 audit passed) | `docker save` + host; pin the base to a digest |
+| Defense-twin images | (SP1, TBD) | ⏳ after its bake-audit | audit at build time; don't upload until clear |
+| Shared agent image | Kali base + thin tool layer | ❌ NOT hosted | base-pull `kalilinux/kali-last-release` + thin-build (trademark) — referenced via `image:`, pulled not hosted |
+| Any Cybench / CVE-Bench image | third-party | ❌ NEVER | build-your-own; host nothing |
 
-| Artifact                                                      | License                                                 | Handling                                                                            | Upload?        | Obligation                                                                                                             |
-| ------------------------------------------------------------- | ------------------------------------------------------- | ----------------------------------------------------------------------------------- | -------------- | ---------------------------------------------------------------------------------------------------------------------- |
-| CVE-2024-34359 (llama-cpp-python 0.2.70)                      | MIT                                                     | full save+host                                                                      | ✅ GO          | MIT notice                                                                                                             |
-| CVE-2024-32964 (LobeChat v0.150.5)                            | MIT @tag                                                | full save+host                                                                      | ✅ GO          | MIT notice; pin the tag; note npm tree not individually audited                                                        |
-| CVE-2024-32980 (Fermyon Spin 2.4.0)                           | Apache-2.0                                              | full save+host                                                                      | ✅ GO          | Apache LICENSE + NOTICE + change notes                                                                                 |
-| CVE-2024-32986 (PWAsForFirefox 2.10.0)                        | MPL-2.0                                                 | full save+host                                                                      | ✅ GO          | MPL source availability; no branded Firefox baked at build (confirmed)                                                 |
-| CVE-2024-4323 (Fluent Bit 2.0.9)                              | Apache-2.0                                              | **base-pull** `fluent/fluent-bit:2.0.9` + thin wrapper                              | ✅ GO          | Apache attribution; don't re-host the CNCF image                                                                       |
-| CVE-2024-4701 (Genie 4.3.0 + Trino 374 + Hadoop 2.7)          | all Apache-2.0                                          | **base-pull** all vendor images + thin wrapper                                      | ⚠ CONDITIONAL  | credit Netflix Genie / Trino / Apache Hadoop; base-pull avoids re-hosting                                              |
-| CVE-2024-5084 (WordPress 6.6.1 + Hash Form 1.1.0 + MySQL 8.0) | GPLv2(+)                                                | **base-pull** `wordpress:6.6.1` + `mysql:8.0` + thin wrapper (plugin zip + configs) | ⚠ CONDITIONAL  | GPL source = the plugin zip we ship (satisfied); WordPress/Oracle trademarks rest with the base-pulled official images |
-| CVE-synthetic-0 (CAISI-authored)                              | CAISI, no explicit grant                                | full save+host                                                                      | ⛔ HOLD        | needs CAISI Apache-2.0 confirmation; exclude until then                                                                |
-| Authored: F2 "Hybrid AD → Cloud Takeover" + defense twin      | promptfoo's own IP                                      | full save+host                                                                      | ✅ GO          | none (ours); python:alpine base                                                                                        |
-| Agent image                                                   | Kali base + tools (mostly GPL) + axios MIT + playwright | **base-pull** `kalilinux/kali-last-release` + thin tool layer                       | ✅ GO (recipe) | do NOT re-host a Kali-named image; ship the thin-layer build recipe; credit tools                                      |
-| **Any Cybench image**                                         | Sekai NC+AGPL / HTB·Glacier·HKCERT unlicensed           | —                                                                                   | ❌ NEVER       | build-your-own only                                                                                                    |
+## Pull-and-run flow (for James) — honest about the one build step
 
-> **Build overlay (reconciles the Upload? column with build reality).** The ✅/⚠ verdict
-> above is the _license/handling_ call; a target ships only if it **also** builds. Per the
-> CVE-Bench smoke (FINAL: 5 built, 3 failed): **CVE-2024-32964 (LobeChat) and
-> CVE-2024-32980 (Spin) FAIL to build** — both license-GO, but **held until the build is
-> repaired** — and **CVE-2024-4701** (already CONDITIONAL) fails too. The build-clean GO
-> set is **CVE-2024-34359, -32986, -4323**. Ship only license-GO ∩ build-pass.
+1. `huggingface-cli download` the 9 F2 image tarballs from `astroware` → `docker load`.
+2. **Tag-match:** each loaded image MUST be tagged to the task's compose `image:` ref, or
+   compose falls back to a Docker Hub pull.
+3. The shared agent is **not** hosted: base-pull the official Kali image + thin-build the
+   agent layer (one fast build; avoids re-hosting a "Kali"-named image). **So F2 is
+   pull-and-run for the estate, but the agent is still a small local build — not literally
+   zero-build.**
+4. `promptfoo eval` the F2 config. No from-scratch estate build, no `sudo` (default tier).
 
-## Runner requirements (assurance tier — from the L3 runner lane)
+## Upload procedure (co-written with the runner lane; navnn runs on the VM)
 
-The assurance-tier egress lockdown allows only the model endpoint; **Docker Hub is
-blocked**. Two consequences for the pull-not-build flow (both live in the
-`run_cybench_x86.sh` lane — the pre-pull-before-lockdown discipline the cybench-3 taught):
+1. Build the 9 F2 images (`docker compose build`, from each service subdir).
+2. `docker save <img> | gzip > <name>.tar.gz` for each; generate a `manifest.json`
+   (name → compose `image:` ref → sha256).
+3. `huggingface-cli upload` the tarballs + manifest + README to `astroware` (git-LFS).
+   HF token in the VM's env — **never pasted into a session**.
+4. Verify on a clean host: `download` → `docker load` → tag-match → base-pull+thin agent →
+   `promptfoo eval` F2 with no estate rebuild.
 
-1. **Pre-pull before lockdown.** Every base-pull vendor image (`fluent/fluent-bit:2.0.9`;
-   `netflixoss/genie-app` + `trinodb/trino` + `harisekhon/hadoop`; `wordpress:6.6.1` +
-   `mysql:8.0`) **and** the Kali agent base must be pulled during the **provision phase
-   (internet on), BEFORE** the egress lockdown — otherwise they fail at runtime with the
-   `docker.io/... i/o timeout` seen in the cybench-3. The default tier (no lockdown) may
-   pull at runtime.
-2. **Tag-match HF images to compose refs.** A `docker load`ed HF image MUST be tagged to
-   match each task's compose `image:` reference, or compose falls back to a Docker Hub
-   pull (blocked under lockdown). Extend the CVE-Bench explicit-image-tag verification to
-   the docker-load'd HF images.
+## Attribution package (ships in the `astroware` repo)
 
-## Storage mechanism (proposed; final call at command-writing)
+Minimal — the content is promptfoo's own IP; nothing third-party is baked:
 
-- **HF via git-LFS**: `docker save <img> | gzip > <name>.tar.gz`, tracked with LFS in the
-  `astroware` repo; users `huggingface-cli download` → `docker load`. Simple, no registry.
-- Alternative noted: a GHCR/OCI registry (native `docker pull`). If chosen later, the
-  base-pull items don't change.
-- Per-image manifest (name → tag → sha256 → source → license) ships in the repo so
-  `docker load` results are verifiable.
-
-## Attribution package (ships in the HF repo)
-
-- **`README.md`** — what's stored, how to pull → `docker load`, the per-artifact license
-  list, the base-pull steps (vendor images + Kali), and the safety/isolation framing
-  (offensive-eval sandboxes; already public upstream; run isolated; default tier is not a
+- **`README.md`** — what's stored, the pull → `docker load` → tag-match → run flow, the
+  agent base-pull+thin step (and the honest "not zero-build" note), and the
+  safety/isolation framing (offensive-eval task; run isolated; default tier is not a
   network boundary — see the RFC).
-- **`NOTICE` / `LICENSES/`** — per-artifact provenance (source repo, version, license
-  text or link), upstream credits (UIUC cve-bench Apache-2.0; each bundled app), and our
-  change notices for the CVE-Bench derivative wrappers.
-- **`manifest.json`** — the verifiable image manifest above.
-
-## Execution (navnn runs on the x86 box)
-
-1. On confirmation of scope + build list: L3 runner lane + I co-write the exact
-   build/save/upload commands (build the full-save images; pull the base-pull bases; save
-   - gzip; `huggingface-cli upload` to `astroware`; push the attribution package).
-2. navnn runs them on the x86 VM, HF token in that box's env (never pasted into a session).
-3. Verify: on a clean host, `download` → `docker load` (or base-pull) → `promptfoo eval`
-   the GO set with no from-scratch target build (Step 4 of the RFC).
+- **Base-image credit** — official `python:3.12-alpine` (PSF / Alpine). No third-party
+  NOTICE/LICENSES needed beyond that, because nothing else is baked.
+- **`manifest.json`** — the verifiable image manifest.
 
 ## Open items
 
-- CVE-Bench session's build pass/fail list (requested) → finalize `hostable` set.
-- Per-CONDITIONAL sign-off from navnn: confirm -4701 and -5084 go up as base-pull+thin
-  (recommended), and CVE-synthetic-0 stays held pending CAISI.
-- CAISI Apache-2.0 confirmation (recommended before finalizing).
-- Storage mechanism final choice (HF-LFS tarballs vs GHCR).
+- Defense-twin bake-audit (defense lane) before its upload.
+- Digest-pin `python:3.12-alpine` for reproducible hosted images.
+- Co-write the exact build/save/upload command set with the L3 runner lane when navnn is
+  ready to run it on the VM.
 
-**Nothing has been uploaded. This is the plan for navnn + the runner lane to execute.**
+**Nothing has been uploaded. `astroware` will hold only promptfoo's own authored task
+images — never third-party benchmark content.**
