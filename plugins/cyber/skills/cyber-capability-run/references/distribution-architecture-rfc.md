@@ -127,8 +127,9 @@ locally from the upstream clone (`setup_caisi.sh` + `ucb build`, or the per-task
 `compose.yml`). What makes this reliable — instead of the fragile cold build that fails
 on EOL-Debian apt-rot — is a **maintained central build-recipe**: CI-pinned /
 `PATCH_ROT`-equivalent Dockerfiles (seeded by the existing `scripts/patch_rot.sh`) that
-apply a small set of cheap pinned-Dockerfile patches (archive-repoint, renamed-artifact,
-toolchain-bump — **no artifact vendoring**; taxonomy in §5.6), so a fresh `build` succeeds.
+apply a small set of cheap pinned-Dockerfile patches (drop-expired-apt-suite,
+classic-builder `COPY`, renamed-artifact — **no artifact vendoring**; one target deferred;
+taxonomy + VM results in §5.6), so a fresh `build` succeeds.
 The recipe is versioned in-repo and refreshed by CI (§5.6). This keeps the whole flow
 license-clean (build-your-own = use, not redistribution) — see the decision record and §7.
 
@@ -198,24 +199,29 @@ With hosting dropped, this is the core of Win A. A scheduled CI job maintains a
 user's local `build` succeeds without per-user apt-rot firefighting. It **publishes no
 images**; it publishes reliable **build instructions**:
 
-- A **3-class patch layer** of pinned Dockerfile edits — a curated sibling
-  `scripts/patch_rot_cvebench.sh` (authored + self-tested; the cybench-only
-  `patch_rot.sh` stays untouched), all cheap and **needing no artifact vendoring** —
-  confirmed against the 3 CVE-Bench build failures:
-  1. **apt-rot** — an EOL-Debian archive expired (CVE-2024-4701 Genie: bullseye-security
-     "Release file expired" → `apt-get update` exits 100). Fix: repoint to
-     `archive.debian.org` + `Acquire::Check-Valid-Until=false`. (The existing
-     `patch_rot.sh` class.)
-  2. **renamed artifact** — source URL still valid, but the extracted dir changed name
-     (CVE-2024-32964 LobeChat: the v0.150.5 zip now extracts to `lobehub-0.150.5` while the
-     Dockerfile `mv`s `lobe-chat-0.150.5`). Fix: wildcard the `mv`. One line — **not** a
-     dead source, so no vendoring.
-  3. **toolchain drift** — a build dep needs a newer compiler than the pinned base
-     (CVE-2024-32980 Spin: `spdx-0.10.9` requires Cargo `edition2024`, base pins
-     `rust:1.79.0`). Fix: bump the base (`rust>=1.85`) or pin the dep older.
-- Empirically motivated: the fresh CVE-Bench smoke showed exactly these 3 of 8 targets
-  failing (Genie=apt-rot, LobeChat=renamed-artifact, Spin=toolchain-drift) — the rot this
-  recipe absorbs.
+- A curated **build-rot patch set** — the sibling `scripts/patch_rot_cvebench.sh` (the
+  cybench-only `patch_rot.sh` stays untouched), all cheap pinned Dockerfile edits with
+  **no artifact vendoring**. **VM-verified** against the CVE-Bench build failures (the
+  original 3 failures resolved into these fixes):
+  1. **apt-rot (CVE-2024-4701 Genie).** The bullseye base's `debian-security` suite is
+     expired AND `archive.debian.org` has **no** bullseye-security suite, so _repointing_
+     it 404s. Correct fix: **DROP** the `debian-security` + `bullseye-updates` suites and
+     repoint main → `archive.debian.org` (+ `Check-Valid-Until=false`), injected after the
+     `FROM`. (Construction-time "repoint security" was wrong — the VM build caught it.)
+  2. **BuildKit-avoidance (CVE-2024-4701, same Dockerfile).** `COPY --chmod=` requires
+     BuildKit; a VM on the classic builder fails. Split into `COPY` + `RUN chmod` — no
+     buildx dependency required.
+  3. **renamed artifact (CVE-2024-32964 LobeChat).** The v0.150.5 archive now extracts to
+     `lobehub-0.150.5` (repo renamed) vs the Dockerfile's `mv lobe-chat-0.150.5`. Fix:
+     wildcard the `mv`. No vendoring.
+  - **DEFERRED (CVE-2024-32980 Spin) — not fixable here.** `spin build` hardcodes the
+    removed `--target wasm32-wasi` (needs rust ≤~1.83) while a dep needs `edition2024`
+    (rust ≥1.85) — irreconcilable without a task-tree Cargo pin (CVE-Bench port lane, not a
+    Dockerfile patch). Neither the rust bump nor the `wasm32-wasip1` rename worked on the VM.
+- **Result: 7 of 8 CVE-Bench targets build** with the recipe on (32980 deferred). Fixes
+  are VM-confirmed on the real build + eval (a model solved 4701 and 32964). This is also
+  the case study for why CI must run the real build (see below) — construction-time
+  reasoning got 2 of 3 fixes wrong; only the VM build was authoritative.
 
 **Default-on policy (SUITE=cvebench):** the curated cve-bench recipe runs **always-on by
 default** — a default run should build every buildable target (butter for the flagship
@@ -229,10 +235,10 @@ buildable) **and** a **pristine, no-patch** build (to DETECT new upstream rot ea
 maintenance signal that tells us to add the next patch).
 
 **Measurement integrity (credibility for the pitch):** these patches are
-**semantically-neutral build-rot fixes** — a reachable package mirror, a newer compiler,
-the correct extract-dir name — and are **logged**. Default-on does **not** touch what the
-eval measures; it only keeps the eval buildable, which is standard maintained-benchmark
-practice. The exploit/target semantics are unchanged.
+**semantically-neutral build-rot fixes** — a reachable package mirror, the correct
+extract-dir name, a classic-builder `COPY` — and are **logged**. Default-on does **not**
+touch what the eval measures; it only keeps the eval buildable, which is standard
+maintained-benchmark practice. The exploit/target semantics are unchanged.
 
 Cadence + ownership are a maintenance cost (§8) and the main open decision (§10).
 
@@ -313,9 +319,10 @@ unlock — for the CVE-Bench wrappers, the synthetic target, and the agent recip
 No hosting/upload step exists any more. Each step is independently shippable.
 
 1. **Stand up the maintained build-recipe** (§5.6) — the Win-A replacement: apply the
-   3-class patch layer (archive-repoint / renamed-artifact / toolchain-bump; no vendoring)
-   to the rotted Dockerfiles for **both** benchmarks; add CI that runs the full `build` on
-   a clean host and fails on rot. (Coordinate with the CVE-Bench + runner lanes; extend
+   curated build-rot patch set (VM-verified: Genie drop-suite + classic-`COPY`, LobeChat
+   renamed-artifact; Spin deferred → 7/8; no vendoring) to the rotted Dockerfiles for
+   **both** benchmarks; add CI that runs the full `build` on a clean host and fails on rot.
+   (Coordinate with the CVE-Bench + runner lanes; extend
    `scripts/patch_rot.sh`.)
 2. **Split default vs. assurance:** default = Inspect per-task sandbox (no host lockdown);
    assurance = opt-in egress lockdown + Gate-0B, with the provision-phase build/pre-pull
