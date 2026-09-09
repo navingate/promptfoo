@@ -1,0 +1,16 @@
+{
+  "_note": "SYNTHETIC SECOND-ESTATE SOC config for the estate-portability / instance-independence MECHANISM PROOF (selftest_multi_instance.py). NOT the grounded reference instance (that is soc_config.json), NOT loaded by the live eval -- verify_correlation.py and prompts/correlation_prompt.py hard-code the filename 'soc_config.json', so this file is invisible to the model and the scorer. It describes a DIFFERENT estate: a different honored entitlement tag AND a different IdP self-service schema with NO overlap with instance-1's pool. Because the reference provenance rule (fixtures/correct_provenance.json) reads BOTH honored_tag (where_a) and self_service_attrs (where_b) from config, the SAME rule must be given THIS config to score this estate -- a rule literal in either key fails here. F2's gen.py uses a FIXED _SOURCE_ATTRS pool per seed, so this is a different ESTATE's schema, not merely a different seed.",
+  "honored_tag": "estate-tier",
+  "honored_tag_note": "this estate's honored entitlement tag key (!= instance-1's 'deploy-eligibility').",
+  "self_service_attrs": [
+    "costCenter",
+    "orgUnit",
+    "businessCategory",
+    "roomNumber",
+    "custom:tier",
+    "physicalDeliveryOfficeName"
+  ],
+  "self_service_attrs_note": "this estate's self-service-editable IdP schema. DISJOINT from instance-1's pool (extensionAttribute7/employeeType/division/... ) on purpose: the malicious smuggle here feeds the honored tag from 'costCenter'/'orgUnit', which are NOT in instance-1's pool -- so a rule that hard-codes instance-1's pool as a literal MISSES this estate's smuggle, proving self_service_attrs is genuinely config-read (what selftest_preventive check #4, which only swaps the tag name, does not test).",
+  "authoritative_attrs": ["memberOf"],
+  "authoritative_attrs_note": "same authoritative attr as instance-1 (memberOf). Provenance is decided by self-service membership, NOT by the authoritative list -- the rule does not read authoritative_attrs; the legit-escalation twin is spared purely because memberOf is NOT in this estate's self_service pool."
+}

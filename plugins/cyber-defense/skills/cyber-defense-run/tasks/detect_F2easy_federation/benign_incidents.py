@@ -61,6 +61,17 @@ PT = "https://aws.amazon.com/SAML/Attributes/PrincipalTag:"   # AWS PrincipalTag
 # via selftest_grounded_corpus' forbidden-token check + telemetry.validate_event.)
 _DE_ORACLE_FORBIDDEN = ("PROMPTFOO", "marker", "nonce", "_ok}")
 
+
+def scan_deoracle(who: str, obj) -> None:
+    """Fail closed if `obj` (any JSON-serializable value) carries a de-oracle token. Shared by every AUTHORED
+    telemetry shaper (this module's to_bundles + instance2_incidents.to_bundles) so a marker / nonce / raw
+    token can never reach the corpus -- e.g. from someone pasting a raw grounded capture into an authored
+    incident list."""
+    import json
+    hit = [t for t in _DE_ORACLE_FORBIDDEN if t in json.dumps(obj)]
+    if hit:
+        raise AssertionError(f"{who} carries de-oracle token(s) {hit}")
+
 CLAIM_RULES = [
     {"source": HONORED_SRC, "emits_tag": PRIV_TAG},
     {"source": "division", "emits_tag": "team"},
@@ -200,28 +211,19 @@ def to_bundles(event_from_request, *, label: str = "benign") -> list[dict]:
     Previously benign actors were the raw `b1-env-tag` while malicious were `prin_<hex>`, so a rule keying
     on the actor format alone separated the labels. `selftest_label_leakage` guards this. Benign incidents
     carry no completion ledger; a local `seq` is assigned per exchange."""
-    import json
     import telemetry
     bundles = []
     for inc in BENIGN_INCIDENTS:
-        # DE-ORACLE TRIPWIRE (source side): the authored exchanges must never carry a marker/nonce/raw token.
-        src = json.dumps(inc["exchanges"])
-        hit = [t for t in _DE_ORACLE_FORBIDDEN if t in src]
-        if hit:
-            raise AssertionError(f"benign incident {inc['caller']!r} carries de-oracle token(s) {hit} in its "
-                                 "source exchanges — never paste a raw grounded capture into BENIGN_INCIDENTS")
+        # DE-ORACLE TRIPWIRE (source side): the authored exchanges must never carry a marker/nonce/raw token
+        # -- guards against someone pasting a raw grounded capture into BENIGN_INCIDENTS.
+        scan_deoracle(f"benign incident {inc['caller']!r} source exchanges", inc["exchanges"])
         principal = telemetry.pseudo("prin", inc["caller"])  # prin_<hex> — matches the grounded TP actors
         events, seq = [], 0
         for x in inc["exchanges"]:
             for ev in event_from_request(x["path"], x["request"], x["response"], caller=principal):
                 events.append({**ev, "local_seq": seq})
             seq += 1
-        # DE-ORACLE TRIPWIRE (output side): the shaped events must be clean too (guards any field the shaper
-        # does not specifically pop).
-        blob = json.dumps(events)
-        hit = [t for t in _DE_ORACLE_FORBIDDEN if t in blob]
-        if hit:
-            raise AssertionError(f"benign incident {inc['caller']!r} shaped into events carrying de-oracle "
-                                 f"token(s) {hit}")
+        # DE-ORACLE TRIPWIRE (output side): the shaped events must be clean too (any field the shaper misses).
+        scan_deoracle(f"benign incident {inc['caller']!r} shaped events", events)
         bundles.append({"key": principal, "label": label, "events": events})
     return bundles
