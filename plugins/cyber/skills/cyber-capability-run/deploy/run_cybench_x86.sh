@@ -68,7 +68,9 @@ CAISI="$SKILL_DIR/scripts/vendor/caisi-cyber-evals"
 # Credentials come from the consolidated repo-root .env (single source — no separate creds file).
 REPO_ROOT="$(cd "$SKILL_DIR/../../../.." && pwd)"
 HALO_ENV="${HALO_ENV:-$REPO_ROOT/.env}"
-# SUITE selects WHAT to run: 'cybench' (CAISI's public suite; default) or 'authored'
+# SUITE selects WHAT to run: 'cybench' (CAISI's public CTF suite; default), 'cvebench'
+# (CAISI's CVE-Bench real web-exploitation suite, via benchmark: cvebench — the agent must
+# EXPLOIT a live vulnerable app; an evaluator service confirms the impact), or 'authored'
 # (the Hybrid AD -> Cloud Takeover offense chain under ../tasks, via benchmark: authored).
 SUITE="${SUITE:-cybench}"
 # FULL=1 → build/pull EVERY cybench target + GaaS and run the whole suite (auto-generates
@@ -79,11 +81,13 @@ FULL="${FULL:-0}"
 # pfcyber-f2-adcloud — the only authored task kept after the plugin was pruned to its keepers).
 if [ "$SUITE" = "authored" ]; then
   CONFIG="${CONFIG:-promptfooconfig.f2.yaml}"
+elif [ "$SUITE" = "cvebench" ]; then
+  CONFIG="${CONFIG:-promptfooconfig.cve-bench.yaml}"
 else
   CONFIG="${CONFIG:-promptfooconfig.yaml}"
 fi
 BUILD_GAAS="${BUILD_GAAS:-$([ "$SUITE" = cybench ] && echo "$FULL" || echo 0)}"  # Ghidra: cybench-full only
-TIMEOUT_SECS="${TIMEOUT_SECS:-$([ "$FULL" = 1 ] || [ "$SUITE" = authored ] && echo 28800 || echo 7200)}"  # 8h full/authored / 2h slice
+TIMEOUT_SECS="${TIMEOUT_SECS:-$([ "$FULL" = 1 ] || [ "$SUITE" = authored ] || [ "$SUITE" = cvebench ] && echo 28800 || echo 7200)}"  # 8h full/authored/cvebench / 2h slice
 # --- Registry-backed image caching (build-once / pull-many; see the header) ---
 UCB_REGISTRY="${UCB_REGISTRY:-}"                  # e.g. ghcr.io/you/  (empty = local build, no cache)
 PHASE="${PHASE:-eval}"                            # 'provision' = build+push then exit; 'eval' = pull(if registry)+run
@@ -239,6 +243,7 @@ docker compose version >/dev/null 2>&1 || fail "docker compose still unavailable
 # Egress stays ON (we must reach the registry). No lockdown, no eval. Run this on any
 # egress-open box (the eval VM itself before lockdown, or a separate builder).
 if [ "$PHASE" = "provision" ]; then
+  [ "$SUITE" = "cvebench" ] && fail "PHASE=provision is not supported for cvebench yet — use PHASE=eval (builds the cve-bench target+evaluator images locally)"
   log "PROVISION: build + push cybench images to ${UCB_REGISTRY}"
   log "NOTE: ensure you have authenticated to the registry first — e.g. 'docker login ${UCB_REGISTRY%%/*}'"
   log "      (or 'gcloud auth configure-docker' / 'aws ecr get-login-password | docker login ...'); push fails with an auth error otherwise."
@@ -301,6 +306,70 @@ if [ "$SUITE" = "authored" ]; then
     fi
   done
   log "authored pre-build done — ${a_built} built, ${a_failed} failed (failed tasks will error at eval)."
+elif [ "$SUITE" = "cvebench" ]; then
+  # CVE-Bench: real vulnerable web apps + a per-task evaluator service (scoring is
+  # evaluator-poll via ucb/cvebench_agent, not flags). Web exploitation only → no
+  # Ghidra/GaaS. Provision the harness + REAL agent, then pre-build each cve-bench
+  # task's images (target + evaluator) so eval-time `docker compose up` finds them
+  # present under egress lockdown. Local, bare tags (no registry) — same as the slice.
+  log "provisioning CAISI harness + agent for the cve-bench suite ..."
+  BUILD_AGENT_IMAGE=1 BUILD_CHALLENGE_TARGETS=0 HALO_ENV="$HALO_ENV" \
+    bash "$SKILL_DIR/scripts/setup_caisi.sh" || fail "CAISI setup failed"
+  CVEBENCH_DIR="$CAISI/src/ucb/benchmarks/cve-bench"
+  [ -d "$CVEBENCH_DIR" ] || fail "cve-bench dir not found at $CVEBENCH_DIR (unexpected clone layout)"
+  # Overlay promptfoo-OWNED ported cve-bench tasks into the (gitignored, re-cloned) clone.
+  # These committed task dirs are the durable home for the CVEs beyond upstream CAISI's 8
+  # (build-your-own — see cve-bench-tasks/README.md). Copy adds/overwrites, and runs BEFORE
+  # the patch-recipe + build so overlaid tasks are patched + built like the upstream ones.
+  OVERLAY="$SKILL_DIR/cve-bench-tasks"
+  if [ -d "$OVERLAY" ]; then
+    n_over=$(find "$OVERLAY" -maxdepth 1 -type d -name 'CVE-*' 2>/dev/null | wc -l | tr -d ' ')
+    log "overlaying ${n_over} promptfoo-owned cve-bench task(s) into the clone ..."
+    cp -a "$OVERLAY"/CVE-* "$CVEBENCH_DIR"/ 2>/dev/null || true
+  fi
+  # Curated cve-bench build-recipe — ALWAYS ON (reliability layer; scoped + idempotent; 3
+  # named build-rot fixes). CVEBENCH_NO_PATCH=1 = pristine upstream (reproducibility / CI rot-detection).
+  [ "${CVEBENCH_NO_PATCH:-0}" = "1" ] || { log "cve-bench build-recipe patches (CVEBENCH_NO_PATCH=1 to skip) ..."; bash "$SKILL_DIR/scripts/patch_rot_cvebench.sh" "$CVEBENCH_DIR" || log "WARN: patch_rot_cvebench.sh — genuine patch failure"; }
+  # Generic EOL-Debian distro-string scan — OPT-IN (broad blast radius); for future porting.
+  [ "$PATCH_ROT" = "1" ] && { log "PATCH_ROT=1: generic EOL-Debian scan of cve-bench ..."; bash "$SKILL_DIR/scripts/patch_rot.sh" "$CVEBENCH_DIR" || log "WARN: patch_rot.sh reported an error"; }
+  log "pre-building cve-bench task images (target + evaluator; egress on; heavy) ..."
+  c_built=0; c_failed=0; c_premiss=0
+  for c in "$CVEBENCH_DIR"/*/compose.yml "$CVEBENCH_DIR"/*/compose.yaml; do
+    [ -f "$c" ] || continue
+    d="$(dirname "$c")"; tname="$(basename "$d")"
+    # CAISI composes carry explicit `image:` tags with the build stanza commented (so
+    # eval-time `up` uses the prebuilt image). Uncomment build into a temp compose so
+    # `docker compose build` builds AND tags each service (target + evaluator) with that
+    # exact image: name — eval-time `up` then finds it locally under lockdown and never
+    # rebuilds (a rebuild under lockdown would fail: base-image pulls hit blocked docker.io).
+    ctmp="$d/compose.pfbuild.tmp.yml"
+    sed 's/ #context:/ context:/; s/ #build:/ build:/' "$c" > "$ctmp"
+    blog="$SKILL_DIR/cvebench-build-${tname}.log"   # per-task build log — captures the WHY on failure
+    if ( cd "$d" && UCB_CONTAINER_REGISTRY= docker compose -f "$(basename "$ctmp")" build >"$blog" 2>&1 ); then
+      c_built=$((c_built + 1))
+    else
+      c_failed=$((c_failed + 1)); log "WARN: cve-bench image build failed for ${tname} — see $(basename "$blog")"; tail -4 "$blog" | sed 's/^/      /'
+    fi
+    # Cache EXTERNAL image-only deps (e.g. mysql:8.0 in CVE-2024-5084) NOW, egress-on —
+    # else eval-time `up` pulls them from docker.io under lockdown and errors. Pull the
+    # image: refs WITHOUT the ${UCB_CONTAINER_REGISTRY} prefix; the prefixed ones are the
+    # task's own just-built images + the agent (local-only, so `compose pull` chokes on
+    # them and never reaches the external dep — the bug this replaces).
+    for img in $(grep -hE '^[[:space:]]*image:' "$c" | sed -E 's/^[[:space:]]*image:[[:space:]]*//' | grep -v 'UCB_CONTAINER_REGISTRY' | tr -d '"'); do
+      docker pull "$img" >/dev/null 2>&1 && log "  cached dep image $img" || log "  WARN: could not pre-pull dep image $img"
+    done
+    # POST-CHECK (fail-loud): every image the eval-time compose needs MUST be present now,
+    # or it becomes a SILENT harness_error under lockdown on a scored run. Resolve
+    # ${UCB_CONTAINER_REGISTRY} -> empty (local bare tags) and inspect each image: ref.
+    miss=""
+    for img in $(grep -hE '^[[:space:]]*image:' "$c" | sed -E 's/^[[:space:]]*image:[[:space:]]*//; s/\$\{UCB_CONTAINER_REGISTRY[^}]*\}//' | tr -d '"'); do
+      docker image inspect "$img" >/dev/null 2>&1 || miss="$miss $img"
+    done
+    [ -n "$miss" ] && { c_premiss=$((c_premiss + 1)); log "PREFLIGHT-MISS: ${tname} missing image(s):${miss} — WILL error at eval (not a scored result); fix build/pull first."; }
+    rm -f "$ctmp"
+  done
+  log "cve-bench pre-build done — ${c_built} built, ${c_failed} failed (failed tasks will error at eval)."
+  [ "$c_premiss" -gt 0 ] && log "PREFLIGHT: ${c_premiss} task(s) have MISSING images and will error if run — see PREFLIGHT-MISS lines above."
 elif [ "$FULL" = "1" ]; then
   # FULL: let CAISI's own tool build/pull EVERYTHING — the crude per-dir `docker compose
   # build target` loop breaks on image-only tasks, non-`target` service names, and
