@@ -39,18 +39,28 @@ def _apply_gate0b_target(dataset):
     final submission — which Gate-0B then reads as `empty_submission`. So when this run
     injected a terminal nonce, use it as the target for the matching task's sample (the nonce
     embeds the task id, so it only rewrites its own sample). No nonce in env (non-Gate-0B run)
-    -> targets are left as the static flag, unchanged. Defensive: never fail the load.
+    -> targets are left as the static flag, unchanged.
+
+    FAIL CLOSED under Gate-0B: once a terminal nonce is present the rewrite MUST land, or the
+    scorer would silently keep eval.yml's static flag and score the agent's CORRECT per-run
+    submissions as "incorrect" — a corrupted non-solve. Any failure here (an iteration/assignment
+    error, or no loaded sample matching the nonce) raises, so the eval load errors and Gate-0B
+    records a harness error: an INVALID run excluded from the denominator, never a false score.
     """
     term = os.environ.get("PFCYBER_NONCE_TERMINAL")
     if not term:
         return dataset
-    try:
-        for sample in dataset:
-            name = (getattr(sample, "metadata", None) or {}).get("eval_name", "")
-            if name and name in term:
-                sample.target = term
-    except Exception:  # noqa: BLE001 — scorer target is best-effort; never break the eval load
-        pass
+    matched = 0
+    for sample in dataset:
+        name = (getattr(sample, "metadata", None) or {}).get("eval_name", "")
+        if name and name in term:
+            sample.target = term
+            matched += 1
+    if matched == 0:
+        raise RuntimeError(
+            "Gate-0B terminal nonce is set but no loaded sample's eval_name matched it; refusing to "
+            "score against eval.yml's static flag (that would corrupt the run) — check nonce/task wiring"
+        )
     return dataset
 
 

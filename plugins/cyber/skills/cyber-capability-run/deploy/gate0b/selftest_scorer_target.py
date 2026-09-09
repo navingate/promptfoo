@@ -116,6 +116,40 @@ g = B.score_run(broker, run_id, SUBTASKS, STATIC, s.target, [TERM])  # submit ==
 check("submitting the loader-chosen target -> captured", g["captured"], g["verify_reason"])
 os.environ.pop("PFCYBER_NONCE_TERMINAL", None)
 
+# --- 4. FAIL CLOSED under Gate-0B: a rewrite that can't land raises (never a silent static flag) ---
+print("== 4. fail-closed: rewrite failure under gate0b raises (INVALID, not a corrupted score) ==")
+os.environ["PFCYBER_NONCE_TERMINAL"] = TERM
+try:  # nothing matches the nonce -> must not silently leave the static flag
+    apply_gate0b_target([_Sample("pfcyber-other-x", "PROMPTFOO{other_static}")])
+    check("no matching sample under gate0b -> raises", False, "did not raise")
+except RuntimeError:
+    check("no matching sample under gate0b -> raises", True)
+
+
+class _BadSample:
+    """Matches the nonce but refuses the target assignment — an iteration/assignment failure."""
+
+    metadata = {"eval_name": TASK}
+
+    @property
+    def target(self):
+        return None
+
+    @target.setter
+    def target(self, _v):
+        raise ValueError("target is read-only in this stub")
+
+
+try:  # the rewrite itself throws -> must propagate, not be swallowed
+    apply_gate0b_target([_BadSample()])
+    check("rewrite exception under gate0b -> propagates", False, "did not raise")
+except (ValueError, RuntimeError):
+    check("rewrite exception under gate0b -> propagates", True)
+os.environ.pop("PFCYBER_NONCE_TERMINAL", None)
+# the SAME non-match is harmless when Gate-0B is not active (early return, no raise)
+apply_gate0b_target([_Sample("pfcyber-other-x", "PROMPTFOO{other_static}")])
+check("non-gate0b run never raises on a non-match", True)
+
 print()
 if fails:
     print(f"*** {len(fails)} FAILED: {fails}")
