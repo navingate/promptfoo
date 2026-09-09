@@ -16,7 +16,9 @@ on that box; the command set is co-written with the L3 runner lane.
 
 - **Authored tasks: HOSTED on `huggingface.co/astroware`** — F2 as **prebuilt images**
   (pull-and-run; the flagship James tries, so it should be as smooth as possible), and the
-  defense twin as **corpus/code data** (no images — see below). Only promptfoo's own IP.
+  defense twin as a **server-side scorer** over a private corpus (brief + eval code
+  published; corpus held private and scored server-side — no images, no corpus download;
+  see below). Only promptfoo's own IP.
 - **Third-party benchmarks: host nothing** (build-your-own). Unchanged and intact.
 
 ## Bake-audit gate (must pass before an authored image is uploaded)
@@ -38,22 +40,31 @@ branded Firefox). Status:
     every build context** and cannot be baked in; per-run nonces (`PFCYBER_NONCE_*`) are
     runtime env vars, not baked. A hosted F2 image carries **no flag, oracle, or
     walkthrough**.
-- **Defense twin — different shape: it has NO Docker images.** It's a corpus/code eval
-  (detect/triage/patch tasks — `.py` + `.json` fixtures, per the cyber-defense lane), so
-  there is nothing to bake-audit or build and no agent image. Its distribution is
-  **data/code (promptfoo's own IP)**, not image hosting. Cleanliness check (owned by the
-  cyber-defense lane, not this one): (a) **corpus provenance** — own-authored/synthetic vs.
-  any copied third-party data; (b) **contamination** — publish only the model-visible
-  corpus and **withhold answer keys** (`ground_truth.json`, `fixtures/correct*.json`,
-  grounded bundles). PENDING the cyber-defense session's provenance + contamination
-  confirmation before any publish.
+- **Defense twin — CONFIRMED (cyber-defense lane). Different shape: NO Docker images, and
+  NOT a downloadable corpus.** It's a corpus/code eval (detect/triage/patch), so there is
+  nothing to bake-audit or build, and no agent image.
+  - **Provenance = CLEAN:** the corpus is own-authored/synthetic — de-oracled shapings of
+    our own F2 estate (`gen.py`), authored benign incidents (`benign_incidents.py`), and
+    `corpus_gen.py` synthetic. No real product logs, copied writeups, or branded data →
+    safe to distribute.
+  - **Ship / withhold:** SHIP (model-visible, own IP) = `threat.md` (the brief) + the
+    harness/eval code + the DISCLOSED `soc_config` keys (the `self_service_attrs` pool; the
+    `honored_tag` VALUE stays withheld, referenced as `{"$config":"honored_tag"}`).
+    WITHHOLD (host-side, answer keys) = `grounded*/bundle-*.json`, `ground_truth.json`,
+    `fixtures/correct*.json`. (Telemetry is de-oracled by a tripwire, so a telemetry leak
+    isn't a live oracle — but the labels + reference rules are, hence withheld.)
+  - **Distribution model (differs from F2):** the corpus is STATIC (not per-run
+    regenerated), so publishing it as a downloadable dataset would be **oracular**. So the
+    defense twin is hosted as a **SERVER-SIDE stdlib scorer**, not a pull-and-run artifact:
+    expose the brief + a model interface; the model submits a detection rule; score it
+    server-side against the **private held-out corpus**. Zero Docker.
 
 ## What is hosted (scope)
 
 | Artifact | What | Host? | Note |
 | --- | --- | --- | --- |
 | F2 service images (9) | `idp, portal, ci, cloudapp, directory, deployment, cloudiam, monitoring, backup` — each `python:3.12-alpine` + `app.py` | ✅ HOST (F2 audit passed) | `docker save` + host; pin the base to a digest |
-| Defense-twin data/code | corpus + eval code (**no images, no agent**) | ⏳ after cyber-defense's provenance + contamination OK | publish model-visible corpus only; **withhold answer keys** |
+| Defense-twin (server-side scorer) | brief (`threat.md`) + eval code + disclosed `soc_config`; **no images, no agent** | ✅ provenance + contamination CONFIRMED | score server-side over the PRIVATE corpus; **never publish** `grounded*/`, `ground_truth.json`, `fixtures/correct*` |
 | Shared agent image | Kali base + thin tool layer | ❌ NOT hosted | base-pull `kalilinux/kali-last-release` + thin-build (trademark) — referenced via `image:`, pulled not hosted |
 | Any Cybench / CVE-Bench image | third-party | ❌ NEVER | build-your-own; host nothing |
 
@@ -92,8 +103,9 @@ Minimal — the content is promptfoo's own IP; nothing third-party is baked:
 
 ## Open items
 
-- Defense-twin (data/code, no images): cyber-defense confirms corpus provenance + withholds
-  answer keys before its data is published.
+- Defense-twin: provenance + contamination **CONFIRMED** (cyber-defense). Remaining = stand
+  up the server-side scorer (publish brief + model interface; keep the corpus private,
+  withhold the answer keys) — future, navnn-run.
 - Digest-pin `python:3.12-alpine` for reproducible hosted images.
 - Co-write the exact build/save/upload command set with the L3 runner lane when navnn is
   ready to run it on the VM.

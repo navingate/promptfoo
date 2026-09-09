@@ -21,7 +21,7 @@ and must be coordinated with their owners (see §12).
 > retained as the **record of why** build-your-own was chosen. **Authored tasks
 > (F2/defense) are the ONE exception: HOSTED prebuilt on `astroware`, pull-and-run
 > (navnn, 2026-09-09)** — they are promptfoo's own IP with no third-party license barrier
-> (F2 images: bake-audit passed. Defense twin: corpus/code, **no images** — pending the cyber-defense lane's provenance + answer-key-withholding check). Only promptfoo's own tasks are
+> (F2 images: bake-audit passed. Defense twin: **no images** — provenance CONFIRMED clean, distributed as a **server-side scorer** over a private held-out corpus with the answer keys withheld). Only promptfoo's own tasks are
 > hosted — **never** third-party benchmark content. Sections below that describe hosting
 > _third-party_ are historical context; §5.1, §5.6, §7, §9, §10 carry the update.
 
@@ -309,11 +309,12 @@ Remaining:
 
 1. **Recipe/CI ownership + cadence:** who maintains the third-party build-recipe, and how
    often does CI run the clean-host build? (The one real ongoing cost.)
-2. **Defense twin (data/code, not images):** it ships **no Docker images** — it's a
-   corpus/code eval (detect/triage/patch). So there's nothing to bake-audit; its check
-   (cyber-defense lane) is corpus provenance + **withholding the answer keys** (publish the
-   model-visible corpus only). F2 (images) is cleared; the defense-twin data check is
-   pending.
+2. **Defense twin (server-side scorer, not images):** it ships **no Docker images** and is
+   **not** a downloadable corpus — the corpus is static, so publishing it would be oracular.
+   cyber-defense CONFIRMED provenance clean; it is distributed as a **server-side scorer**
+   (publish the brief + a model interface; score submissions against a **private** held-out
+   corpus; withhold the answer keys). Both F2 and the defense-twin scoping are cleared;
+   remaining work is standing up the scorer (future, navnn-run).
 
 ## 11. What we are NOT proposing to change silently
 
