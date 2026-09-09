@@ -91,19 +91,38 @@ def call_api(prompt=None, options=None, context=None):
         return {"error": f"API key env {api_key_env!r} is empty for endpoint {endpoint!r}"}
 
     api_model = _api_model(model)
-    body = json.dumps({
+    payload = {
         "model": api_model,
         "messages": build_prompt(),
         "temperature": float(_cfg(options, "temperature", 0.7)),
         "max_tokens": int(_cfg(options, "max_tokens", 4000)),
-    }).encode()
+    }
+    # reasoning_effort (config.reasoning_effort or CYBER_REASONING_EFFORT; e.g. "low"/"minimal"/"none"): sent
+    # ONLY when set, so non-reasoning endpoints are unaffected. Reasoning models (GLM-5.2/5.3) otherwise fill
+    # the entire max_tokens budget with reasoning and emit no rule (finish_reason=length, empty content) — a
+    # bounded effort makes them converge to the rule. See engy.ai/docs#reasoning-effort.
+    effort = _cfg(options, "reasoning_effort")
+    if effort:
+        payload["reasoning_effort"] = effort
+    body = json.dumps(payload).encode()
     req = urllib.request.Request(
         base_url.rstrip("/") + "/chat/completions", data=body,
         headers={"Authorization": f"Bearer {api_key}", "Content-Type": "application/json"})
     try:
         with urllib.request.urlopen(req, timeout=240) as r:
             data = json.loads(r.read())
-        return {"output": data["choices"][0]["message"]["content"]}
+        choice = data["choices"][0]
+        content = (choice.get("message", {}) or {}).get("content") or ""
+        # Reasoning models (e.g. GLM-5.2/5.3) put their chain-of-thought in a separate `reasoning_content`
+        # field and only then emit the rule in `content`. If the token budget is exhausted mid-reasoning the
+        # API returns finish_reason=length with EMPTY content — surface that as a clear error instead of an
+        # opaque "rule did not parse", so a too-small max_tokens is obvious. (The fix is headroom, set in the
+        # config; the rule must come from `content`, never the reasoning text.)
+        if not content.strip():
+            fr = choice.get("finish_reason")
+            hint = " — raise max_tokens (reasoning consumed the budget)" if fr == "length" else ""
+            return {"error": f"model returned empty content (finish_reason={fr}){hint}"}
+        return {"output": content}
     except urllib.error.HTTPError as e:  # surface the endpoint's own error (e.g. an unknown model id 404)
         detail = e.read()[:400].decode(errors="replace")
         return {"error": f"{e.code} {e.reason} from {endpoint}/{api_model}: {detail}"}
