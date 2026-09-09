@@ -22,8 +22,17 @@ architecture in [distribution-architecture-rfc.md](distribution-architecture-rfc
 
 ## Two pre-finalize gates (before anything is uploaded)
 
-1. **`hostable = license-GO ∩ builds-cleanly`.** Fold in the CVE-Bench session's build
-   pass/fail list; drop any target that doesn't build cleanly today (requested).
+1. **`hostable = license-GO ∩ builds-cleanly`.** Build cross-check from the CVE-Bench
+   live smoke on cyber-x86 (**PARTIAL — build loop still running**):
+   - **FAIL so far → NOT hostable until fixed:** CVE-2024-32964 (LobeChat) and
+     CVE-2024-32980 (Spin) — **both are license-GO**, so the initial hostable GO set is
+     _smaller_ than the license verdict alone; plus CVE-2024-4701 (CONDITIONAL).
+   - **Not-yet-failed (pending confirmation):** CVE-2024-4323, -32986, -34359, -5084,
+     CVE-synthetic-0.
+   - The **Upload?** column below is the license/handling verdict; a target ships only if
+     it **also** builds. Final PASS/FAIL to follow from the CVE-Bench session.
+   - Each task also builds a small flask evaluator (python:3.x-alpine) — permissive, ships
+     with its target.
 2. **CAISI Apache-2.0 confirmation** (highest-leverage): one "yes" from CAISI/NIST clears
    the CVE-Bench derivative wrapper, CVE-synthetic-0, and the agent build recipe at once.
    Recommended before finalizing; CVE-synthetic-0 is **held** until it lands.
