@@ -22,7 +22,7 @@ telemetry source. No Docker for scoring.
 **Spec status:** incorporates **four** design-review passes (2026-09-10) + a source re-grounding.
 Reviews 1–3 hardened the scoring machinery (resolved §2/§5–§11). Review 4 found the machinery sound but
 the **threat construct single-discriminator** — §3 (stage-distinguishability gate) and §4 (the scope
-fork) are its output, and **§4 is an open decision, not yet resolved.** The first build is a
+fork) are its output, and **§4 is DECIDED (2026-09-10): Path 2, in parallel with Spike A.** The first build is a
 construct-first validation spike (§15); the frontier claim is gated on §17 and bounded by §19.
 
 ## Global Constraints
@@ -102,7 +102,16 @@ Under current semantics **h4 passes; h5 and h5b almost certainly fail** (they ad
 new reason to classify the chain malicious). Landmarks that fail stay useful as attack-progress markers
 but are **not** presented as detection opportunities. This gate is the objective test behind §4.
 
-## 4. The central hardness finding & the scope fork (OPEN DECISION)
+## 4. The central hardness finding & the scope fork (DECIDED 2026-09-10: Path 2, parallel)
+
+**DECISION (2026-09-10): Path 2, executed in PARALLEL with Spike A.** The path-2 downstream invariants
+(§4.2) + visibility profiles are now **required scope**, not a conditional extension: the path-2 fields
+(§8) become first-class, the under-assurance / over-scope malicious variants + their authorized twins
+enter the Spike-A corpus (§10), and the §3 gate must be shown to pass for **h5 and h5b** (not just h4).
+Spike A proceeds **model-free now** on a hand-authored corpus that already carries these fields
+(no offense dependency); the real captured telemetry for Spike B is coordinated with F2 Chain **in
+parallel** (§9, §18). Grammar-expressibility of the two downstream detectors is the first thing Spike A
+must confirm or surface as a finding (§18).
 
 **Finding (review 4, verified against F2 source).** The optimal rule is "an entitlement tag landed
 **and** its source attribute is in the self-service pool" — a single decisive discriminator at **h4**.
