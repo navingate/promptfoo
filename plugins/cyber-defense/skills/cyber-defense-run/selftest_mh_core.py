@@ -1,6 +1,7 @@
-"""Spike-A construct validation (pure stdlib). Run from this directory: python3 selftest_mh_core.py"""
+"""Spike-A core selftests (Review-A hardened). Pure stdlib; run from this dir: python3 selftest_mh_core.py"""
 
 import os
+import random
 import sys
 
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
@@ -12,85 +13,164 @@ import mh_replay as RP
 import mh_reference_rules as RR
 import mh_scoring as SC
 import mh_stage_gate as SG
-from correlation_eval import evaluate
 
 CFG = S.INVENTORIES
 
 
 def test_schema():
     assert len(S.EDGE_TABLE) == 11
-    for e in S.EDGE_TABLE:
-        assert len(e) == 4 and e[0] in S.EVENT_TYPES and e[2] in S.EVENT_TYPES
-    for v in S.INVENTORIES.values():
-        if isinstance(v, list):
-            assert all(not isinstance(x, (list, dict)) for x in v)
-        else:
-            assert not isinstance(v, (list, dict))
+    for (ta, fa, tb, fb) in S.EDGE_TABLE:
+        assert ta in S.EVENT_TYPES and tb in S.EVENT_TYPES
     edge_fields = {(t, f) for (t, f, _, _) in S.EDGE_TABLE} | {(t, f) for (_, _, t, f) in S.EDGE_TABLE}
-    assert ("workload_run", "execution_principal") not in edge_fields
+    for bad in (("workload_run", "execution_principal"), ("role_assumed", "role_id"),
+                ("session_tag_applied", "tag_name")):
+        assert bad not in edge_fields, bad
+    for v in S.INVENTORIES.values():
+        assert all(not isinstance(x, (list, dict)) for x in v) if isinstance(v, list) \
+            else not isinstance(v, (list, dict))
+    print("  test_schema OK")
 
 
-def test_corpus_partitions_cleanly():
-    for inc in K.INCIDENTS:
-        for ev in inc["events"]:
-            S.validate_event(ev)
+def test_partition_isolates_on_stable_id_sharing():
+    # two full chains share execution_principal/role_id/resource_id/tag_name but have distinct
+    # transactional refs -> must stay TWO components (stable ids are NON-edges).
+    a = K.make_chain("m_a", "principal-tag", "passrole", provenance="smuggle", assurance="absent", scope="in")
+    b = K.make_chain("t_b", "principal-tag", "passrole", provenance="authoritative", assurance="present", scope="in")
+    shared = {e.get("execution_principal") for e in a + b if e.get("execution_principal")}
+    assert shared == {"deploy-svc"}                       # they DO share a stable id
+    comps = C.partition(a + b)
+    assert len(comps) == 2, f"stable-id sharing merged chains: {len(comps)}"
+    for comp in comps:
+        assert len({e["_cid"] for e in comp}) == 1
+    assert len(C.partition(a)) == 1                       # a full chain is exactly one component
+    print("  test_partition_isolates_on_stable_id_sharing OK")
+
+
+def test_corpus_wellformed_and_sized():
+    assert len(K.HELDOUT_INCIDENTS) >= 20
+    nmal = sum(1 for i in K.HELDOUT_INCIDENTS for c in i["truth"]["components"].values() if c["malicious"])
+    assert nmal >= 20, f"held-out malicious too few: {nmal}"
+    for inc in K.DEV_INCIDENTS + K.HELDOUT_INCIDENTS:
+        for e in inc["events"]:
+            S.validate_event(e)
         for comp in C.partition(inc["events"]):
-            assert len({e["_cid"] for e in comp}) == 1, f"{inc['name']} stitched two cids"
-    conc = next(i for i in K.INCIDENTS if i["name"] == "C_concurrency")
-    assert len(C.partition(conc["events"])) == 2
+            assert len({e["_cid"] for e in comp}) == 1, f"{inc['name']}: component spans cids"
+        for cid, t in inc["truth"]["components"].items():
+            if t["malicious"]:
+                assert "target" in t, f"{inc['name']}: malicious {cid} missing target"
+    conc = next(i for i in K.DEV_INCIDENTS if i["name"] == "MIX_concurrency")
+    assert len(C.partition(conc["events"])) == 2                       # 2 components
+    principals = {e.get("user_principal") for e in conc["events"] if e.get("user_principal")}
+    assert principals == {"user-shared-concurrency"}, principals       # ...but the SAME principal (L2)
+    print("  test_corpus_wellformed_and_sized OK")
 
 
-def test_replay_landmarks_in_order():
-    m = next(i for i in K.INCIDENTS if i["name"] == "M_ptag_passrole")["events"]
-    seen = [RP.landmark_of([e for e in cum if e["batch_id"] == bid]) for bid, cum in RP.prefixes(m)]
-    order = [s for s in seen if s in ("h4", "h5", "h5b")]
-    dedup = [order[0]] + [b for a, b in zip(order, order[1:]) if b != a]
-    assert dedup == ["h4", "h5", "h5b"], order
+def test_no_identifier_leaks_label():
+    # C1: no visible identifier-shaped field value encodes the m/t label.
+    for e in (ev for i in K.DEV_INCIDENTS + K.HELDOUT_INCIDENTS for ev in K.deoracle(i["events"])):
+        for k, v in e.items():
+            if isinstance(v, str) and k.endswith(("_ref", "batch_id")) or k == "user_principal":
+                head = str(v).split("-", 1)[0].split(".", 1)[0]
+                assert head not in ("m", "t"), f"label-leaking id {k}={v!r}"
+    print("  test_no_identifier_leaks_label OK")
 
 
-def test_reference_rules_precise():
-    def mcomp(name):
-        return SG._mcomp(SG._events(name))
-
-    def tcomp(name):
-        return SG._tcomp(SG._events(name))
-    # h4 provenance: fires on smuggle, not on the authoritative twin, both families
-    for mal, twin in (("M_ptag_passrole", "T_ptag_passrole"), ("M_delim_grant", "T_delim_grant")):
-        assert evaluate(RR.H4_PROVENANCE, mcomp(mal), CFG) is True
-        assert evaluate(RR.H4_PROVENANCE, tcomp(twin), CFG) is False
-    # h4 does NOT fire on the h4-clean insider (authoritative) -> independence
-    assert evaluate(RR.H4_PROVENANCE, mcomp("I_assur_passrole"), CFG) is False
-    # h5b assurance: fires on the insider (absent assurance), not on the present-assurance twin
-    assert evaluate(RR.H5B_ASSURANCE, mcomp("I_assur_passrole"), CFG) is True
-    assert evaluate(RR.H5B_ASSURANCE, tcomp("T_ptag_passrole"), CFG) is False
-    assert evaluate(RR.H5B_ASSURANCE, mcomp("I_assur_grant"), CFG) is True
-    # scope stays a documented finding, not a silent gap
-    assert RR.SCOPE_EXPRESSIBLE is False and RR.FINDINGS["h5_scope"]
+def test_replay_progress_monotonic():
+    inc = next(i for i in K.DEV_INCIDENTS if i["name"].startswith("MAL_") and "smuggle_absent" in i["name"])
+    seen = -1
+    order = {"none": -1, "h4": 0, "h5": 1, "h5b": 2}
+    for _b, cum in RP.prefixes(inc["events"]):
+        p = order[RP.progress_landmark(cum)]
+        assert p >= seen, "progress went backwards"
+        seen = p
+    assert seen == 2                                       # a full chain reaches h5b
+    print("  test_replay_progress_monotonic OK")
 
 
-def test_scoring_curve_and_zero_fp():
-    r = SC.score(RR.REFERENCE_PACK, K.INCIDENTS, CFG)
-    assert r["stitched"] == 0
-    # smuggle chains detected at h4; insider-assurance at h5b; scope-only insider never detected
-    assert r["survival"]["m1"] == "h4" and r["survival"]["m2"] == "h4"
-    assert r["survival"]["m5"] == "h5b" and r["survival"]["m6"] == "h5b"
-    assert r["survival"]["m7"] is None            # scope violation, not grammar-expressible -> undetected
-    # zero false alerts across twins, benign denials, and the benign half of the concurrency window
-    assert r["fp"]["benign_windows"] == 0 and r["fp"]["benign_components"] == 0
-    frac, buckets = SC.survival_curve(r)
-    assert buckets["h4"] >= 4 and buckets["h5b"] == 2 and buckets["never"] >= 1
+def _mal_comp(events):
+    return next(c for c in C.partition(events) if c[0]["_cid"].startswith("m"))
 
 
-def test_stage_gate_h4_and_h5b_independent():
-    res = SG.run_gate()
-    assert res["h4"]["passes"] is True, res["h4"]
-    assert res["h5b"]["passes"] is True, res["h5b"]      # INDEPENDENT downstream boundary
-    assert res["_scope_is_finding"] is True
+def _ben_comp(events):
+    return next(c for c in C.partition(events) if c[0]["_cid"].startswith("t"))
+
+
+def test_reference_rules_precise_both_families_and_heldout():
+    for cell in K._CELLS:                                  # incl. the held-out cell
+        fed, iam = cell
+        smug = K.make_chain("m_x", fed, iam, provenance="smuggle", assurance="present", scope="in")
+        insd = K.make_chain("m_y", fed, iam, provenance="authoritative", assurance="absent", scope="in")
+        twin = K.make_chain("t_z", fed, iam, provenance="authoritative", assurance="present", scope="in")
+        from correlation_eval import evaluate
+        assert evaluate(RR.H4_PROVENANCE, K.deoracle(_mal_comp(smug)), CFG) is True
+        assert evaluate(RR.H4_PROVENANCE, K.deoracle(_ben_comp(twin)), CFG) is False
+        assert evaluate(RR.H4_PROVENANCE, K.deoracle(_mal_comp(insd)), CFG) is False   # insider is h4-clean
+        assert evaluate(RR.H5B_ASSURANCE, K.deoracle(_mal_comp(insd)), CFG) is True
+        assert evaluate(RR.H5B_ASSURANCE, K.deoracle(_ben_comp(twin)), CFG) is False
+    print("  test_reference_rules_precise_both_families_and_heldout OK")
+
+
+def test_scoring_reference_pack():
+    dev = SC.score(RR.REFERENCE_PACK, K.DEV_INCIDENTS, CFG)
+    assert dev["curve"]["never"] == 0, dev["curve"]        # no REAL misses (gap chains are separate)
+    assert dev["curve"]["gap"] == 6 and dev["curve"]["h5b"] == 6
+    assert dev["scalar"] == 1.0
+    assert dev["fp"] == {"benign_components": 0, "benign_windows": 0, "rule_component_matches": 27}
+    assert dev["stitched"] == 0
+    assert dev["blocked"] == {"mblk1": "detected_before_block"}
+    print("  test_scoring_reference_pack OK")
+
+
+def test_scoring_deterministic_under_shuffle():
+    base = SC.score(RR.REFERENCE_PACK, K.DEV_INCIDENTS, CFG)
+    rng = random.Random(1234)
+    shuffled = []
+    for inc in K.DEV_INCIDENTS:
+        evs = list(inc["events"])
+        rng.shuffle(evs)
+        shuffled.append({"name": inc["name"], "events": evs, "truth": inc["truth"]})
+    s2 = SC.score(RR.REFERENCE_PACK, shuffled, CFG)
+    assert (s2["curve"], s2["scalar"], s2["fp"]) == (base["curve"], base["scalar"], base["fp"]), \
+        "scoring not order-invariant"
+    print("  test_scoring_deterministic_under_shuffle OK")
+
+
+def test_oracle_guard_rejects_underscore_fields():
+    cid_rule = {"require": "all", "conditions": [
+        {"type": "field", "event": "assertion_issued", "field": "_cid", "op": "contains", "value": "m"}]}
+    try:
+        SC.validate_pack([cid_rule])
+        assert False, "validate_pack accepted a _cid rule"
+    except ValueError:
+        pass
+    # also inside a join
+    j = {"require": "all", "conditions": [{"type": "join",
+         "a": {"event": "kms_unwrap", "field": "auth_context_ref"},
+         "b": {"event": "stepup_minted", "field": "auth_context_ref"}, "on": "eq",
+         "where_b": {"field": "_stage", "op": "eq", "value": "h5b"}}]}
+    try:
+        SC.validate_pack([j])
+        assert False, "validate_pack accepted a _stage where_b"
+    except ValueError:
+        pass
+    print("  test_oracle_guard_rejects_underscore_fields OK")
+
+
+def test_stage_gate_independent_boundaries():
+    g = SG.run_gate()
+    assert g["h4"] is True and g["h5b"] is True and g["_scope_is_finding"] is True, g
+    print("  test_stage_gate_independent_boundaries OK")
 
 
 if __name__ == "__main__":
-    for name, fn in list(globals().items()):
-        if name.startswith("test_") and callable(fn):
-            fn()
-            print(f"  {name} OK")
+    test_schema()
+    test_partition_isolates_on_stable_id_sharing()
+    test_corpus_wellformed_and_sized()
+    test_no_identifier_leaks_label()
+    test_replay_progress_monotonic()
+    test_reference_rules_precise_both_families_and_heldout()
+    test_scoring_reference_pack()
+    test_scoring_deterministic_under_shuffle()
+    test_oracle_guard_rejects_underscore_fields()
+    test_stage_gate_independent_boundaries()
     print("selftest_mh_core: ALL OK")
