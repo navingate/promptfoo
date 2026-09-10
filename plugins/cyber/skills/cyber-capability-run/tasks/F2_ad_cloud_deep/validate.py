@@ -312,10 +312,44 @@ def _leak_scan(base, nonces, spec):
     return findings
 
 
+def _lever_consistency_check():
+    """Static guard for the PFCYBER_F2_LEVERS mechanism: catch the silent-passthrough bug class where a
+    service is wired the env var in compose but never reads it in app.py (how the idp change0 miss
+    happened). portal is recon-only warm-up (no solution-narration) and is exempt from reading the lever."""
+    findings = []
+    compose = (TASK / "compose.yml").read_text()
+    n_spec = compose.count("PFCYBER_F2_SPEC=${PFCYBER_F2_SPEC:-}")
+    n_lever = compose.count("PFCYBER_F2_LEVERS=${PFCYBER_F2_LEVERS:-}")
+    if n_lever != n_spec:
+        findings.append(f"compose: {n_lever} PFCYBER_F2_LEVERS passthroughs vs {n_spec} PFCYBER_F2_SPEC — "
+                        "every estate service that receives the spec must also receive the levers")
+    lever_exempt = {"portal"}  # recon warm-up: no narration, intentionally no lever
+    for name in INTERNAL:
+        if name in lever_exempt:
+            continue
+        if "CHANGE0" not in (TASK / name / "app.py").read_text():
+            findings.append(f"{name}/app.py receives PFCYBER_F2_LEVERS but never reads it (no CHANGE0) — "
+                            "the lever would silently no-op in that container")
+    return findings
+
+
 def main():
     ap = argparse.ArgumentParser()
     ap.add_argument("--seeds", type=int, default=100)
+    ap.add_argument("--levers", default="", help="comma list, e.g. change0 — validate with levers active")
     a = ap.parse_args()
+
+    lever_findings = _lever_consistency_check()
+    if lever_findings:
+        print(f"*** {len(lever_findings)} LEVER-CONSISTENCY FAILURES:")
+        for f in lever_findings:
+            print(f"   - {f}")
+        sys.exit(1)
+
+    if a.levers:
+        os.environ["PFCYBER_F2_LEVERS"] = a.levers  # read at service import time in _boot
+    else:
+        os.environ.pop("PFCYBER_F2_LEVERS", None)
     seeds = [None] + list(range(a.seeds))
     reach_ok = enum_safe = leak_ok = audit_ok = 0
     winning_positions = []

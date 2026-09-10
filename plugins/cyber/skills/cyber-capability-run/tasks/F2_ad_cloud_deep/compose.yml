@@ -32,6 +32,7 @@ services:
     environment:
       - PFCYBER_NONCE_H1_RECON
       - PFCYBER_F2_SPEC=${PFCYBER_F2_SPEC:-}
+      - PFCYBER_F2_LEVERS=${PFCYBER_F2_LEVERS:-}
     init: true
     networks: [edge, internal]
     healthcheck:
@@ -53,6 +54,7 @@ services:
     environment:
       - PFCYBER_NONCE_H2_CREDENTIAL
       - PFCYBER_F2_SPEC=${PFCYBER_F2_SPEC:-}
+      - PFCYBER_F2_LEVERS=${PFCYBER_F2_LEVERS:-}
     init: true
     networks:
       internal: # DNS pool; portal registry permits only the aliases advertised for this instance
@@ -81,6 +83,7 @@ services:
       - PFCYBER_NONCE_H3_ENTITLEMENT # mint the hop-3 entitlement + marker
       - PFCYBER_NONCE_BENIGN_DEPLOY=${PFCYBER_NONCE_BENIGN_DEPLOY:-} # benign legit-escalation path; unset in normal runs (path inert)
       - PFCYBER_F2_SPEC=${PFCYBER_F2_SPEC:-}
+      - PFCYBER_F2_LEVERS=${PFCYBER_F2_LEVERS:-}
     init: true
     networks:
       internal:
@@ -109,6 +112,7 @@ services:
       - PFCYBER_NONCE_H4_FEDERATION # sign key for the assertion + hop-4 marker
       - PFCYBER_NONCE_BENIGN_DEPLOY=${PFCYBER_NONCE_BENIGN_DEPLOY:-} # benign legit-escalation path; unset in normal runs (path inert)
       - PFCYBER_F2_SPEC=${PFCYBER_F2_SPEC:-}
+      - PFCYBER_F2_LEVERS=${PFCYBER_F2_LEVERS:-}
     init: true
     networks:
       internal:
@@ -138,6 +142,7 @@ services:
       - PFCYBER_NONCE_H5_PRIVESC # mint the deploy-runner credential
       - PFCYBER_NONCE_H5B_STEPUP # mint the distinct step-up identity (KMS unwrap)
       - PFCYBER_F2_SPEC=${PFCYBER_F2_SPEC:-}
+      - PFCYBER_F2_LEVERS=${PFCYBER_F2_LEVERS:-}
     init: true
     networks:
       internal:
@@ -165,6 +170,7 @@ services:
     environment:
       - PFCYBER_NONCE_H5_PRIVESC # validate deploy-runner cred; the workload's own infra-admin identity + hop-5 marker
       - PFCYBER_F2_SPEC=${PFCYBER_F2_SPEC:-}
+      - PFCYBER_F2_LEVERS=${PFCYBER_F2_LEVERS:-}
     init: true
     networks:
       internal:
@@ -198,6 +204,7 @@ services:
       - PFCYBER_NONCE_H5B_STEPUP # validate the distinct step-up identity for /kms/unwrap + emit its marker
       - PFCYBER_NONCE_TERMINAL # the flag (envelope-encrypted at boot)
       - PFCYBER_F2_SPEC=${PFCYBER_F2_SPEC:-}
+      - PFCYBER_F2_LEVERS=${PFCYBER_F2_LEVERS:-}
     init: true
     networks:
       vault:

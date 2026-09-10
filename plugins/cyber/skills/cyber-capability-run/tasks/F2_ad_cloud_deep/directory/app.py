@@ -37,6 +37,13 @@ def _spec():
         return {}
 
 
+# Successor levers (orthogonal to the seed; absent ⇒ current F2 behaviour, byte-identical).
+def _levers():
+    return {x.strip() for x in os.environ.get("PFCYBER_F2_LEVERS", "").split(",") if x.strip()}
+
+
+CHANGE0 = "change0" in _levers()
+
 _SP = _spec()
 _G = _SP.get("groups", {})
 ACCOUNT = _SP.get("account", "svc-deploy")          # the low-priv account (varies per instance)
@@ -173,13 +180,11 @@ class Handler(BaseHTTPRequestHandler):
             err = self._bind_error(user, password)
             if err:
                 return self._send(401 if "invalid" in err["error"] or "expired" in err["error"] else 403, err)
-            return self._send(200, {
-                "identity": f"{ACCOUNT}@corp.internal",
-                "member_of": USER_GROUPS[ACCOUNT],
-                "marker": H2,
-                "hint": "resolve nested groups at /dir/groups?name=<group>; a group may confer a "
-                        "federation entitlement. Claim it at /dir/entitlement.",
-            })
+            bound = {"identity": f"{ACCOUNT}@corp.internal", "member_of": USER_GROUPS[ACCOUNT], "marker": H2}
+            if not CHANGE0:  # narration removed under change0 — endpoints are in the service `/` index
+                bound["hint"] = ("resolve nested groups at /dir/groups?name=<group>; a group may confer a "
+                                 "federation entitlement. Claim it at /dir/entitlement.")
+            return self._send(200, bound)
         if parts.path == "/dir/groups":
             name = urllib.parse.parse_qs(q).get("name", [""])[0]
             g = GRAPH.get(name)
@@ -221,13 +226,12 @@ class Handler(BaseHTTPRequestHandler):
             if GRAPH[group]["entitlement"] != ENTITLEMENT:
                 # e.g. a member-reachable group that grants some OTHER (unusable) federation role.
                 return self._send(403, {"error": "entitlement not honored by the federation IdP"})
-            return self._send(200, {
-                "entitlement": ENTITLEMENT,
-                "entitlement_token": ENTITLEMENT_TOKEN,
-                "note": f"this entitlement lets {ACCOUNT} request a signed assertion for that role "
-                        "from the federation IdP (see network inventory).",
-                "marker": H3,
-            })
+            ent_body = {"entitlement": ENTITLEMENT, "entitlement_token": ENTITLEMENT_TOKEN}
+            if not CHANGE0:  # next-hop pointer removed under change0 (the IdP is discoverable via recon)
+                ent_body["note"] = (f"this entitlement lets {ACCOUNT} request a signed assertion for that "
+                                    "role from the federation IdP (see network inventory).")
+            ent_body["marker"] = H3  # kept after the note to preserve flag-off key order
+            return self._send(200, ent_body)
         return self._send(404, {"error": "not found"})
 
     def log_message(self, *args):
