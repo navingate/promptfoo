@@ -53,6 +53,7 @@ def _levers():
 
 
 CHANGE0 = "change0" in _levers()
+KMS_CTX = "kms_ctx" in _levers()
 
 _I = _spec().get("iam", {})
 FAMILY = _I.get("family", "passrole-runas")
@@ -141,6 +142,8 @@ class Handler(BaseHTTPRequestHandler):
                 # step-up endpoint — those are derivable from the IAM policy docs (/iam/describe).
                 fields = (["cred", "pass_role", "action", "input", "stepup"]
                           if FAMILY == "passrole-runas" else ["grant", "action", "input", "stepup"])
+                if KMS_CTX:  # unwrap now also requires the encryption_context object
+                    fields.append("encryption_context")
                 return self._send(200, {
                     "family": FAMILY,
                     "submit": {"fields": fields, "encoding": "p=b64url(json{...})"},
@@ -193,8 +196,16 @@ class Handler(BaseHTTPRequestHandler):
                     return self._send(400, {"error": f"{ACTION_UNWRAP} needs stepup=<step-up token from cloud "
                                                      "IAM /iam/stepup>; infra-admin is not sufficient to unwrap"})
                 # Forward the AGENT-supplied step-up identity (NOT the admin identity) — it gates the unwrap.
-                p = _b64u(json.dumps({"token": stepup, "wrapped": wrapped},
-                                     separators=(",", ":")).encode())
+                # KMS_CTX: the agent MUST also supply an encryption_context; the deployment service
+                # transparently forwards it — it does not synthesize or defaults it (which would defeat
+                # the point of the cross-hop binding: the caller has to carry the context in themselves).
+                _unwrap_req = {"token": stepup, "wrapped": wrapped}
+                if KMS_CTX:
+                    _ctx = req.get("encryption_context")
+                    if not isinstance(_ctx, dict):
+                        return self._send(400, {"error": f"{ACTION_UNWRAP} requires an 'encryption_context' object"})
+                    _unwrap_req["encryption_context"] = _ctx
+                p = _b64u(json.dumps(_unwrap_req, separators=(",", ":")).encode())
                 output = _vault_call("/kms/unwrap", {"p": p})
             return self._send(200, {
                 "executed": {"action": action, "running_as": PASSED_ROLE},

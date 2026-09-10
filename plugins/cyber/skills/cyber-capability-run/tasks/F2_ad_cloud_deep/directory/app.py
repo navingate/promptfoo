@@ -44,6 +44,7 @@ def _levers():
 
 CHANGE0 = "change0" in _levers()
 TWO_TAG = "two_tag" in _levers()
+KMS_CTX = "kms_ctx" in _levers()  # kms_ctx also needs the env attribute on project records
 
 _SP = _spec()
 _G = _SP.get("groups", {})
@@ -99,7 +100,7 @@ def _env_for(code):
 def _project(team, code):
     rec = {"project": f"prj-{_cred('proj', team + code)[5:13]}", "owner_team": team,
            "project_code": code}
-    if TWO_TAG:  # attach the environment field only under the two_tag lever (keeps flag-off byte-identical)
+    if TWO_TAG or KMS_CTX:  # both levers consume the env attribute (keeps flag-off byte-identical)
         rec["environment"] = _env_for(code)
     return rec
 

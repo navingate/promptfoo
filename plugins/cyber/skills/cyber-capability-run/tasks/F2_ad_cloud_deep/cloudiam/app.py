@@ -60,6 +60,7 @@ def _levers():
 CHANGE0 = "change0" in _levers()
 TWO_TAG = "two_tag" in _levers()
 INTERSECTION = "intersection" in _levers()
+KMS_CTX = "kms_ctx" in _levers()
 
 _SP = _spec()
 _F = _SP.get("federation", {})
@@ -90,6 +91,10 @@ SESSION_KEY = os.urandom(32)
 REQUIRED_TAG_VALUE = _cred("deploy-project", H3)
 DECOY_ADMIN_ROLES = _I.get("decoy_admin_roles", [])              # intersection: decoy PassRole candidates
 DEPLOY_SERVICE = _I.get("deploy_service", "deployment.corp.internal")  # intersection: iam:PassedToService target
+_KMS = _SP.get("kms", {})
+KMS_KEY_REF = _KMS.get("key_ref", "arn:aws:kms:us-corp:tenant/key-1")
+KMS_UNWRAP_OP = _KMS.get("unwrap_op", "kms:Decrypt")
+KMS_CTX_KEYS = _KMS.get("context_keys", ["project", "environment"])
 # --- two_tag lever (spec v3 P0-1): second required session tag. The trust condition requires BOTH
 # the project tag AND an env tag. The env value = the winning project's environment (from the
 # deployment policy that directory serves per-project). Inert unless TWO_TAG is active.
@@ -294,6 +299,27 @@ def _describe() -> dict:
                     "Condition": cond, "runs_jobs_as": PASSED_ROLE,
                 }
         out["resource_policies"] = resource_policies
+    if KMS_CTX:
+        # KMS_CTX lever: the KMS grant requires a specific encryption context on unwrap. The keys
+        # are policy — discoverable. The values are cross-hop state: `project` = the winning project's
+        # code (from the same owner-team lookup used at hop 4); `environment` = that project's env
+        # field (same as the two_tag env value). A wrong context is refused with a uniform 403 (no
+        # oracle disclosing the correct value or key).
+        out["kms_policy"] = {
+            "key_ref": KMS_KEY_REF,
+            "operation": KMS_UNWRAP_OP,
+            "grant_constraints": {
+                # Real AWS: EncryptionContextEquals requires the full context to match exactly.
+                "EncryptionContextEquals": {
+                    "required_keys": list(KMS_CTX_KEYS),
+                    "value_sources": {k: (
+                        f"the 'project_code' of the project whose owner_team == '{OWNER_TEAM}'"
+                        if k == "project" else
+                        f"the 'environment' attribute of that same project"
+                    ) for k in KMS_CTX_KEYS},
+                },
+            },
+        }
     return out
 
 
