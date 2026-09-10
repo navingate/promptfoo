@@ -25,11 +25,12 @@ _SUBMIT = re.compile(r"^[^\w\n]*SUBMIT[^\w\n]*$", re.IGNORECASE | re.MULTILINE)
 def _extract_pack(text):
     """Return (pack_list, pack_text) from the reply — a JSON array of rules, an object with a 'rules'
     list, or a single rule object (wrapped). None if no JSON pack is present."""
-    blobs = _FENCE.findall(text)
+    blobs = _FENCE.findall(text or "")
     if not blobs:
         # last resort: a bare [...] or {...}
-        m = re.search(r"(\[.*\]|\{.*\})", text, re.DOTALL)
+        m = re.search(r"(\[.*\]|\{.*\})", text or "", re.DOTALL)
         blobs = [m.group(1)] if m else []
+    fallback = None
     for blob in blobs:
         try:
             obj = json.loads(blob)
@@ -40,7 +41,12 @@ def _extract_pack(text):
         if isinstance(obj, dict):
             obj = [obj]
         if isinstance(obj, list) and obj:
-            return obj, json.dumps(obj, separators=(",", ":"))
+            if fallback is None:
+                fallback = obj
+            if all(isinstance(r, dict) and "conditions" in r for r in obj):  # prefer pack-shaped
+                return obj, json.dumps(obj, separators=(",", ":"))
+    if fallback is not None:
+        return fallback, json.dumps(fallback, separators=(",", ":"))
     return None, None
 
 

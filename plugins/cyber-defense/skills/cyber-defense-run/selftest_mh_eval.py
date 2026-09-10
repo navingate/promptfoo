@@ -87,10 +87,79 @@ def test_provider_loop_with_stubbed_model():
     print("  test_provider_loop_with_stubbed_model OK")
 
 
+def test_no_dev_name_or_cid_leak():
+    # Review-B oracle A/B: DEV incident NAMES/order and any `_cid` value must not reach the model.
+    import mh_corpus as K
+    brief = P._brief()
+    assert not re.search(r"MAL_|BEN_|MIX_|HMAL|HBEN", brief), "brief leaks DEV/held-out incident names"
+    cids = {e["_cid"] for inc in K.DEV_INCIDENTS + K.HELDOUT_INCIDENTS for e in inc["events"]}
+    bad_pack = [{"require": "any", "conditions": [{"type": "exists", "event": "assertion_issued"}]}]
+    fb_agg = mh_eval.feedback(bad_pack, detail="aggregate")
+    fb_inc = mh_eval.feedback(bad_pack, detail="incidents")
+    for c in cids:
+        assert c not in brief and c not in fb_agg and c not in fb_inc, f"cid {c!r} leaked"
+    print("  test_no_dev_name_or_cid_leak OK")
+
+
+def test_contains_list_rule_does_not_crash():
+    # Review-B grading 1: a type-incoherent rule (contains + $config list vs a string field) must be
+    # inert, not crash feedback OR the provider loop.
+    bad = [{"require": "all", "conditions": [
+        {"type": "field", "event": "assertion_issued", "field": "outcome", "op": "contains",
+         "value": {"$config": "privileged_action_names"}}]}]
+    fb = mh_eval.feedback(bad)
+    assert "INVALID PACK" in fb or "scalar" in fb, fb  # returned a string, did not raise
+
+    calls = {"n": 0}
+
+    def stub(base_url, api_key, api_model, messages, **kw):
+        calls["n"] += 1
+        if calls["n"] == 1:
+            return f"TEST\n```json\n{json.dumps(bad)}\n```", "stop", None
+        return f"SUBMIT\n```json\n{_PACK_JSON}\n```", "stop", None
+
+    orig = P._chat
+    P._chat = stub
+    try:
+        os.environ["MH_FAKE_KEY"] = "x"
+        out = P.call_api(options={"config": {"base_url": "http://fake/v1", "api_key_env": "MH_FAKE_KEY",
+                                             "max_turns": 3}})
+    finally:
+        P._chat = orig
+    assert "output" in out and out["metadata"]["submitted"] is True, out  # loop survived the bad TEST
+    print("  test_contains_list_rule_does_not_crash OK")
+
+
+def test_stray_object_then_pack_graded_on_pack():
+    # Review-B grading 2: a scratch object before the real pack must not sink a correct pack.
+    out = f'SUBMIT\n```json\n{json.dumps({"note": "scratch"})}\n```\n```json\n{_PACK_JSON}\n```'
+    r = assert_mh.get_assert(out)
+    assert r["pass_"] is True and r["score"] == 1.0, r
+    print("  test_stray_object_then_pack_graded_on_pack OK")
+
+
+def test_oversize_and_nonlist_rejected():
+    over = json.dumps([{"require": "all", "conditions": [{"type": "exists", "event": "x"}]}] * 7)
+    r = assert_mh.get_assert(f"SUBMIT\n```json\n{over}\n```")
+    assert r["pass_"] is False and r["named_scores"]["run_valid"] == 0.0
+    print("  test_oversize_and_nonlist_rejected OK")
+
+
+def test_perfect_named_score():
+    r = assert_mh.get_assert(_fenced(_PACK_JSON))
+    assert r["named_scores"]["perfect"] == 1.0 and r["pass_"] is True
+    print("  test_perfect_named_score OK")
+
+
 if __name__ == "__main__":
     test_assert_grades_reference_pack()
     test_assert_rejects_invalid_and_oracle()
     test_feedback_reads_scalar()
     test_oracle_safety_brief_has_no_heldout_or_truth()
     test_provider_loop_with_stubbed_model()
+    test_no_dev_name_or_cid_leak()
+    test_contains_list_rule_does_not_crash()
+    test_stray_object_then_pack_graded_on_pack()
+    test_oversize_and_nonlist_rejected()
+    test_perfect_named_score()
     print("selftest_mh_eval: ALL OK")

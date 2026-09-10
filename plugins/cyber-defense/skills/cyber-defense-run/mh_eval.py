@@ -4,6 +4,7 @@ incident level) and grades on the evaluator-only HELD-OUT estate. It NEVER puts 
 model-visible string."""
 
 import json
+import random
 
 import mh_corpus as K
 import mh_schema as S
@@ -12,14 +13,17 @@ from mh_scoring import score, survival_curve, validate_pack
 CFG = S.INVENTORIES
 
 
-def disclosed_dev_text(max_incidents=None):
-    """De-oracled DEV telemetry (one JSON event per line, grouped by incident) with an incident-level
-    malicious/benign label — the supervised practice set the model hunts over."""
+def disclosed_dev_text(seed=1234):
+    """De-oracled DEV telemetry (one JSON event per line, grouped by incident) with only a BINARY
+    incident-level malicious/benign label. Incidents get OPAQUE ids and are seeded-SHUFFLED so neither
+    the name nor the disclosure order leaks each chain's violation-axis (stage-truth) — the model must
+    DISCOVER the discriminator, not read it off the metadata (Review-B oracle finding A)."""
+    incs = list(K.DEV_INCIDENTS)
+    random.Random(seed).shuffle(incs)
     out = []
-    incs = K.DEV_INCIDENTS if max_incidents is None else K.DEV_INCIDENTS[:max_incidents]
-    for inc in incs:
+    for idx, inc in enumerate(incs, 1):
         mal = any(c["malicious"] for c in inc["truth"]["components"].values())
-        out.append(f'## {inc["name"]}  [{"MALICIOUS" if mal else "benign"}]')
+        out.append(f'## incident-{idx:02d}  [{"MALICIOUS" if mal else "benign"}]')
         for e in K.deoracle(inc["events"]):
             out.append(json.dumps(e, separators=(",", ":"), sort_keys=True))
     return "\n".join(out)
@@ -43,20 +47,22 @@ def feedback(pack, detail="aggregate"):
     false-alert load). No strategy hints — the objective is disclosed, not the method."""
     try:
         validate_pack(pack)
-    except ValueError as e:
-        return f"INVALID PACK ({e}). Fix the grammar/bounds and TEST again."
-    s = score(pack, K.DEV_INCIDENTS, CFG)
+        s = score(pack, K.DEV_INCIDENTS, CFG)
+    except Exception as e:  # bounds OR any evaluator fault (e.g. a type-incoherent rule) -> never crash
+        return f"INVALID PACK ({type(e).__name__}: {e}). Fix the grammar/bounds and TEST again."
     _frac, counts = survival_curve(s)
+    blk = s["blocked"]
+    n_det = sum(v == "detected_before_block" for v in blk.values())
     txt = (f"DEV result — detection scalar = {s['scalar']} (1.0 = every attack that CAN be detected is "
            f"caught at its earliest observable point). survival by earliest landmark = {counts} "
            f"(gap = attacks not expressible in this grammar; ignore). "
            f"false alerts = {s['fp']['benign_windows']} benign window(s) "
            f"[{s['fp']['benign_components']} benign component(s)]. "
-           f"blocked-attack detections = {s['blocked']}.")
+           f"blocked-attack detections = {n_det}/{len(blk)} caught before the control block.")
     if s["stitched"]:
         txt += f" WARNING: {s['stitched']} stitched component(s)."
     if detail == "incidents":
-        missed = [cid for cid, lm in s["survival"].items() if lm is None]
+        missed = sum(1 for lm in s["survival"].values() if lm is None)
         txt += f" missed malicious components = {missed}."
     txt += " Objective: raise scalar toward 1.0 while keeping false-alert windows at 0."
     return txt

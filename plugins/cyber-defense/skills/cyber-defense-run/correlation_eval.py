@@ -135,10 +135,19 @@ def _field_ok(events: list[dict], event_type: str, field: str, op: str, value) -
             return True
         if op == "eq" and v == value:
             return True
-        if op == "in" and v in value:
-            return True
-        if op == "contains" and isinstance(v, (list, str, dict)) and value in v:
-            return True
+        if op in ("in", "contains"):
+            # membership can raise TypeError on a type-incoherent operand pair (e.g. `contains` with a
+            # list/$config-list value against a string field). Mirror `_member`: convert to
+            # CorrelationUnsupported so an untrusted model rule is graded `invalid`/inert, never a crash.
+            try:
+                if op == "in" and v in value:
+                    return True
+                if op == "contains" and isinstance(v, (list, str, dict)) and value in v:
+                    return True
+            except TypeError as exc:
+                raise CorrelationUnsupported(
+                    f"{op}: type-incoherent membership "
+                    f"({type(v).__name__} vs {type(value).__name__}): {exc}") from exc
         if op == "ge":
             try:
                 if float(v) >= float(value):

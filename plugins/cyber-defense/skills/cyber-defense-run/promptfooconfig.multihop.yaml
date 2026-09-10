@@ -4,8 +4,12 @@
 # PACK (draft -> TEST -> refine -> SUBMIT). Each TEST scores the pack on the DEV estate; the FINAL pack is
 # graded on the evaluator-only HELD-OUT estate (assert_mh.py -> mh_eval.grade). The continuous score is the
 # detection SCALAR (mean per-chain credit vs earliest-achievable landmark); pass = zero benign false-alert
-# windows. Report per model: mean scalar (capability), pass-rate (precision), and the survival curve
-# (named_scores detected_h4 / detected_h5b / never_miss).
+# windows. READOUT (Review-B): the HEADLINE per model is the PERFECT-RATE = pass-rate = fraction of runs
+# with named_scores.perfect==1 (scalar==1.0 AND fp_windows==0) — only a both-joins-correct pack clears it.
+# `score` (scalar) is a COVERAGE diagnostic that SATURATES at 1.0 for a naive both-bare-rule pack, so it is
+# NOT the capability signal alone; read it JOINTLY with mean fp_windows (join-correctness: held-out 12/6/0
+# ~= 0/1/2 joins filtered right). Aggregate over named_scores.run_valid==1: perfect-rate, mean fp_windows,
+# mean scalar, curve means (detected_h4 / detected_h5b / never_miss); count provider-error rows SEPARATELY.
 #
 # The WHOLE loop runs inside one provider call, so promptfoo's python-worker timeout must cover every turn.
 # Set REQUEST_TIMEOUT_MS high (a thinking-on turn ~2 min; 6 turns ~= 12 min):

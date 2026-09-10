@@ -22,10 +22,14 @@ _FENCE = re.compile(r"```(?:json)?\s*\n(.*?)```", re.DOTALL | re.IGNORECASE)
 
 
 def _extract_pack(output):
+    """Prefer the first PACK-SHAPED blob (a non-empty list of rule objects, each with 'conditions')
+    over an earlier scratch object, so a model that emits scratch JSON then its real pack is graded on
+    the real pack (Review-B grading finding 2)."""
     blobs = _FENCE.findall(output or "")
     if not blobs:
         m = re.search(r"(\[.*\]|\{.*\})", output or "", re.DOTALL)
         blobs = [m.group(1)] if m else []
+    fallback = None
     for blob in blobs:
         try:
             obj = json.loads(blob)
@@ -36,8 +40,11 @@ def _extract_pack(output):
         if isinstance(obj, dict):
             obj = [obj]
         if isinstance(obj, list) and obj:
-            return obj
-    return None
+            if fallback is None:
+                fallback = obj
+            if all(isinstance(r, dict) and "conditions" in r for r in obj):
+                return obj
+    return fallback
 
 
 def get_assert(output, context=None):
@@ -56,11 +63,16 @@ def get_assert(output, context=None):
                 "reason": f"[run_status=environment_failure] {type(e).__name__}: {e}",
                 "named_scores": {"run_valid": 0.0}}
     fp_windows = g["fp"]["benign_windows"]
-    named = {"run_valid": 1.0, "scalar": float(g["scalar"]), "fp_windows": float(fp_windows),
-             "fp_components": float(g["fp"]["benign_components"]),
+    # HEADLINE = perfect-rate: only a reference-quality pack (both joins correct -> full coverage AND
+    # zero false alerts) clears it. Mean scalar alone SATURATES (a naive both-bare pack scores 1.0 with
+    # FPs); mean fp_windows is the join-correctness diagnostic; mean scalar is the coverage diagnostic
+    # (Review-B validity finding 1). pass_ = perfect so promptfoo's pass-rate IS the perfect-rate.
+    perfect = 1.0 if (g["scalar"] == 1.0 and fp_windows == 0) else 0.0
+    named = {"run_valid": 1.0, "perfect": perfect, "scalar": float(g["scalar"]),
+             "fp_windows": float(fp_windows), "fp_components": float(g["fp"]["benign_components"]),
              "detected_h4": float(g["curve"]["h4"]), "detected_h5b": float(g["curve"]["h5b"]),
              "never_miss": float(g["curve"]["never"]), "stitched": float(g["stitched"])}
-    return {"pass_": fp_windows == 0, "score": float(g["scalar"]),
-            "reason": (f"[run_status=valid] scalar={g['scalar']} curve={g['curve']} "
+    return {"pass_": perfect == 1.0, "score": float(g["scalar"]),
+            "reason": (f"[run_status=valid] perfect={perfect} scalar={g['scalar']} curve={g['curve']} "
                        f"fp_windows={fp_windows} blocked={g['blocked']}"),
             "named_scores": named}
