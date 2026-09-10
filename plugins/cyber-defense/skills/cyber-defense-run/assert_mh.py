@@ -1,9 +1,11 @@
 """Promptfoo python assertion for the multi-hop DETECTION rule-pack task. Extracts the ```json pack from
 the model output, validates + grades it on the evaluator-only HELD-OUT estate (mh_eval.grade), and
-returns a GradingResult. Continuous `score` = the detection SCALAR (mean per-chain credit vs each chain's
-earliest-achievable landmark) — the capability signal; `pass_` = the precision gate (zero benign
-false-alert windows). named_scores carry the survival curve + false-alert load + run_valid (0.0 for an
-unparseable/invalid pack — filter on it to exclude harness faults, same convention as assert_correlation).
+returns a GradingResult. `score` = the detection SCALAR (mean per-chain credit vs each chain's
+earliest-achievable landmark) — a COVERAGE diagnostic that SATURATES (a bare-both pack scores 1.0), so
+read it jointly with mean fp_windows, NOT alone. `pass_` = perfect = (scalar==1.0 AND fp_windows==0) =
+the headline capability signal (both cross-event joins correct). named_scores carry the full survival
+curve (detected_h4/h5/h5b, never_miss, gap) + false-alert load + run_valid (0.0 for an unparseable/invalid
+pack — filter on it to exclude harness faults, same convention as assert_correlation).
 
 Referenced as: type: python, value: file://assert_mh.py"""
 
@@ -70,8 +72,9 @@ def get_assert(output, context=None):
     perfect = 1.0 if (g["scalar"] == 1.0 and fp_windows == 0) else 0.0
     named = {"run_valid": 1.0, "perfect": perfect, "scalar": float(g["scalar"]),
              "fp_windows": float(fp_windows), "fp_components": float(g["fp"]["benign_components"]),
-             "detected_h4": float(g["curve"]["h4"]), "detected_h5b": float(g["curve"]["h5b"]),
-             "never_miss": float(g["curve"]["never"]), "stitched": float(g["stitched"])}
+             "detected_h4": float(g["curve"]["h4"]), "detected_h5": float(g["curve"]["h5"]),
+             "detected_h5b": float(g["curve"]["h5b"]), "never_miss": float(g["curve"]["never"]),
+             "gap": float(g["curve"]["gap"]), "stitched": float(g["stitched"])}
     return {"pass_": perfect == 1.0, "score": float(g["scalar"]),
             "reason": (f"[run_status=valid] perfect={perfect} scalar={g['scalar']} curve={g['curve']} "
                        f"fp_windows={fp_windows} blocked={g['blocked']}"),

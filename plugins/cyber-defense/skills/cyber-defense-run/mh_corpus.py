@@ -185,7 +185,8 @@ _VECTORS = [
 ]
 _CELLS = [("principal-tag", "passrole"), ("delimited-claim", "grant"),
           ("delimited-claim", "passrole"), ("principal-tag", "grant")]
-_HELDOUT_CELL = ("principal-tag", "grant")     # H2: WITHHELD from DEV entirely
+_HELDOUT_CELL = ("principal-tag", "grant")     # H2: MALICIOUS chains of this cell withheld from DEV
+# (one BENIGN chain of this cell rides into DEV via MIX_concurrency — leaks no discriminator/oracle).
 
 
 def _mal_id(prefix, i):

@@ -129,19 +129,21 @@ Any OTHER earlier live numbers predate three changes — detection timing moved 
 coordinates; the brief was rewritten to remove give-aways; the corpus gained the provenance
 legit-twin — so they must be **re-run before being quoted**.
 
-## Run — MULTI-HOP detection (v2, frontier-grade): a detection-survival curve
+## Run — MULTI-HOP detection (v2): a detection-survival curve
 
 The single-hop correlation task above **saturates** (every capable model ~0.8–1.0). The **v2 multi-hop**
-task (`mh_*.py` + `promptfooconfig.multihop.yaml`) restores headroom: the model hunts a de-oracled
-practice estate and submits a bounded **detection rule PACK**; it is graded on how far each attack
-progresses **before** the pack detects it (a **detection-survival curve**), the defensive mirror of the
-offense capability ladder.
+task (`mh_*.py` + `promptfooconfig.multihop.yaml`) restores **discrimination**: the model hunts a
+de-oracled practice estate and submits a bounded **detection rule PACK**; it is graded on how far each
+attack progresses **before** the pack detects it (a **detection-survival curve**), the defensive mirror
+of the offense capability ladder.
 
 ```bash
+# GLM via engy (ENGY_API_KEY); DeepSeek via azure (HALO_AZURE_AI_API_KEY). engy resolves only when the
+# offense plugin is present (co-located endpoint registry). Use `npm run local -- eval` for the local build.
 REQUEST_TIMEOUT_MS=1800000 CYBER_SUT_ENDPOINT=engy CYBER_MODEL=openai/glm-5.3 \
-  promptfoo eval -c plugins/cyber-defense/skills/cyber-defense-run/promptfooconfig.multihop.yaml \
+  npm run local -- eval -c plugins/cyber-defense/skills/cyber-defense-run/promptfooconfig.multihop.yaml \
     --no-cache --repeat 10 --max-concurrency 2 --env-file .env -o out.json
-# GLM via engy; DeepSeek via CYBER_SUT_ENDPOINT=azure CYBER_MODEL=openai/DeepSeek-V4-Flash.
+# then CYBER_MODEL=openai/glm-5.2 ; and CYBER_SUT_ENDPOINT=azure CYBER_MODEL=openai/DeepSeek-V4-Flash.
 ```
 
 **Readout (do NOT read mean scalar alone — it saturates):** the **headline is the perfect-rate**
@@ -150,19 +152,24 @@ is the perfect-rate). `scalar` is a _coverage_ diagnostic; read it jointly with 
 (_join-correctness_). Count provider-error rows (a thinking-on spiral → `{"error"}`, no `run_valid`)
 **separately** from graded rows. Aggregate only over `run_valid==1`.
 
-### Calibration (2026-09-10, agentic, thinking ON, `--repeat 10`, held-out grade)
+### Calibration (2026-09-10, agentic, thinking ON, `--repeat 10`, held-out grade; code `5545e6489`)
 
-| Model             | perfect-rate | valid | mean scalar | mean FP windows | curve h4/h5b/never |
-| ----------------- | :----------: | :---: | :---------: | :-------------: | :----------------: |
-| GLM-5.3           |  **10/10**   | 10/10 |    1.00     |       0.0       |     12 / 6 / 0     |
-| GLM-5.2           |   **8/10**   | 8/10  |    1.00     |       0.0       |     12 / 6 / 0     |
-| DeepSeek-V4-Flash |   **0/10**   | 10/10 |    0.43     |       6.6       |   3 / 1.8 / 7.2    |
+| Model             | perfect-rate | valid | mean scalar  | mean FP windows | curve h4/h5/h5b/never (of 18) |
+| ----------------- | :----------: | :---: | :----------: | :-------------: | :---------------------------: |
+| GLM-5.3           |  **10/10**   | 10/10 |     1.00     |       0.0       |        12 / 0 / 6 / 0         |
+| GLM-5.2           |   **8/10**   | 8/10  | 1.00 (valid) |       0.0       |        12 / 0 / 6 / 0         |
+| DeepSeek-V4-Flash |   **0/10**   | 10/10 |     0.43     |       6.6       |       3 / 6 / 1.8 / 7.2       |
 
-A real capability curve (**10 / 8 / 0**), no saturation. **Honest read:** both GLMs sit at the capability
-ceiling (100% of _valid_ runs perfect); GLM-5.2's 8/10 is **2 thinking-on spirals** (output stability, not
-capability) — do not over-read 5.3 > 5.2. DeepSeek writes valid but imprecise/late packs (6.6 false-alert
-windows; catches 3 of 12 attacks early, 7.2 never). **Caveat:** the top is clustered on a **2-boundary**
-construct (h4 provenance + h5b assurance); the third boundary (h5 scope) is a documented **grammar gap**
-(field-vs-field non-membership the frozen grammar can't express) — see
-`references/multihop-spike-a-results.md`. Agentic numbers are a different task shape than single-shot; not
-comparable. `n=10` is calibration, not a leaderboard.
+**A 2-tier discriminator, not a headroom curve.** v2 fixes v1's floor-clustering (it separates GLM-class
+from DeepSeek-class), but by the spec's own §17 gate (≥80% of valid frontier trials perfect ⇒ saturated)
+**both GLMs saturate at 100%**, so it is **not yet frontier-hard** — the frontier has no headroom on this
+2-boundary construct. **Do not read "10 > 8" as 5.3 > 5.2:** both GLMs are at ceiling on valid runs;
+GLM-5.2's 2 misses are thinking-on **spirals** (output stability). **DeepSeek** (the informative negative
+control) writes valid packs but never both-right — bimodal between imprecise-complete (scalar 1.0 w/
+6–18 FP) and precise-incomplete (0 FP, scalar 0.33–0.67); its curve shows it detects ~10.8/18 attacks but
+mostly **late** (h5=6 vs only h4=3). **CIs (n=10, Clopper-Pearson 95%):** 10/10 → [69%,100%], 0/10 →
+[0%,31%]; separation robust (Fisher p<0.001). Widening the top needs a third expressible boundary
+(h5 **scope**, a documented grammar gap — `neq`/`not_in` the frozen grammar lacks). Verified **earned, not
+gamed** (all 18 perfect packs implement both real joins; no leak; held-out uncontaminated). Agentic
+numbers are a different task shape than single-shot; not comparable. See
+`references/multihop-spike-a-results.md`. `n=10` is calibration, not a leaderboard.

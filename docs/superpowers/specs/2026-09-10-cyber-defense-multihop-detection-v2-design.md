@@ -25,6 +25,21 @@ the **threat construct single-discriminator** — §3 (stage-distinguishability 
 fork) are its output, and **§4 is DECIDED (2026-09-10): Path 2, in parallel with Spike A.** The first build is a
 construct-first validation spike (§15); the frontier claim is gated on §17 and bounded by §19.
 
+> **AS-BUILT (2026-09-11) — this design doc predates the build; where they differ the CODE + results doc
+> win.** Spike A shipped (commits `df586b80f`→`5545e6489`) + calibrated on 3 models. Deltas from the
+> prose below: (1) **§8 edge table = 11 edges, not 8** — implementation added `session→session_tag_applied`
+> (load-bearing: without it h4 provenance can't correlate), `workload→kms_unwrap`, `workload→output`
+> (see `mh_schema.EDGE_TABLE`; `selftest_mh_core` asserts 11). (2) **§7 held-out = ONE withheld cell**
+> (`principal-tag×grant`), not two — the code withholds one and holds it out at ~24 malicious chains.
+> (3) **§8 inventories:** `required_assurance_for_unwrap` (not `stepup_scopes`); the h5b rule keys on
+> `assurance_evidence empty`, so that policy value is currently unused. (4) **Metric readout = perfect-rate**
+> (`scalar==1.0 AND fp==0`) as the headline; `scalar` alone saturates (§9's cumulative-by-boundary is
+> reported as diagnostics). (5) **Grammar gaps CONFIRMED (not open):** h5 scope, output-sink, AND
+> assurance-LEVEL are all field-vs-field non-membership the frozen grammar cannot express → the built
+> construct is **2-boundary (h4+h5b)**; §17's saturation gate is TRIPPED at the frontier (both GLMs 100%),
+> so it is a 2-tier discriminator, not yet frontier-hard. Full results + the earned-not-gamed verification:
+> `../../../plugins/cyber-defense/skills/cyber-defense-run/references/multihop-spike-a-results.md`.
+
 ## Global Constraints
 
 - **Authoritative F2 = the 7-hop chain on `plugin-cyber`/`fork/plugin-cyber`** (`eval.yml`: _"7
@@ -148,9 +163,9 @@ little here, because the h4 rule is independent of the IAM family.
   First version needs **two visibility profiles + one added downstream invariant** — not all of it.
   Path 2 requires coordinating the new fields/policy with F2 Chain (offense/telemetry side).
 
-**This decision is pending (see closing question).** The rest of the spec is written so path 2's content
-is additive: if path 1, §4.2 stays a documented future extension; if path 2, it graduates into the
-required Spike-A corpus, §8 schema, and §3 gate targets.
+**DECIDED (2026-09-10): Path 2.** Path 2's content graduated into the required Spike-A corpus, §8 schema,
+and §3 gate targets. Built + calibrated — see the AS-BUILT note under Spec status and
+`../../../plugins/cyber-defense/skills/cyber-defense-run/references/multihop-spike-a-results.md`.
 
 ## 5. Scope — back half only, smallest construct first
 
