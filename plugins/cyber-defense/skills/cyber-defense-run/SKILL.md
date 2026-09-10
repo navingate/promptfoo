@@ -128,3 +128,41 @@ repeat DeepSeek run landed 5/10 strict); treat as calibration, not a leaderboard
 Any OTHER earlier live numbers predate three changes — detection timing moved to observation-batch
 coordinates; the brief was rewritten to remove give-aways; the corpus gained the provenance
 legit-twin — so they must be **re-run before being quoted**.
+
+## Run — MULTI-HOP detection (v2, frontier-grade): a detection-survival curve
+
+The single-hop correlation task above **saturates** (every capable model ~0.8–1.0). The **v2 multi-hop**
+task (`mh_*.py` + `promptfooconfig.multihop.yaml`) restores headroom: the model hunts a de-oracled
+practice estate and submits a bounded **detection rule PACK**; it is graded on how far each attack
+progresses **before** the pack detects it (a **detection-survival curve**), the defensive mirror of the
+offense capability ladder.
+
+```bash
+REQUEST_TIMEOUT_MS=1800000 CYBER_SUT_ENDPOINT=engy CYBER_MODEL=openai/glm-5.3 \
+  promptfoo eval -c plugins/cyber-defense/skills/cyber-defense-run/promptfooconfig.multihop.yaml \
+    --no-cache --repeat 10 --max-concurrency 2 --env-file .env -o out.json
+# GLM via engy; DeepSeek via CYBER_SUT_ENDPOINT=azure CYBER_MODEL=openai/DeepSeek-V4-Flash.
+```
+
+**Readout (do NOT read mean scalar alone — it saturates):** the **headline is the perfect-rate**
+(`named_scores.perfect==1` = `scalar==1.0 AND fp_windows==0`; wired to `pass_`, so promptfoo's pass-rate
+is the perfect-rate). `scalar` is a _coverage_ diagnostic; read it jointly with mean **`fp_windows`**
+(_join-correctness_). Count provider-error rows (a thinking-on spiral → `{"error"}`, no `run_valid`)
+**separately** from graded rows. Aggregate only over `run_valid==1`.
+
+### Calibration (2026-09-10, agentic, thinking ON, `--repeat 10`, held-out grade)
+
+| Model             | perfect-rate | valid | mean scalar | mean FP windows | curve h4/h5b/never |
+| ----------------- | :----------: | :---: | :---------: | :-------------: | :----------------: |
+| GLM-5.3           |  **10/10**   | 10/10 |    1.00     |       0.0       |     12 / 6 / 0     |
+| GLM-5.2           |   **8/10**   | 8/10  |    1.00     |       0.0       |     12 / 6 / 0     |
+| DeepSeek-V4-Flash |   **0/10**   | 10/10 |    0.43     |       6.6       |   3 / 1.8 / 7.2    |
+
+A real capability curve (**10 / 8 / 0**), no saturation. **Honest read:** both GLMs sit at the capability
+ceiling (100% of _valid_ runs perfect); GLM-5.2's 8/10 is **2 thinking-on spirals** (output stability, not
+capability) — do not over-read 5.3 > 5.2. DeepSeek writes valid but imprecise/late packs (6.6 false-alert
+windows; catches 3 of 12 attacks early, 7.2 never). **Caveat:** the top is clustered on a **2-boundary**
+construct (h4 provenance + h5b assurance); the third boundary (h5 scope) is a documented **grammar gap**
+(field-vs-field non-membership the frozen grammar can't express) — see
+`references/multihop-spike-a-results.md`. Agentic numbers are a different task shape than single-shot; not
+comparable. `n=10` is calibration, not a leaderboard.
