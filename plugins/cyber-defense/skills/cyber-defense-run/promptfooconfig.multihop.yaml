@@ -1,0 +1,41 @@
+# Cyber DEFENSE — MULTI-HOP detection, AGENTIC rule-pack (v2 Spike A).
+#
+# The model hunts a de-oracled telemetry practice estate and iteratively builds a bounded DETECTION RULE
+# PACK (draft -> TEST -> refine -> SUBMIT). Each TEST scores the pack on the DEV estate; the FINAL pack is
+# graded on the evaluator-only HELD-OUT estate (assert_mh.py -> mh_eval.grade). The continuous score is the
+# detection SCALAR (mean per-chain credit vs earliest-achievable landmark); pass = zero benign false-alert
+# windows. Report per model: mean scalar (capability), pass-rate (precision), and the survival curve
+# (named_scores detected_h4 / detected_h5b / never_miss).
+#
+# The WHOLE loop runs inside one provider call, so promptfoo's python-worker timeout must cover every turn.
+# Set REQUEST_TIMEOUT_MS high (a thinking-on turn ~2 min; 6 turns ~= 12 min):
+#
+#   cd ~/promptfoo && REQUEST_TIMEOUT_MS=1800000 CYBER_SUT_ENDPOINT=engy CYBER_MODEL=openai/glm-5.3 \
+#     npm run local -- eval -c plugins/cyber-defense/skills/cyber-defense-run/promptfooconfig.multihop.yaml \
+#       --no-cache --repeat 10 --max-concurrency 2 --env-file .env -o /tmp/mh_glm53.json
+#   (swap CYBER_MODEL for openai/glm-5.2; and CYBER_SUT_ENDPOINT=azure CYBER_MODEL=openai/DeepSeek-V4-Flash.)
+#
+# reasoning_effort is left UNSET so thinking stays ON (the loop, not a bounded effort, keeps it from
+# spiralling). Agentic numbers are a different task shape than single-shot — report them labelled as such.
+description: Cyber DEFENSE — multi-hop detection, agentic rule-pack (v2 Spike A)
+
+providers:
+  - id: file://mh_agent_provider.py
+    label: cyber-defense-multihop-agent
+    config:
+      # model + endpoint come from CYBER_MODEL / CYBER_SUT_ENDPOINT (or CYBER_BASE_URL + CYBER_API_KEY_ENV)
+      temperature: 0.7
+      max_turns: 6 # bounded refine loop; CYBER_MAX_TURNS overrides
+      max_tokens: 16000 # per-turn budget; a thinking-on turn that exceeds it spirals and is nudged once
+      feedback_detail: aggregate # TEST discloses score + counts + false-alert load only; "incidents" is richer
+      http_timeout: 300 # per-turn socket timeout (seconds); CYBER_HTTP_TIMEOUT overrides
+
+prompts:
+  - '{{task}}' # placeholder — the provider builds the brief + telemetry + protocol itself
+
+tests:
+  - description: multihop_detection
+    vars: { task: multihop_detection }
+    assert:
+      - type: python
+        value: file://assert_mh.py
