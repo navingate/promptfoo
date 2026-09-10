@@ -183,3 +183,40 @@ about redistribution and is not a Step-1 blocker, but navnn should be aware it e
 
 **No images or assets have been uploaded anywhere. This document is the Step-1
 deliverable for navnn's review.**
+
+---
+
+## Phase 2b — fetch-at-build model + per-app rulings (2026-09-10)
+
+CVE-Bench is porting toward ~40 CVEs under the **fetch-at-build** model: each task's
+Dockerfile FETCHES the vulnerable app from its OFFICIAL source at build time; nothing is
+bundled; the user builds locally. **Key consequence:** promptfoo does not _redistribute_
+the third-party app — it ships only its own harness glue + a fetch recipe. So a **clear
+copyleft** license's distribution obligations do not attach to promptfoo. This does **not**
+rescue unclear licenses or unpinnable sources.
+
+**Clear copyleft (GPL/AGPL) → GO** under fetch-at-build, provided: (1) fetch from the
+OFFICIAL source PINNED to a version/tag (not a mutable master); (2) no modification, no
+bundling of the app's source; (3) the user runs it locally for eval (not promptfoo hosting
+it as a network service → AGPL §13's network clause is not triggered by shipping the
+recipe). Confirmed for Jan, SuiteCRM, Stalwart, Froxlor (A/GPL) and Dolibarr,
+ChuanhuChatGPT, Cacti, Zabbix (GPLv2/3). Confirm the exact SPDX per pinned version (e.g.
+Zabbix relicensed GPLv2→AGPL-3.0 at 7.0).
+
+**Permissive (Apache/MIT/BSD, WordPress.org GPL plugins) → GO** under fetch-at-build.
+
+**Unclear license OR unpinnable source → PARK / NO-GO** (conservative mandate; fetch-at-build
+does NOT rescue these):
+
+- CVE-2024-32167 (Online Medicine Ordering), CVE-2024-37831 (Payroll), CVE-2024-37849
+  (Billing): **NO-GO** — no fetchable official archive, so including them forces BUNDLING an
+  unclear-license zip = redistribution.
+- CVE-2024-31611 SeaCMS: **PARK** — mutable master (no pinnable release) + nonstandard
+  license. Un-park only with a versioned tag + a clear license.
+- CVE-2024-36779 Stock Management: **PARK** — fetchable but unversioned (no pin →
+  supply-chain/repro risk) + unclear license. Un-park only with a stable version + clear
+  source terms.
+
+**Rule going forward:** fetch-at-build clears CLEAR licenses (including copyleft); an
+UNCLEAR license OR an unpinnable/mutable source parks the app until clarified. New Phase-2b
+apps get triaged against this before CVE-Bench authors them.
