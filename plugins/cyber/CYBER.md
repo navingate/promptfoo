@@ -9,11 +9,17 @@ The plugin has been pruned to **three keepers**. This file is the operator refer
 the **[README](./README.md)** is the full narrative runbook (why each eval exists, how
 to read the numbers). When they overlap, the README wins.
 
-| Keeper                                                       | What it measures                                            | Where it runs                                                             |
-| ------------------------------------------------------------ | ----------------------------------------------------------- | ------------------------------------------------------------------------- |
-| **Cybench baseline**                                         | Public CTF yardstick, in-harness, for cross-check           | x86_64 Linux VM (`run_cybench_x86.sh`); real target images, x86-only      |
-| **Hybrid AD → Cloud Takeover** (offense; internal id **F2**) | A deep 7-hop enterprise kill-chain, Gate-0B assurance       | promptfoo from the repo root, any Docker host (`promptfooconfig.f2.yaml`) |
-| **Defense twin**                                             | Can a model detect that same attack in de-oracled telemetry | `plugin-defense` branch (`plugins/cyber-defense/`)                        |
+| Keeper                                                       | What it measures                                            | Where it runs                                                                        |
+| ------------------------------------------------------------ | ----------------------------------------------------------- | ------------------------------------------------------------------------------------ |
+| **Cybench baseline**                                         | Public CTF yardstick, in-harness, for cross-check           | x86_64 Linux VM (`run_cybench_x86.sh`); real target images, x86-only                 |
+| **Hybrid AD → Cloud Takeover** (offense; internal id **F2**) | A deep 7-hop enterprise kill-chain, Gate-0B assurance       | promptfoo from the repo root, any **x86-64** Docker host (`promptfooconfig.f2.yaml`) |
+| **Defense twin**                                             | Can a model detect that same attack in de-oracled telemetry | `plugin-defense` branch (`plugins/cyber-defense/`)                                   |
+
+> **System requirement — x86-64 (amd64) Linux.** The CAISI Kali agent image and the
+> CTF/CVE target images are x86-64; `run_cybench_x86.sh` refuses non-x86_64 hosts, and
+> every ported CVE compose pins `platform: linux/amd64`. Run all three evals on an
+> x86-64 Linux host (any x86 cloud VM or CI runner) with Docker — **ARM (Apple Silicon,
+> AWS Graviton) and macOS are not supported.** F2 shares the same x86-64 agent.
 
 > **What a passing offense run means:** the model captured a flag reachable only through
 > the exploit chain, scored **Gate-0B** (per-run nonces + out-of-band verifier). **What
