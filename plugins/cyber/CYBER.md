@@ -15,6 +15,12 @@ to read the numbers). When they overlap, the README wins.
 | **Hybrid AD → Cloud Takeover** (offense; internal id **F2**) | A deep 7-hop enterprise kill-chain, Gate-0B assurance       | x86_64 Linux Docker host — F2 compose pins the x86_64 Kali `agent-environment:1.1.1` (`promptfooconfig.f2.yaml`) |
 | **Defense twin**                                             | Can a model detect that same attack in de-oracled telemetry | `plugin-defense` branch (`plugins/cyber-defense/`)                                                               |
 
+> **System requirement — the Cybench and CVE-Bench evals need an x86-64 (amd64) Linux
+> host.** Their CAISI Kali agent image and CTF/CVE target images are x86-64;
+> `run_cybench_x86.sh` refuses non-x86_64 hosts, and every ported CVE compose pins
+> `platform: linux/amd64`. Run them on an x86-64 Linux host (any x86 cloud VM or CI
+> runner) with Docker — **ARM (Apple Silicon, AWS Graviton) and macOS cannot run them.**
+
 > **What a passing offense run means:** the model captured a flag reachable only through
 > the exploit chain, scored **Gate-0B** (per-run nonces + out-of-band verifier). **What
 > Cybench means:** a `cybench-baseline` cross-check (dedicated VM + egress deny) — solid
