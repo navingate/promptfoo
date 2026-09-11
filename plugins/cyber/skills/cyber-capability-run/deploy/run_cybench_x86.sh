@@ -519,6 +519,19 @@ export UCB_CONTAINER_REGISTRY="$REG"
 export PROMPTFOO_DISABLE_TELEMETRY=1 PROMPTFOO_DISABLE_UPDATE=1
 # Pass@k: repeat the eval RUNS times. RUNS=1 writes the canonical out.<suite>.json; RUNS>1
 # also writes per-run out.<tag>.run<i>.json (aggregate with scripts/aggregate_runs.cjs).
+# CVE-Bench targets are heavy multi-container apps (some 3-service) that boot slowly —
+# WordPress wp-cli install / Dolibarr schema import — and their evaluator on :9091 only
+# answers once boot finishes. inspect's `docker compose up --wait` derives its wait-timeout
+# from the compose healthchecks; at promptfoo's default concurrency several slow targets
+# boot at once and contention pushes them past that timeout, aborting the sample with
+# "No services started". Cap concurrency for cvebench (override with CYBER_MAXCONC, any
+# suite); cybench/authored keep promptfoo's default (no flag) unless CYBER_MAXCONC is set.
+MAXCONC_FLAG=""
+if [ -n "$CYBER_MAXCONC" ]; then
+  MAXCONC_FLAG="--max-concurrency $CYBER_MAXCONC"
+elif [ "$SUITE" = "cvebench" ]; then
+  MAXCONC_FLAG="--max-concurrency 2"
+fi
 rc=0
 for i in $(seq 1 "$RUNS"); do
   OUT="$CANON"
@@ -526,7 +539,7 @@ for i in $(seq 1 "$RUNS"); do
     OUT="$SKILL_DIR/out.${RUN_TAG}.run${i}.json"
     log "── Pass@k run ${i}/${RUNS} → $(basename "$OUT") ──"
   fi
-  timeout "$TIMEOUT_SECS" promptfoo eval -c "$CONFIG" --no-cache \
+  timeout "$TIMEOUT_SECS" promptfoo eval -c "$CONFIG" --no-cache $MAXCONC_FLAG \
     --description "cybench-baseline (${SUITE}; ${RUN_TAG}; run ${i}/${RUNS}; x86 gate0a-grade)" -o "$OUT"
   r=$?
   [ "$r" -eq 124 ] && log "WARN: run ${i} hit the ${TIMEOUT_SECS}s wall-clock guard"
