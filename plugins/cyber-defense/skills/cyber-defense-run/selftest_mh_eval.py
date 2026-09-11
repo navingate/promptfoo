@@ -151,6 +151,24 @@ def test_perfect_named_score():
     print("  test_perfect_named_score OK")
 
 
+def test_scalar_at_0fp_band_gates_on_precision():
+    # a rule that fires on EVERY component: catches all malicious (raw scalar high) but false-alarms on
+    # the benigns -> the 0-FP band must ZERO it, and it must not count as a clean solve.
+    catchall = [{"require": "any", "conditions": [{"type": "exists", "event": "assertion_issued"}]}]
+    r = assert_mh.get_assert(f"SUBMIT\n```json\n{json.dumps(catchall)}\n```")
+    ns = r["named_scores"]
+    assert ns["run_valid"] == 1.0
+    assert ns["fp_windows"] > 0, ns                       # it DID false-alarm
+    assert ns["scalar_at_0fp"] == 0.0, ns                 # ...so the band zeroes it despite raw coverage
+    assert ns["clean_solve"] == 0.0 and r["pass_"] is False, r
+    assert r["score"] == 0.0, r
+    # reference pack: full coverage at zero FP -> band 1.0, clean solve, pass
+    ref = assert_mh.get_assert(_fenced(_PACK_JSON))
+    assert ref["named_scores"]["scalar_at_0fp"] == 1.0 and ref["named_scores"]["clean_solve"] == 1.0
+    assert ref["score"] == 1.0 and ref["pass_"] is True
+    print("  test_scalar_at_0fp_band_gates_on_precision OK")
+
+
 def test_discovery_mode_unlabeled_and_missioned():
     sup = P._brief(discovery=False)
     disc = P._brief(discovery=True)
@@ -195,5 +213,6 @@ if __name__ == "__main__":
     test_stray_object_then_pack_graded_on_pack()
     test_oversize_and_nonlist_rejected()
     test_perfect_named_score()
+    test_scalar_at_0fp_band_gates_on_precision()
     test_discovery_mode_unlabeled_and_missioned()
     print("selftest_mh_eval: ALL OK")
