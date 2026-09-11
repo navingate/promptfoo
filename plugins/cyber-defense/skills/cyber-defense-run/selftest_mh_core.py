@@ -107,15 +107,22 @@ def test_reference_rules_precise_both_families_and_heldout():
         assert evaluate(RR.H4_PROVENANCE, K.deoracle(_mal_comp(insd)), CFG) is False   # insider is h4-clean
         assert evaluate(RR.H5B_ASSURANCE, K.deoracle(_mal_comp(insd)), CFG) is True
         assert evaluate(RR.H5B_ASSURANCE, K.deoracle(_ben_comp(twin)), CFG) is False
+        # h5 scope (a_not_in_b): fires on an out-of-scope chain, not on the in-scope twin or smuggle
+        scope = K.make_chain("m_w", fed, iam, provenance="authoritative", assurance="present", scope="out")
+        assert evaluate(RR.H5_SCOPE, K.deoracle(_mal_comp(scope)), CFG) is True
+        assert evaluate(RR.H5_SCOPE, K.deoracle(_ben_comp(twin)), CFG) is False
+        assert evaluate(RR.H5_SCOPE, K.deoracle(_mal_comp(smug)), CFG) is False
     print("  test_reference_rules_precise_both_families_and_heldout OK")
 
 
 def test_scoring_reference_pack():
     dev = SC.score(RR.REFERENCE_PACK, K.DEV_INCIDENTS, CFG)
-    assert dev["curve"]["never"] == 0, dev["curve"]        # no REAL misses (gap chains are separate)
-    assert dev["curve"]["gap"] == 6 and dev["curve"]["h5b"] == 6
+    c = dev["curve"]
+    # scope is now scored at h5 (via a_not_in_b) -> no gap bucket, no real misses; 3 boundaries populated
+    assert c["never"] == 0 and c["gap"] == 0, c
+    assert c["h5"] == 6 and c["h5b"] == 6 and c["h4"] >= 12, c
     assert dev["scalar"] == 1.0
-    assert dev["fp"] == {"benign_components": 0, "benign_windows": 0, "rule_component_matches": 27}
+    assert dev["fp"]["benign_windows"] == 0 and dev["fp"]["benign_components"] == 0, dev["fp"]
     assert dev["stitched"] == 0
     assert dev["blocked"] == {"mblk1": "detected_before_block"}
     print("  test_scoring_reference_pack OK")
@@ -158,7 +165,7 @@ def test_oracle_guard_rejects_underscore_fields():
 
 def test_stage_gate_independent_boundaries():
     g = SG.run_gate()
-    assert g["h4"] is True and g["h5b"] is True and g["_scope_is_finding"] is True, g
+    assert g["h4"] is True and g["h5"] is True and g["h5b"] is True and g["scope_expressible"] is True, g
     print("  test_stage_gate_independent_boundaries OK")
 
 

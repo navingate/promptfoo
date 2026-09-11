@@ -181,7 +181,7 @@ _VECTORS = [
     ("smuggle", "present", "in", "h4"),        # h4-only
     ("authoritative", "absent", "in", "h5b"),  # h5b-only (insider) — DECOUPLES the axes
     ("smuggle", "absent", "in", "h4"),         # h4+h5b  (earliest = h4)
-    ("authoritative", "present", "out", None),  # h5-only (scope gap -> never detectable in frozen grammar)
+    ("authoritative", "present", "out", "h5"),  # h5-only (scope) — detectable via the a_not_in_b op
 ]
 _CELLS = [("principal-tag", "passrole"), ("delimited-claim", "grant"),
           ("delimited-claim", "passrole"), ("principal-tag", "grant")]

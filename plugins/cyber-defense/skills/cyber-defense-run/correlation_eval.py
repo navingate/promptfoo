@@ -189,9 +189,12 @@ def _join_ok(events: list[dict], cond: dict, config=None) -> bool:
     an event A (`a.event`) and a distinct event B (`b.event`) in the incident whose linking fields relate
     per `on`, and (optionally) B satisfies `where_b`:
 
-        on: "eq"      -> A[a.field] == B[b.field]
-            "a_in_b"  -> A[a.field] is an element/key of B[b.field]
-            "b_in_a"  -> B[b.field] is an element/key of A[a.field]
+        on: "eq"         -> A[a.field] == B[b.field]
+            "a_in_b"     -> A[a.field] is an element/key of B[b.field]
+            "b_in_a"     -> B[b.field] is an element/key of A[a.field]
+            "a_not_in_b" -> A[a.field] is NOT an element/key of B[b.field] (scoped negation, e.g. a
+                            workload's requested_action NOT in its grant's authorized_actions = over-scope)
+            "b_not_in_a" -> B[b.field] is NOT an element/key of A[a.field]
         where_a: {field, op, value}  -> a `field`-op predicate the matched A must satisfy (e.g. the landed
                                         tag IS the honored tag: tag_name == {$config: honored_tag})
         where_b: {field, op, value}  -> a `field`-op predicate on the matched B (e.g. outcome == "ok")
@@ -214,7 +217,7 @@ def _join_ok(events: list[dict], cond: dict, config=None) -> bool:
     # strict structure validation (untrusted rule -> CorrelationUnsupported, never a raw KeyError/TypeError)
     if not isinstance(a, dict) or not isinstance(b, dict):
         raise CorrelationUnsupported("join needs object 'a' and 'b'")
-    if on not in ("eq", "a_in_b", "b_in_a"):
+    if on not in ("eq", "a_in_b", "b_in_a", "a_not_in_b", "b_not_in_a"):
         raise CorrelationUnsupported(f"unsupported join `on`: {on!r}")
     for spec, nm in ((a, "a"), (b, "b")):
         if not isinstance(spec.get("field"), str):
@@ -258,6 +261,10 @@ def _join_ok(events: list[dict], cond: dict, config=None) -> bool:
                 linked = _member(av, bv)
             elif on == "b_in_a":
                 linked = _member(bv, av)
+            elif on == "a_not_in_b":  # scoped negation: A[a.field] is NOT an element/key of B[b.field]
+                linked = bv is not None and not _member(av, bv)
+            elif on == "b_not_in_a":
+                linked = av is not None and not _member(bv, av)
             else:
                 raise CorrelationUnsupported(f"unsupported join `on`: {on!r}")
             if linked and (where_b is None or _field_ok(

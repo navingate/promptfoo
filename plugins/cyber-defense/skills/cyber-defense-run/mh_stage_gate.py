@@ -85,11 +85,16 @@ def _break_assurance_link(events):
     return events
 
 
+def _break_scope(events):
+    for e in events:
+        if e.get("event") in ("grant_issued", "role_assumed"):
+            e["authorized_actions"] = ["read-vault", "kms-unwrap"]    # now authorizes the workload -> in-scope
+    return events
+
+
 def run_gate():
     h4 = stage_gate(RR.H4_PROVENANCE, "h4", ("smuggle", "present", "in"), _break_provenance)["passes"]
     h5b = stage_gate(RR.H5B_ASSURANCE, "h5b", ("authoritative", "absent", "in"),
                      _break_assurance_link)["passes"]
-    h5 = False
-    if RR.SCOPE_EXPRESSIBLE:
-        h5 = stage_gate(RR.H5_SCOPE, "h5", ("authoritative", "present", "out"), lambda e: e)["passes"]
-    return {"h4": h4, "h5": h5, "h5b": h5b, "_scope_is_finding": not RR.SCOPE_EXPRESSIBLE}
+    h5 = stage_gate(RR.H5_SCOPE, "h5", ("authoritative", "present", "out"), _break_scope)["passes"]
+    return {"h4": h4, "h5": h5, "h5b": h5b, "scope_expressible": RR.SCOPE_EXPRESSIBLE}
