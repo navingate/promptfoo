@@ -20,8 +20,9 @@
 #       --no-cache --repeat 10 --max-concurrency 2 --env-file .env -o /tmp/mh_glm53.json
 #   (swap CYBER_MODEL for openai/glm-5.2; and CYBER_SUT_ENDPOINT=azure CYBER_MODEL=openai/DeepSeek-V4-Flash.)
 #
-# reasoning_effort is left UNSET so thinking stays ON (the loop, not a bounded effort, keeps it from
-# spiralling). Agentic numbers are a different task shape than single-shot — report them labelled as such.
+# reasoning_effort is set to `medium` (below): engy/GLM-5.3 caps OUTPUT at 32768, and UNBOUNDED thinking-on
+# blows that cap (empty finish=length turns, wasted refine turns). Bounding reasoning keeps packs under the
+# cap (all turns emit). Agentic numbers are a different task shape than single-shot — report them as such.
 description: Cyber DEFENSE — multi-hop detection, agentic rule-pack (v2 Spike A)
 
 providers:
@@ -32,9 +33,14 @@ providers:
       temperature: 0.7
       max_turns: 6 # bounded refine loop; CYBER_MAX_TURNS overrides
       max_tokens:
-        48000 # per-turn budget. 16000 STARVED GLM-5.3: thinking blew the cap before it could
-        # emit a pack, wasting 4-5 of 6 turns (finish=length, empty). 48000 lets a thinking-on turn finish
-        # AND write the pack. Not much extra cost — the empty turns already spent the thinking tokens.
+        32000 # GLM-5.3 on engy caps OUTPUT at 32768; 48000 => intermittent 400 "exceeds
+        # capacity" / malformed replies (engy is a miner network). 32000 stays under the hard cap = reliable.
+        # (Thinking-on refine turns can still blow this ceiling; curbing the spiral needs bounded reasoning
+        # or a smaller brief — 32768 is the model's hard max, so the budget cannot go higher.)
+      reasoning_effort:
+        medium # REQUIRED for engy: GLM-5.3 thinking-on is UNBOUNDED and blows the 32768
+        # output cap (empty finish=length turns, wasted refine turns). Bounding it cuts output ~8x (tested:
+        # unset 8522 -> medium 1068) so packs fit under the cap. Set uniformly across models for comparability.
       feedback_detail: aggregate # TEST discloses score + counts + false-alert load only; "incidents" is richer
       hunt_mode: discovery # unlabeled threat-hunt + mission (harder, realistic); "supervised" = labelled practice set
       http_timeout: 300 # per-turn socket timeout (seconds); CYBER_HTTP_TIMEOUT overrides
