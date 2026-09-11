@@ -50,27 +50,33 @@ def _extract_pack(text):
     return None, None
 
 
-_SYSTEM = (
-    "You are a senior detection engineer. You are given DE-ORACLED, product-style identity + cloud "
-    "telemetry from an enterprise estate (a labelled practice set) and must write a bounded DETECTION "
-    "RULE PACK (JSON) that flags the malicious chains — unauthorized federation-to-cloud privilege and "
-    "protected-data access — and does NOT flag benign activity. You work ITERATIVELY: draft a pack, TEST "
-    "it, read the result, refine. Draft quickly; let the test results guide you.\n\n"
-    "Each turn reply with EXACTLY ONE keyword on its own line, then the pack in a ```json block:\n"
-    "  TEST\n  ```json\n  [ {rule}, {rule} ]\n  ```\n"
-    "to score the pack on the dev estate, or\n"
-    "  SUBMIT\n  ```json\n  [ {rule}, {rule} ]\n  ```\n"
-    "when satisfied — that ends the task and the pack is graded on a HELD-OUT estate. TEST a few times "
-    "before you SUBMIT.")
-
-
-def _brief():
+def _system(discovery):
+    task = ("hunt UNLABELED production telemetry — most of it legitimate — and DISCOVER which activity is "
+            "the attack, then write" if discovery
+            else "read a labelled practice set and write")
     return (
+        "You are a senior detection engineer. You are given DE-ORACLED, product-style identity + cloud "
+        "telemetry from an enterprise estate and must " + task + " a bounded DETECTION RULE PACK (JSON) "
+        "that flags the malicious chains — unauthorized federation-to-cloud privilege and protected-data "
+        "access — and does NOT flag benign activity. You work ITERATIVELY: draft a pack, TEST it, read the "
+        "result, refine. Draft quickly; let the test results guide you.\n\n"
+        "Each turn reply with EXACTLY ONE keyword on its own line, then the pack in a ```json block:\n"
+        "  TEST\n  ```json\n  [ {rule}, {rule} ]\n  ```\n"
+        "to score the pack on the dev estate, or\n"
+        "  SUBMIT\n  ```json\n  [ {rule}, {rule} ]\n  ```\n"
+        "when satisfied — that ends the task and the pack is graded on a HELD-OUT estate. TEST a few times "
+        "before you SUBMIT.")
+
+
+def _brief(discovery=False):
+    mission = (mh_eval.mission() + "\n\n") if discovery else (
         "# Mission\n"
         "Detect unauthorized federation-to-cloud privilege escalation and protected-data access in the "
         "telemetry below. A malicious chain reaches a privileged cloud action via one or more POLICY "
         "VIOLATIONS; benign chains reach the same actions legitimately. Write rules that separate them by "
-        "the VIOLATION, not by surface identifiers (session/role/grant/workload ids are random nonces).\n\n"
+        "the VIOLATION, not by surface identifiers (session/role/grant/workload ids are random nonces).\n\n")
+    return (
+        mission +
         "# Telemetry (events are grouped into one CAUSAL COMPONENT per chain by their reference fields; a "
         "rule is evaluated over ONE component)\n"
         "- assertion_issued: emitted_tags {tag:value}, source_attrs [attr...], assertion_ref\n"
@@ -108,8 +114,9 @@ def _brief():
         "h5 privilege < h5b key-release); detection scalar = 1.0 means every detectable attack is caught at "
         "its earliest point. Benign chains that alert are FALSE ALERTS. Maximize scalar; keep false alerts "
         "at 0. Some attacks are not expressible in this grammar (reported as 'gap') — ignore them.\n\n"
-        "# Practice telemetry (labelled)\n"
-        + mh_eval.disclosed_dev_text())
+        + ("# Telemetry — UNLABELED (most is legitimate; some is the attack — discover the invariant)\n"
+           + mh_eval.disclosed_dev_text(labeled=False) if discovery else
+           "# Practice telemetry (labelled)\n" + mh_eval.disclosed_dev_text(labeled=True)))
 
 
 _PROTOCOL = ("\n\nDraft your first rule pack now and reply with TEST followed by the pack in a ```json "
@@ -159,8 +166,9 @@ def call_api(prompt=None, options=None, context=None):
     effort = _cfg(options, "reasoning_effort")
     feedback_detail = _cfg(options, "feedback_detail", "aggregate")
 
-    messages = [{"role": "system", "content": _SYSTEM},
-                {"role": "user", "content": _brief() + _PROTOCOL}]
+    discovery = _cfg(options, "hunt_mode", "supervised") == "discovery"
+    messages = [{"role": "system", "content": _system(discovery)},
+                {"role": "user", "content": _brief(discovery) + _PROTOCOL}]
     last_valid, last_any, trace = None, None, []
 
     for turn in range(1, max_turns + 1):

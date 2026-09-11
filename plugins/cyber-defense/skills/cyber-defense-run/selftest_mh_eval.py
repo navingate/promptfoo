@@ -151,6 +151,39 @@ def test_perfect_named_score():
     print("  test_perfect_named_score OK")
 
 
+def test_discovery_mode_unlabeled_and_missioned():
+    sup = P._brief(discovery=False)
+    disc = P._brief(discovery=True)
+    # discovery brief carries the hunt mission and drops ALL incident labels
+    assert "threat-hunting" in disc and "discover" in disc.lower()
+    assert "[MALICIOUS]" not in disc and "[benign]" not in disc, "discovery brief still labels incidents"
+    assert "[MALICIOUS]" in sup, "supervised brief should still label"
+    # oracle-safety holds in discovery too (no held-out / truth fields)
+    for banned in ("HMAL", "HBEN", "_cid", "_stage"):
+        assert banned not in disc
+    # system message reflects the mode
+    assert "DISCOVER" in P._system(True) and "labelled practice set" in P._system(False)
+    # the loop still drives to a graded pack in discovery mode (mechanics unchanged)
+    calls = {"n": 0}
+
+    def stub(base_url, api_key, api_model, messages, **kw):
+        calls["n"] += 1
+        kw_ok = "threat-hunting" in messages[1]["content"]  # discovery brief was used
+        assert kw_ok, "discovery brief not passed to the model"
+        return f"SUBMIT\n```json\n{_PACK_JSON}\n```", "stop", None
+
+    orig = P._chat
+    P._chat = stub
+    try:
+        os.environ["MH_FAKE_KEY"] = "x"
+        out = P.call_api(options={"config": {"base_url": "http://fake/v1", "api_key_env": "MH_FAKE_KEY",
+                                             "hunt_mode": "discovery", "max_turns": 2}})
+    finally:
+        P._chat = orig
+    assert out["metadata"]["submitted"] is True
+    print("  test_discovery_mode_unlabeled_and_missioned OK")
+
+
 if __name__ == "__main__":
     test_assert_grades_reference_pack()
     test_assert_rejects_invalid_and_oracle()
@@ -162,4 +195,5 @@ if __name__ == "__main__":
     test_stray_object_then_pack_graded_on_pack()
     test_oversize_and_nonlist_rejected()
     test_perfect_named_score()
+    test_discovery_mode_unlabeled_and_missioned()
     print("selftest_mh_eval: ALL OK")

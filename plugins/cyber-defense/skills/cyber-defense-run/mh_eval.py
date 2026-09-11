@@ -13,20 +13,40 @@ from mh_scoring import score, survival_curve, validate_pack
 CFG = S.INVENTORIES
 
 
-def disclosed_dev_text(seed=1234):
-    """De-oracled DEV telemetry (one JSON event per line, grouped by incident) with only a BINARY
-    incident-level malicious/benign label. Incidents get OPAQUE ids and are seeded-SHUFFLED so neither
-    the name nor the disclosure order leaks each chain's violation-axis (stage-truth) — the model must
-    DISCOVER the discriminator, not read it off the metadata (Review-B oracle finding A)."""
+def disclosed_dev_text(seed=1234, labeled=True):
+    """De-oracled DEV telemetry (one JSON event per line, grouped by OPAQUE, seeded-SHUFFLED incident id
+    so neither name nor order leaks each chain's violation-axis — Review-B oracle finding A).
+
+    labeled=True  (supervised practice): each incident carries a BINARY malicious/benign tag.
+    labeled=False (DISCOVERY / threat-hunt): NO tags — the model must infer which activity is the attack
+      from the mission + the telemetry itself, as a real SOC hunt does (enterprise-realistic)."""
     incs = list(K.DEV_INCIDENTS)
     random.Random(seed).shuffle(incs)
     out = []
     for idx, inc in enumerate(incs, 1):
-        mal = any(c["malicious"] for c in inc["truth"]["components"].values())
-        out.append(f'## incident-{idx:02d}  [{"MALICIOUS" if mal else "benign"}]')
+        if labeled:
+            mal = any(c["malicious"] for c in inc["truth"]["components"].values())
+            out.append(f'## incident-{idx:02d}  [{"MALICIOUS" if mal else "benign"}]')
+        else:
+            out.append(f"## incident-{idx:02d}")
         for e in K.deoracle(inc["events"]):
             out.append(json.dumps(e, separators=(",", ":"), sort_keys=True))
     return "\n".join(out)
+
+
+def mission():
+    """The threat-informed hunt mission (DISCOVERY mode) — real threat-intel framing, WITHOUT naming the
+    discriminating rule. The model must discover the authorized-vs-unauthorized invariant itself."""
+    return (
+        "You are threat-hunting an enterprise identity + cloud estate. THREAT INTEL: an on-prem→cloud "
+        "actor may abuse federation to smuggle a privileged entitlement across the SAML signature "
+        "boundary, escalate in the cloud IAM plane (assume a pivot role via PassRole, or obtain a "
+        "resource grant), and reach protected tenant data through a privileged deployment workload + KMS. "
+        "CRUCIAL: most activity below is LEGITIMATE — authorized administrators perform the SAME "
+        "operations (assume roles, run privileged workloads, unwrap keys, read the vault). You are NOT "
+        "told which incidents are malicious. Discover the INVARIANT that separates unauthorized from "
+        "authorized activity, and write detection rules that flag the attack with ZERO false alarms on "
+        "the benign majority.")
 
 
 def config_text():

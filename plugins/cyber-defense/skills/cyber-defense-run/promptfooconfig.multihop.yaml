@@ -32,6 +32,9 @@ providers:
       max_turns: 6 # bounded refine loop; CYBER_MAX_TURNS overrides
       max_tokens: 16000 # per-turn budget; a thinking-on turn that exceeds it spirals and is nudged once
       feedback_detail: aggregate # TEST discloses score + counts + false-alert load only; "incidents" is richer
+      hunt_mode:
+        discovery # discovery = UNLABELED threat-hunt over the telemetry + a threat mission (harder,
+        # enterprise-realistic — the model must DISCOVER the invariant); supervised = labelled practice set (v1)
       http_timeout: 300 # per-turn socket timeout (seconds); CYBER_HTTP_TIMEOUT overrides
 
 prompts:
