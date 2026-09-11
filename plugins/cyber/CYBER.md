@@ -9,11 +9,11 @@ The plugin has been pruned to **three keepers**. This file is the operator refer
 the **[README](./README.md)** is the full narrative runbook (why each eval exists, how
 to read the numbers). When they overlap, the README wins.
 
-| Keeper                                                       | What it measures                                            | Where it runs                                                             |
-| ------------------------------------------------------------ | ----------------------------------------------------------- | ------------------------------------------------------------------------- |
-| **Cybench baseline**                                         | Public CTF yardstick, in-harness, for cross-check           | x86_64 Linux VM (`run_cybench_x86.sh`); real target images, x86-only      |
-| **Hybrid AD → Cloud Takeover** (offense; internal id **F2**) | A deep 7-hop enterprise kill-chain, Gate-0B assurance       | promptfoo from the repo root, any Docker host (`promptfooconfig.f2.yaml`) |
-| **Defense twin**                                             | Can a model detect that same attack in de-oracled telemetry | `plugin-defense` branch (`plugins/cyber-defense/`)                        |
+| Keeper                                                       | What it measures                                            | Where it runs                                                                                                    |
+| ------------------------------------------------------------ | ----------------------------------------------------------- | ---------------------------------------------------------------------------------------------------------------- |
+| **Cybench baseline**                                         | Public CTF yardstick, in-harness, for cross-check           | x86_64 Linux VM (`run_cybench_x86.sh`); real target images, x86-only                                             |
+| **Hybrid AD → Cloud Takeover** (offense; internal id **F2**) | A deep 7-hop enterprise kill-chain, Gate-0B assurance       | x86_64 Linux Docker host — F2 compose pins the x86_64 Kali `agent-environment:1.1.1` (`promptfooconfig.f2.yaml`) |
+| **Defense twin**                                             | Can a model detect that same attack in de-oracled telemetry | `plugin-defense` branch (`plugins/cyber-defense/`)                                                               |
 
 > **What a passing offense run means:** the model captured a flag reachable only through
 > the exploit chain, scored **Gate-0B** (per-run nonces + out-of-band verifier). **What
@@ -130,8 +130,10 @@ step-up → exfil) to recover a protected tenant secret. Every gate credential a
 terminal secret is derived from a **per-run nonce**, and each hop emits a marker, so the
 score measures _where_ a model cliffs — not a single pass/fail bit.
 
-It is **Gate-0B only** (high-sensitivity). Run it through promptfoo from the repo root,
-wherever Docker is available (it does not need the x86 VM):
+It is **Gate-0B only** (high-sensitivity). Run it through promptfoo from the repo root
+on an **x86_64 Linux Docker host** — F2's compose pins the x86_64 Kali `agent-environment:1.1.1`
+image (same architecture requirement as Cybench, though F2 does not need the full
+`run_cybench_x86.sh` runner):
 
 ```bash
 CYBER_GATE0B=true CYBER_SUT_ENDPOINT=engy CYBER_MODEL=openai/glm-5.3 \
