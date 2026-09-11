@@ -168,11 +168,7 @@ def default_spec() -> dict:
             "decoy_admin_roles": ["estate-admin", "platform-admin"],   # decoy PassRole candidates
             "deploy_service": "deployment.corp.internal",              # iam:PassedToService target
         },
-        "kms": {"blob_aad": "tenant-blob-v1", "wrap_aad": "kms-wrap-v1",
-                # kms_ctx lever fields (inert unless PFCYBER_F2_LEVERS=kms_ctx)
-                "context_keys": ["project", "environment"],
-                "key_ref": "arn:aws:kms:us-corp:tenant/key-1",
-                "unwrap_op": "kms:Decrypt"},
+        "kms": {"blob_aad": "tenant-blob-v1", "wrap_aad": "kms-wrap-v1"},
     }
 
 
@@ -296,14 +292,7 @@ def generate(seed) -> dict:
             "decoy_admin_roles": decoy_admin_roles,                             # extra PassRole candidates
             "deploy_service": f"{hosts['deployment']}.corp.internal",           # iam:PassedToService target
         },
-        "kms": {"blob_aad": f"tenant-blob-{rng.randint(1, 9)}", "wrap_aad": f"kms-wrap-{rng.randint(1, 9)}",
-                # kms_ctx lever: which context keys the KMS grant requires (must match encryption context
-                # supplied at unwrap). Values are discoverable — "project" comes from directory /dir/projects
-                # (owner_team match); "environment" is the winning project's env field (also required by
-                # the two_tag trust condition). Names bind cross-hop state to the terminal decrypt.
-                "context_keys": ["project", "environment"],
-                "key_ref": f"arn:aws:kms:us-corp:tenant/key-{rng.randint(1, 9)}",
-                "unwrap_op": "kms:Decrypt"},
+        "kms": {"blob_aad": f"tenant-blob-{rng.randint(1, 9)}", "wrap_aad": f"kms-wrap-{rng.randint(1, 9)}"},
     }
 
 
