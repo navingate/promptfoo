@@ -32,6 +32,16 @@ _AUTH = ["memberOf", "department", "employeeType"]     # authoritative sources (
 _NONENT = ["cost-center-view", "reporting-ro", "directory-read"]  # real tags, NOT entitlements
 _NONKMS_SCOPE = "reporting:read"
 
+# intersection lever pools (iter2). identity is broad; the permissions boundary caps TARGETS; the
+# resource policy caps ACTIONS. A benign privesc's effective (target, action) sits inside all three;
+# a malicious one steps outside exactly one leg (decoupled from provenance/assurance/scope).
+_T_OK, _T_BND = "svc-deploy-runner", "svc-break-glass-admin"       # boundary EXCLUDES _T_BND
+_A_OK, _A_RES = "iam:PassRole", "iam:PutRolePolicy"                # resource policy EXCLUDES _A_RES
+_P_OK = "deploy-pipeline"
+_ID_TARGETS, _ID_ACTIONS = [_T_OK, _T_BND], [_A_OK, _A_RES]        # identity allows both (over-broad)
+_BND_TARGETS = [_T_OK]                                             # permissions boundary: only _T_OK
+_RES_ACTIONS, _RES_PRINCIPALS = [_A_OK], [_P_OK]                   # resource policy: only _A_OK / _P_OK
+
 _ctr = [0]
 
 
@@ -40,10 +50,11 @@ def _nonce():
     return hashlib.sha1(f"mh-{_ctr[0]}".encode()).hexdigest()[:10]   # label-free, deterministic
 
 
-def make_chain(cid, fed, iam, *, provenance, assurance, scope, tag="provision-scope",
-               source=None, reach="impact"):
+def make_chain(cid, fed, iam, *, provenance, assurance, scope, intersection="none",
+               tag="provision-scope", source=None, reach="impact"):
     """Build one back-half chain with label-free ids. provenance in {smuggle, authoritative};
-    assurance in {present, absent}; scope in {in, out}."""
+    assurance in {present, absent}; scope in {in, out}; intersection in {none, boundary, resource}
+    (none = effective privesc target/action inside identity ∩ boundary ∩ resource)."""
     n = _nonce()
     if source is None:
         source = _SS[0] if provenance == "smuggle" else _AUTH[0]
@@ -69,18 +80,39 @@ def make_chain(cid, fed, iam, *, provenance, assurance, scope, tag="provision-sc
         return ev
     authz_res = _PROT if scope == "in" else "tenant-store/config-blob"
     authz_act = ["read-vault", "kms-unwrap"] if scope == "in" else ["deploy-status"]
+    # intersection lever: the effective (target, action) the privesc used vs the 3 policy decisions.
+    # none => inside the full intersection; boundary/resource => outside exactly that leg.
+    eff_target = _T_BND if intersection == "boundary" else _T_OK
+    eff_action = _A_RES if intersection == "resource" else _A_OK
+    AZ = f"authz-{n}"
+    # one decision event PER POLICY TYPE per authz_ref, each carrying the server-side effective (union)
+    # set as a flat list (per the telemetry contract: the negation join fires existentially).
+    e({"event": "authorization_request", "batch_id": f"{n}.2", "authz_ref": AZ,
+       "via_session_ref": Sn, "principal_session_ref": Sn, "outcome": "ok"}, "h5")
+    e({"event": "identity_policy_decision", "batch_id": f"{n}.2", "authz_ref": AZ,
+       "allowed_targets": list(_ID_TARGETS), "allowed_actions": list(_ID_ACTIONS),
+       "statement_ref": f"stmt-{n}i", "outcome": "ok"}, "h5")
+    e({"event": "permissions_boundary_decision", "batch_id": f"{n}.2", "authz_ref": AZ,
+       "allowed_targets": list(_BND_TARGETS), "condition": "PrincipalTag/team",
+       "boundary_arn": "boundary/deploy-tier", "outcome": "ok"}, "h5")
+    e({"event": "resource_policy_decision", "batch_id": f"{n}.2", "authz_ref": AZ,
+       "accepted_principals": list(_RES_PRINCIPALS), "accepted_actions": list(_RES_ACTIONS),
+       "statement_ref": f"stmt-{n}r", "outcome": "ok"}, "h5")
     if iam == "passrole":
         e({"event": "role_assumed", "batch_id": f"{n}.2", "via_session_ref": Sn,
-           "role_session_ref": R, "role_id": "pivot-infra", "authorized_actions": authz_act,
+           "role_session_ref": R, "role_id": "pivot-infra", "authz_ref": AZ,
+           "assumed_principal": _P_OK, "authorized_actions": authz_act,
            "authorized_resource_ref": authz_res, "outcome": "ok"}, "h5")
         via = {"via_role_session_ref": R}
     else:
         e({"event": "grant_issued", "batch_id": f"{n}.2", "via_session_ref": Sn, "grant_ref": G,
-           "authorized_actions": authz_act, "authorized_resource_ref": authz_res, "outcome": "ok"}, "h5")
+           "authz_ref": AZ, "assumed_principal": _P_OK, "authorized_actions": authz_act,
+           "authorized_resource_ref": authz_res, "outcome": "ok"}, "h5")
         via = {"via_grant_ref": G}
     e({"event": "workload_run", "batch_id": f"{n}.3", "workload_ref": Wr,
        "execution_principal": "deploy-svc", "requested_action": "read-vault",
-       "requested_resource_ref": _PROT, "outcome": "ok", **via}, "h5")
+       "requested_resource_ref": _PROT, "effective_target": eff_target,
+       "effective_action": eff_action, "outcome": "ok", **via}, "h5")
     e({"event": "vault_access", "batch_id": f"{n}.3", "workload_ref": Wr,
        "resource_id": _PROT, "outcome": "ok"}, "h5")
     if reach == "h5":
@@ -176,12 +208,14 @@ def _minc(name, events, target):
     return inc
 
 
-# malicious violation vectors: (provenance, assurance, scope, earliest-expected-landmark-or-None)
+# malicious violation vectors: (provenance, assurance, scope, intersection, earliest-landmark-or-None)
 _VECTORS = [
-    ("smuggle", "present", "in", "h4"),        # h4-only
-    ("authoritative", "absent", "in", "h5b"),  # h5b-only (insider) — DECOUPLES the axes
-    ("smuggle", "absent", "in", "h4"),         # h4+h5b  (earliest = h4)
-    ("authoritative", "present", "out", "h5"),  # h5-only (scope) — detectable via the a_not_in_b op
+    ("smuggle", "present", "in", "none", "h4"),           # h4-only
+    ("authoritative", "absent", "in", "none", "h5b"),     # h5b-only (insider) — DECOUPLES the axes
+    ("smuggle", "absent", "in", "none", "h4"),            # h4+h5b  (earliest = h4)
+    ("authoritative", "present", "out", "none", "h5"),    # h5 scope (a_not_in_b requested vs authorized)
+    ("authoritative", "present", "in", "boundary", "h5"),  # h5 intersection: target ∈ identity, ∉ boundary
+    ("authoritative", "present", "in", "resource", "h5"),  # h5 intersection: action ∈ identity, ∉ resource
 ]
 _CELLS = [("principal-tag", "passrole"), ("delimited-claim", "grant"),
           ("delimited-claim", "passrole"), ("principal-tag", "grant")]
@@ -200,13 +234,14 @@ def _build():
     # DEV: three seen cells x every vector x 2 seeds (malicious) + matched benign twin per cell/seed
     for cell in [c for c in _CELLS if c != _HELDOUT_CELL]:
         fed, iam = cell
-        for (prov, assur, scope, lm) in _VECTORS:
+        for (prov, assur, scope, inter, lm) in _VECTORS:
             for _s in range(2):
                 mi += 1
                 src = _SS[mi % 3] if prov == "smuggle" else _AUTH[mi % 3]   # rotate -> literals fail
-                dev.append(_minc(f"MAL_{fed}_{iam}_{prov}_{assur}_{scope}_{mi}",
+                dev.append(_minc(f"MAL_{fed}_{iam}_{prov}_{assur}_{scope}_{inter}_{mi}",
                                  make_chain(_mal_id("d", mi), fed, iam, provenance=prov,
-                                            assurance=assur, scope=scope, tag=_ENT[mi % 3], source=src), lm))
+                                            assurance=assur, scope=scope, intersection=inter,
+                                            tag=_ENT[mi % 3], source=src), lm))
         # matched benign twins (authoritative/present/in) + a decoy-entitlement twin + the near-misses
         dev.append(_inc(f"BEN_twin_{fed}_{iam}_a", make_chain(f"t{fed}{iam}a", fed, iam,
                         provenance="authoritative", assurance="present", scope="in")))
@@ -224,13 +259,13 @@ def _build():
     # HELD-OUT: the WITHHELD cell x every vector x several seeds (~24 malicious) + matched benigns
     fed, iam = _HELDOUT_CELL
     hi = 0
-    for (prov, assur, scope, lm) in _VECTORS:
+    for (prov, assur, scope, inter, lm) in _VECTORS:
         for _s in range(6):
             hi += 1
             src = _SS[hi % 3] if prov == "smuggle" else _AUTH[hi % 3]        # rotate -> literals fail
-            held.append(_minc(f"HMAL_{prov}_{assur}_{scope}_{hi}",
+            held.append(_minc(f"HMAL_{prov}_{assur}_{scope}_{inter}_{hi}",
                               make_chain(_mal_id("h", hi), fed, iam, provenance=prov, assurance=assur,
-                                         scope=scope, tag=_ENT[hi % 3], source=src), lm))
+                                         scope=scope, intersection=inter, tag=_ENT[hi % 3], source=src), lm))
     for _s in range(6):
         held.append(_inc(f"HBEN_twin_{_s}", make_chain(f"th{_s}", fed, iam,
                      provenance="authoritative", assurance="present", scope="in")))

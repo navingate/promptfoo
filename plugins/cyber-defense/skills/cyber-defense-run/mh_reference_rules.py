@@ -46,6 +46,39 @@ H5_SCOPE = {
          "where_a": {"field": "requested_action", "op": "in",
                      "value": {"$config": "privileged_action_names"}}}],
 }
+
+# h5 intersection (iter2 — THE top-headroom boundary): the privesc used an effective target/action that
+# identity ALLOWED but the permissions boundary / resource policy should have DENIED. Two type-matched
+# legs (the 3-way composition identity ∩ boundary ∩ resource); a model that finds only ONE leg catches
+# only half the intersection family. Each list operand is the single per-authz effective set (the
+# contract mandates one decision event per policy type, so the negation join has one B and no quantifier
+# ambiguity). A naive "effective_target in identity_allowed" alone false-alarms on the in-intersection twin.
+H5_INT_BOUNDARY = {
+    "require": "all",
+    "conditions": [
+        {"type": "join",
+         "a": {"event": "workload_run", "field": "effective_target"},
+         "b": {"event": "identity_policy_decision", "field": "allowed_targets"},
+         "on": "a_in_b"},
+        {"type": "join",
+         "a": {"event": "workload_run", "field": "effective_target"},
+         "b": {"event": "permissions_boundary_decision", "field": "allowed_targets"},
+         "on": "a_not_in_b"},
+    ],
+}
+H5_INT_RESOURCE = {
+    "require": "all",
+    "conditions": [
+        {"type": "join",
+         "a": {"event": "workload_run", "field": "effective_action"},
+         "b": {"event": "identity_policy_decision", "field": "allowed_actions"},
+         "on": "a_in_b"},
+        {"type": "join",
+         "a": {"event": "workload_run", "field": "effective_action"},
+         "b": {"event": "resource_policy_decision", "field": "accepted_actions"},
+         "on": "a_not_in_b"},
+    ],
+}
 FINDINGS = {
     "output_sink": ("sensitive output to a recipient outside the approved sink set = recipient_type ∉ "
                     "approved-sinks — now expressible via a_not_in_b, but no output-sink policy/variant is "
@@ -55,4 +88,4 @@ FINDINGS = {
                         "case (`empty`). A graded-level variant is a Spike-B addition."),
 }
 
-REFERENCE_PACK = [H4_PROVENANCE, H5B_ASSURANCE, H5_SCOPE]
+REFERENCE_PACK = [H4_PROVENANCE, H5B_ASSURANCE, H5_SCOPE, H5_INT_BOUNDARY, H5_INT_RESOURCE]

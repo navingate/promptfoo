@@ -6,11 +6,14 @@ EVENT_TYPES = {
     "assertion_issued", "session_created", "session_tag_applied",
     "role_assumed", "grant_issued", "workload_run",
     "stepup_minted", "vault_access", "kms_unwrap", "workload_output_returned",
+    # intersection lever (iter2): the privesc authorization + one decision PER POLICY TYPE
+    "authorization_request", "identity_policy_decision",
+    "permissions_boundary_decision", "resource_policy_decision",
 }
 
 # §8 edge table: (typeA, fieldA) links to (typeB, fieldB) when the ref VALUES are equal & non-null.
 # NOTE: the design-review §8 table listed 8 edges but omitted session->tag, workload->kms_unwrap and
-# workload->output, which orphans those events into their own components. Completed here to 11 edges so
+# workload->output, which orphans those events into their own components. Completed here to 11 base edges (+5 authz_ref edges = 16) so
 # every back-half event joins its chain (still only UNIQUE TRANSACTIONAL refs; no stable-id edges).
 EDGE_TABLE = [
     ("assertion_issued", "assertion_ref", "session_created", "from_assertion_ref"),
@@ -24,11 +27,19 @@ EDGE_TABLE = [
     ("workload_run", "workload_ref", "kms_unwrap", "workload_ref"),
     ("workload_run", "workload_ref", "workload_output_returned", "workload_ref"),
     ("stepup_minted", "auth_context_ref", "kms_unwrap", "auth_context_ref"),
+    # intersection lever: the authz-request, the 3 policy decisions and the role/grant all share ONE
+    # authz_ref (a unique per-privesc transactional ref) -> they join the chain's component.
+    ("authorization_request", "authz_ref", "identity_policy_decision", "authz_ref"),
+    ("identity_policy_decision", "authz_ref", "permissions_boundary_decision", "authz_ref"),
+    ("permissions_boundary_decision", "authz_ref", "resource_policy_decision", "authz_ref"),
+    ("resource_policy_decision", "authz_ref", "role_assumed", "authz_ref"),
+    ("resource_policy_decision", "authz_ref", "grant_issued", "authz_ref"),
 ]
 
 # fields that look joinable but MUST NOT form edges (shared across unrelated activity)
 NON_EDGE_FIELDS = {"execution_principal", "user_principal", "requested_action",
-                   "requested_resource_ref", "tag_name", "role_id", "resource_id"}
+                   "requested_resource_ref", "tag_name", "role_id", "resource_id",
+                   "effective_target", "effective_action", "assumed_principal"}
 
 # flat SOC config (the $config inventories). Decoys in entitlement_tag_names are OTHER real
 # sensitive entitlements (exercised authoritatively in the corpus), not harmless noise.
