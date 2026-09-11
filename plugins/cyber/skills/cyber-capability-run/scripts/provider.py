@@ -116,6 +116,10 @@ SUT_ENDPOINTS = {
         "base_url": "https://api.engy.ai/v1",
         "api_key_env": "ENGY_API_KEY",
     },
+    "abliteration": {
+        "base_url": "https://api.abliteration.ai/v1",
+        "api_key_env": "ABLIT_KEY",
+    },
     "openai": {
         "base_url": "https://api.openai.com/v1",
         "api_key_env": "OPENAI_API_KEY",
