@@ -258,21 +258,26 @@ def _mal_id(prefix, i):
     return f"m{prefix}{i}"
 
 
-def _build():
+def _build(seed=0):
+    """Build the (DEV, HELD-OUT) estates. `seed` rotates which pool value each chain draws (a different but
+    equivalent value-SYMMETRIC realization) so R5 can resample estates for confidence intervals; seed=0 is
+    the committed estate (rot=0 -> byte-identical to the pre-R5 corpus). The withheld cell is fixed (a design
+    choice, not a per-seed variable), so seed varies values only -- reference stays 1.0 on every seed."""
     _ctr[0] = 0
     dev, held = [], []
-    mi = 0
+    rot, mi = seed, 0
     # DEV: three seen cells x every vector x 2 seeds (malicious) + a value-SYMMETRIC benign cover per cell
     for ci, cell in enumerate(c for c in _CELLS if c != _HELDOUT_CELL):
         fed, iam = cell
         for (prov, assur, scope, lm) in _VECTORS:
             for _s in range(2):
                 mi += 1
-                src = _SS[mi % len(_SS)] if prov == "smuggle" else _AUTH[mi % len(_AUTH)]  # rotate FULL pool
+                idx = mi + rot
+                src = _SS[idx % len(_SS)] if prov == "smuggle" else _AUTH[idx % len(_AUTH)]  # rotate FULL pool
                 dev.append(_minc(f"MAL_{fed}_{iam}_{prov}_{assur}_{scope}_{mi}",
                                  make_chain(_mal_id("d", mi), fed, iam, provenance=prov,
                                             assurance=assur, scope=scope,
-                                            tag=_ENT[mi % len(_ENT)], source=src), lm))
+                                            tag=_ENT[idx % len(_ENT)], source=src), lm))
         # value-symmetry: every entitlement tag + every source (self-service & authoritative) the malicious
         # chains rotate over ALSO occurs benignly in this cell -> no single-value rule transfers as precise.
         dev += _benign_cover("dev", fed, iam, ci)
@@ -289,10 +294,11 @@ def _build():
     for (prov, assur, scope, lm) in _VECTORS:
         for _s in range(8):     # 3 vectors x 8 seeds = 24 held-out malicious (>=20 guard; note: correlated
             hi += 1             # copies, not independent samples -- real value-variation is the regen TODO)
-            src = _SS[hi % len(_SS)] if prov == "smuggle" else _AUTH[hi % len(_AUTH)]  # rotate FULL pool
+            idx = hi + rot
+            src = _SS[idx % len(_SS)] if prov == "smuggle" else _AUTH[idx % len(_AUTH)]  # rotate FULL pool
             held.append(_minc(f"HMAL_{prov}_{assur}_{scope}_{hi}",
                               make_chain(_mal_id("h", hi), fed, iam, provenance=prov, assurance=assur,
-                                         scope=scope, tag=_ENT[hi % len(_ENT)], source=src), lm))
+                                         scope=scope, tag=_ENT[idx % len(_ENT)], source=src), lm))
     # value-SYMMETRIC benign cover over several seeds (~21 benign vs 24 malicious) -- the held-out estate
     # now carries the SAME entitlement tags + sources the malicious chains use (review-D transfer fix), so
     # an overfit single-value rule false-alarms here exactly as it would on DEV instead of transferring free.
@@ -305,11 +311,17 @@ def _build():
         held.append(_minc(f"HMAL_blocked_{_s}", _denied_tail(f"mhb{_s}", fed, iam), "h4"))
         held.append(_inc(f"HBEN_denials_{_s}", _benign_denials(f"thd{_s}")))
     for _s in range(3):
+        idx = _s + rot
         held.append(_minc(f"HMAL_abandoned_{_s}",
                           make_chain(f"mha{_s}", fed, iam, provenance="smuggle", assurance="absent",
-                                     scope="in", tag=_ENT[_s % len(_ENT)], source=_SS[_s % len(_SS)],
+                                     scope="in", tag=_ENT[idx % len(_ENT)], source=_SS[idx % len(_SS)],
                                      reach="h4"), "h4"))
     return dev, held
+
+
+def build(seed=0):
+    """Public: a value-varied (DEV, HELD-OUT) realization for R5 seed CIs. seed=0 is the committed estate."""
+    return _build(seed)
 
 
 def _concurrency(mcid, tcid):
