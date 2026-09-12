@@ -8,7 +8,7 @@ import copy
 from correlation_eval import evaluate
 from mh_components import partition
 from mh_replay import prefixes, progress_landmark
-from mh_corpus import make_chain, deoracle, _CELLS, _HELDOUT_CELL, _T_OK, _A_OK
+from mh_corpus import make_chain, deoracle, _CELLS, _HELDOUT_CELL
 import mh_reference_rules as RR
 import mh_schema as S
 
@@ -52,21 +52,20 @@ def _pack_fires_before(pack, events, landmark):
     return False
 
 
-def _mk(cid, cell, prov, assur, scope, intersection="none"):
+def _mk(cid, cell, prov, assur, scope):
     fed, iam = cell
-    return make_chain(cid, fed, iam, provenance=prov, assurance=assur, scope=scope,
-                      intersection=intersection)
+    return make_chain(cid, fed, iam, provenance=prov, assurance=assur, scope=scope)
 
 
 def stage_gate(rule, landmark, mal_vec, mutate):
-    prov, assur, scope, inter = mal_vec
-    mal = _mk("m_gate", _SEEN_CELL, prov, assur, scope, inter)
+    prov, assur, scope = mal_vec
+    mal = _mk("m_gate", _SEEN_CELL, prov, assur, scope)
     twin = _mk("t_gate", _SEEN_CELL, "authoritative", "present", "in")
     distinguished = _fires(rule, mal, True) and not _fires(rule, twin, False)
     first_alert = _first_fire_landmark(rule, mal) == landmark
     unresolved = not _pack_fires_before(RR.REFERENCE_PACK, mal, landmark)
     mutation_stops = not _fires(rule, mutate(copy.deepcopy(mal)), True)
-    gmal = _mk("m_hgate", _HELDOUT_CELL, prov, assur, scope, inter)
+    gmal = _mk("m_hgate", _HELDOUT_CELL, prov, assur, scope)
     gtwin = _mk("t_hgate", _HELDOUT_CELL, "authoritative", "present", "in")
     generalizes = _fires(rule, gmal, True) and not _fires(rule, gtwin, False)
     passes = all([distinguished, first_alert, unresolved, mutation_stops, generalizes])
@@ -89,32 +88,9 @@ def _break_assurance_link(events):
     return events
 
 
-def _break_scope(events):
-    for e in events:
-        if e.get("event") in ("grant_issued", "role_assumed"):
-            e["authorized_actions"] = ["read-vault", "kms-unwrap"]    # now authorizes the workload -> in-scope
-    return events
-
-
-def _break_intersection(events):
-    for e in events:
-        if e.get("event") == "workload_run" and "effective_target" in e:
-            e["effective_target"] = _T_OK      # back inside identity ∩ boundary
-            e["effective_action"] = _A_OK      # back inside identity ∩ resource
-    return events
-
-
 def run_gate():
-    h4 = stage_gate(RR.H4_PROVENANCE, "h4", ("smuggle", "present", "in", "none"),
-                    _break_provenance)["passes"]
-    h5b = stage_gate(RR.H5B_ASSURANCE, "h5b", ("authoritative", "absent", "in", "none"),
+    # Review D, option a: only the two GROUNDABLE boundaries are gated (scope + intersection removed).
+    h4 = stage_gate(RR.H4_PROVENANCE, "h4", ("smuggle", "present", "in"), _break_provenance)["passes"]
+    h5b = stage_gate(RR.H5B_ASSURANCE, "h5b", ("authoritative", "absent", "in"),
                      _break_assurance_link)["passes"]
-    h5 = stage_gate(RR.H5_SCOPE, "h5", ("authoritative", "present", "out", "none"),
-                    _break_scope)["passes"]
-    # intersection: BOTH legs must be independent boundaries (boundary-blocked & resource-blocked families)
-    int_b = stage_gate(RR.H5_INT_BOUNDARY, "h5", ("authoritative", "present", "in", "boundary"),
-                       _break_intersection)["passes"]
-    int_r = stage_gate(RR.H5_INT_RESOURCE, "h5", ("authoritative", "present", "in", "resource"),
-                       _break_intersection)["passes"]
-    return {"h4": h4, "h5": h5, "h5b": h5b, "h5_intersection": int_b and int_r,
-            "scope_expressible": RR.SCOPE_EXPRESSIBLE}
+    return {"h4": h4, "h5b": h5b}

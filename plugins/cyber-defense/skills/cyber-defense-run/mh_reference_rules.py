@@ -88,4 +88,8 @@ FINDINGS = {
                         "case (`empty`). A graded-level variant is a Spike-B addition."),
 }
 
-REFERENCE_PACK = [H4_PROVENANCE, H5B_ASSURANCE, H5_SCOPE, H5_INT_BOUNDARY, H5_INT_RESOURCE]
+# SHIPPED PACK (review D, option a): provenance + assurance ONLY. H5_SCOPE / H5_INT_* above detect
+# COMPLETED out-of-policy positives (an action/target the grant/boundary/resource would DENY) that the
+# real F2 estate cannot produce -- it rejects them before impact. They are retained above for reference
+# and for option (b) (a REAL offense-side enforcement defect), but are OUT of the grounded shipped pack.
+REFERENCE_PACK = [H4_PROVENANCE, H5B_ASSURANCE]

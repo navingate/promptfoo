@@ -18,7 +18,7 @@ CFG = S.INVENTORIES
 
 
 def test_schema():
-    assert len(S.EDGE_TABLE) == 16
+    assert len(S.EDGE_TABLE) == 11
     for (ta, fa, tb, fb) in S.EDGE_TABLE:
         assert ta in S.EVENT_TYPES and tb in S.EVENT_TYPES
     edge_fields = {(t, f) for (t, f, _, _) in S.EDGE_TABLE} | {(t, f) for (_, _, t, f) in S.EDGE_TABLE}
@@ -107,29 +107,8 @@ def test_reference_rules_precise_both_families_and_heldout():
         assert evaluate(RR.H4_PROVENANCE, K.deoracle(_mal_comp(insd)), CFG) is False   # insider is h4-clean
         assert evaluate(RR.H5B_ASSURANCE, K.deoracle(_mal_comp(insd)), CFG) is True
         assert evaluate(RR.H5B_ASSURANCE, K.deoracle(_ben_comp(twin)), CFG) is False
-        # h5 scope (a_not_in_b): fires on an out-of-scope chain, not on the in-scope twin or smuggle
-        scope = K.make_chain("m_w", fed, iam, provenance="authoritative", assurance="present", scope="out")
-        assert evaluate(RR.H5_SCOPE, K.deoracle(_mal_comp(scope)), CFG) is True
-        assert evaluate(RR.H5_SCOPE, K.deoracle(_ben_comp(twin)), CFG) is False
-        assert evaluate(RR.H5_SCOPE, K.deoracle(_mal_comp(smug)), CFG) is False
-        # h5 intersection (the 3-way): boundary-blocked fires only the boundary leg; resource-blocked
-        # only the resource leg; the in-intersection twin fires NEITHER; a naive "target in identity"
-        # rule FALSE-ALARMS on the twin (that is the precision pressure the 3-way composition adds).
-        intb = K.make_chain("m_ib", fed, iam, provenance="authoritative", assurance="present",
-                            scope="in", intersection="boundary")
-        intr = K.make_chain("m_ir", fed, iam, provenance="authoritative", assurance="present",
-                            scope="in", intersection="resource")
-        assert evaluate(RR.H5_INT_BOUNDARY, K.deoracle(_mal_comp(intb)), CFG) is True
-        assert evaluate(RR.H5_INT_RESOURCE, K.deoracle(_mal_comp(intb)), CFG) is False
-        assert evaluate(RR.H5_INT_RESOURCE, K.deoracle(_mal_comp(intr)), CFG) is True
-        assert evaluate(RR.H5_INT_BOUNDARY, K.deoracle(_mal_comp(intr)), CFG) is False
-        assert evaluate(RR.H5_INT_BOUNDARY, K.deoracle(_ben_comp(twin)), CFG) is False
-        assert evaluate(RR.H5_INT_RESOURCE, K.deoracle(_ben_comp(twin)), CFG) is False
-        naive_id = {"require": "all", "conditions": [{"type": "join",
-                    "a": {"event": "workload_run", "field": "effective_target"},
-                    "b": {"event": "identity_policy_decision", "field": "allowed_targets"},
-                    "on": "a_in_b"}]}
-        assert evaluate(naive_id, K.deoracle(_ben_comp(twin)), CFG) is True   # naive rule FALSE-ALARMS
+        # (review D, option a: the scope + policy-intersection reference checks were removed with their
+        # ungroundable completed out-of-policy positives -- provenance + assurance are the shipped signal.)
     print("  test_reference_rules_precise_both_families_and_heldout OK")
 
 
@@ -138,7 +117,7 @@ def test_scoring_reference_pack():
     c = dev["curve"]
     # scope + the 2 intersection families are all scored at h5 (a_not_in_b) -> no gap, no real misses
     assert c["never"] == 0 and c["gap"] == 0, c
-    assert c["h5"] == 18 and c["h5b"] == 6 and c["h4"] >= 12, c
+    assert c["h5"] == 0 and c["h5b"] == 6 and c["h4"] >= 12, c   # (a): scope+intersection removed -> h5=0
     assert dev["scalar"] == 1.0
     assert dev["fp"]["benign_windows"] == 0 and dev["fp"]["benign_components"] == 0, dev["fp"]
     assert dev["stitched"] == 0
@@ -218,7 +197,7 @@ def test_oracle_guard_rejects_underscore_fields():
 
 def test_stage_gate_independent_boundaries():
     g = SG.run_gate()
-    assert g["h4"] is True and g["h5"] is True and g["h5b"] is True and g["scope_expressible"] is True, g
+    assert g["h4"] is True and g["h5b"] is True, g   # (a): only provenance + assurance are gated now
     assert g["h5_intersection"] is True, g
     print("  test_stage_gate_independent_boundaries OK")
 
