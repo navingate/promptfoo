@@ -34,18 +34,21 @@ def _first_fire_landmark(rule, events):
     for _b, cum in prefixes(events):
         for comp in partition(cum):
             if comp and comp[0]["_cid"].startswith("m") and evaluate(rule, deoracle(comp), CFG):
-                return progress_landmark(cum)
+                lm = progress_landmark(comp)          # THIS component's own progress, not the window's
+                return "h4" if lm == "none" else lm   # clamp pre-h4 to the earliest landmark
     return None
 
 
 def _pack_fires_before(pack, events, landmark):
     for _b, cum in prefixes(events):
-        if _IDX[progress_landmark(cum)] >= _IDX[landmark]:
-            break
-        for comp in partition(cum):
-            if comp and comp[0]["_cid"].startswith("m") \
-                    and any(evaluate(r, deoracle(comp), CFG) for r in pack):
-                return True
+        mcomp = next((c for c in partition(cum) if c and c[0]["_cid"].startswith("m")), None)
+        if mcomp is None:
+            continue
+        lm = progress_landmark(mcomp)                 # gate on the malicious component's own progress
+        if _IDX["h4" if lm == "none" else lm] >= _IDX[landmark]:
+            break                                     # component reached the landmark; stop looking before
+        if any(evaluate(r, deoracle(mcomp), CFG) for r in pack):
+            return True
     return False
 
 

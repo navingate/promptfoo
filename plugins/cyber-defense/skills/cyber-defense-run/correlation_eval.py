@@ -128,7 +128,9 @@ def _field_ok(events: list[dict], event_type: str, field: str, op: str, value) -
     for e in events:
         if e.get("event") != event_type:
             continue
-        v = e.get(field)
+        if field not in e:                     # review D: a field-op on an ABSENT field must NOT match
+            continue                           # (esp. empty/eq -- a misspelled/missing field is not a rule)
+        v = e[field]
         if op == "nonempty" and v:
             return True
         if op == "empty" and not v:

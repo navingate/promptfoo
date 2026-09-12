@@ -8,7 +8,7 @@ _HERE = os.path.dirname(os.path.abspath(__file__))
 sys.path.insert(0, _HERE)
 
 fail = False
-for m in ["selftest_mh_core.py", "selftest_mh_shortcuts.py"]:
+for m in ["selftest_mh_core.py", "selftest_mh_shortcuts.py", "selftest_mh_eval.py"]:
     r = subprocess.run([sys.executable, os.path.join(_HERE, m)], capture_output=True, text=True)
     print(f"=== {m} ===\n{r.stdout}{r.stderr}")
     fail = fail or r.returncode != 0

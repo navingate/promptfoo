@@ -21,7 +21,9 @@ sys.path.insert(0, str(_SKILL))
 from mh_scoring import validate_pack  # noqa: E402
 import mh_eval  # noqa: E402
 
-CLEAN_SOLVE_THRESHOLD = 0.8  # a run "clean-solves" if it catches >=80% of attacks at ZERO false alarms
+CLEAN_SOLVE_THRESHOLD = 0.8  # a run "clean-solves" if its scalar-at-0-FP band >= 0.8. NB: the band is
+# LATENCY-WEIGHTED detection credit (earliest-landmark), NOT literal 80% attack recall (review D). Report
+# recall + landmark distribution + benign-FP rates + CIs alongside it — see references/multihop-spike-a-results.md.
 
 _FENCE = re.compile(r"```(?:json)?\s*\n(.*?)```", re.DOTALL | re.IGNORECASE)
 

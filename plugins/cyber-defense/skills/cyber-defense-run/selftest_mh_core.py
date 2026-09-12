@@ -142,8 +142,43 @@ def test_scoring_reference_pack():
     assert dev["scalar"] == 1.0
     assert dev["fp"]["benign_windows"] == 0 and dev["fp"]["benign_components"] == 0, dev["fp"]
     assert dev["stitched"] == 0
-    assert dev["blocked"] == {"mblk1": "detected_before_block"}
+    assert dev["blocked"] == {("MAL_blocked", "mblk1"): "detected_before_block"}  # (incident, cid) key
     print("  test_scoring_reference_pack OK")
+
+
+def test_timing_is_component_local():
+    # A COMPLETED malicious smuggle chain (target h4) whose events all land LATER (batch seq +5) than a
+    # benign chain that already reached h5b. The window's landmark is h5b; the malicious component's own
+    # progress when its tag lands is h4. The h4 detector fires on it -> credit h4, NOT h5b (review D, P0).
+    mal = K.make_chain("mtl1", "delimited-claim", "passrole", provenance="smuggle", assurance="present",
+                       scope="in")
+    for e in mal:
+        base, sq = str(e["batch_id"]).split(".", 1)
+        e["batch_id"] = "%s.%d" % (base, int(sq) + 5)               # sort after the benign h5b
+    ben = K.make_chain("ttl1", "principal-tag", "grant", provenance="authoritative", assurance="present",
+                       scope="in")
+    inc = K._minc("ASYNC", ben + mal, "h4")
+    s = SC.score([RR.H4_PROVENANCE], [inc], CFG)
+    assert s["survival"][("ASYNC", "mtl1")] == "h4", s["survival"]   # component-local, not the window's h5b
+    assert s["scalar"] == 1.0, s
+    print("  test_timing_is_component_local OK")
+
+
+def test_pre_h4_alert_no_crash_credits_h4():
+    # A COMPLETED chain whose tag is pushed late so ASSERTION issuance is its own pre-h4 prefix (landmark
+    # "none"). A rule firing there must NOT crash the scorer and must clamp the credit to h4 (review D, P0).
+    mal = K.make_chain("mp1", "principal-tag", "passrole", provenance="smuggle", assurance="present",
+                       scope="in")
+    for e in mal:
+        if e.get("event") == "session_tag_applied":
+            e["batch_id"] = str(e["batch_id"]).split(".", 1)[0] + ".3"   # tag lands after assertion prefix
+    early = {"require": "all", "conditions": [
+        {"type": "field", "event": "assertion_issued", "field": "source_attrs", "op": "overlaps",
+         "value": {"$config": "self_service_attribute_names"}}]}
+    inc = K._minc("PREH4", mal, "h4")
+    s = SC.score([early], [inc], CFG)                    # must not raise KeyError 'none'
+    assert s["survival"][("PREH4", "mp1")] == "h4", s["survival"]   # clamped from "none"
+    print("  test_pre_h4_alert_no_crash_credits_h4 OK")
 
 
 def test_scoring_deterministic_under_shuffle():
@@ -199,4 +234,6 @@ if __name__ == "__main__":
     test_scoring_deterministic_under_shuffle()
     test_oracle_guard_rejects_underscore_fields()
     test_stage_gate_independent_boundaries()
+    test_timing_is_component_local()
+    test_pre_h4_alert_no_crash_credits_h4()
     print("selftest_mh_core: ALL OK")

@@ -291,7 +291,16 @@ INCIDENTS = DEV_INCIDENTS                          # back-compat for existing se
 HELD_OUT_CELL = _HELDOUT_CELL
 
 
+def _strip(obj):
+    if isinstance(obj, dict):
+        return {k: _strip(v) for k, v in obj.items() if not (isinstance(k, str) and k.startswith("_"))}
+    if isinstance(obj, list):
+        return [_strip(x) for x in obj]
+    return obj
+
+
 def deoracle(events):
-    """Strip evaluator-only (`_`-prefixed) fields -> what the model / a rule may see. Defense-in-depth;
-    the scorer ALSO evaluates on stripped copies (C2)."""
-    return [{k: v for k, v in e.items() if not k.startswith("_")} for e in events]
+    """Recursively strip evaluator-only (`_`-prefixed) keys at EVERY nesting level -> what the model / a
+    rule may see. Review D: top-level-only stripping left nested `_truth`/token material exposed.
+    Defense-in-depth; the scorer ALSO evaluates on these stripped copies and rejects `_`-field rules."""
+    return [_strip(e) for e in events]
