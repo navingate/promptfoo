@@ -42,12 +42,43 @@ INVENTORIES = {
 
 _REQUIRED = {"event", "batch_id"}
 
+# review D: event-specific validation -- required linkage fields, reference SCALARITY (a ref used as a
+# component edge must be a scalar, never a list/dict, or membership/edge semantics break), and list/dict
+# operand shapes. A shaper ingesting real F2 telemetry must pass these before the corpus is scored.
+EVENT_REQUIRED = {
+    "assertion_issued": ["assertion_ref"],
+    "session_created": ["from_assertion_ref", "session_ref"],
+    "session_tag_applied": ["session_ref", "tag_name"],
+    "role_assumed": ["via_session_ref", "role_session_ref"],
+    "grant_issued": ["via_session_ref", "grant_ref"],
+    "workload_run": ["workload_ref"],
+    "vault_access": ["workload_ref"],
+    "stepup_minted": ["from_session_ref", "auth_context_ref"],
+    "kms_unwrap": ["workload_ref", "auth_context_ref"],
+    "workload_output_returned": ["workload_ref"],
+}
+_LIST_FIELDS = {"source_attrs", "authorized_actions"}
+_DICT_FIELDS = {"emitted_tags"}
+
 
 def validate_event(e):
     if not isinstance(e, dict):
         raise ValueError("event must be a dict")
-    if e.get("event") not in EVENT_TYPES:
-        raise ValueError(f"unknown event type: {e.get('event')!r}")
+    et = e.get("event")
+    if et not in EVENT_TYPES:
+        raise ValueError(f"unknown event type: {et!r}")
     for k in _REQUIRED:
         if not e.get(k):
             raise ValueError(f"event missing required field {k!r}")
+    for k in EVENT_REQUIRED.get(et, ()):
+        if not e.get(k):
+            raise ValueError(f"{et}: missing required field {k!r}")
+    for f, v in e.items():
+        if f.startswith("_"):
+            continue                                       # evaluator-only truth (stripped before scoring)
+        if f.endswith("_ref") and not isinstance(v, (str, int)):
+            raise ValueError(f"{et}.{f}: reference must be a scalar, got {type(v).__name__}")
+        if f in _LIST_FIELDS and not isinstance(v, list):
+            raise ValueError(f"{et}.{f}: must be a list operand, got {type(v).__name__}")
+        if f in _DICT_FIELDS and not isinstance(v, dict):
+            raise ValueError(f"{et}.{f}: must be an object, got {type(v).__name__}")

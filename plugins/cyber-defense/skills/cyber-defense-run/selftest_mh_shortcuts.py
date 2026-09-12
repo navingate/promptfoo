@@ -93,6 +93,53 @@ def test_mutation_breaks_reference_rules():
     print("  test_mutation_breaks_reference_rules OK")
 
 
+def test_no_literal_shortcut_solves():
+    # Review D, P0-1: NO memorized one- or two-field LITERAL pack may cleanly solve the corpus. Enumerate
+    # every concrete field value seen in malicious DEV components, build a 1-condition rule for it, and
+    # score single-literal (1-rule) and two-literal (2-rule OR) packs. The rotated sources/tags + the
+    # near-miss benigns must keep every such pack below the clean-solve band (the intersection literals
+    # that DID solve are gone -- this is the standing guard).
+    seen = {}
+    for inc in DEV:
+        for comp in C.partition(inc["events"]):
+            if not (comp and comp[0]["_cid"].startswith("m")):
+                continue
+            for e in K.deoracle(comp):
+                ev = e.get("event")
+                for f, v in e.items():
+                    if f in ("event", "batch_id"):
+                        continue
+                    if isinstance(v, str):
+                        seen[(ev, f, "eq", v)] = {"type": "field", "event": ev, "field": f, "op": "eq", "value": v}
+                    elif isinstance(v, (list, tuple)):
+                        for x in v:
+                            if isinstance(x, str):
+                                seen[(ev, f, "contains", x)] = {"type": "field", "event": ev, "field": f, "op": "contains", "value": x}
+                    elif isinstance(v, dict):
+                        for k in v:
+                            seen[(ev, f, "contains", k)] = {"type": "field", "event": ev, "field": f, "op": "contains", "value": k}
+
+    def band(conds):                              # each cond becomes its OWN 1-condition rule (pack = OR)
+        try:
+            s = SC.score([{"require": "all", "conditions": [c]} for c in conds], DEV, CFG)
+        except Exception:
+            return 0.0
+        return s["scalar"] if s["fp"]["benign_windows"] == 0 else 0.0
+
+    singles = list(seen.values())
+    scored = sorted(((band([c]), c) for c in singles), key=lambda t: t[0], reverse=True)
+    best_single = scored[0][0] if scored else 0.0
+    assert best_single < 0.8, "a single literal solves at band %.3f: %s" % (best_single, scored[0][1])
+    partials = [c for b, c in scored if b > 0][:40]        # bound the pair search to nonzero-recall literals
+    best_pair = 0.0
+    for i in range(len(partials)):
+        for j in range(i + 1, len(partials)):
+            best_pair = max(best_pair, band([partials[i], partials[j]]))
+    assert best_pair < 0.8, "a two-literal pack solves at band %.3f" % best_pair
+    print("  test_no_literal_shortcut_solves OK (best single=%.2f best pair=%.2f over %d literals)"
+          % (best_single, best_pair, len(singles)))
+
+
 if __name__ == "__main__":
     test_bare_field_rules_false_alarm()
     test_literal_overfit_underperforms_config()
@@ -100,4 +147,5 @@ if __name__ == "__main__":
     test_degenerate_pack_pays_in_false_alerts()
     test_causal_stitching_cannot_cross_components()
     test_mutation_breaks_reference_rules()
+    test_no_literal_shortcut_solves()
     print("selftest_mh_shortcuts: ALL OK")

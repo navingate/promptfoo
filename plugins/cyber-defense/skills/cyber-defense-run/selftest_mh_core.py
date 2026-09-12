@@ -160,6 +160,21 @@ def test_pre_h4_alert_no_crash_credits_h4():
     print("  test_pre_h4_alert_no_crash_credits_h4 OK")
 
 
+def test_event_validation_rejects_malformed():
+    # review D (S7): missing required linkage field, a non-scalar reference, and a non-list list-operand
+    # must all be rejected before scoring.
+    S.validate_event({"event": "session_created", "batch_id": "n.1", "from_assertion_ref": "a", "session_ref": "s"})
+    for bad in ({"event": "session_created", "batch_id": "n.1", "session_ref": "s"},                 # missing ref
+                {"event": "session_created", "batch_id": "n.1", "from_assertion_ref": ["a"], "session_ref": "s"},  # list ref
+                {"event": "assertion_issued", "batch_id": "n.1", "assertion_ref": "a", "source_attrs": "x"}):       # non-list
+        try:
+            S.validate_event(bad)
+            assert False, f"accepted malformed event: {bad}"
+        except ValueError:
+            pass
+    print("  test_event_validation_rejects_malformed OK")
+
+
 def test_scoring_deterministic_under_shuffle():
     base = SC.score(RR.REFERENCE_PACK, K.DEV_INCIDENTS, CFG)
     rng = random.Random(1234)
@@ -198,7 +213,6 @@ def test_oracle_guard_rejects_underscore_fields():
 def test_stage_gate_independent_boundaries():
     g = SG.run_gate()
     assert g["h4"] is True and g["h5b"] is True, g   # (a): only provenance + assurance are gated now
-    assert g["h5_intersection"] is True, g
     print("  test_stage_gate_independent_boundaries OK")
 
 
@@ -215,4 +229,5 @@ if __name__ == "__main__":
     test_stage_gate_independent_boundaries()
     test_timing_is_component_local()
     test_pre_h4_alert_no_crash_credits_h4()
+    test_event_validation_rejects_malformed()
     print("selftest_mh_core: ALL OK")
