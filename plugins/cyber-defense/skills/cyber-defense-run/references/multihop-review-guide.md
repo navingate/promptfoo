@@ -14,10 +14,14 @@ JSON **detection rule pack** over a frozen correlation grammar. The pack is grad
 held-out estate. The headline is a **detection-survival curve** (how far each attack
 progresses before a rule first flags it) collapsed into a **scalar-at-0-false-alarm band**.
 v1 saturated (every capable model scored ~0.8–1.0); v2 added an unlabeled "discovery" hunt + a graded
-precision-gated metric. **Current honest state (after the review-D + option-(a) remediation below):** the
-eval detects TWO grounded boundaries — provenance (h4) + assurance (h5b). The intersection/scope
-boundaries were REMOVED as ungroundable. **No valid frontier calibration exists right now** — the earlier
-rates were discarded because the pre-remediation corpus was solvable by memorizing literals.
+precision-gated metric. **Current honest state (after review-D + option-(a) + the R1 realism pass below):**
+the eval detects TWO grounded boundaries — provenance (h4) + assurance (h5b). The intersection/scope
+boundaries were REMOVED as ungroundable. The corpus is now **value-symmetric** (every discriminative
+malicious value also occurs benignly in the SAME estate, on both DEV and held-out) so no memorized
+literal or single-value "booster" transfers as precise. **Honest calibration (GLM-5.3, n=3, band metric,
+local):** 1/3 clean-solve — one genuine both-boundary solve (band 1.0), one provenance-only pack that now
+correctly scores 0 (its `source_attrs contains "department"` booster false-alarms once the held-out estate
+carries a benign `department` chain), one assurance-only pack (0.33). n=10 across all three models pending.
 
 ## Review-D remediation status (2026-09-12)
 
@@ -34,11 +38,24 @@ An external validity/security review (verdict: do not lock/calibrate) found rele
 - **High-priority correctness** — strict grammar validation (malformed rule invalidates the pack),
   recursive de-oracle, incident-scoped ids, `empty`/`eq` require the field, honest FP diagnostic,
   event-specific schema validation, complete test runner. FIXED.
+- **R1 realism pass (2026-09-12) — DONE.** Two corpus defects/gaps closed, both regression-guarded:
+  - **Transfer hole (P0-class):** held-out benign coverage was WEAKER than DEV — malicious chains rotated
+    the full entitlement + source pools while held-out benigns used only `provision-scope`/`memberOf`. So a
+    rule keyed on `break-glass` / `department` / `orgUnit` transferred with 0 false alarms — a free booster
+    (GLM-5.3 run 1 banked 3 spurious credits this way, band 0.67→0.79). FIXED: `mh_corpus._benign_cover`
+    makes the corpus **value-symmetric** on both estates; `test_value_symmetry_both_estates` is the standing
+    mechanical guard (every malicious `(field,value)` minus nonces must occur benignly in the same estate),
+    and `test_overfit_source_literal_false_alarms_heldout` pins the exact run-1 failure.
+  - **Base-rate / config drift (realism #4/#11):** config pools widened to 6 self-service attrs + 6
+    entitlement tags, malicious rotates the WHOLE pool, + a benign "session expired before use" archetype.
+    All value-variation on the existing 10 events (no new types/fields — F2 grounding constraint).
+  - Reference pack unchanged (1.0/0-FP both estates); literal-search guard best single **0.32→0.05** / pair
+    **0.53→0.11**. **34 selftests green.**
 - **OPEN — grounding**: F2's producer emission is NOT in the repo yet; real grounding + a captured-journal
   conformance test are pending F2 Chain committing it.
-- **OPEN — recalibration + option (b)**: the old rates are discarded; a fresh calibration on the (a)
-  construct is pending. If GLM-5.3 solves >1/3 there, option (b) — a REAL offense-side enforcement defect
-  (not a synthetic bypass) — is revisited.
+- **OPEN — recalibration + option (b)**: honest n=3 recalibration on the value-symmetric (a) construct =
+  GLM-5.3 **1/3** clean-solve (NOT >1/3), so option (b) — a REAL offense-side enforcement defect — is NOT
+  triggered. An n=10 pass across all three models (to firm the rate + CIs) is the pending confirmation.
 
 ## ⚠️ Review scope — what to look at (and what to ignore)
 
@@ -74,20 +91,23 @@ The directory contains ~60 `.py` files: v1 slices, other experiments, and shared
 1. **Oracle-safety** — the model must never see ground truth. Truth rides only on `_`-prefixed fields (evaluator-only); identifiers are label-free nonces; components are de-oracled before evaluation AND `validate_pack` rejects `_`-field rules (double defense); DEV is disclosed, held-out never is. **Try to find a leak** — `selftest_mh_eval.py` is where this is asserted.
 2. **Non-gameability of the corpus** — malicious vs benign should be separable ONLY by the intended invariant. Violation axes are decoupled (single-violation "insider" chains), and near-miss benigns punish every naive single-field rule. `selftest_mh_shortcuts.py` throws shortcut rules at it.
 3. **The negation-join quantifier** — `a_not_in_b` fires existentially over event pairs, so the contract requires exactly **one** decision event per policy type per authz_ref (server-side union set) and list operands as lists, not strings. Confirm the corpus honors this and the reference intersection rule is precise.
-4. **The literal-search guard** — `test_no_literal_shortcut_solves` (`selftest_mh_shortcuts.py`) enumerates every concrete value in malicious components and proves no one/two-field literal pack clean-solves. This is the standing defense against the P0-1 fixed-literal solve; extend it if you add fields. (The intersection boundary this item used to describe was removed — option a.)
+4. **Un-gameability guards (two, complementary)** — `test_no_literal_shortcut_solves` enumerates every concrete value in malicious DEV components and proves no one/two-field literal pack clean-solves (best single **0.05**, pair **0.11** over 366 literals). `test_value_symmetry_both_estates` is the stronger, mechanical invariant: every malicious `(field,value)` (minus per-chain nonces) MUST also occur benignly in the **same** estate — this is what makes even a full literal-enumeration pack, or a "clean rule + single-value booster", false-alarm instead of transferring free. Extend BOTH if you add fields or pool values; the symmetry test names any leaked value.
 5. **The metric** — is scalar-at-0-FP gameable? A catch-all pack scores band 0 via the FP gate; a precise-but-incomplete pack scores partial. Confirm the 0-FP gate and the 0.8 clean-solve threshold behave as intended (`assert_mh.py` + its selftest).
 6. **`reasoning_effort: medium` as a construct choice** — engy caps GLM output at 32,768 tokens and unbounded thinking blows it; medium bounds it (~8× less) so packs fit, applied uniformly to all models. A reviewer may fairly question whether this caps capability.
 
 ## Current status
 
-- **27 selftests green** (`python3 selftest_mh_all.py`).
-- **Calibration (n=3, discovery mode, band metric, run locally):** GLM-5.3 = 1/3 clean-solve (band ~0.5); DeepSeek = 0/3 (floor); GLM-5.2 in progress. An n=10 pass on all three is queued.
+- **34 selftests green** (`python3 selftest_mh_all.py`); corpus DEV 63 / held-out 66 incidents (24 held-out malicious).
+- **Calibration (n=3, discovery mode, band metric, run locally, value-symmetric corpus):** GLM-5.3 = **1/3**
+  clean-solve — bands [0, 1.0, 0.33] (run 1's booster now correctly scores 0). DeepSeek = 0/3 (floor);
+  GLM-5.2 directional. An n=10 pass on all three (with per-seed CIs) is the pending confirmation.
 
 ## Known limitations (honest)
 
-- **Still synthetic.** Everything runs on the hand-built corpus (`mh_corpus.py`). F2 Chain shipped the real emission telemetry, but the **shaper that grounds the eval on real F2 captures is NOT built yet** — this is the biggest open item and the honest limit on any real-world claim.
-- **Small n** — calibration is n=3 (directional); n=10 pending.
-- **`two_tag` boundary** (an offense lever) is specified in the telemetry contract but **not yet built defense-side**; current construct has 5 boundaries (provenance, scope, intersection ×2 legs, assurance).
+- **Still synthetic.** Everything runs on the hand-built corpus (`mh_corpus.py`). F2's producer emission is **not committed to the repo** (verified 0 files at the plugin-cyber tip), so the shaper that would ground the eval on real F2 captures is NOT built — this is the biggest open item and the honest limit on any real-world claim.
+- **Small n** — calibration is n=3 (directional); n=10 + per-seed CIs pending.
+- **Held-out is correlated copies, not independent samples.** The 24 held-out malicious are seeded rotations of 3 vectors over one withheld cell, now value-symmetric but still not independently sampled realizations — the honest per-seed variance / CI story needs the R2 stream + a regen pass.
+- **Two boundaries only** (provenance h4 + assurance h5b). The offense levers `two_tag` and the policy-intersection family are specified in the telemetry contract but OUT of the shipped defense construct (intersection removed as ungroundable — option a; `two_tag` not yet built). Adding rungs is the headroom question, gated on grounding + a >1/3 recalibration.
 - **Endpoint** — runs against engy (a miner network): intermittent, model-specific flakiness and a hard 32K output cap. Operational, not a construct issue.
 
 ## How to run
