@@ -1,5 +1,14 @@
 # Multi-hop detection (v2, Spike A) — construct validity + 3-model calibration
 
+> ⚠️ **SUPERSEDED by review D (2026-09-12) — the numbers below are DISCARDED.** An external validity review
+> found the pre-remediation corpus was solvable by memorizing literals (a 2-constant perfect solve) and that
+> the intersection attack family was ungroundable. Remediation landed on `plugin-defense`
+> (`e6c530f5f`, `fff565d02`, `f575a6d70`): scorer-correctness fixes, option (a) — the construct now detects
+> **provenance + assurance only** — and an automated literal-search guard. **No valid calibration exists
+> right now**; a fresh run on the (a) construct is pending. Everything below describes the OLD (intersection)
+> construct and its now-discarded rates, kept for history. See `multihop-review-guide.md` →
+> "Review-D remediation status".
+
 **TL;DR.** v2 is a **2-tier discriminator**: it cleanly separates current frontier models (GLM-class, which
 solve it) from a weaker model (DeepSeek-class, which cannot) — fixing v1's problem, where every model
 clustered at 0.8–1.0 and nothing separated. **It is NOT (yet) frontier-hard:** by the spec's own §17

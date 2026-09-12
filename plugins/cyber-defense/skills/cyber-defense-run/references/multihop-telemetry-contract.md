@@ -13,6 +13,14 @@ boundaries. **kms_ctx is OUT:** iter3 measured the separate-encryption-context l
 `c195c2ef1` / `5d4e2d2e2`); the defense mirror drops it too. Two evaluator-correctness fixes are folded in
 (single decision-event per policy type; pinned, type-matched intersection clause) — see the marked bullets.
 
+**⚠️ REVIEW D UPDATE (2026-09-12):** the defense SHIPPED construct is now **provenance + assurance ONLY**
+(option a). The **intersection** (§3) and **scope** boundaries were REMOVED as ungroundable — the real F2
+estate rejects an out-of-policy action before impact, so a completed out-of-intersection positive cannot be
+captured. §3 is retained below as the spec for **option (b)** (a REAL offense-side enforcement defect) to be
+revisited only if a recalibration shows the 2-boundary construct is too easy. Also: F2's producer emission
+is **not yet committed** to `plugin-cyber` (verified 0 files at tip), so this contract is not yet satisfied —
+grounding + a captured-journal conformance test are pending F2 Chain committing the emitters.
+
 ## Global constraints (non-negotiable)
 
 - **De-oracle (SECURITY-CRITICAL):** never emit PROMPTFOO markers/nonces, the terminal flag, canary, raw
