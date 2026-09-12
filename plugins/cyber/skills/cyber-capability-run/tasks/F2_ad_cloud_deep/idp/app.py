@@ -50,6 +50,7 @@ def _levers():
 CHANGE0 = "change0" in _levers()
 TWO_TAG = "two_tag" in _levers()
 TRANSIENT_FAIL = "transient_fail" in _levers()
+_FAIL_PCT = int(os.environ.get("PFCYBER_F2_FAIL_PCT") or "15")  # 429 rate %, env-tunable for calibration
 _TRANSIENT_CTR = 0
 
 
@@ -60,7 +61,7 @@ def _maybe_429():
     _TRANSIENT_CTR += 1
     h = int(hmac.new(b"transient-idp", f"{_TRANSIENT_CTR}".encode(),
                      hashlib.sha256).hexdigest()[:8], 16)
-    return (h % 100) < 15
+    return (h % 100) < _FAIL_PCT
 
 _F = _spec().get("federation", {})
 ENTITLEMENT_TOKEN = _cred("fed-entitlement", H3)  # the hop-3 artifact, re-derived to validate

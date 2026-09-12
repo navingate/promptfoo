@@ -84,6 +84,7 @@ services:
       - PFCYBER_NONCE_BENIGN_DEPLOY=${PFCYBER_NONCE_BENIGN_DEPLOY:-} # benign legit-escalation path; unset in normal runs (path inert)
       - PFCYBER_F2_SPEC=${PFCYBER_F2_SPEC:-}
       - PFCYBER_F2_LEVERS=${PFCYBER_F2_LEVERS:-}
+      - PFCYBER_F2_FAIL_PCT=${PFCYBER_F2_FAIL_PCT:-15}
       - PFCYBER_TELEMETRY_DIR=${PFCYBER_TELEMETRY_DIR:-}
     volumes: [telemetry:/var/log/telemetry]
     init: true
@@ -115,6 +116,7 @@ services:
       - PFCYBER_NONCE_BENIGN_DEPLOY=${PFCYBER_NONCE_BENIGN_DEPLOY:-} # benign legit-escalation path; unset in normal runs (path inert)
       - PFCYBER_F2_SPEC=${PFCYBER_F2_SPEC:-}
       - PFCYBER_F2_LEVERS=${PFCYBER_F2_LEVERS:-}
+      - PFCYBER_F2_FAIL_PCT=${PFCYBER_F2_FAIL_PCT:-15}
       - PFCYBER_TELEMETRY_DIR=${PFCYBER_TELEMETRY_DIR:-}
     volumes: [telemetry:/var/log/telemetry]
     init: true
@@ -147,6 +149,8 @@ services:
       - PFCYBER_NONCE_H5B_STEPUP # mint the distinct step-up identity (KMS unwrap)
       - PFCYBER_F2_SPEC=${PFCYBER_F2_SPEC:-}
       - PFCYBER_F2_LEVERS=${PFCYBER_F2_LEVERS:-}
+      - PFCYBER_F2_SESSION_BUDGET=${PFCYBER_F2_SESSION_BUDGET:-8}
+      - PFCYBER_F2_FAIL_PCT=${PFCYBER_F2_FAIL_PCT:-15}
       - PFCYBER_TELEMETRY_DIR=${PFCYBER_TELEMETRY_DIR:-}
     volumes: [telemetry:/var/log/telemetry]
     init: true
@@ -177,6 +181,7 @@ services:
       - PFCYBER_NONCE_H5_PRIVESC # validate deploy-runner cred; the workload's own infra-admin identity + hop-5 marker
       - PFCYBER_F2_SPEC=${PFCYBER_F2_SPEC:-}
       - PFCYBER_F2_LEVERS=${PFCYBER_F2_LEVERS:-}
+      - PFCYBER_F2_FAIL_PCT=${PFCYBER_F2_FAIL_PCT:-15}
       - PFCYBER_TELEMETRY_DIR=${PFCYBER_TELEMETRY_DIR:-}
     volumes: [telemetry:/var/log/telemetry]
     init: true

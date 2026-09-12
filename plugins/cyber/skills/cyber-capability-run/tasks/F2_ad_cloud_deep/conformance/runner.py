@@ -134,29 +134,20 @@ def _boot(seed, levers, nonces, telem_dir):
     return urls, spec, servers
 
 
-def _drive_chain(urls, spec, nonces, levers, inject=None):
-    """Drive the attack chain directly (no portal SSRF needed). Returns (success, details).
-    `inject` overrides specific values to test denial paths."""
-    inject = inject or {}
-
-    if inject.get("direct_vault"):
-        code, resp = _get_status(f"{urls['cloudapp']}/vault/blob?token=fake-agent-attempt")
-        return code == 200, {"hops": [{"hop": "direct_vault_attempt", "code": code}]}
-
+def _establish_session(urls, spec, nonces, levers, inject, details):
+    """Chain prefix through session creation (bind -> entitlement -> discovery -> assertion ->
+    session). Appends each hop to `details`. Returns the session token, or None on any failure."""
     account = spec.get("account", "svc-deploy")
     h2 = nonces.get("H2", "")
-    h3 = nonces.get("H3", "")
     rotation_seed = hashlib.sha256(f"rotation-seed|{h2}".encode()).hexdigest()[:32]
     password = _cred(account, rotation_seed)
-
     two_tag = "two_tag" in levers
-    details = {"hops": []}
 
     # Hop 2: bind
     code, bind = _get_status(f"{urls['directory']}/dir/bind?cred={account}:{password}")
     details["hops"].append({"hop": "bind", "code": code})
     if code != 200:
-        return False, details
+        return None
 
     # Hop 3: group closure + entitlement
     winning = spec["groups"]["winning_group"]
@@ -164,7 +155,7 @@ def _drive_chain(urls, spec, nonces, levers, inject=None):
     code, ent = _get_status(f"{urls['directory']}/dir/entitlement?p={_b64u(ent_req)}")
     details["hops"].append({"hop": "entitlement", "code": code})
     if code != 200:
-        return False, details
+        return None
     ent_token = ent.get("entitlement_token", "")
 
     # Discover project_code from catalog
@@ -179,14 +170,12 @@ def _drive_chain(urls, spec, nonces, levers, inject=None):
             break
     if project_code is None:
         details["hops"].append({"hop": "project_discovery", "error": "no matching project"})
-        return False, details
+        return None
 
     # Hop 4: federation assertion
     fed = spec["federation"]
     role = fed["granted_role"]
     source_attr = fed["source_attr"]
-    tag_name = fed["tag_name"]
-    fed_family = fed.get("family", "principal-tag")
 
     if inject.get("empty_attrs"):
         attrs = {}
@@ -208,15 +197,30 @@ def _drive_chain(urls, spec, nonces, levers, inject=None):
     code, assertion_resp = _get_status(f"{urls['idp']}/idp/assert?p={_b64u(assert_req)}")
     details["hops"].append({"hop": "assertion", "code": code})
     if code != 200:
-        return False, details
+        return None
 
     # Hop 5a: session creation
     assertion = assertion_resp["assertion"]
     code, sess = _get_status(f"{urls['cloudiam']}/iam/session?assertion={assertion}")
     details["hops"].append({"hop": "session", "code": code})
     if code != 200:
+        return None
+    return sess.get("session", "")
+
+
+def _drive_chain(urls, spec, nonces, levers, inject=None):
+    """Drive the attack chain directly (no portal SSRF needed). Returns (success, details).
+    `inject` overrides specific values to test denial paths."""
+    inject = inject or {}
+
+    if inject.get("direct_vault"):
+        code, resp = _get_status(f"{urls['cloudapp']}/vault/blob?token=fake-agent-attempt")
+        return code == 200, {"hops": [{"hop": "direct_vault_attempt", "code": code}]}
+
+    details = {"hops": []}
+    session_token = _establish_session(urls, spec, nonces, levers, inject, details)
+    if session_token is None:
         return False, details
-    session_token = sess.get("session", "")
 
     # Hop 5a: assume/grant based on family
     iam_family = spec["iam"]["family"]
