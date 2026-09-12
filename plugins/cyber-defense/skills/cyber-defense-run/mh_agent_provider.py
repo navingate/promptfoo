@@ -68,7 +68,7 @@ def _system(discovery):
         "before you SUBMIT.")
 
 
-def _brief(discovery=False):
+def _brief(discovery=False, view="grouped"):
     mission = (mh_eval.mission() + "\n\n") if discovery else (
         "# Mission\n"
         "Detect unauthorized federation-to-cloud privilege escalation and protected-data access in the "
@@ -118,8 +118,11 @@ def _brief(discovery=False):
         "h5 privilege < h5b key-release); detection scalar = 1.0 means every detectable attack is caught at "
         "its earliest point. Benign chains that alert are FALSE ALERTS. Maximize scalar; keep false alerts "
         "at 0. Some attacks are not expressible in this grammar (reported as 'gap') — ignore them.\n\n"
-        + ("# Telemetry — UNLABELED (most is legitimate; some is the attack — discover the invariant)\n"
-           + mh_eval.disclosed_dev_text(labeled=False) if discovery else
+        + (("# Telemetry — UNLABELED CONTINUOUS STREAM (many principals interleaved; most is legitimate; "
+            "some is the attack — correlate by reference fields and discover the invariant)\n"
+            if view == "stream" else
+            "# Telemetry — UNLABELED (most is legitimate; some is the attack — discover the invariant)\n")
+           + mh_eval.disclosed_dev_text(labeled=False, view=view) if discovery else
            "# Practice telemetry (labelled)\n" + mh_eval.disclosed_dev_text(labeled=True)))
 
 
@@ -171,8 +174,12 @@ def call_api(prompt=None, options=None, context=None):
     feedback_detail = _cfg(options, "feedback_detail", "aggregate")
 
     discovery = _cfg(options, "hunt_mode", "supervised") == "discovery"
+    # realism #2: default 'grouped' keeps the committed calibration honest; 'stream' is the harder,
+    # more realistic multi-principal hunt (discovery-only) — flip it after a paid run confirms it does
+    # not over-harden (cf. the reverted kms_ctx lever that floor-saturated at 0/10).
+    disclosure_view = _cfg(options, "disclosure_view", "grouped") if discovery else "grouped"
     messages = [{"role": "system", "content": _system(discovery)},
-                {"role": "user", "content": _brief(discovery) + _PROTOCOL}]
+                {"role": "user", "content": _brief(discovery, disclosure_view) + _PROTOCOL}]
     last_valid, last_any, trace = None, None, []
 
     for turn in range(1, max_turns + 1):

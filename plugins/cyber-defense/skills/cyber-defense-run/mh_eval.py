@@ -13,15 +13,37 @@ from mh_scoring import score, survival_curve, validate_pack
 CFG = S.INVENTORIES
 
 
-def disclosed_dev_text(seed=1234, labeled=True):
-    """De-oracled DEV telemetry (one JSON event per line, grouped by OPAQUE, seeded-SHUFFLED incident id
-    so neither name nor order leaks each chain's violation-axis — Review-B oracle finding A).
+def _seq(batch_id):
+    try:
+        return int(str(batch_id).split(".", 1)[1])
+    except (IndexError, ValueError):
+        return 0
 
-    labeled=True  (supervised practice): each incident carries a BINARY malicious/benign tag.
-    labeled=False (DISCOVERY / threat-hunt): NO tags — the model must infer which activity is the attack
-      from the mission + the telemetry itself, as a real SOC hunt does (enterprise-realistic)."""
+
+def disclosed_dev_text(seed=1234, labeled=True, view="grouped"):
+    """De-oracled DEV telemetry (one JSON event per line). Two disclosure views:
+
+    view="grouped" (default): events grouped by OPAQUE, seeded-SHUFFLED incident id so neither name nor
+      order leaks each chain's violation-axis (Review-B oracle finding A). `labeled` toggles a per-incident
+      MALICIOUS/benign tag (supervised practice) vs none (discovery).
+    view="stream" (realism #2, DISCOVERY-ONLY): a continuous multi-principal stream — ALL de-oracled events
+      merged and sorted by (seeded per-chain arrival stagger + intra-chain batch seq, then chain nonce), with
+      NO incident headers. The hunter must trace reference fields to correlate chains itself, as in a real
+      SOC hunt, instead of reading pre-grouped chains side by side. A stream has no per-incident label, so
+      `labeled` is ignored. Scoring is unchanged (the scorer does its own per-component partition); this only
+      changes what the model READS. The per-chain stagger is a presentation offset — it never reaches the
+      scorer, so it cannot shift any landmark."""
     incs = list(K.DEV_INCIDENTS)
-    random.Random(seed).shuffle(incs)
+    rng = random.Random(seed)
+    rng.shuffle(incs)
+    if view == "stream":
+        rows = []
+        for inc in incs:
+            off = rng.randint(0, 8)                     # per-chain arrival stagger (seeded, deterministic)
+            for e in K.deoracle(inc["events"]):
+                rows.append((off + _seq(e.get("batch_id")), str(e.get("batch_id")), e))
+        rows.sort(key=lambda r: (r[0], r[1]))
+        return "\n".join(json.dumps(e, separators=(",", ":"), sort_keys=True) for _, _, e in rows)
     out = []
     for idx, inc in enumerate(incs, 1):
         if labeled:

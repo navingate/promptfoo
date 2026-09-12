@@ -101,6 +101,29 @@ def test_no_dev_name_or_cid_leak():
     print("  test_no_dev_name_or_cid_leak OK")
 
 
+def test_stream_disclosure_no_headers_no_leak():
+    # realism #2: the stream view is a headerless, interleaved, DISCOVERY-only disclosure. It must (a) carry
+    # NO incident headers, (b) contain EXACTLY the same de-oracled events as grouped (no loss/dupe/mutation),
+    # (c) leak no truth (no _cid/_stage/dev names/held-out), and (d) be deterministic. Fewer leak vectors than
+    # the grouped headers, but the advisor asked to verify anyway.
+    import mh_corpus as K
+    grouped = mh_eval.disclosed_dev_text(labeled=False, view="grouped")
+    stream = mh_eval.disclosed_dev_text(labeled=False, view="stream")
+    assert "## incident" not in stream, "stream leaks incident headers"
+    for banned in ("_cid", "_stage", "MAL_", "BEN_", "MIX_", "HMAL", "HBEN", "heldout"):
+        assert banned not in stream, f"stream leaks {banned!r}"
+    g_events = sorted(l for l in grouped.splitlines() if l and not l.startswith("##"))
+    s_events = sorted(l for l in stream.splitlines() if l)
+    assert g_events == s_events, "stream is not the SAME de-oracled event set as grouped (loss/mutation)"
+    assert stream == mh_eval.disclosed_dev_text(labeled=False, view="stream"), "stream not deterministic"
+    brief = P._brief(discovery=True, view="stream")
+    assert "## incident" not in brief and "_cid" not in brief and "HMAL" not in brief, "stream brief leaks"
+    cids = {e["_cid"] for inc in K.DEV_INCIDENTS for e in inc["events"]}
+    for c in cids:
+        assert c not in brief, f"stream brief leaks cid {c!r}"
+    print("  test_stream_disclosure_no_headers_no_leak OK")
+
+
 def test_contains_list_rule_does_not_crash():
     # Review-B grading 1: a type-incoherent rule (contains + $config list vs a string field) must be
     # inert, not crash feedback OR the provider loop.
@@ -209,6 +232,7 @@ if __name__ == "__main__":
     test_oracle_safety_brief_has_no_heldout_or_truth()
     test_provider_loop_with_stubbed_model()
     test_no_dev_name_or_cid_leak()
+    test_stream_disclosure_no_headers_no_leak()
     test_contains_list_rule_does_not_crash()
     test_stray_object_then_pack_graded_on_pack()
     test_oversize_and_nonlist_rejected()
