@@ -206,10 +206,23 @@ def _benign_cover(prefix, fed, iam, seed):
 def _truth(events):
     comps = {}
     for e in events:
-        c = comps.setdefault(e["_cid"], {"malicious": e["_cid"].startswith("m"), "stages": set()})
+        c = comps.setdefault(e["_cid"], {"malicious": e["_cid"].startswith("m"),
+                                         "stages": set(), "outcomes": set()})
         c["stages"].add(e.get("_stage", "h4"))
+        c["outcomes"].add(e.get("outcome"))
     for c in comps.values():
         c["completed"] = "impact" in c["stages"]      # M1: completed vs control-blocked
+        # R4 outcome class (realism #5): how the ATTACK ENDED -- reported/scored separately. A real estate
+        # is mostly incomplete/blocked attempts; "successful-attack recall" and "malicious-attempt recall"
+        # are different numbers and the metric must not conflate them.
+        if not c["malicious"]:
+            c["outcome_class"] = "benign"
+        elif c["completed"]:
+            c["outcome_class"] = "successful"                         # reached protected data (impact)
+        elif any(o and "denied" in str(o) for o in c["outcomes"]):
+            c["outcome_class"] = "blocked"                            # an enforcement control stopped it
+        else:
+            c["outcome_class"] = "abandoned"                          # started, never pursued to impact
     return {"components": comps}
 
 
@@ -263,8 +276,10 @@ def _build():
         # value-symmetry: every entitlement tag + every source (self-service & authoritative) the malicious
         # chains rotate over ALSO occurs benignly in this cell -> no single-value rule transfers as precise.
         dev += _benign_cover("dev", fed, iam, ci)
-    # control-blocked malicious + benign denials + same-principal concurrency (DEV)
+    # R4 outcome classes (DEV): control-blocked + abandoned attempts + benign denials + concurrency.
     dev.append(_minc("MAL_blocked", _denied_tail("mblk1", "delimited-claim", "passrole"), "h4"))
+    dev.append(_minc("MAL_abandoned", make_chain("mabd1", "principal-tag", "passrole", provenance="smuggle",
+                     assurance="absent", scope="in", reach="h4"), "h4"))     # smuggle tag lands, never pursued
     dev.append(_inc("BEN_denials", _benign_denials("tden1")))
     dev.append(_minc("MIX_concurrency", _concurrency("mcc1", "tcc1"), "h4"))
 
@@ -283,6 +298,17 @@ def _build():
     # an overfit single-value rule false-alarms here exactly as it would on DEV instead of transferring free.
     for _s in range(3):
         held += _benign_cover("h", fed, iam, _s)
+    # R4 outcome classes (held-out): control-blocked + abandoned malicious ATTEMPTS (not just successful
+    # compromises) so the metric can report successful-attack recall vs malicious-attempt recall separately.
+    # Benign denials ride along so "denied" outcomes stay value-symmetric (else `denied_policy` would leak).
+    for _s in range(2):
+        held.append(_minc(f"HMAL_blocked_{_s}", _denied_tail(f"mhb{_s}", fed, iam), "h4"))
+        held.append(_inc(f"HBEN_denials_{_s}", _benign_denials(f"thd{_s}")))
+    for _s in range(3):
+        held.append(_minc(f"HMAL_abandoned_{_s}",
+                          make_chain(f"mha{_s}", fed, iam, provenance="smuggle", assurance="absent",
+                                     scope="in", tag=_ENT[_s % len(_ENT)], source=_SS[_s % len(_SS)],
+                                     reach="h4"), "h4"))
     return dev, held
 
 

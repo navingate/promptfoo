@@ -161,8 +161,29 @@ def test_scoring_reference_pack():
     assert dev["scalar"] == 1.0
     assert dev["fp"]["benign_windows"] == 0 and dev["fp"]["benign_components"] == 0, dev["fp"]
     assert dev["stitched"] == 0
-    assert dev["blocked"] == {("MAL_blocked", "mblk1"): "detected_before_block"}  # (incident, cid) key
+    # R4 outcome classes: the reference h4 rule flags the control-blocked AND the abandoned attempt too
+    # (both detected before they ended), so both non-completed malicious appear detected_before_block.
+    assert dev["blocked"] == {("MAL_blocked", "mblk1"): "detected_before_block",
+                              ("MAL_abandoned", "mabd1"): "detected_before_block"}, dev["blocked"]
+    bo = dev["by_outcome"]
+    assert bo["successful"]["recall"] == 1.0 and bo["blocked"]["recall"] == 1.0 \
+        and bo["abandoned"]["recall"] == 1.0, bo
+    assert dev["attempt_recall"] == 1.0, dev["attempt_recall"]
     print("  test_scoring_reference_pack OK")
+
+
+def test_by_outcome_discriminates():
+    # R4: outcome-class recall must SEPARATE packs by capability. An assurance-only pack catches h5b
+    # successful compromises but MISSES the smuggle-only abandoned/blocked ATTEMPTS (they never unwrap, so
+    # there is nothing for the assurance rule to key on); a provenance pack catches those attempts at h4.
+    ho = K.HELDOUT_INCIDENTS
+    prov, assur = SC.score([RR.H4_PROVENANCE], ho, CFG), SC.score([RR.H5B_ASSURANCE], ho, CFG)
+    assert prov["by_outcome"]["abandoned"]["recall"] == 1.0 \
+        and prov["by_outcome"]["blocked"]["recall"] == 1.0, prov["by_outcome"]
+    assert assur["by_outcome"]["abandoned"]["recall"] == 0.0 \
+        and assur["by_outcome"]["blocked"]["recall"] == 0.0, assur["by_outcome"]
+    assert prov["attempt_recall"] > assur["attempt_recall"], (prov["attempt_recall"], assur["attempt_recall"])
+    print("  test_by_outcome_discriminates OK")
 
 
 def test_timing_is_component_local():
@@ -330,6 +351,7 @@ if __name__ == "__main__":
     test_replay_progress_monotonic()
     test_reference_rules_precise_both_families_and_heldout()
     test_scoring_reference_pack()
+    test_by_outcome_discriminates()
     test_scoring_deterministic_under_shuffle()
     test_oracle_guard_rejects_underscore_fields()
     test_stage_gate_independent_boundaries()

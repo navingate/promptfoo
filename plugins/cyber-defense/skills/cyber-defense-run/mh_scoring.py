@@ -85,10 +85,13 @@ def score(pack, incidents, config):
     validate_pack(pack)
     _validate_grammar(pack, config)
     completed, blocked = {}, {}      # (inc, cid) -> target
+    outcome_of = {}                  # (inc, cid) -> outcome_class, over ALL malicious (R4)
     for inc in incidents:
         for cid, t in inc["truth"]["components"].items():
             if t["malicious"]:
                 (completed if t.get("completed") else blocked)[(inc["name"], cid)] = t.get("target")
+                outcome_of[(inc["name"], cid)] = t.get(
+                    "outcome_class", "successful" if t.get("completed") else "abandoned")
 
     detected = {}                    # (inc, cid) -> earliest landmark THAT component reached when flagged
     benign_components = set()        # distinct (inc, cid) benign components that alerted
@@ -140,9 +143,21 @@ def score(pack, incidents, config):
     fp = {"benign_components": len(benign_components),
           "benign_windows": len({inc for inc, _ in benign_components}),
           "benign_rule_matches": len(benign_rule_matches)}
+    # R4 (realism #5): recall per attack OUTCOME class -- successful-attack recall (completed compromises)
+    # vs malicious-ATTEMPT recall (blocked / abandoned) are different numbers; report them apart. A
+    # component counts as detected here if the pack flagged it at ANY landmark.
+    by_outcome = {}
+    for key, oc in outcome_of.items():
+        b = by_outcome.setdefault(oc, {"n": 0, "detected": 0})
+        b["n"] += 1
+        b["detected"] += int(detected.get(key) is not None)
+    for b in by_outcome.values():
+        b["recall"] = round(b["detected"] / b["n"], 4) if b["n"] else 0.0
+    attempt_recall = round(sum(b["detected"] for b in by_outcome.values())
+                           / max(1, sum(b["n"] for b in by_outcome.values())), 4)
     return {"survival": survival, "blocked": blocked_report, "scalar": scalar, "curve": curve,
             "n_scored": len(credits), "n_completed_mal": len(completed), "stitched": stitched,
-            "fp": fp}
+            "fp": fp, "by_outcome": by_outcome, "attempt_recall": attempt_recall}
 
 
 def survival_curve(scored):
