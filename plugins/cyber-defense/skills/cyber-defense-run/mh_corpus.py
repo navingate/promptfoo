@@ -102,12 +102,13 @@ def make_chain(cid, fed, iam, *, provenance, assurance, scope="in",
     return ev
 
 
-def _nearmiss_ss_nontag(cid, fed, iam):
+def _nearmiss_ss_nontag(cid, fed, iam, source=None, tag=None):
     """BENIGN: self-service source, but the landed tag is a NON-entitlement -> a bare
     'source_attrs overlaps self_service' rule FALSE-ALARMS; the reference h4 join (tag in
-    entitlement_tag_names) does not fire."""
+    entitlement_tag_names) does not fire. `source`/`tag` are PARAMETRIC so the FULL self-service pool
+    occurs benignly (value-symmetry, review-D transfer fix); the defaults preserve the original near-miss."""
     return make_chain(cid, fed, iam, provenance="smuggle", assurance="present", scope="in",
-                      tag=_NONENT[0], source=_SS[1])
+                      tag=tag or _NONENT[0], source=source or _SS[1])
 
 
 def _nearmiss_empty_assur_nonkms(cid, fed, iam):
@@ -156,6 +157,30 @@ def _benign_denials(cid):
     ]
 
 
+def _benign_cover(prefix, fed, iam, seed):
+    """BENIGN incidents making EVERY discriminative malicious value also occur benignly in this cell
+    (value-symmetry -- the review-D transfer fix). Held-out used to carry only `provision-scope`/`memberOf`
+    while malicious rotated over the whole entitlement + source pools, so a rule keyed on `break-glass` /
+    `department` / `orgUnit` transferred with 0 false alarms (a free booster). This covers, per cell:
+    each entitlement tag landed AUTHORITATIVELY (its tag name, its principal-tag claim URL, and each
+    authoritative source), and each self-service source on a NON-entitlement tag (each self-service attr).
+    None trips the reference pack: an authoritative source kills the provenance join; a non-entitlement tag
+    kills it too; present / non-kms assurance kills the assurance join. Pure (no randomness); returns
+    incidents. Kept as a plain builder so R2 can interleave the same components into multi-principal windows."""
+    out, ent, ss, nonent, auth = [], _ENT, _SS, _NONENT, _AUTH
+    for k in range(len(ent)):                              # entitlement tag k, authoritative source k
+        out.append(_inc(f"BEN_authtag_{prefix}{seed}_{k}",
+                        make_chain(f"t{prefix}at{seed}_{k}", fed, iam, provenance="authoritative",
+                                   assurance="present", scope="in", tag=ent[k], source=auth[k % len(auth)])))
+    for k in range(len(ss)):                               # self-service source k on a non-entitlement tag
+        out.append(_inc(f"BEN_ssnm_{prefix}{seed}_{k}",
+                        _nearmiss_ss_nontag(f"t{prefix}ss{seed}_{k}", fed, iam,
+                                            source=ss[k], tag=nonent[k % len(nonent)])))
+    out.append(_inc(f"BEN_assurnm_{prefix}{seed}",         # empty-assurance non-kms step-up (unchanged axis)
+                    _nearmiss_empty_assur_nonkms(f"t{prefix}na{seed}", fed, iam)))
+    return out
+
+
 def _truth(events):
     comps = {}
     for e in events:
@@ -202,8 +227,8 @@ def _build():
     _ctr[0] = 0
     dev, held = [], []
     mi = 0
-    # DEV: three seen cells x every vector x 2 seeds (malicious) + matched benign twin per cell/seed
-    for cell in [c for c in _CELLS if c != _HELDOUT_CELL]:
+    # DEV: three seen cells x every vector x 2 seeds (malicious) + a value-SYMMETRIC benign cover per cell
+    for ci, cell in enumerate(c for c in _CELLS if c != _HELDOUT_CELL):
         fed, iam = cell
         for (prov, assur, scope, lm) in _VECTORS:
             for _s in range(2):
@@ -213,15 +238,9 @@ def _build():
                                  make_chain(_mal_id("d", mi), fed, iam, provenance=prov,
                                             assurance=assur, scope=scope,
                                             tag=_ENT[mi % 3], source=src), lm))
-        # matched benign twins (authoritative/present/in) + a decoy-entitlement twin + the near-misses
-        dev.append(_inc(f"BEN_twin_{fed}_{iam}_a", make_chain(f"t{fed}{iam}a", fed, iam,
-                        provenance="authoritative", assurance="present", scope="in")))
-        dev.append(_inc(f"BEN_twin_{fed}_{iam}_decoytag", make_chain(f"t{fed}{iam}b", fed, iam,
-                        provenance="authoritative", assurance="present", scope="in",
-                        tag="deploy-eligibility", source=_AUTH[1])))        # decoy entitlement, authoritative
-        dev.append(_inc(f"BEN_nearmiss_ss_{fed}_{iam}", _nearmiss_ss_nontag(f"t{fed}{iam}c", fed, iam)))
-        dev.append(_inc(f"BEN_nearmiss_assur_{fed}_{iam}",
-                        _nearmiss_empty_assur_nonkms(f"t{fed}{iam}d", fed, iam)))
+        # value-symmetry: every entitlement tag + every source (self-service & authoritative) the malicious
+        # chains rotate over ALSO occurs benignly in this cell -> no single-value rule transfers as precise.
+        dev += _benign_cover("dev", fed, iam, ci)
     # control-blocked malicious + benign denials + same-principal concurrency (DEV)
     dev.append(_minc("MAL_blocked", _denied_tail("mblk1", "delimited-claim", "passrole"), "h4"))
     dev.append(_inc("BEN_denials", _benign_denials("tden1")))
@@ -237,11 +256,11 @@ def _build():
             held.append(_minc(f"HMAL_{prov}_{assur}_{scope}_{hi}",
                               make_chain(_mal_id("h", hi), fed, iam, provenance=prov, assurance=assur,
                                          scope=scope, tag=_ENT[hi % 3], source=src), lm))
-    for _s in range(6):
-        held.append(_inc(f"HBEN_twin_{_s}", make_chain(f"th{_s}", fed, iam,
-                     provenance="authoritative", assurance="present", scope="in")))
-        held.append(_inc(f"HBEN_nearmiss_ss_{_s}", _nearmiss_ss_nontag(f"thm{_s}", fed, iam)))
-        held.append(_inc(f"HBEN_nearmiss_assur_{_s}", _nearmiss_empty_assur_nonkms(f"tha{_s}", fed, iam)))
+    # value-SYMMETRIC benign cover over several seeds (~21 benign vs 24 malicious) -- the held-out estate
+    # now carries the SAME entitlement tags + sources the malicious chains use (review-D transfer fix), so
+    # an overfit single-value rule false-alarms here exactly as it would on DEV instead of transferring free.
+    for _s in range(3):
+        held += _benign_cover("h", fed, iam, _s)
     return dev, held
 
 

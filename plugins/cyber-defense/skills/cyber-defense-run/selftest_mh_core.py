@@ -2,6 +2,7 @@
 
 import os
 import random
+import re
 import sys
 
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
@@ -73,6 +74,45 @@ def test_no_identifier_leaks_label():
                 head = str(v).split("-", 1)[0].split(".", 1)[0]
                 assert head not in ("m", "t"), f"label-leaking id {k}={v!r}"
     print("  test_no_identifier_leaks_label OK")
+
+
+_NONCE_RE = re.compile(r"[0-9a-f]{10}")   # sha1()[:10] -> a per-chain label-free id (asrt-/sess-/...)
+
+
+def _value_pairs(component):
+    """Discriminative (field, value) pairs in a component. Nonce-bearing ids (refs / batch_id /
+    user_principal / emitted_tags values) are excluded -- they are label-free per chain and never a
+    detection signal. emitted_tags contributes its KEYS (the tag names), which ARE discriminative."""
+    out = set()
+    for e in component:
+        for f, v in e.items():
+            if f.startswith("_") or f == "event":
+                continue
+            if isinstance(v, dict):
+                out |= {(f + ".<key>", k) for k in v if not _NONCE_RE.search(str(k))}
+            elif isinstance(v, list):
+                out |= {(f, x) for x in v if not _NONCE_RE.search(str(x))}
+            elif not _NONCE_RE.search(str(v)):
+                out.add((f, v))
+    return out
+
+
+def test_value_symmetry_both_estates():
+    # Review-D transfer fix (the standing guard): EVERY discriminative value a MALICIOUS component carries
+    # must ALSO occur in a BENIGN component of the SAME estate. Otherwise a rule keyed on that lone value
+    # transfers to the held-out estate with 0 false alarms -- a free booster that inflates the band (this is
+    # exactly how GLM-5.3 run 1 banked 3 spurious credits on `source_attrs contains "department"`). Held-out
+    # used to carry only provision-scope/memberOf while malicious rotated the full pools; `_benign_cover`
+    # closes it. Extend the pools -> forget a benign counterexample -> this test names the leaked value.
+    for label, incidents in [("DEV", K.DEV_INCIDENTS), ("HELD-OUT", K.HELDOUT_INCIDENTS)]:
+        mal, ben = set(), set()
+        for inc in incidents:
+            for cid, t in inc["truth"]["components"].items():
+                comp = [e for e in inc["events"] if e.get("_cid") == cid]
+                (mal if t["malicious"] else ben).update(_value_pairs(comp))
+        leaks = mal - ben
+        assert not leaks, f"{label}: malicious-only values (free boosters): {sorted(leaks)}"
+    print("  test_value_symmetry_both_estates OK")
 
 
 def test_replay_progress_monotonic():
@@ -221,6 +261,7 @@ if __name__ == "__main__":
     test_partition_isolates_on_stable_id_sharing()
     test_corpus_wellformed_and_sized()
     test_no_identifier_leaks_label()
+    test_value_symmetry_both_estates()
     test_replay_progress_monotonic()
     test_reference_rules_precise_both_families_and_heldout()
     test_scoring_reference_pack()

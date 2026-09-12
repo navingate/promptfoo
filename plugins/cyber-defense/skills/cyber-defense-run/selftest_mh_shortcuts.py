@@ -140,6 +140,30 @@ def test_no_literal_shortcut_solves():
           % (best_single, best_pair, len(singles)))
 
 
+def test_overfit_source_literal_false_alarms_heldout():
+    # Review-D transfer regression: the EXACT GLM-5.3 run-1 pack -- the clean provenance detector PLUS an
+    # overfit booster keyed on a literal authoritative source ("department"). It used to transfer to HELD-OUT
+    # with 0 false alarms (that estate had no benign `department` chain) and banked 3 spurious 1.0 credits,
+    # lifting the band ~0.12. With value-symmetry the held-out benign cover now includes an authoritative
+    # `department` chain, so the booster false-alarms there -> the whole pack's precision-gated band -> 0.
+    booster = {"require": "all", "conditions": [
+        {"type": "exists", "event": "session_tag_applied"},
+        {"type": "field", "event": "session_tag_applied", "field": "tag_name", "op": "in",
+         "value": {"$config": "entitlement_tag_names"}},
+        {"type": "join", "a": {"event": "session_tag_applied", "field": "tag_name"},
+         "b": {"event": "assertion_issued", "field": "emitted_tags"}, "on": "a_in_b"},
+        {"type": "join", "a": {"event": "session_tag_applied", "field": "session_ref"},
+         "b": {"event": "session_created", "field": "session_ref"}, "on": "eq"},
+        {"type": "join", "a": {"event": "session_created", "field": "from_assertion_ref"},
+         "b": {"event": "assertion_issued", "field": "assertion_ref"}, "on": "eq",
+         "where_b": {"field": "source_attrs", "op": "contains", "value": "department"}}]}
+    ho = SC.score([RR.H4_PROVENANCE, booster], K.HELDOUT_INCIDENTS, CFG)
+    assert ho["fp"]["benign_windows"] >= 1, "overfit source-literal booster did not false-alarm on held-out"
+    band = ho["scalar"] if ho["fp"]["benign_windows"] == 0 else 0.0
+    assert band == 0.0, f"boosted pack still clean-transfers at band {band}"
+    print(f"  test_overfit_source_literal_false_alarms_heldout OK (held-out FP windows={ho['fp']['benign_windows']})")
+
+
 if __name__ == "__main__":
     test_bare_field_rules_false_alarm()
     test_literal_overfit_underperforms_config()
@@ -148,4 +172,5 @@ if __name__ == "__main__":
     test_causal_stitching_cannot_cross_components()
     test_mutation_breaks_reference_rules()
     test_no_literal_shortcut_solves()
+    test_overfit_source_literal_false_alarms_heldout()
     print("selftest_mh_shortcuts: ALL OK")
