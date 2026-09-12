@@ -31,7 +31,10 @@ _ENT = INVENTORIES["entitlement_tag_names"]            # [provision-scope, deplo
 _SS = INVENTORIES["self_service_attribute_names"]      # [extensionAttribute7, costCenter, orgUnit]
 _PT = "https://aws.amazon.com/SAML/Attributes/PrincipalTag:"
 _DL = "https://idp.corp.internal/claims/session-tags"
-_AUTH = ["memberOf", "department", "employeeType"]     # authoritative sources (NOT self-service)
+_AUTH = ["memberOf", "department", "employeeType",     # authoritative sources (NOT self-service);
+         "manager", "sAMAccountName", "objectSid"]      # INTERNAL (not disclosed) -- the reference rule
+                                                        # only needs the self-service set, so authoritative
+                                                        # values stay out of the config surface (advisor).
 _NONENT = ["cost-center-view", "reporting-ro", "directory-read"]  # real tags, NOT entitlements
 _NONKMS_SCOPE = "reporting:read"
 
@@ -157,6 +160,22 @@ def _benign_denials(cid):
     ]
 
 
+def _benign_expired_session(cid, fed, iam):
+    """BENIGN base-rate volume (realism item #4): a federated login whose session EXPIRED before any
+    entitlement was applied -- authoritative source, no tag landed, nothing downstream. Trips neither
+    detector; pure value-variation on the `outcome` field of existing events (no new event type/field)."""
+    n = _nonce()
+    A, Sn = f"asrt-{n}", f"sess-{n}"
+    claim = (_PT + _ENT[0]) if fed == "principal-tag" else _DL
+    return [
+        {"event": "assertion_issued", "batch_id": f"{n}.1", "assertion_ref": A, "_cid": cid,
+         "user_principal": f"user-{n}", "emitted_tags": {}, "source_attrs": [_AUTH[0], claim],
+         "outcome": "ok", "_stage": "benign"},
+        {"event": "session_created", "batch_id": f"{n}.1", "from_assertion_ref": A, "session_ref": Sn,
+         "outcome": "expired", "_cid": cid, "_stage": "benign"},
+    ]
+
+
 def _benign_cover(prefix, fed, iam, seed):
     """BENIGN incidents making EVERY discriminative malicious value also occur benignly in this cell
     (value-symmetry -- the review-D transfer fix). Held-out used to carry only `provision-scope`/`memberOf`
@@ -168,16 +187,19 @@ def _benign_cover(prefix, fed, iam, seed):
     kills it too; present / non-kms assurance kills the assurance join. Pure (no randomness); returns
     incidents. Kept as a plain builder so R2 can interleave the same components into multi-principal windows."""
     out, ent, ss, nonent, auth = [], _ENT, _SS, _NONENT, _AUTH
-    for k in range(len(ent)):                              # entitlement tag k, authoritative source k
+    for k in range(max(len(ent), len(auth))):              # cover EVERY entitlement tag AND EVERY auth source
         out.append(_inc(f"BEN_authtag_{prefix}{seed}_{k}",
                         make_chain(f"t{prefix}at{seed}_{k}", fed, iam, provenance="authoritative",
-                                   assurance="present", scope="in", tag=ent[k], source=auth[k % len(auth)])))
-    for k in range(len(ss)):                               # self-service source k on a non-entitlement tag
+                                   assurance="present", scope="in",
+                                   tag=ent[k % len(ent)], source=auth[k % len(auth)])))
+    for k in range(len(ss)):                               # cover EVERY self-service source (non-ent tag)
         out.append(_inc(f"BEN_ssnm_{prefix}{seed}_{k}",
                         _nearmiss_ss_nontag(f"t{prefix}ss{seed}_{k}", fed, iam,
                                             source=ss[k], tag=nonent[k % len(nonent)])))
     out.append(_inc(f"BEN_assurnm_{prefix}{seed}",         # empty-assurance non-kms step-up (unchanged axis)
                     _nearmiss_empty_assur_nonkms(f"t{prefix}na{seed}", fed, iam)))
+    out.append(_inc(f"BEN_expired_{prefix}{seed}",         # base-rate volume: an expired-before-use session
+                    _benign_expired_session(f"t{prefix}ex{seed}", fed, iam)))
     return out
 
 
@@ -233,11 +255,11 @@ def _build():
         for (prov, assur, scope, lm) in _VECTORS:
             for _s in range(2):
                 mi += 1
-                src = _SS[mi % 3] if prov == "smuggle" else _AUTH[mi % 3]   # rotate -> literals fail
+                src = _SS[mi % len(_SS)] if prov == "smuggle" else _AUTH[mi % len(_AUTH)]  # rotate FULL pool
                 dev.append(_minc(f"MAL_{fed}_{iam}_{prov}_{assur}_{scope}_{mi}",
                                  make_chain(_mal_id("d", mi), fed, iam, provenance=prov,
                                             assurance=assur, scope=scope,
-                                            tag=_ENT[mi % 3], source=src), lm))
+                                            tag=_ENT[mi % len(_ENT)], source=src), lm))
         # value-symmetry: every entitlement tag + every source (self-service & authoritative) the malicious
         # chains rotate over ALSO occurs benignly in this cell -> no single-value rule transfers as precise.
         dev += _benign_cover("dev", fed, iam, ci)
@@ -252,10 +274,10 @@ def _build():
     for (prov, assur, scope, lm) in _VECTORS:
         for _s in range(8):     # 3 vectors x 8 seeds = 24 held-out malicious (>=20 guard; note: correlated
             hi += 1             # copies, not independent samples -- real value-variation is the regen TODO)
-            src = _SS[hi % 3] if prov == "smuggle" else _AUTH[hi % 3]        # rotate -> literals fail
+            src = _SS[hi % len(_SS)] if prov == "smuggle" else _AUTH[hi % len(_AUTH)]  # rotate FULL pool
             held.append(_minc(f"HMAL_{prov}_{assur}_{scope}_{hi}",
                               make_chain(_mal_id("h", hi), fed, iam, provenance=prov, assurance=assur,
-                                         scope=scope, tag=_ENT[hi % 3], source=src), lm))
+                                         scope=scope, tag=_ENT[hi % len(_ENT)], source=src), lm))
     # value-SYMMETRIC benign cover over several seeds (~21 benign vs 24 malicious) -- the held-out estate
     # now carries the SAME entitlement tags + sources the malicious chains use (review-D transfer fix), so
     # an overfit single-value rule false-alarms here exactly as it would on DEV instead of transferring free.

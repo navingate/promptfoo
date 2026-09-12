@@ -32,9 +32,16 @@ NON_EDGE_FIELDS = {"execution_principal", "user_principal", "requested_action",
 
 # flat SOC config (the $config inventories). Decoys in entitlement_tag_names are OTHER real
 # sensitive entitlements (exercised authoritatively in the corpus), not harmless noise.
+# R1b (base-rate / config drift): the pools are DELIBERATELY wide (6 each) and disclosed as one global
+# config -- a real estate's IAM trust policy names many self-service attrs and sensitive entitlement tags,
+# and the malicious chains rotate over the WHOLE pool (mh_corpus). A rule must reference the $config KEY,
+# not a memorized value; value-symmetry (mh_corpus._benign_cover) makes every one of these values also
+# occur benignly, so even a full literal-enumeration pack false-alarms.
 INVENTORIES = {
-    "self_service_attribute_names": ["extensionAttribute7", "costCenter", "orgUnit"],
-    "entitlement_tag_names": ["provision-scope", "deploy-eligibility", "break-glass"],
+    "self_service_attribute_names": ["extensionAttribute7", "costCenter", "orgUnit",
+                                     "extensionAttribute11", "division", "jobTitle"],
+    "entitlement_tag_names": ["provision-scope", "deploy-eligibility", "break-glass",
+                              "pipeline-deploy", "secrets-read", "kms-admin"],
     "protected_resource_ids": ["tenant-vault/secret-blob"],
     "privileged_action_names": ["read-vault", "kms-unwrap"],
     "required_assurance_for_unwrap": "mfa",   # policy: unwrap needs an mfa-backed step-up
