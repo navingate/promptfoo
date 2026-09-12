@@ -80,12 +80,19 @@ def get_assert(output, context=None):
     scalar_at_0fp = scalar if fp_windows == 0 else 0.0
     clean_solve = 1.0 if scalar_at_0fp >= CLEAN_SOLVE_THRESHOLD else 0.0
     perfect = 1.0 if (scalar == 1.0 and fp_windows == 0) else 0.0
+    bo = g.get("by_outcome", {})
     named = {"run_valid": 1.0, "scalar_at_0fp": scalar_at_0fp, "clean_solve": clean_solve,
              "perfect": perfect, "scalar": scalar,
              "fp_windows": float(fp_windows), "fp_components": float(g["fp"]["benign_components"]),
              "detected_h4": float(g["curve"]["h4"]), "detected_h5": float(g["curve"]["h5"]),
              "detected_h5b": float(g["curve"]["h5b"]), "never_miss": float(g["curve"]["never"]),
-             "gap": float(g["curve"]["gap"]), "stitched": float(g["stitched"])}
+             "gap": float(g["curve"]["gap"]), "stitched": float(g["stitched"]),
+             # R4 outcome-class recall as FIRST-CLASS named scores (review: realism must reach the readout).
+             # Headline stays scalar_at_0fp (successful-attack, latency-weighted); these report the rest.
+             "attempt_recall": float(g.get("attempt_recall", 0.0)),
+             "successful_recall": float(bo.get("successful", {}).get("recall", 0.0)),
+             "blocked_recall": float(bo.get("blocked", {}).get("recall", 0.0)),
+             "abandoned_recall": float(bo.get("abandoned", {}).get("recall", 0.0))}
     return {"pass_": clean_solve == 1.0, "score": scalar_at_0fp,
             "reason": (f"[run_status=valid] scalar_at_0fp={scalar_at_0fp} clean_solve={clean_solve} "
                        f"scalar={scalar} fp_windows={fp_windows} perfect={perfect} "

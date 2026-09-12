@@ -72,8 +72,15 @@ An external validity/security review (verdict: do not lock/calibrate) found rele
     (clean-solve-rate CI per model; non-overlap = a real rung), and `seed_stability` (the determinism guard:
     band spread is EXACTLY 0 across value seeds for every fixed pack, so ladder CIs come from model
     run-to-run variation, never seed noise). **43 selftests green.**
-- **OPEN — grounding**: F2's producer emission is NOT in the repo yet; real grounding + a captured-journal
-  conformance test are pending F2 Chain committing it.
+- **OPEN — grounding (P0, cross-review 2026-09-12): offense emission NOW EXISTS but defense does NOT consume
+  it.** Corrected: F2's producer emission has since been built (plugin-cyber `F2_ad_cloud_deep/*/app.py` +
+  `conformance/{schema,contract}.py`, `obs_id`-keyed). A direct compatibility check rejects 55/55
+  offense-generated events against the current defense schema (`obs_id` vs `batch_id`; offense
+  `directory_lookup`/`authorization_request`/policy-decision events the defense schema drops;
+  `role_assumed.session_ref` vs defense's `via_session_ref`; missing `workload_ref`/`vault_access`/
+  `workload_output_returned` linkage). REQUIRED: one canonical event contract + an offense→defense adapter,
+  with committed malicious/benign/blocked/abandoned captures (both IAM families) that the defense schema
+  accepts in CI. Until then the corpus stays hand-authored and "grounded in F2" CANNOT be claimed.
 - **OPEN — recalibration + option (b)**: honest n=3 recalibration on the value-symmetric (a) construct =
   GLM-5.3 **1/3** clean-solve (NOT >1/3), so option (b) — a REAL offense-side enforcement defect — is NOT
   triggered. An n=10 pass across all three models (to firm the rate + CIs) is the pending confirmation.
@@ -106,7 +113,7 @@ The directory contains ~60 `.py` files: v1 slices, other experiments, and shared
 - `selftest_mh_core.py`, `selftest_mh_shortcuts.py`, `selftest_mh_eval.py`, `selftest_mh_metrics.py`, `selftest_mh_all.py` (runner, runs all four) — **43 tests, all green.** These ARE the validity argument; a reviewer should read them as the spec. Includes the review-D regression tests (component-local timing, pre-h4, literal-search, malformed-event) and the realism-subset guards (value-symmetry, overfit-booster transfer, stream leak, timing invariance, outcome-class discrimination, seed-stability determinism, Clopper-Pearson, ladder separation).
 - `mh_metrics.py` — R5 stratified metrics + Clopper-Pearson CIs + `build(seed)` consumer (recall by family/outcome, FP-per-1000, ladder rows, determinism guard). Pure stdlib.
 - `references/multihop-spike-a-results.md` — results + integrity/earned-not-gamed analysis (read first for context).
-- `references/multihop-telemetry-contract.md` — the field contract for grounding. NOTE: F2's producer emission is **not yet committed** to the repo (verified 0 files at the plugin-cyber tip), so grounding is pending and "grounded in F2" cannot be claimed yet.
+- `references/multihop-telemetry-contract.md` — the field contract for grounding. NOTE: F2's producer emission now EXISTS in plugin-cyber but is schema-INCOMPATIBLE with this contract (see the grounding P0 above); a canonical contract + adapter is required before "grounded in F2" can be claimed.
 
 ## Key design decisions to stress-test
 
@@ -126,7 +133,7 @@ The directory contains ~60 `.py` files: v1 slices, other experiments, and shared
 
 ## Known limitations (honest)
 
-- **Still synthetic.** Everything runs on the hand-built corpus (`mh_corpus.py`). F2's producer emission is **not committed to the repo** (verified 0 files at the plugin-cyber tip), so the shaper that would ground the eval on real F2 captures is NOT built — this is the biggest open item and the honest limit on any real-world claim.
+- **Still synthetic.** Everything runs on the hand-built corpus (`mh_corpus.py`). F2's producer emission now EXISTS in plugin-cyber, but the defense does not yet consume it (schema-incompatible — see the grounding P0 above), so the adapter that would ground the eval on real F2 captures is NOT built — this is the biggest open item and the honest limit on any real-world claim.
 - **Small n** — calibration is n=3 (directional); n=10 + per-seed CIs pending.
 - **Held-out is correlated copies, not independent samples.** The 24 held-out malicious are seeded rotations of 3 vectors over one withheld cell, now value-symmetric but still not independently sampled realizations — the honest per-seed variance / CI story needs the R2 stream + a regen pass.
 - **Two boundaries only** (provenance h4 + assurance h5b). The offense levers `two_tag` and the policy-intersection family are specified in the telemetry contract but OUT of the shipped defense construct (intersection removed as ungroundable — option a; `two_tag` not yet built). Adding rungs is the headroom question, gated on grounding + a >1/3 recalibration.

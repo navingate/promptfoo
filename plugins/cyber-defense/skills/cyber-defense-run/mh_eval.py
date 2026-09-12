@@ -81,7 +81,8 @@ def grade(pack, split="heldout"):
     s = score(pack, incs, CFG)
     frac, counts = survival_curve(s)
     return {"scalar": s["scalar"], "curve": counts, "curve_frac": frac, "fp": s["fp"],
-            "blocked": s["blocked"], "n_scored": s["n_scored"], "stitched": s["stitched"]}
+            "blocked": s["blocked"], "n_scored": s["n_scored"], "stitched": s["stitched"],
+            "by_outcome": s["by_outcome"], "attempt_recall": s["attempt_recall"]}
 
 
 def feedback(pack, detail="aggregate"):
