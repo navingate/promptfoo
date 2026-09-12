@@ -51,6 +51,27 @@ An external validity/security review (verdict: do not lock/calibrate) found rele
     All value-variation on the existing 10 events (no new types/fields — F2 grounding constraint).
   - Reference pack unchanged (1.0/0-FP both estates); literal-search guard best single **0.32→0.05** / pair
     **0.53→0.11**. **34 selftests green.**
+- **R2–R5 realism subset (2026-09-12) — DONE, all model-free + regression-guarded.** Built on the
+  value-symmetric corpus; every step keeps the reference pack 1.0/0-FP and value-symmetry at 0 leaks.
+  - **R2 — continuous multi-principal stream (#2):** `disclosed_dev_text(view="stream")` — a headerless,
+    interleaved, discovery-only disclosure (seeded per-chain arrival stagger) so the hunter must trace refs
+    to correlate chains, not read pre-grouped blocks. Presentation only — never reaches the scorer.
+    **Config flag `disclosure_view`, DEFAULT `grouped`** so the committed 1/3 stays honest; `stream` is the
+    realism target to flip after ONE paid run confirms it does not over-harden (the reverted-kms_ctx lesson).
+  - **R3 — seeded timing (#3):** `test_timing_perturbation_score_invariant` proves the scorer is EXACTLY
+    (byte-)invariant to inter-component skew / long-pause / duplicate / shuffled arrival — for reference,
+    degraded, AND all three real saved (a) packs. Detection is existential + component-local, so timing
+    cannot shift a landmark; any drift would be a scorer bug, not seed noise.
+  - **R4 — attack outcome classes (#5):** truth carries `outcome_class` (successful / control-blocked /
+    abandoned); the corpus adds blocked + abandoned ATTEMPTS to both estates (with benign denials for
+    symmetry); the scorer adds `by_outcome` recall + `attempt_recall` so successful-attack recall (the
+    headline, unchanged) and malicious-attempt recall are reported apart.
+  - **R5 — stratified metrics + CIs (#12):** `mh_corpus.build(seed)` (value-varied, value-symmetric estate
+    realizations; seed 0 = committed) + `mh_metrics.py` — recall by FAMILY (provenance/assurance) and
+    OUTCOME, stage-to-detection, FP-per-1000-benign, exact Clopper-Pearson CIs, `ladder_row`/`separated`
+    (clean-solve-rate CI per model; non-overlap = a real rung), and `seed_stability` (the determinism guard:
+    band spread is EXACTLY 0 across value seeds for every fixed pack, so ladder CIs come from model
+    run-to-run variation, never seed noise). **43 selftests green.**
 - **OPEN — grounding**: F2's producer emission is NOT in the repo yet; real grounding + a captured-journal
   conformance test are pending F2 Chain committing it.
 - **OPEN — recalibration + option (b)**: honest n=3 recalibration on the value-symmetric (a) construct =
@@ -82,7 +103,8 @@ The directory contains ~60 `.py` files: v1 slices, other experiments, and shared
 ### Config + tests + docs
 
 - `promptfooconfig.multihop.yaml` — the eval config (discovery mode, `max_tokens: 32000`, `reasoning_effort: medium`; the header comments explain the engy constraints).
-- `selftest_mh_core.py`, `selftest_mh_eval.py`, `selftest_mh_shortcuts.py`, `selftest_mh_all.py` (runner, now runs all three) — **33 tests, all green.** These ARE the validity argument; a reviewer should read them as the spec. Includes the review-D regression tests (component-local timing, pre-h4, literal-search, malformed-event).
+- `selftest_mh_core.py`, `selftest_mh_shortcuts.py`, `selftest_mh_eval.py`, `selftest_mh_metrics.py`, `selftest_mh_all.py` (runner, runs all four) — **43 tests, all green.** These ARE the validity argument; a reviewer should read them as the spec. Includes the review-D regression tests (component-local timing, pre-h4, literal-search, malformed-event) and the realism-subset guards (value-symmetry, overfit-booster transfer, stream leak, timing invariance, outcome-class discrimination, seed-stability determinism, Clopper-Pearson, ladder separation).
+- `mh_metrics.py` — R5 stratified metrics + Clopper-Pearson CIs + `build(seed)` consumer (recall by family/outcome, FP-per-1000, ladder rows, determinism guard). Pure stdlib.
 - `references/multihop-spike-a-results.md` — results + integrity/earned-not-gamed analysis (read first for context).
 - `references/multihop-telemetry-contract.md` — the field contract for grounding. NOTE: F2's producer emission is **not yet committed** to the repo (verified 0 files at the plugin-cyber tip), so grounding is pending and "grounded in F2" cannot be claimed yet.
 
@@ -97,7 +119,7 @@ The directory contains ~60 `.py` files: v1 slices, other experiments, and shared
 
 ## Current status
 
-- **34 selftests green** (`python3 selftest_mh_all.py`); corpus DEV 63 / held-out 66 incidents (24 held-out malicious).
+- **43 selftests green** (`python3 selftest_mh_all.py`); corpus DEV 64 / held-out 73 incidents (29 held-out malicious: 24 successful + 2 blocked + 3 abandoned).
 - **Calibration (n=3, discovery mode, band metric, run locally, value-symmetric corpus):** GLM-5.3 = **1/3**
   clean-solve — bands [0, 1.0, 0.33] (run 1's booster now correctly scores 0). DeepSeek = 0/3 (floor);
   GLM-5.2 directional. An n=10 pass on all three (with per-seed CIs) is the pending confirmation.
