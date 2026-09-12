@@ -18,8 +18,7 @@ of run bands into `ladder_row`.
 
 import math
 
-from mh_scoring import score
-from assert_mh import CLEAN_SOLVE_THRESHOLD
+from mh_scoring import score, CLEAN_SOLVE_THRESHOLD   # both from the low-level scorer, not the harness
 import mh_corpus as K
 import mh_schema as S
 

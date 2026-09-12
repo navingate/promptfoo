@@ -18,10 +18,10 @@ from pathlib import Path
 _SKILL = Path(__file__).resolve().parent
 sys.path.insert(0, str(_SKILL))
 
-from mh_scoring import validate_pack  # noqa: E402
+from mh_scoring import validate_pack, CLEAN_SOLVE_THRESHOLD  # noqa: E402  (single source in mh_scoring)
 import mh_eval  # noqa: E402
 
-CLEAN_SOLVE_THRESHOLD = 0.8  # a run "clean-solves" if its scalar-at-0-FP band >= 0.8. NB: the band is
+# CLEAN_SOLVE_THRESHOLD (=0.8): a run "clean-solves" if its scalar-at-0-FP band >= it. The band is
 # LATENCY-WEIGHTED detection credit (earliest-landmark), NOT literal 80% attack recall (review D). Report
 # recall + landmark distribution + benign-FP rates + CIs alongside it — see references/multihop-spike-a-results.md.
 

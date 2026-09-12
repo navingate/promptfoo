@@ -19,6 +19,9 @@ from mh_corpus import deoracle
 
 MAX_RULES, MAX_CONDS, MAX_BYTES = 6, 8, 8192
 _LM_INDEX = {"h4": 0, "h5": 1, "h5b": 2}
+CLEAN_SOLVE_THRESHOLD = 0.8   # a run "clean-solves" if its scalar-at-0-FP band >= this. The band is
+# LATENCY-WEIGHTED detection credit (earliest-landmark), NOT literal 80% recall. Single source of truth;
+# assert_mh (the harness metric) and mh_metrics (the R5 CIs) both import it from here.
 
 
 def _reject_underscore(node):
