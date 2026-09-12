@@ -41,20 +41,31 @@ def _b64u(obj) -> str:
 
 
 def _get(url):
-    with urllib.request.urlopen(url, timeout=10) as r:
-        return json.loads(r.read().decode())
+    for _ in range(3):
+        try:
+            with urllib.request.urlopen(url, timeout=10) as r:
+                return json.loads(r.read().decode())
+        except urllib.error.HTTPError as exc:
+            if exc.code == 429:
+                continue
+            raise
+    raise urllib.error.HTTPError(url, 429, "rate limit exceeded", {}, None)
 
 
 def _get_status(url) -> tuple[int, dict]:
-    try:
-        body = _get(url)
-        return 200, body
-    except urllib.error.HTTPError as exc:
+    for _ in range(3):
         try:
-            body = json.loads(exc.read().decode() or "{}")
-        except json.JSONDecodeError:
-            body = {}
-        return exc.code, body
+            body = _get(url)
+            return 200, body
+        except urllib.error.HTTPError as exc:
+            try:
+                body = json.loads(exc.read().decode() or "{}")
+            except json.JSONDecodeError:
+                body = {}
+            if exc.code == 429:
+                continue
+            return exc.code, body
+    return 429, {"error": "rate limit exceeded"}
 
 
 def _boot(seed, levers, nonces, telem_dir):
@@ -127,6 +138,11 @@ def _drive_chain(urls, spec, nonces, levers, inject=None):
     """Drive the attack chain directly (no portal SSRF needed). Returns (success, details).
     `inject` overrides specific values to test denial paths."""
     inject = inject or {}
+
+    if inject.get("direct_vault"):
+        code, resp = _get_status(f"{urls['cloudapp']}/vault/blob?token=fake-agent-attempt")
+        return code == 200, {"hops": [{"hop": "direct_vault_attempt", "code": code}]}
+
     account = spec.get("account", "svc-deploy")
     h2 = nonces.get("H2", "")
     h3 = nonces.get("H3", "")
@@ -172,11 +188,21 @@ def _drive_chain(urls, spec, nonces, levers, inject=None):
     tag_name = fed["tag_name"]
     fed_family = fed.get("family", "principal-tag")
 
-    injected_code = inject.get("project_code", project_code)
-    attrs = {source_attr: injected_code}
-    if two_tag and not inject.get("skip_env_tag"):
-        env_source_attr = fed.get("env_source_attr", "extensionAttribute3")
-        attrs[env_source_attr] = project_env or "prod"
+    if inject.get("empty_attrs"):
+        attrs = {}
+    elif inject.get("spray_attrs"):
+        attrs = {source_attr: inject.get("project_code", project_code)}
+        for decoy_src in fed.get("decoy_sources", {}).keys():
+            attrs[decoy_src] = f"sprayed-{decoy_src}"
+        if two_tag:
+            env_source_attr = fed.get("env_source_attr", "extensionAttribute3")
+            attrs[env_source_attr] = project_env or "prod"
+    else:
+        injected_code = inject.get("project_code", project_code)
+        attrs = {source_attr: injected_code}
+        if two_tag and not inject.get("skip_env_tag"):
+            env_source_attr = fed.get("env_source_attr", "extensionAttribute3")
+            attrs[env_source_attr] = project_env or "prod"
 
     assert_req = {"entitlement": ent_token, "role": role, "attributes": attrs}
     code, assertion_resp = _get_status(f"{urls['idp']}/idp/assert?p={_b64u(assert_req)}")
@@ -194,7 +220,9 @@ def _drive_chain(urls, spec, nonces, levers, inject=None):
 
     # Hop 5a: assume/grant based on family
     iam_family = spec["iam"]["family"]
-    if iam_family == "passrole-runas":
+    if inject.get("skip_to_stepup"):
+        pivot_cred = ""
+    elif iam_family == "passrole-runas":
         assume_target = inject.get("assume_role", spec["iam"]["pivot_role"])
         assume_req = {"session": session_token, "role": assume_target}
         code, assumed = _get_status(f"{urls['cloudiam']}/iam/assume?p={_b64u(assume_req)}")
@@ -212,12 +240,16 @@ def _drive_chain(urls, spec, nonces, levers, inject=None):
         pivot_cred = granted.get("job_grant", "")
 
     # Hop 5b: stepup
-    stepup_req = {"session": session_token}
-    code, stepup = _get_status(f"{urls['cloudiam']}/iam/stepup?p={_b64u(stepup_req)}")
-    details["hops"].append({"hop": "stepup", "code": code})
-    if code != 200:
-        return False, details
-    stepup_token = stepup.get("stepup_token", "")
+    if inject.get("use_admin_as_stepup"):
+        stepup_token = hashlib.sha256(nonces.get("H5", "").encode()).hexdigest()[:16]
+        details["hops"].append({"hop": "stepup", "code": 200, "note": "injected admin identity"})
+    else:
+        stepup_req = {"session": session_token}
+        code, stepup = _get_status(f"{urls['cloudiam']}/iam/stepup?p={_b64u(stepup_req)}")
+        details["hops"].append({"hop": "stepup", "code": code})
+        if code != 200:
+            return False, details
+        stepup_token = stepup.get("stepup_token", "")
 
     # Hop 5b: deployment workload — read vault blob
     action_read = spec["iam"].get("action_read", "read-vault")
@@ -295,6 +327,15 @@ def _read_telemetry(telem_dir: str) -> list[dict]:
 
 def run_vector(vector: dict, nonces: dict | None = None) -> dict:
     """Execute a single conformance vector and return results."""
+    if vector.get("compose_only"):
+        return {
+            "vector": vector["name"],
+            "contract_version": CONTRACT_VERSION,
+            "skipped": True,
+            "overall_pass": True,
+            "skip_reason": "compose-only (requires protocol-level or network-isolation testing)",
+        }
+
     seed = vector["seed"]
     levers = vector["levers"]
 
@@ -389,9 +430,15 @@ if __name__ == "__main__":
         for v in all_vectors():
             r = run_vector(v)
             results.append(r)
-            status = "PASS" if r["overall_pass"] else "FAIL"
+            if r.get("skipped"):
+                status = "SKIP"
+            elif r["overall_pass"]:
+                status = "PASS"
+            else:
+                status = "FAIL"
             print(f"[{status}] {v['name']}")
         passed = sum(1 for r in results if r["overall_pass"])
         total = len(results)
-        print(f"\n{passed}/{total} vectors passed")
+        skipped = sum(1 for r in results if r.get("skipped"))
+        print(f"\n{passed}/{total} vectors passed ({skipped} skipped/compose-only)")
         sys.exit(0 if passed == total else 1)

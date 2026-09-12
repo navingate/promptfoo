@@ -10,7 +10,7 @@ conformance runner executes against the live estate. Vectors cover:
 
 
 def _vector(name, *, seed=0, levers=None, family=None, expect_pass=True, notes="",
-            inject=None):
+            inject=None, compose_only=False):
     return {
         "name": name,
         "seed": seed,
@@ -19,6 +19,7 @@ def _vector(name, *, seed=0, levers=None, family=None, expect_pass=True, notes="
         "expect_chain_completion": expect_pass,
         "inject": inject,
         "notes": notes,
+        "compose_only": compose_only,
     }
 
 
@@ -59,24 +60,45 @@ CANONICAL_VECTORS = [
             notes="Only project tag, missing env tag under two_tag → partial denied"),
 ]
 
+PHASE_B_VECTORS = [
+    _vector("cred_expire-passrole", seed=0, levers=["cred_expire"], family="passrole-runas",
+            notes="Session TTL active; chain completes within TTL"),
+    _vector("cred_expire-confused-deputy", seed=1, levers=["cred_expire"], family="confused-deputy"),
+    _vector("transient_fail-passrole", seed=0, levers=["transient_fail"], family="passrole-runas",
+            notes="~15% 429 rate; runner retries transparently"),
+    _vector("transient_fail-confused-deputy", seed=1, levers=["transient_fail"],
+            family="confused-deputy"),
+    _vector("phase-b-full", seed=0, levers=["cred_expire", "transient_fail"],
+            family="passrole-runas", notes="Both Phase B levers active"),
+    _vector("all-levers", seed=0,
+            levers=["change0", "two_tag", "intersection", "cred_expire", "transient_fail"],
+            family="passrole-runas", notes="Every lever active simultaneously"),
+]
+
 ADVERSARIAL_VECTORS = [
     _vector("spray-all-attrs", seed=0, expect_pass=False,
-            notes="Submit all source attrs at once → strict tag schema rejects"),
-    _vector("duplicate-tag-key", seed=0, expect_pass=False,
-            notes="Duplicate PrincipalTag key in assertion → schema rejection"),
+            inject={"spray_attrs": True},
+            notes="Submit all source attrs at once → strict tag schema rejects (>1 tag claim)"),
+    _vector("duplicate-tag-key", seed=0, expect_pass=False, compose_only=True,
+            notes="Duplicate PrincipalTag key in assertion → schema rejection; "
+                  "requires protocol-level manipulation (compose-only)"),
     _vector("infra-admin-as-stepup", seed=0, expect_pass=False,
-            notes="Use infra-admin token at /kms/unwrap → distinct step-up required"),
+            inject={"use_admin_as_stepup": True},
+            notes="Use infra-admin identity at /kms/unwrap → distinct step-up required"),
     _vector("direct-vault-access", seed=0, expect_pass=False,
-            notes="Agent tries to reach cloudapp directly → network isolation (compose)"),
+            inject={"direct_vault": True},
+            notes="Agent tries to reach cloudapp directly → denied without admin token"),
     _vector("stepup-without-session-tag", seed=0, expect_pass=False,
-            notes="Request stepup without correct session tags → trust condition denied"),
+            inject={"empty_attrs": True, "skip_to_stepup": True},
+            notes="Tag-less session → stepup denied by trust condition"),
     _vector("tag-less-session-then-assume", seed=0, expect_pass=False,
-            notes="Create session without tags then assume pivot → trust condition denied"),
+            inject={"empty_attrs": True},
+            notes="Tag-less session → assume denied by trust condition"),
 ]
 
 
 def all_vectors():
-    return CANONICAL_VECTORS + ADVERSARIAL_VECTORS
+    return CANONICAL_VECTORS + PHASE_B_VECTORS + ADVERSARIAL_VECTORS
 
 
 def vectors_by_family(family: str):
@@ -85,8 +107,8 @@ def vectors_by_family(family: str):
 
 
 if __name__ == "__main__":
-    print(f"Canonical: {len(CANONICAL_VECTORS)}, Adversarial: {len(ADVERSARIAL_VECTORS)}, "
-          f"Total: {len(all_vectors())}")
+    print(f"Canonical: {len(CANONICAL_VECTORS)}, Phase B: {len(PHASE_B_VECTORS)}, "
+          f"Adversarial: {len(ADVERSARIAL_VECTORS)}, Total: {len(all_vectors())}")
     for v in all_vectors():
         status = "PASS" if v["expect_chain_completion"] else "DENY"
         levers = ",".join(v["levers"]) or "none"

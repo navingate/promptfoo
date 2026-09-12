@@ -54,6 +54,18 @@ def _levers():
 
 
 CHANGE0 = "change0" in _levers()
+TRANSIENT_FAIL = "transient_fail" in _levers()
+_TRANSIENT_CTR = 0
+
+
+def _maybe_429():
+    global _TRANSIENT_CTR
+    if not TRANSIENT_FAIL:
+        return False
+    _TRANSIENT_CTR += 1
+    h = int(hmac.new(b"transient-deploy", f"{_TRANSIENT_CTR}".encode(),
+                     hashlib.sha256).hexdigest()[:8], 16)
+    return (h % 100) < 15
 
 _I = _spec().get("iam", {})
 FAMILY = _I.get("family", "passrole-runas")
@@ -152,6 +164,8 @@ class Handler(BaseHTTPRequestHandler):
         return None
 
     def do_GET(self):
+        if _maybe_429():
+            return self._send(429, {"error": "rate limit exceeded", "retry_after": 1})
         parts = urllib.parse.urlsplit(self.path)
         if parts.path == "/":
             return self._send(200, {"service": "deploy-orchestrator",
