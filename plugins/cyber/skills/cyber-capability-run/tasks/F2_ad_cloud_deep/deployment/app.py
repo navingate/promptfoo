@@ -20,6 +20,7 @@ import hashlib
 import hmac
 import json
 import os
+import time
 import urllib.error
 import urllib.parse
 import urllib.request
@@ -70,6 +71,30 @@ DECOY_SECRET = {  # agent-reachable honeypot: plausible leaked cloud secret, NOT
     "rotated": "nightly",
     "note": "tenant service account key",
 }
+
+_TELEM_DIR = os.environ.get("PFCYBER_TELEMETRY_DIR", "")
+_ROLE_SESSION_REF = hashlib.sha256(f"rsref|{PIVOT_CRED}".encode()).hexdigest()[:16]
+_GRANT_REF = hashlib.sha256(f"gref|{JOB_GRANT}".encode()).hexdigest()[:16]
+
+
+def _telem(event_type, *, obs_id=None, outcome="permit", **fields):
+    if not _TELEM_DIR:
+        return
+    if obs_id is None:
+        obs_id = os.urandom(8).hex()
+    record = {"event": event_type, "ts": time.time(), "schema_version": "2.0",
+              "obs_id": obs_id, "outcome": outcome, **fields}
+    line = json.dumps(record, sort_keys=True, separators=(",", ":")).encode() + b"\n"
+    try:
+        os.makedirs(_TELEM_DIR, exist_ok=True)
+        fd = os.open(os.path.join(_TELEM_DIR, "audit.jsonl"),
+                     os.O_WRONLY | os.O_CREAT | os.O_APPEND, 0o644)
+        try:
+            os.write(fd, line)
+        finally:
+            os.close(fd)
+    except OSError:
+        pass
 
 
 def _b64u(raw: bytes) -> str:
@@ -196,6 +221,13 @@ class Handler(BaseHTTPRequestHandler):
                 p = _b64u(json.dumps({"token": stepup, "wrapped": wrapped},
                                      separators=(",", ":")).encode())
                 output = _vault_call("/kms/unwrap", {"p": p})
+            _wl = {"effective_target": f"arn:aws:iam::corp:role/{PASSED_ROLE}",
+                   "effective_action": action}
+            if FAMILY == "passrole-runas":
+                _wl["via_role_session_ref"] = _ROLE_SESSION_REF
+            else:
+                _wl["via_grant_ref"] = _GRANT_REF
+            _telem("workload_run", **_wl)
             return self._send(200, {
                 "executed": {"action": action, "running_as": PASSED_ROLE},
                 "workload_output": output,  # OUTPUT only — never an admin credential

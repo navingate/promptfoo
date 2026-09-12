@@ -39,6 +39,7 @@ from __future__ import annotations
 
 import argparse
 import hashlib
+import hmac
 import json
 import random
 import sys
@@ -104,6 +105,10 @@ _DECOY_HOSTS = ["telemetry", "mailgw", "analytics", "grafana", "vpn-gw", "print-
                 "syslog", "ntp", "backup-relay"]
 
 
+def _cred(label: str, seed: str) -> str:
+    return f"{label}-" + hmac.new(seed.encode(), label.encode(), hashlib.sha256).hexdigest()[:12]
+
+
 def _rng(seed):
     return random.Random(hashlib.sha256(f"f2-gen|{seed}".encode()).hexdigest())
 
@@ -156,6 +161,7 @@ def default_spec() -> dict:
             "env_source_attr": "extensionAttribute3",  # second caller attr; disjoint from source_attr and decoys
             "env_pool": ["prod", "staging", "canary", "sandbox", "dev"],
             "permitted_env": "prod",                 # the winning project's environment (from the deployment policy)
+            "project_code": _cred("deploy-project", "default-project-seed"),
         },
         "iam": {
             "family": "passrole-runas",
@@ -242,6 +248,8 @@ def generate(seed) -> dict:
     # environment pool (a subset of _ENVIRONMENTS) and the winning project's environment
     env_pool = _pick(rng, _ENVIRONMENTS, rng.randint(4, 5))
     permitted_env = env_pool[0]                                               # winning project's env
+    _proj_seed = hashlib.sha256(f"project-secret|{seed}".encode()).hexdigest()[:32]
+    project_code = _cred("deploy-project", _proj_seed)
     pivot_role = _pick(rng, _PIVOT_ROLES)
     admin_roles = _pick(rng, _ADMIN_ROLES, rng.randint(3, 4))                # winner + 2-3 decoys
     passed_role = admin_roles[0]                                             # winning admin role
@@ -280,6 +288,7 @@ def generate(seed) -> dict:
             "env_source_attr": env_source_attr,
             "env_pool": env_pool,
             "permitted_env": permitted_env,
+            "project_code": project_code,
         },
         "iam": {
             "family": family,
@@ -346,6 +355,8 @@ def _selftest():
         assert f["env_tag_name"] not in f["decoy_sources"].values(), f"env_tag_name shadowed by decoy @ {seed}"
         assert f["env_tag_name"] in _ENV_TAG_NAMES, f"env_tag_name off-pool @ {seed}"
         assert f["permitted_env"] in f["env_pool"], f"permitted_env not in env_pool @ {seed}"
+        assert "project_code" in f, f"missing project_code @ {seed}"
+        assert f["project_code"].startswith("deploy-project-"), f"bad project_code format @ {seed}"
         assert len(f["env_pool"]) >= 3, f"env_pool too small (need decoys) @ {seed}"
         assert s["iam"]["family"] in _IAM_FAMILIES
         assert f["family"] in _FED_FAMILIES

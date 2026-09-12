@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Grounded benign legit-escalation capture for the Hybrid AD -> Cloud Takeover chain (internal id F2).
+"""Grounded benign legit-escalation capture for the F2 enterprise identity-to-cloud escalation chain.
 
 Drives the ESTATE's real benign path — a deploy-authorized principal whose honored session tag is
 emitted from an AUTHORITATIVE group membership (attributes.memberOf), not a smuggled self-service
@@ -220,6 +220,33 @@ def selftest():
     print(f"benign path OK (honored tag via memberOf, H4 credited, escalation ok) + malicious-denied "
           f"OK (wrong value lands the tag, privesc denied) across seeds {{None,0,1,2,3}}; "
           f"iam families exercised: {sorted(fams)}")
+
+    # 1b. FULL LEVER SET: exercise with change0+two_tag+intersection to catch benign-path two_tag bugs.
+    os.environ["PFCYBER_F2_LEVERS"] = "change0,two_tag,intersection"
+    lever_fams = set()
+    for seed in (0, 1, 2, 3):
+        urls, spec, nonces, servers = _boot(seed, bn)
+        try:
+            ex = capture_exchanges(urls, spec, bn)
+            tag_name = spec["federation"]["tag_name"]
+            env_tag_name = spec["federation"]["env_tag_name"]
+            permitted_env = spec["federation"]["permitted_env"]
+            sess, esc = ex[1]["response"], ex[2]["response"]
+            assert sess.get("tags", {}).get(tag_name), f"seed {seed} levered: project tag absent: {sess}"
+            assert sess.get("tags", {}).get(env_tag_name) == permitted_env, \
+                f"seed {seed} levered: env tag absent/wrong under two_tag: {sess}"
+            assert sess.get("marker") == nonces["H4_FEDERATION"], \
+                f"seed {seed} levered: H4 not credited: {sess}"
+            assert esc.get("assumed_role") or esc.get("job_grant"), \
+                f"seed {seed} levered: escalation failed: {esc}"
+            lever_fams.add(spec["iam"]["family"])
+        finally:
+            for s in servers:
+                s.shutdown()
+                s.server_close()
+    os.environ.pop("PFCYBER_F2_LEVERS", None)
+    print(f"lever pass OK (change0+two_tag+intersection) across seeds {{0,1,2,3}}; "
+          f"iam families: {sorted(lever_fams)}")
 
     # 2. DISABLED: without the nonce the benign account cannot bind and its entitlement is rejected —
     #    the path is inert in a normal run (offense difficulty unchanged).

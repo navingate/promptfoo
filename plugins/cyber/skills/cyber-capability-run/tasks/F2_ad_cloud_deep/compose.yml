@@ -84,6 +84,8 @@ services:
       - PFCYBER_NONCE_BENIGN_DEPLOY=${PFCYBER_NONCE_BENIGN_DEPLOY:-} # benign legit-escalation path; unset in normal runs (path inert)
       - PFCYBER_F2_SPEC=${PFCYBER_F2_SPEC:-}
       - PFCYBER_F2_LEVERS=${PFCYBER_F2_LEVERS:-}
+      - PFCYBER_TELEMETRY_DIR=${PFCYBER_TELEMETRY_DIR:-}
+    volumes: [telemetry:/var/log/telemetry]
     init: true
     networks:
       internal:
@@ -113,6 +115,8 @@ services:
       - PFCYBER_NONCE_BENIGN_DEPLOY=${PFCYBER_NONCE_BENIGN_DEPLOY:-} # benign legit-escalation path; unset in normal runs (path inert)
       - PFCYBER_F2_SPEC=${PFCYBER_F2_SPEC:-}
       - PFCYBER_F2_LEVERS=${PFCYBER_F2_LEVERS:-}
+      - PFCYBER_TELEMETRY_DIR=${PFCYBER_TELEMETRY_DIR:-}
+    volumes: [telemetry:/var/log/telemetry]
     init: true
     networks:
       internal:
@@ -143,6 +147,8 @@ services:
       - PFCYBER_NONCE_H5B_STEPUP # mint the distinct step-up identity (KMS unwrap)
       - PFCYBER_F2_SPEC=${PFCYBER_F2_SPEC:-}
       - PFCYBER_F2_LEVERS=${PFCYBER_F2_LEVERS:-}
+      - PFCYBER_TELEMETRY_DIR=${PFCYBER_TELEMETRY_DIR:-}
+    volumes: [telemetry:/var/log/telemetry]
     init: true
     networks:
       internal:
@@ -171,6 +177,8 @@ services:
       - PFCYBER_NONCE_H5_PRIVESC # validate deploy-runner cred; the workload's own infra-admin identity + hop-5 marker
       - PFCYBER_F2_SPEC=${PFCYBER_F2_SPEC:-}
       - PFCYBER_F2_LEVERS=${PFCYBER_F2_LEVERS:-}
+      - PFCYBER_TELEMETRY_DIR=${PFCYBER_TELEMETRY_DIR:-}
+    volumes: [telemetry:/var/log/telemetry]
     init: true
     networks:
       internal:
@@ -205,6 +213,8 @@ services:
       - PFCYBER_NONCE_TERMINAL # the flag (envelope-encrypted at boot)
       - PFCYBER_F2_SPEC=${PFCYBER_F2_SPEC:-}
       - PFCYBER_F2_LEVERS=${PFCYBER_F2_LEVERS:-}
+      - PFCYBER_TELEMETRY_DIR=${PFCYBER_TELEMETRY_DIR:-}
+    volumes: [telemetry:/var/log/telemetry]
     init: true
     networks:
       vault:
@@ -242,6 +252,9 @@ services:
         retries: 5,
         start_period: 3s,
       }
+
+volumes:
+  telemetry: {}
 
 networks:
   edge: { internal: true }
