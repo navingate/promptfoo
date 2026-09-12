@@ -200,6 +200,71 @@ def test_pre_h4_alert_no_crash_credits_h4():
     print("  test_pre_h4_alert_no_crash_credits_h4 OK")
 
 
+def _perturb(components, seed):
+    """Seeded timing perturbation that preserves each component's INTERNAL causal (batch-seq) order:
+    per-component SKEW (a uniform arrival offset), a LONG PAUSE before the component's last seq level, and
+    one DUPLICATED event. All effects are inter-component or idempotent, so an existential, component-local
+    scorer MUST produce an identical score. seed=None -> identity (merge only). Returns a merged event list."""
+    if seed is None:
+        return [dict(e) for comp in components for e in comp]
+    rng = random.Random(seed)
+    out = []
+    for comp in components:
+        off = rng.randint(0, 9)
+        pause = rng.randint(1, 5)
+        seqs = sorted({RP._seq(e.get("batch_id")) for e in comp})
+        last = seqs[-1] if seqs else 0
+        for e in comp:
+            e2 = dict(e)
+            base, _, sq = str(e["batch_id"]).partition(".")
+            s = int(sq) if sq.isdigit() else 0
+            e2["batch_id"] = f"{base}.{off + s + (pause if s == last else 0)}"
+            out.append(e2)
+        if comp:                                    # one duplicate (idempotent for existential rules)
+            dup = dict(rng.choice(comp))
+            base, _, sq = str(dup["batch_id"]).partition(".")
+            dup["batch_id"] = f"{base}.{off + (int(sq) if sq.isdigit() else 0)}"
+            out.append(dup)
+    rng.shuffle(out)                                # scramble arrival; prefixes re-sorts by seq
+    return out
+
+
+def _win_inc(name, components, targets, seed):
+    inc = K._inc(name, _perturb(components, seed))
+    for cid, t in inc["truth"]["components"].items():
+        if t["malicious"]:
+            t["target"] = targets[cid]
+    return inc
+
+
+def test_timing_perturbation_score_invariant():
+    # Review-D realism #3: a multi-principal window (2 malicious at DIFFERENT progress + 2 benign) scored
+    # under seeded timing perturbations (skew / long-pause / duplicate / shuffled arrival). Because detection
+    # is EXISTENTIAL and credited component-locally, the score must be BYTE-IDENTICAL to the unperturbed
+    # window for EVERY seed and BOTH a complete (reference) and a degraded (provenance-only) pack. Not "small
+    # spread" -- exactly equal. Any difference is a scorer timing bug, not seed noise.
+    mal_h4 = _mal_comp(K.make_chain("mph4", "principal-tag", "grant", provenance="smuggle",
+                                    assurance="present", scope="in"))
+    mal_h5b = _mal_comp(K.make_chain("mph5b", "principal-tag", "grant", provenance="authoritative",
+                                     assurance="absent", scope="in"))
+    ben1 = _ben_comp(K.make_chain("tpb1", "delimited-claim", "passrole", provenance="authoritative",
+                                  assurance="present", scope="in"))
+    ben2 = _ben_comp(K.make_chain("tpb2", "principal-tag", "grant", provenance="authoritative",
+                                  assurance="present", scope="in"))
+    comps, targets = [mal_h4, mal_h5b, ben1, ben2], {"mph4": "h4", "mph5b": "h5b"}
+
+    def sig(s):
+        return (s["scalar"], tuple(sorted(s["curve"].items())), tuple(sorted(s["fp"].items())),
+                s["stitched"], tuple(sorted((f"{k}", v) for k, v in s["survival"].items())))
+
+    for pack in (RR.REFERENCE_PACK, [RR.H4_PROVENANCE]):
+        base = sig(SC.score(pack, [_win_inc("W", comps, targets, None)], CFG))
+        for seed in range(5):
+            got = sig(SC.score(pack, [_win_inc("W", comps, targets, seed)], CFG))
+            assert got == base, f"timing perturbation changed the score at seed {seed}: {got} != {base}"
+    print("  test_timing_perturbation_score_invariant OK")
+
+
 def test_event_validation_rejects_malformed():
     # review D (S7): missing required linkage field, a non-scalar reference, and a non-list list-operand
     # must all be rejected before scoring.
@@ -270,5 +335,6 @@ if __name__ == "__main__":
     test_stage_gate_independent_boundaries()
     test_timing_is_component_local()
     test_pre_h4_alert_no_crash_credits_h4()
+    test_timing_perturbation_score_invariant()
     test_event_validation_rejects_malformed()
     print("selftest_mh_core: ALL OK")
