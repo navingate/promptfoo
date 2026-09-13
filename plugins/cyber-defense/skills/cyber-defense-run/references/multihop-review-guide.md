@@ -18,13 +18,14 @@ precision-gated metric. **Current honest state (after review-D + option-(a) + th
 the eval detects TWO grounded boundaries — provenance (h4) + assurance (h5b). The intersection/scope
 boundaries were REMOVED as ungroundable. The corpus is now **value-symmetric** (every discriminative
 malicious value also occurs benignly in the SAME estate, on both DEV and held-out) so no memorized
-literal or single-value "booster" transfers as precise. **Calibration — COMMITTED on STREAM disclosure
-(n=10, value-symmetric corpus, 2026-09-13):** GLM-5.3 **5/10** clean-solve (CP95 [.19,.81], mean band .57);
-DeepSeek-V4-Flash **0/9** [0,.34] (1 harness error); **Fisher p=0.022**; GLM-5.2 engy-blocked. Stream (the
-headerless interleaved multi-principal view — the model must correlate by reference fields) is modestly
-harder than grouped (GLM-5.3 was 6/10 grouped) but does NOT over-harden — the ladder still separates, so
-stream is the committed benchmark and grouped is the dev/ablation setting. Detection is separately proven on
-9 real estate captures (grounded-v1, 0-FP conformance) — see the grounding entry below.
+literal or single-value "booster" transfers as precise. **→ See `multihop-final-results.md` for the
+consolidated current state.** **Calibration — COMMITTED on STREAM disclosure (n=10, value-symmetric corpus,
+2026-09-13):** GLM-5.3 **5/10** (CP95 [.19,.81]) · GLM-5.2 **2/10** ([.03,.56], run externally) · DeepSeek
+**0/9** ([0,.34]). Monotonic ladder; ENDPOINTS separate (GLM-5.3 vs DeepSeek Fisher p=0.022), adjacent rungs
+directional only at n=10 (5.3-vs-5.2 p=0.17, 5.2-vs-DeepSeek p=0.26). Stream (headerless interleaved
+multi-principal — the model must correlate by reference fields) is modestly harder than grouped (GLM-5.3 was
+6/10 grouped) but does NOT over-harden, so stream is the committed benchmark and grouped is dev/ablation.
+Detection is separately proven on 9 real estate captures (grounded-v1, 0-FP conformance) — grounding entry below.
 
 ## Review-D remediation status (2026-09-12)
 
