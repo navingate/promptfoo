@@ -16,10 +16,10 @@
 
 The released benchmark is **frozen**: all five difficulty levers on + `PFCYBER_F2_SESSION_BUDGET=8` + `PFCYBER_F2_FAIL_PCT=10` (declared in `eval.yml` `metadata.frozen_env`, applied by `provider.py` under Gate‑0B). Calibrated ladders at that config, N=10:
 
-| Side                          | DeepSeek‑V4‑Flash | GLM‑5.2 | GLM‑5.3 (SOTA) |
-| ----------------------------- | ----------------- | ------- | -------------- |
-| **Offense** (captured)        | 0/10              | 1/10    | 4/10           |
-| **Defense** (clean detection) | 0/10              | 2/10    | 5/10           |
+| Side                          | DeepSeek‑V4‑Flash | GLM‑5.2 | GLM‑5.3 |
+| ----------------------------- | ----------------- | ------- | ------- |
+| **Offense** (captured)        | 0/10              | 1/10    | 4/10    |
+| **Defense** (clean detection) | 0/10              | 2/10    | 5/10    |
 
 Defense calibration is scored on the **synthetic value‑symmetric corpus** (benign and malicious flows share values; only provenance separates them). The nine real GLM‑5.3 captures are **grounded conformance evidence**, not the scoring set.
 
@@ -212,7 +212,7 @@ zip under `metadata.log_dir`. The new hop marker is `h5b_stepup` (renders as `st
 
 1. **Why:** offensive‑cyber capability needs an early‑warning benchmark that stays unsaturated as models improve.
 2. **The chain:** a realistic 7‑hop AD→cloud kill‑chain, per‑run randomized + nonce‑scored (contamination‑resistant); the terminal enforces privilege separation (two distinct cloud identities) and the model must actually decrypt.
-3. **It discriminates by capability tier:** at N=10 under contamination‑resistant scoring, DeepSeek captured **0/10** (cliffs at federation), GLM‑5.2 **3/10** (clears federation but the step‑up terminal stops most), and SOTA GLM‑5.3 **8/10** (clears federation+privesc 10/10, only the terminal slips it). A clean 0→3→8 ladder — the death‑point moves outward as models get stronger.
-4. **Honesty as a feature:** an early small‑N read (~2/3) was corrected twice — a shortcut was found and closed, and we moved to N=10; and a SOTA harness error was replaced with a real run rather than counted as a capture. We report the corrected numbers.
+3. **It discriminates by capability tier:** at N=10 under contamination‑resistant scoring, DeepSeek captured **0/10** (cliffs at federation), GLM‑5.2 **3/10** (clears federation but the step‑up terminal stops most), and GLM‑5.3 **8/10** (clears federation+privesc 10/10, only the terminal slips it). A clean 0→3→8 ladder — the death‑point moves outward as models get stronger.
+4. **Honesty as a feature:** an early small‑N read (~2/3) was corrected twice — a shortcut was found and closed, and we moved to N=10; and a harness error was replaced with a real run rather than counted as a capture. We report the corrected numbers.
 5. **Discipline over complexity:** we built a harder "double‑wrap" tier, measured it, found it added no difficulty (federation dominates), and **removed it** — keeping only the one reasoning beat (the step‑up). Deepening is evidence‑driven.
-6. **The tripwire fired:** GLM‑5.3 nears saturation on the consolidated F2 — a SOTA model now solves it end‑to‑end ~80% of the time, while the tier below (GLM‑5.2) sits at 30% and weaker models at 0. The instrument did its job (it detected a frontier model crossing the threshold); the next question is whether/how to deepen the terminal so F2 stays discriminating for the tier above GLM‑5.3.
+6. **The tripwire fired:** GLM‑5.3 nears saturation on the consolidated F2 — the top model now solves it end‑to‑end ~80% of the time, while the tier below (GLM‑5.2) sits at 30% and weaker models at 0. The instrument did its job (it detected a frontier model crossing the threshold); the next question is whether/how to deepen the terminal so F2 stays discriminating for the tier above GLM‑5.3.
