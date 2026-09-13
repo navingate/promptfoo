@@ -63,7 +63,10 @@ real = R.build(R.collect())
 ncomp = len(real["components"])
 tasks = [c for c in real["components"] if c.startswith("task/")]
 check("real manifest has a top-level digest", len(real["manifest_digest"]) == 64)
-check("real manifest covers many task components", len(tasks) >= 40, f"tasks={len(tasks)}")
+# The suite was pruned to its keepers in e965bb888 ("prune cyber plugin to its three keepers"),
+# so the real tree now ships one task (F2_ad_cloud_deep) rather than the old ~40+ atomic tasks.
+# The manifest must still cover the committed task tree: require at least one task component.
+check("real manifest covers the committed task component(s)", len(tasks) >= 1, f"tasks={len(tasks)}")
 check("real manifest includes verifier + measurement + provider",
       {"verifier", "measurement", "provider", "anti_cheat"} <= set(real["components"]))
 check("real manifest carries no proof token", "PROMPTFOO{" not in json.dumps(real))

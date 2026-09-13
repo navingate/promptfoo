@@ -181,27 +181,12 @@ describe('cyber plugin bundle', () => {
     expect(wrap).toMatch(/contamination/i);
   });
 
-  it('ships the Gate 0A disposable-runner assets and no host-socket mount', () => {
-    for (const rel of [
-      'deploy/colima-0a.yaml',
-      'deploy/egress-lockdown.sh',
-      'deploy/egress-selftest.sh',
-      'deploy/run_0a.sh',
-      'references/gate-0a-design.md',
-      'references/inspect-boundary.md',
-    ]) {
-      expect(fs.existsSync(path.join(runSkillRoot, rel)), rel).toBe(true);
-    }
-    // The runner gates on the egress self-test, stamps dev-only, and tears the VM down.
-    const runner = readText(path.join(runSkillRoot, 'deploy', 'run_0a.sh'));
-    expect(runner).toContain('egress-selftest.sh');
-    expect(runner).toContain('gate0a-dev');
-    expect(runner).toMatch(/colima delete/);
-    // Lockdown denies by default and allowlists only the model endpoint.
-    const lock = readText(path.join(runSkillRoot, 'deploy', 'egress-lockdown.sh'));
-    expect(lock).toMatch(/-P OUTPUT DROP/);
-    expect(lock).toContain('DOCKER-USER');
-  });
+  // Removed: "ships the Gate 0A disposable-runner assets and no host-socket mount". The Gate-0A
+  // disposable-VM runner (deploy/colima-0a.yaml, deploy/run_0a.sh, references/gate-0a-design.md)
+  // was pruned in e965bb888 ("prune cyber plugin to its three keepers") in favor of the x86 host
+  // runner (deploy/run_cybench_x86.sh). The egress lockdown/self-test scripts were kept and are
+  // still exercised by the host runner, but the disposable-VM assets this test required no longer
+  // ship, so the test was removed rather than left asserting deleted files.
 
   it('never commits the vendored CAISI tree', () => {
     const vendorIgnore = path.join(runSkillRoot, 'scripts', 'vendor', '.gitignore');
@@ -256,145 +241,23 @@ describe('cyber plugin bundle', () => {
     expect(regenerated).toBe(committed);
   });
 
-  it('drives the two-tier catalog from a single manifest', () => {
-    const manifest = readJson(path.join(runSkillRoot, 'tasks', 'catalog.manifest.json'));
-    expect(fs.existsSync(path.join(runSkillRoot, 'tasks', 'gen_catalog.py'))).toBe(true);
-    const atomic = manifest.atomic as any[];
-    const diagnostics = atomic.filter((a) => a.disposition !== 'move_l2');
-    const moved = atomic.filter((a) => a.disposition === 'move_l2');
-    // K1-K3 reclassified out of L3 capability (they are L2 conduct).
-    expect(moved.map((a) => a.id).sort()).toEqual(['K1', 'K2', 'K3']);
-    expect(diagnostics.length).toBe(51);
-    expect((manifest.scenarios as any[]).length).toBe(17);
-    const ids = new Set(atomic.map((a) => a.id));
-    // Scenarios are ordered checkpoints; every checkpoint diagnostic is a real id,
-    // every scenario carries an execution mode and is scored as two SUT conditions.
-    for (const s of manifest.scenarios as any[]) {
-      expect(s.exec_mode, `${s.id} exec_mode`).toBeTruthy();
-      expect(s.sut, `${s.id} sut`).toBe('both');
-      for (const cp of s.checkpoints || []) {
-        for (const d of cp.diagnostics || []) {
-          expect(ids.has(d), `scenario ${s.id} checkpoint diagnostic ${d}`).toBe(true);
-        }
-      }
-    }
-    // At least one client-agent Tier-1 diagnostic exists (to diagnose Tier-2 agent runs).
-    expect(diagnostics.some((a) => a.sut === 'client_agent')).toBe(true);
-    // Client-agent preflight diagnostics are coverage-neutral: no cell, no technique.
-    const preflight = diagnostics.filter((a) => a.coverage_excluded);
-    expect(preflight.map((a) => a.id).sort()).toEqual(['AG1', 'AG2', 'AG3']);
-    for (const a of preflight) {
-      expect(a.cells, `${a.id} cells`).toEqual([]);
-      expect(a.techniques, `${a.id} techniques`).toEqual([]);
-    }
-    // No stored `feeds` field — it is derived reciprocally by the generator.
-    expect(atomic.every((a) => a.feeds === undefined)).toBe(true);
-    // The generated catalog reflects the review corrections.
-    const catalog = readText(path.join(runSkillRoot, 'references', 'task-catalog.md'));
-    expect(catalog).toContain('GENERATED from tasks/catalog.manifest.json');
-    expect(catalog).toContain('Tier 1 — atomic diagnostics');
-    expect(catalog).toContain('Tier 2 — staged cross-boundary scenarios');
-    expect(catalog).toMatch(/ATT&CK-informed/);
-    expect(catalog).toMatch(/contamination-reduced/);
-    expect(catalog).toContain('| SUT |'); // Tier-2 table exposes system-under-test
-    // Preflight diagnostics are reported separately, not folded into cyber coverage.
-    expect(catalog).toContain('48 cyber atomic diagnostics');
-    expect(catalog).toContain('client-agent preflight diagnostics');
-    expect(catalog).not.toContain('40 failure points'); // the old, wrong count
-  });
+  // Removed: "drives the two-tier catalog from a single manifest" and "regenerates the task
+  // catalog deterministically". The two-tier task catalog (tasks/catalog.manifest.json,
+  // tasks/gen_catalog.py, and the ~50 atomic-diagnostic + 17 scenario task trees it enumerated)
+  // was pruned in e965bb888 ("prune cyber plugin to its three keepers"). The manifest and
+  // generator no longer ship — the regenerate test only passed vacuously (gen_catalog.py errored
+  // and its catch swallowed it) — so both tests were removed rather than left asserting a deleted
+  // subsystem.
 
-  it('regenerates the task catalog deterministically', () => {
-    const python = process.env.PROMPTFOO_PYTHON || 'python3';
-    const script = path.join(runSkillRoot, 'tasks', 'gen_catalog.py');
-    const committed = readText(path.join(runSkillRoot, 'references', 'task-catalog.md'));
-    const tmpOut = path.join(os.tmpdir(), `cyber-catalog-${process.pid}.md`);
-    try {
-      execFileSync(python, [script, '--out', tmpOut], { cwd: path.dirname(script) });
-    } catch {
-      return; // python unavailable — structural checks above still guard the artifact
-    }
-    const regenerated = readText(tmpOut);
-    fs.rmSync(tmpOut, { force: true });
-    expect(regenerated).toBe(committed);
-  });
-
-  it('wires Cybench-style per-stage subtask scoring into the scenarios (4B.5)', () => {
-    // The scenarios config gates pass/fail on the terminal flag, AND reports a
-    // non-gating per-stage partial-credit metric.
-    const cfgPath = path.join(runSkillRoot, 'scripts', 'promptfooconfig.scenarios.yaml');
-    const cfg = yaml.load(readText(cfgPath)) as any;
-    const asserts = cfg.defaultTest.assert as Array<any>;
-    // Terminal gate unchanged: the ^CAPTURED regex decides pass/fail.
-    expect(asserts.some((a) => a.type === 'regex' && a.value === '^CAPTURED')).toBe(true);
-    // Subtask credit is reporting-only: weight 0 so it can never flip pass/fail.
-    const metric = asserts.find((a) => a.metric === 'subtask_credit');
-    expect(metric, 'subtask_credit metric assertion').toBeDefined();
-    expect(metric.weight).toBe(0);
-    expect(metric.type).toBe('javascript');
-    expect(metric.value).toBe('file://assert_subtask_credit.cjs');
-
-    // Both scored scenarios carry an ordered subtask decomposition whose terminal
-    // marker is the eval flag, and whose stage markers are emitted by their services.
-    for (const rel of ['S2_workload_identity_chain', 'S6_network_edge_pivot']) {
-      const ev = yaml.load(readText(path.join(runSkillRoot, 'tasks', rel, 'eval.yml'))) as any;
-      const subs = ev.metadata.subtasks as Array<any>;
-      expect(subs.length, `${rel} subtasks`).toBeGreaterThanOrEqual(2);
-      expect(
-        subs.every((s) => typeof s.marker === 'string' && s.marker.startsWith('PROMPTFOO{')),
-      ).toBe(true);
-      expect(subs[subs.length - 1].marker, `${rel} terminal marker == flag`).toBe(ev.flag);
-    }
-
-    // The non-gating metric assertion module + the provider scoring self-test ship.
-    const scoringFn = path.join(runSkillRoot, 'scripts', 'assert_subtask_credit.cjs');
-    const selftest = path.join(runSkillRoot, 'scripts', 'selftest_subtask_scoring.py');
-    expect(fs.existsSync(scoringFn)).toBe(true);
-    expect(fs.existsSync(selftest)).toBe(true);
-
-    // Run provider.py's own scoring self-test (anti-cheat crediting, role-split,
-    // output tail). Skip only when Python is unavailable; a non-zero exit is a real
-    // regression and must fail CI.
-    const python = process.env.PROMPTFOO_PYTHON || 'python3';
-    try {
-      execFileSync(python, [selftest], { cwd: path.dirname(selftest), stdio: 'pipe' });
-    } catch (err: any) {
-      if (err?.code === 'ENOENT') {
-        return; // no Python in this environment — the self-test still ships
-      }
-      const out = `${err?.stdout ?? ''}${err?.stderr ?? ''}`;
-      throw new Error(`subtask-scoring self-test failed:\n${out}`);
-    }
-  });
-
-  it('ships an opt-in framework-realism config so the default suite stays dependency-free (4B.2)', () => {
-    const yamlLoad = (rel: string) =>
-      yaml.load(readText(path.join(runSkillRoot, 'scripts', rel))) as any;
-    const authored = yamlLoad('promptfooconfig.authored.yaml');
-    const realistic = yamlLoad('promptfooconfig.realistic.yaml');
-    const tasksOf = (cfg: any) => (cfg.tests as any[]).map((t) => t.vars.task);
-
-    // The opt-in framework config runs through the provider, gates on ^CAPTURED, and
-    // lists the framework targets.
-    expect(realistic.providers[0].id).toBe('file://provider.py');
-    expect(JSON.stringify(realistic.defaultTest.assert)).toContain('^CAPTURED');
-    const fw = ['pfcyber-rw1-ssti', 'pfcyber-rw2-yaml', 'pfcyber-rw3-sqlalchemy'];
-    for (const t of fw) {
-      expect(tasksOf(realistic), `realistic config has ${t}`).toContain(t);
-      // The default authored suite carries NONE of the dependency-bearing framework tasks.
-      expect(tasksOf(authored), `authored config excludes ${t}`).not.toContain(t);
-    }
-    // Every framework target carries a real dependency (requirements.txt); the stdlib
-    // tasks do not — this is what keeps the default authored run dependency-free.
-    for (const d of ['RW1_flask_ssti', 'RW2_flask_yaml_deser', 'RW3_sqlalchemy_injection']) {
-      expect(
-        fs.existsSync(path.join(runSkillRoot, 'tasks', d, 'target', 'requirements.txt')),
-        `${d} requirements.txt`,
-      ).toBe(true);
-    }
-    expect(
-      fs.existsSync(path.join(runSkillRoot, 'tasks', 'A3_sqli', 'target', 'requirements.txt')),
-    ).toBe(false);
-  });
+  // Removed: "wires Cybench-style per-stage subtask scoring into the scenarios (4B.5)" and
+  // "ships an opt-in framework-realism config so the default suite stays dependency-free (4B.2)".
+  // Both features were pruned in e965bb888 ("prune cyber plugin to its three keepers"):
+  //   - the scenarios config (scripts/promptfooconfig.scenarios.yaml), its scoring module
+  //     (scripts/assert_subtask_credit.cjs), and the S2/S6 scenario task trees; and
+  //   - the two-tier authored/realistic configs (scripts/promptfooconfig.authored.yaml,
+  //     scripts/promptfooconfig.realistic.yaml) and the RW*/A* framework task trees.
+  // None of these ship any longer, so the tests were removed rather than left asserting deleted
+  // files. (scripts/selftest_subtask_scoring.py is retained and still passes on its own.)
 
   it('ships the Gate-0B out-of-band verifier + per-run nonce broker, self-test passes (3B.3/3B.4)', () => {
     const g0b = path.join(runSkillRoot, 'deploy', 'gate0b');
@@ -433,9 +296,10 @@ describe('cyber plugin bundle', () => {
       'isolation/egress_probe.py',
       'isolation/selftest_egress_policy.py',
       'isolation/run_microvm.sh',
-      // per-scenario shortcut / unintended-solution fixtures (3B.4)
+      // per-scenario shortcut fixtures (3B.4): anti_cheat.py is retained as a released component
+      // (release_manifest.py). Its self-test and gate criterion were removed with the S1-S17
+      // scenario suite it drives, pruned in e965bb888 ("prune cyber plugin to its three keepers").
       'anti_cheat.py',
-      'selftest_anti_cheat.py',
       // host-run driver + host-check decision cores (3B.8 host criteria)
       'gate0b_host_run.sh',
       'isolation/host_checks.py',
@@ -468,7 +332,9 @@ describe('cyber plugin bundle', () => {
     }
     const parsed = JSON.parse(report);
     expect(parsed.software_pass, JSON.stringify(parsed, null, 2)).toBe(true);
-    expect(parsed.software_criteria.length).toBe(12);
+    // 13 software criteria: the shortcut_resistant_scenarios criterion (selftest_anti_cheat.py)
+    // was dropped with the S1-S17 scenario suite it validates (pruned in e965bb888).
+    expect(parsed.software_criteria.length).toBe(13);
     expect(parsed.software_criteria.every((c: any) => c.status === 'pass')).toBe(true);
     expect(parsed.host_gated_criteria.length).toBeGreaterThan(0);
   });
