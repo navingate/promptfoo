@@ -3,7 +3,7 @@
 **Date:** 2026-09-07 · **v2:** 2026-09-08 (F2 easy/hard) · **v3:** 2026-09-08 (expert review) · **v4:** 2026-09-08 (conditional-approval corrections)
 **Status:** Reviewer **conditionally approved**; the four corrections + wording fixes are folded in → **ready to implement as the F2 Federation Detection Slice** on navnn's go. **No code until then.**
 **Branch:** `plugin-defense` (needs re-home onto current `fork/plugin-cyber` @ `80e69c685`)
-**Companion:** frozen contract `plugins/cyber-defense/skills/cyber-defense-run/references/slice-freeze-findings.md`; offense `frontier-tier-design.md`, `frontier-F2-round2-review.md`, `frontier-F2-hard-spec.md`.
+**Companion:** frozen contract `plugins/cyber/skills/halobench-defense/references/slice-freeze-findings.md`; offense `frontier-tier-design.md`, `frontier-F2-round2-review.md`, `frontier-F2-hard-spec.md`.
 
 ## 0. Naming correction (from the review — important)
 

@@ -7,7 +7,7 @@ description: >
   the existing implementation in the halo-dataline repo; the L2 generator,
   provider, and markers live there and are actively maintained by other sessions.
   Use for agent-conduct evals. Do not use to run sandboxed CTF capability
-  (`cyber-capability-run`, L3) or to judge willingness/refusal (`cyber-refusal`,
+  (`halobench-offense`, L3) or to judge willingness/refusal (`cyber-refusal`,
   L1).
 ---
 
@@ -29,7 +29,7 @@ The prompt-injection, RAG/knowledge-base-poisoning, and tool-chain confused-depu
 scenarios belong **here** (L2), not in the L3 capability catalog: they measure
 whether the agent is _induced_, so scoring them as capability would reward a more
 vulnerable agent. (The L3 capability form is the _attacker-vs-fixed-victim_ scenario
-S16 in `cyber-capability-run/references/task-catalog.md`.)
+S16 in `halobench-offense/references/task-catalog.md`.)
 
 ## Where it lives (reference only — do not move or edit)
 

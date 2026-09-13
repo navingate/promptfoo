@@ -3,7 +3,7 @@
 **Date:** 2026-09-07
 **Branch:** `plugin-defense` (on your fork; rebased onto `plugin-cyber@163402a`)
 **Audience:** cybersecurity reviewer (you have reviewed the design spec through v4)
-**Companion docs:** design spec `docs/superpowers/specs/2026-09-04-cyber-defense-ctf-evals-design.md` (v4); implementation plan `docs/superpowers/plans/2026-09-06-cyber-defense-v0.1-slice1-patch.md`; in-tree findings `plugins/cyber-defense/skills/cyber-defense-run/references/slice1-findings.md`.
+**Companion docs:** design spec `docs/superpowers/specs/2026-09-04-cyber-defense-ctf-evals-design.md` (v4); implementation plan `docs/superpowers/plans/2026-09-06-cyber-defense-v0.1-slice1-patch.md`; in-tree findings `plugins/cyber/skills/halobench-defense/references/slice1-findings.md`.
 
 ---
 
@@ -21,7 +21,7 @@
 
 Slice 1 implements one `DefenseTask` — `patch_A3_sqli` — plus the generic machinery the contract needs. **Single-shot, L2 (directed remediation):** promptfoo renders a prompt embedding the vulnerable source + a weakness report; a standard promptfoo model provider (the SUT) returns a unified diff; a deterministic Python assertion applies it and grades. There is **no offense-style agent loop** in a patch task.
 
-Bundle: `plugins/cyber-defense/` (sibling to `plugins/cyber/`), registered in both marketplace manifests. Runner skill: `plugins/cyber-defense/skills/cyber-defense-run/`.
+Bundle: `plugins/cyber-defense/` (sibling to `plugins/cyber/`), registered in both marketplace manifests. Runner skill: `plugins/cyber/skills/halobench-defense/`.
 
 | File                                                                           | Responsibility                                                                                                                                        | Reviewer note                                |
 | ------------------------------------------------------------------------------ | ----------------------------------------------------------------------------------------------------------------------------------------------------- | -------------------------------------------- |
@@ -39,7 +39,7 @@ Bundle: `plugins/cyber-defense/` (sibling to `plugins/cyber/`), registered in bo
 
 ## 2. What is reused from the offense plugin (and what is new)
 
-- **Reused as-is:** the A3 target (`plugins/cyber/skills/cyber-capability-run/tasks/A3_sqli/target/app.py` — a stdlib CorpDirectory API), its `Dockerfile`, and the reference exploit shape from its `solution/solve.sh`. Nothing in `plugins/cyber/` was modified.
+- **Reused as-is:** the A3 target (`plugins/cyber/skills/halobench-offense/tasks/A3_sqli/target/app.py` — a stdlib CorpDirectory API), its `Dockerfile`, and the reference exploit shape from its `solution/solve.sh`. Nothing in `plugins/cyber/` was modified.
 - **New authoring (the honest cost):** the **exploit family** (2 new realizations beyond the public one), the **functional regression suite** (the A3 targets ship a reference _exploit_ but **no** benign-behavior tests), the **held-out variant**, the **calibration fixtures**, and all the generic machinery. So the "reuse the 29 targets" win is real for the _environment + one exploit_, but each patch task still needs a variant family + a regression suite authored.
 
 ## 3. The task under review: `patch_A3_sqli`
@@ -105,7 +105,7 @@ I am surfacing these deliberately; the fairness of the whole instrument depends 
 **Verified by me (no Docker / no model):**
 
 ```bash
-cd plugins/cyber-defense/skills/cyber-defense-run
+cd plugins/cyber/skills/halobench-defense
 python3 selftest_manifest.py            # two-sided validator
 python3 selftest_result.py              # hard-gate scoring (overfit -> security_failure, prevention 0.0)
 python3 selftest_verify_patch.py        # diff parser
@@ -119,11 +119,11 @@ npx vitest run test/agentSkills/cyberDefensePlugin.test.ts   # bundle structure,
 **User-run (I could not run these here — the auto-mode classifier blocks Docker + live-model calls):**
 
 ```bash
-cd plugins/cyber-defense/skills/cyber-defense-run && python3 -m pytest tests/ -v   # production Docker path (needs Docker + harness venv for PyYAML)
+cd plugins/cyber/skills/halobench-defense && python3 -m pytest tests/ -v   # production Docker path (needs Docker + harness venv for PyYAML)
 ```
 
 ```bash
-promptfoo eval -c plugins/cyber-defense/skills/cyber-defense-run/promptfooconfig.defense.yaml --no-cache -o out.json   # end-to-end with a real SUT
+promptfoo eval -c plugins/cyber/skills/halobench-defense/promptfooconfig.defense.yaml --no-cache -o out.json   # end-to-end with a real SUT
 ```
 
 **Independence note:** the one red test on the branch (`cyberPlugin.test.ts` Gate-0B F1/S1/S2 nonce-forwarding) is **offense-plugin** code from the parallel F1 session; it fails on `plugin-cyber`'s own tip and is untouched by this work.

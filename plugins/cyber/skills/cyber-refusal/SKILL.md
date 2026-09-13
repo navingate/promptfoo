@@ -5,7 +5,7 @@ description: >
   capability when asked (intrusion tooling, tradecraft), or does it refuse or
   redirect? This skill is a PLACEHOLDER that points at the existing rubric in the
   halo-dataline repo. Use for willingness/refusal grading. Do not use to run
-  sandboxed CTF capability (`cyber-capability-run`, L3) or to test agent conduct
+  sandboxed CTF capability (`halobench-offense`, L3) or to test agent conduct
   under untrusted data (`cyber-conduct`, L2).
 ---
 
@@ -35,7 +35,7 @@ request), never operational payload.
 - **L1 (here):** _will it produce_ offensive capability? (willingness)
 - **L2 (`cyber-conduct`):** _can an agent be induced_ into harmful actions via
   untrusted data? (conduct)
-- **L3 (`cyber-capability-run`):** _can it actually do_ offensive cyber in a
+- **L3 (`halobench-offense`):** _can it actually do_ offensive cyber in a
   sandbox? (capability)
 
 Run L1 from halo-dataline. When it is promoted into this bundle, replace this

@@ -13,7 +13,7 @@ to read the numbers). When they overlap, the README wins.
 | ------------------------------------------------------------ | ----------------------------------------------------------- | ---------------------------------------------------------------------------------------------------------------- |
 | **Cybench baseline**                                         | Public CTF yardstick, in-harness, for cross-check           | x86_64 Linux VM (`run_cybench_x86.sh`); real target images, x86-only                                             |
 | **Hybrid AD → Cloud Takeover** (offense; internal id **F2**) | A deep 7-hop enterprise kill-chain, Gate-0B assurance       | x86_64 Linux Docker host — F2 compose pins the x86_64 Kali `agent-environment:1.1.1` (`promptfooconfig.f2.yaml`) |
-| **Defense twin**                                             | Can a model detect that same attack in de-oracled telemetry | `plugin-defense` branch (`plugins/cyber-defense/`)                                                               |
+| **Defense twin**                                             | Can a model detect that same attack in de-oracled telemetry | `halobench-defense` skill (this plugin)                                                               |
 
 > **System requirement — the Cybench and CVE-Bench evals need an x86-64 (amd64) Linux
 > host.** Their CAISI Kali agent image and CTF/CVE target images are x86-64;
@@ -58,7 +58,7 @@ images (+ Ghidra for `rev`), which **cannot run on Apple Silicon** — use a ded
 2. Run, **on the VM**:
 
 ```bash
-bash plugins/cyber/skills/cyber-capability-run/deploy/run_cybench_x86.sh
+bash plugins/cyber/skills/halobench-offense/deploy/run_cybench_x86.sh
 # add BUILD_GAAS=1 to also build Ghidra (only needed for reverse-engineering tasks)
 ```
 
@@ -94,12 +94,12 @@ registry, and pull the prebuilt images per run. Drive it with `UCB_REGISTRY` (ke
 # Phase 1: PROVISION — build + push (egress ON, no lockdown, no eval). Any box with internet.
 docker login ghcr.io
 UCB_REGISTRY=ghcr.io/you/ PHASE=provision \
-  bash plugins/cyber/skills/cyber-capability-run/deploy/run_cybench_x86.sh
+  bash plugins/cyber/skills/halobench-offense/deploy/run_cybench_x86.sh
 
 # Phase 2: EVAL — pull prebuilt images, then lock down + run.
 docker login ghcr.io
 UCB_REGISTRY=ghcr.io/you/ FULL=1 \
-  bash plugins/cyber/skills/cyber-capability-run/deploy/run_cybench_x86.sh
+  bash plugins/cyber/skills/halobench-offense/deploy/run_cybench_x86.sh
 ```
 
 If nothing from the registry is present after `ucb pull`, the runner **refuses to lock
@@ -113,9 +113,9 @@ The set of solved tasks shifts run to run. For a defensible number, set `RUNS=k`
 
 ```bash
 RUNS=10 RUN_TAG=glm53-cybench \
-  bash plugins/cyber/skills/cyber-capability-run/deploy/run_cybench_x86.sh
-node plugins/cyber/skills/cyber-capability-run/scripts/aggregate_runs.cjs \
-  plugins/cyber/skills/cyber-capability-run/out.glm53-cybench.run*.json
+  bash plugins/cyber/skills/halobench-offense/deploy/run_cybench_x86.sh
+node plugins/cyber/skills/halobench-offense/scripts/aggregate_runs.cjs \
+  plugins/cyber/skills/halobench-offense/out.glm53-cybench.run*.json
 ```
 
 The aggregator reports **Pass@k** (solved in ≥1 run), **reliable** (solved every run),
@@ -144,7 +144,7 @@ image (same architecture requirement as Cybench, though F2 does not need the ful
 ```bash
 CYBER_GATE0B=true CYBER_SUT_ENDPOINT=engy CYBER_MODEL=openai/glm-5.3 \
   npm run local -- eval \
-  -c plugins/cyber/skills/cyber-capability-run/scripts/promptfooconfig.f2.yaml \
+  -c plugins/cyber/skills/halobench-offense/scripts/promptfooconfig.f2.yaml \
   --no-cache --repeat 10 -o /tmp/hybrid_glm53.json
 ```
 
@@ -161,11 +161,10 @@ also drive this chain under its egress lockdown with `SUITE=authored` (it defaul
 
 The mirror of the offense chain on the **same estate**: handed the de-oracled telemetry
 and the SOC's own config, can a model write a detection rule that catches the intrusion
-without false-alarming? It lives on the **`plugin-defense`** branch
-(`plugins/cyber-defense/`); run from a checkout/worktree that has it and see that plugin's
-`SKILL.md`. It is grounded on real captures of the offense chain (nonce shape
-`PROMPTFOO{pfcyber-f2-adcloud_<STAGE>_<hex>}`), so the offense and defense sides stay in
-lockstep on the internal id. README §6b has the run commands.
+without false-alarming? It's the **`halobench-defense`** skill in this plugin
+(`skills/halobench-defense/`) — see its `SKILL.md`. It is grounded on real captures of the
+offense chain (nonce shape `PROMPTFOO{pfcyber-f2-adcloud_<STAGE>_<hex>}`), so the offense and
+defense sides stay in lockstep on the internal id. README §6.4 has the run commands.
 
 ---
 
@@ -223,7 +222,7 @@ fresh per-run nonces, defeating memorization.
 plugins/cyber/
   CYBER.md                                  ← this file
   README.md                                 the full runbook
-  skills/cyber-capability-run/
+  skills/halobench-offense/
     scripts/
       provider.py                           promptfoo → Inspect bridge (+ SUT_ENDPOINTS registry)
       promptfooconfig.yaml                  Cybench suite (benchmark: cybench)
