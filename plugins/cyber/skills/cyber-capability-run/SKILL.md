@@ -44,6 +44,12 @@ agentic conduct (L2) are separate layers — see the routing in the frontmatter.
 
 ## Prerequisites
 
+- **Host architecture: x86-64 (amd64) Linux — required, not optional.** The CAISI
+  agent image (Kali `agent-environment`) and the CVE/CTF target images are x86-64,
+  every ported CVE compose pins `platform: linux/amd64`, and `deploy/run_cybench_x86.sh`
+  aborts on any other architecture (it checks `uname -m` == `x86_64`). **Apple Silicon /
+  ARM hosts (including AWS Graviton) and macOS will not run these evals** — provision an
+  x86-64 Linux host (any x86 cloud VM or CI runner) with Docker.
 - **Docker** running (CAISI builds per-task target containers).
 - **uv** (Python env manager) and **git**.
 - An API key for the target model. The harness talks to models through Inspect;
