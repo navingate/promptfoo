@@ -1,8 +1,11 @@
 # Cyber Benchmark Authoring Skill — Design Specification
 
-**Date:** 2026-09-13  
-**Status:** Approved design, pending implementation plan  
-**Location:** `.agents/skills/cyber-benchmark-authoring/`  
+**Date:** 2026-09-13
+
+**Status:** Approved design, pending implementation plan
+
+**Location:** `.agents/skills/cyber-benchmark-authoring/`
+
 **Audience:** Internal benchmark authors and reviewers
 
 ## 1. Purpose
