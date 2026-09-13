@@ -1,0 +1,11 @@
+{
+  "title": "Encoded PowerShell execution",
+  "logsource": { "category": "process_creation", "product": "windows" },
+  "detection": {
+    "sel": {
+      "process|endswith": "powershell.exe",
+      "command_line|contains": ["-enc", "-ec", "-encodedcommand"]
+    },
+    "condition": "sel"
+  }
+}

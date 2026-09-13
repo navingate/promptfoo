@@ -1,0 +1,19 @@
+{
+  "_note": "v1.2 PREVENTIVE provenance rule. The ENTITLEMENT tag -- the one THIS instance's IAM trust policy honors, supplied as SOC config $honored_tag (NOT a literal, so the rule is instance-independent) -- LANDED on a session, and was EMITTED by a federation assertion in the same incident (provenance: it arrived through the self-service claim-rule path, the smuggle vector). Fires at the tag-landing (h4), BEFORE any escalation -- pre-escalation detection, strictly earlier than the escalation-join reference (correct.json), which can only fire once the escalation (h5) is observed. On this estate the entitlement tag never lands for a benign principal (benign logins land only DECOY tags), so this separates malicious from benign at h4 at recall/precision 1.0 -- and does so by identifying the privilege tag from the org's own IAM policy, not by waiting for the consequence.",
+  "require": "all",
+  "conditions": [
+    {
+      "type": "field",
+      "event": "session_tag_applied",
+      "field": "tag_name",
+      "op": "eq",
+      "value": { "$config": "honored_tag" }
+    },
+    {
+      "type": "join",
+      "a": { "event": "session_tag_applied", "field": "tag_name" },
+      "b": { "event": "assertion_issued", "field": "emitted_tags" },
+      "on": "a_in_b"
+    }
+  ]
+}

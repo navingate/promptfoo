@@ -1,0 +1,48 @@
+# Cyber DEFENSE — Hybrid AD -> Cloud Takeover federation CORRELATION detection task (offense internal id F2), run through promptfoo (v1.3).
+#
+# One model per command, same interface as the offense calibration (CYBER_SUT_ENDPOINT + CYBER_MODEL). The
+# provider (correlation_provider.py) sends the correlation brief + SOC config as a plain chat call and
+# returns the model's rule; the python assertion scores it over the HELD-OUT GROUNDED corpus, POOLED over TWO
+# real estates: instance-1 (honored tag deploy-eligibility; 10 grounded TP [9 GLM-5.3 + 1 denied] + 7 benign
+# incl. a legit-escalation twin) AND the seed-9 estate (honored tag provision-scope, a GLM-5.3 blind-solve on
+# gen.generate(9); 2 malicious + 1 benign twin), each scored with its OWN soc_config -> a rule that hard-codes
+# one estate's honored tag fails on the other, so only a {$config:honored_tag} rule passes both (provenance is
+# gate-load-bearing) with the
+# frozen two-sided grader (recall -> objective, precision ->
+# constraint) and reports raw recall/precision/f1 PLUS a timing diagnostic (pre_privesc_rate: how much of
+# the attack the rule catches before escalation). Pure-stdlib scorer, no Docker. Live calls are user-run.
+#
+# ── Run the three calibration models (from the repo root ~/promptfoo). CYBER_SUT_ENDPOINT resolves via the
+#    offense provider's endpoint registry (azure/chutes/engy/…); the API key env is that endpoint's. ──
+#   cd ~/promptfoo && CYBER_SUT_ENDPOINT=azure CYBER_MODEL=openai/DeepSeek-V4-Flash npm run local -- eval -c plugins/cyber-defense/skills/cyber-defense-run/promptfooconfig.correlation.yaml --no-cache --repeat 10 --max-concurrency 2 -o /tmp/f2def_deepseek.json
+#   cd ~/promptfoo && CYBER_SUT_ENDPOINT=engy  CYBER_MODEL=openai/glm-5.3          npm run local -- eval -c plugins/cyber-defense/skills/cyber-defense-run/promptfooconfig.correlation.yaml --no-cache --repeat 10 --max-concurrency 2 -o /tmp/f2def_glm53.json
+#   cd ~/promptfoo && CYBER_SUT_ENDPOINT=engy  CYBER_MODEL=openai/glm-5.2          npm run local -- eval -c plugins/cyber-defense/skills/cyber-defense-run/promptfooconfig.correlation.yaml --no-cache --repeat 10 --max-concurrency 2 -o /tmp/f2def_glm52.json
+#   npm run local -- view     # or inspect the -o JSON (per-run pass/score/reason; named recall/precision/pre_privesc_rate)
+#
+# If an endpoint key isn't in the offense registry, pass it explicitly, e.g.:
+#   CYBER_BASE_URL=https://llm.chutes.ai/v1 CYBER_API_KEY_ENV=CHUTES_API_KEY CYBER_MODEL=openai/glm-5.3 npm run local -- eval -c ...
+# For one deterministic rule per model instead of a pass-rate, drop --repeat and set temperature: 0 below.
+description: Cyber DEFENSE — Hybrid AD -> Cloud Takeover federation correlation detection (v1.3)
+
+providers:
+  - id: file://correlation_provider.py
+    label: cyber-defense-correlation
+    config:
+      # model + endpoint come from CYBER_MODEL / CYBER_SUT_ENDPOINT (or CYBER_BASE_URL + CYBER_API_KEY_ENV)
+      temperature: 0.7
+      # reasoning models emit a long reasoning_content BEFORE the rule, so a small budget is exhausted
+      # mid-reasoning (finish_reason=length, EMPTY content). 16000 gives convergent reasoning models headroom
+      # while staying under promptfoo's ~300s python-worker timeout; non-reasoning models stop at their
+      # natural length. NOTE: GLM-5.2 over-reasons past any viable budget on this task (see report) — it needs
+      # reasoning control, not a bigger budget.
+      max_tokens: 16000
+
+prompts:
+  - '{{task}}' # placeholder — the provider builds the correlation brief itself (prompts/correlation_prompt.py)
+
+tests:
+  - description: detect_F2easy_federation
+    vars: { task: detect_F2easy_federation }
+    assert:
+      - type: python
+        value: file://assert_correlation.py

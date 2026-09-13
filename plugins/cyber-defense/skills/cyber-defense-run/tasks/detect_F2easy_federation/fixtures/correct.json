@@ -1,0 +1,19 @@
+{
+  "_note": "v1.1 provenance/escalation rule (post-118d33acd, oracle-resistant). A privilege tag that (1) was EMITTED by a federation assertion in the incident and (2) LANDED on a session which then SUCCESSFULLY escalated (role_assumed|grant_issued outcome=ok) -- i.e. the tag was privilege-granting, not merely present. Literal-free (no honored-tag / source-attr names), count-agnostic (works whether the smuggle used 1 or 3 source attrs), family-agnostic. Kills the v1 tag-presence oracle: benign now carry non-escalating tags, so mere session_tag_applied no longer separates.",
+  "require": "all",
+  "conditions": [
+    {
+      "type": "join",
+      "a": { "event": "session_tag_applied", "field": "tag_name" },
+      "b": { "event": "assertion_issued", "field": "emitted_tags" },
+      "on": "a_in_b"
+    },
+    {
+      "type": "join",
+      "a": { "event": "session_tag_applied", "field": "session_id" },
+      "b": { "events": ["role_assumed", "grant_issued"], "field": "via_session_id" },
+      "on": "eq",
+      "where_b": { "field": "outcome", "op": "eq", "value": "ok" }
+    }
+  ]
+}

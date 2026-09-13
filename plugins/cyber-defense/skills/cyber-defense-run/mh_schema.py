@@ -1,0 +1,91 @@
+"""Spike-A telemetry schema for v2 multi-hop detection. References + metadata only — NO tokens,
+ciphertext, keys, or derived conclusions. Config is FLAT neutral inventories (the frozen grammar's
+$config resolves a flat scalar/list only). Edges are UNIQUE TRANSACTIONAL references only."""
+
+EVENT_TYPES = {
+    "assertion_issued", "session_created", "session_tag_applied",
+    "role_assumed", "grant_issued", "workload_run",
+    "stepup_minted", "vault_access", "kms_unwrap", "workload_output_returned",
+}
+
+# §8 edge table: (typeA, fieldA) links to (typeB, fieldB) when the ref VALUES are equal & non-null.
+# NOTE: the design-review §8 table listed 8 edges but omitted session->tag, workload->kms_unwrap and
+# workload->output, which orphans those events into their own components. Completed here to 11 edges so
+# every back-half event joins its chain (still only UNIQUE TRANSACTIONAL refs; no stable-id edges).
+EDGE_TABLE = [
+    ("assertion_issued", "assertion_ref", "session_created", "from_assertion_ref"),
+    ("session_created", "session_ref", "session_tag_applied", "session_ref"),
+    ("session_created", "session_ref", "role_assumed", "via_session_ref"),
+    ("session_created", "session_ref", "grant_issued", "via_session_ref"),
+    ("role_assumed", "role_session_ref", "workload_run", "via_role_session_ref"),
+    ("grant_issued", "grant_ref", "workload_run", "via_grant_ref"),
+    ("session_created", "session_ref", "stepup_minted", "from_session_ref"),
+    ("workload_run", "workload_ref", "vault_access", "workload_ref"),
+    ("workload_run", "workload_ref", "kms_unwrap", "workload_ref"),
+    ("workload_run", "workload_ref", "workload_output_returned", "workload_ref"),
+    ("stepup_minted", "auth_context_ref", "kms_unwrap", "auth_context_ref"),
+]
+
+# fields that look joinable but MUST NOT form edges (shared across unrelated activity)
+NON_EDGE_FIELDS = {"execution_principal", "user_principal", "requested_action",
+                   "requested_resource_ref", "tag_name", "role_id", "resource_id"}
+
+# flat SOC config (the $config inventories). Decoys in entitlement_tag_names are OTHER real
+# sensitive entitlements (exercised authoritatively in the corpus), not harmless noise.
+# R1b (base-rate / config drift): the pools are DELIBERATELY wide (6 each) and disclosed as one global
+# config -- a real estate's IAM trust policy names many self-service attrs and sensitive entitlement tags,
+# and the malicious chains rotate over the WHOLE pool (mh_corpus). A rule must reference the $config KEY,
+# not a memorized value; value-symmetry (mh_corpus._benign_cover) makes every one of these values also
+# occur benignly, so even a full literal-enumeration pack false-alarms.
+INVENTORIES = {
+    "self_service_attribute_names": ["extensionAttribute7", "costCenter", "orgUnit",
+                                     "extensionAttribute11", "division", "jobTitle"],
+    "entitlement_tag_names": ["provision-scope", "deploy-eligibility", "break-glass",
+                              "pipeline-deploy", "secrets-read", "kms-admin"],
+    "protected_resource_ids": ["tenant-vault/secret-blob"],
+    "privileged_action_names": ["read-vault", "kms-unwrap"],
+    "required_assurance_for_unwrap": "mfa",   # policy: unwrap needs an mfa-backed step-up
+}
+
+_REQUIRED = {"event", "batch_id"}
+
+# review D: event-specific validation -- required linkage fields, reference SCALARITY (a ref used as a
+# component edge must be a scalar, never a list/dict, or membership/edge semantics break), and list/dict
+# operand shapes. A shaper ingesting real F2 telemetry must pass these before the corpus is scored.
+EVENT_REQUIRED = {
+    "assertion_issued": ["assertion_ref"],
+    "session_created": ["from_assertion_ref", "session_ref"],
+    "session_tag_applied": ["session_ref", "tag_name"],
+    "role_assumed": ["via_session_ref", "role_session_ref"],
+    "grant_issued": ["via_session_ref", "grant_ref"],
+    "workload_run": ["workload_ref"],
+    "vault_access": ["workload_ref"],
+    "stepup_minted": ["from_session_ref", "auth_context_ref"],
+    "kms_unwrap": ["workload_ref", "auth_context_ref"],
+    "workload_output_returned": ["workload_ref"],
+}
+_LIST_FIELDS = {"source_attrs", "authorized_actions"}
+_DICT_FIELDS = {"emitted_tags"}
+
+
+def validate_event(e):
+    if not isinstance(e, dict):
+        raise ValueError("event must be a dict")
+    et = e.get("event")
+    if et not in EVENT_TYPES:
+        raise ValueError(f"unknown event type: {et!r}")
+    for k in _REQUIRED:
+        if not e.get(k):
+            raise ValueError(f"event missing required field {k!r}")
+    for k in EVENT_REQUIRED.get(et, ()):
+        if not e.get(k):
+            raise ValueError(f"{et}: missing required field {k!r}")
+    for f, v in e.items():
+        if f.startswith("_"):
+            continue                                       # evaluator-only truth (stripped before scoring)
+        if f.endswith("_ref") and not isinstance(v, (str, int)):
+            raise ValueError(f"{et}.{f}: reference must be a scalar, got {type(v).__name__}")
+        if f in _LIST_FIELDS and not isinstance(v, list):
+            raise ValueError(f"{et}.{f}: must be a list operand, got {type(v).__name__}")
+        if f in _DICT_FIELDS and not isinstance(v, dict):
+            raise ValueError(f"{et}.{f}: must be an object, got {type(v).__name__}")

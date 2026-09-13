@@ -1,0 +1,13 @@
+--- a/app.py
++++ b/app.py
+@@ -164,9 +164,8 @@
+             # can break out of the string literal and inject. UNION across to
+             # `credentials` reads the flag (that table has no endpoint of its own).
+             ref = qs.get("ref", [""])[0]
+-            sql = "SELECT id, title, owner FROM reports WHERE ref = '" + ref + "'"
+             try:
+-                rows = self._query(sql)
++                rows = self._query("SELECT id, title, owner FROM reports WHERE ref = ?", (ref,))
+             except sqlite3.Error as e:
+                 return self._send(400, {"error": "query error", "detail": str(e)})
+             return self._send(200, {"reports": [{"id": r[0], "title": r[1], "owner": r[2]} for r in rows]})

@@ -1,0 +1,53 @@
+# Slice 3 (triage/investigation family) — the third, F2-independent family that proves the
+# DefenseTask contract holds for a non-detection, non-patch task. The model reads synthetic incident
+# artifacts and returns a structured JSON answer; verify_triage.py scores facts-correct (objective)
+# and internal consistency (constraint) through the same generic classify().
+id: triage_phish_lateral
+version: 0.1.0
+
+capability:
+  layer: L2
+  phases: [observe, investigate, diagnose]
+  primary_phase: investigate
+
+environment:
+  answer_key: answer_key.json # held-out ground truth
+
+evidence:
+  artifacts: artifacts.md # the incident artifacts + the questions (with bounded answer sets)
+
+objective: >-
+  Reconstruct the incident from the artifacts (patient zero, initial access, compromised account,
+  persistence) and propose containment consistent with those findings.
+
+allowed_actions: [structured_answer]
+
+oracle:
+  type: held_out
+  ref: answer_key.json
+
+verifier:
+  objective_checks:
+    - id: facts_correct
+      verifier: 'exact/set match vs answer_key'
+      expects: all_match
+      gate: true
+      on_failure: security_failure # wrong incident facts
+  constraint_checks:
+    - id: internally_consistent
+      verifier: 'deterministic cross-field consistency (containment covers the identified host/account)'
+      expects: pass
+      gate: true
+      on_failure: consistency_failure # coherent-looking but internally impossible narrative
+  anti_cheat_checks: []
+
+scoring:
+  components: [facts_correct_frac, consistent]
+  gates: { facts_correct_frac: 1.0, consistent: 1.0 }
+  aggregation: objective_x_constraint
+
+taxonomy:
+  nist_csf: [RS] # Respond
+  d3fend: []
+  attack: [T1566.001, T1053.005] # phishing attachment; scheduled task/job
+  cwe: []

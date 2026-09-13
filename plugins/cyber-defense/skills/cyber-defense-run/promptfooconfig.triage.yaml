@@ -1,0 +1,17 @@
+# Cyber DEFENSE v0.1 — Slice 3 (incident triage). F2-independent toy task proving the triage family
+# runs through the same DefenseTask contract. Stdlib scoring (JSON answer + key) — no Docker, no PyYAML.
+#
+#   promptfoo eval -c promptfooconfig.triage.yaml --no-cache -o out.json
+description: Cyber DEFENSE v0.1 — Slice 3 (incident triage)
+
+providers:
+  - id: openai:chat:gpt-4o-mini # SUT under test — replace with the model you are evaluating
+
+prompts:
+  - file://prompts/triage_prompt.py:build_prompt
+
+tests:
+  - description: triage_phish_lateral
+    assert:
+      - type: python
+        value: file://assert_triage.py
