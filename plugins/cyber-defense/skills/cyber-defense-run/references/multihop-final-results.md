@@ -18,17 +18,18 @@ defense mirror of the F2 offense chain. Headline metric = **scalar-at-0-false-al
 | ----------------- | ----------- | ------------------------ | ------------------ |
 | GLM-5.3           | **5/10**    | [0.19, 0.81]             | 0.57               |
 | GLM-5.2           | **2/10**    | [0.03, 0.56]             | — (run externally) |
-| DeepSeek-V4-Flash | **0/9**     | [0, 0.34]                | 0.22               |
+| DeepSeek-V4-Flash | **0/10**    | [0, 0.31]                | ≈0.2 (floor)       |
 
 - **Disclosure:** `stream` (headerless, continuous multi-principal — the hunter must correlate by reference
   fields). Committed as the benchmark after it was shown not to over-harden (grouped GLM-5.3 was 6/10 →
   stream 5/10; `grouped` remains the dev/ablation view via `CYBER_DISCLOSURE_VIEW=grouped`).
 - **Separation (honest):** the ordering is monotonic (5 > 2 > 0) and consistent with capability. The
-  **endpoints separate significantly** — GLM-5.3 vs DeepSeek Fisher one-sided **p = 0.022**. The **adjacent
-  rungs do NOT** at n=10 (5.3-vs-5.2 p = 0.17; 5.2-vs-DeepSeek p = 0.26); CIs overlap. Distinguishing
+  **endpoints separate significantly** — GLM-5.3 vs DeepSeek Fisher one-sided **p = 0.016**. The **adjacent
+  rungs do NOT** at n=10 (5.3-vs-5.2 p = 0.17; 5.2-vs-DeepSeek p = 0.24); CIs overlap. Distinguishing
   adjacent rungs needs larger n — the current claim is "monotonic ladder, endpoints significant."
-- GLM-5.2 was run externally by the user (2/10); GLM-5.3 + DeepSeek were run locally (engy / azure).
-  GLM-5.2 could not be run locally (engy stalled-socket hangs; only a wall-clock hard-kill helps).
+- GLM-5.3 was run locally (engy). DeepSeek is 0/10: 9 valid runs locally (azure) + a 10th external run that
+  also failed, backfilling an earlier non-convergence error → a clean 0/10 floor. GLM-5.2 (2/10) was run
+  externally (engy stalled-socket hangs blocked it locally; only a wall-clock hard-kill helps).
 
 ## Grounded in F2 — a passing test
 
@@ -72,7 +73,7 @@ Detection is proven on **9 estate-generated NATIVE captures** (vendored immutabl
 - **Small n (10):** only the endpoints separate significantly; adjacent rungs are directional. The CIs are wide.
 - **Grounding = 9 conformance flows**, not a full grounded _calibration_ corpus — the models still hunt the
   synthetic (value-symmetric) estate. A larger estate-generated calibration corpus is the next milestone.
-- **GLM-5.2** number is external (user-run); no local re-analyzable JSON.
+- **GLM-5.2** (2/10) and **DeepSeek's 10th run** are external (user-run); no local re-analyzable JSON for those.
 - **Two boundaries only** (provenance + assurance); intersection / two_tag are reserved (option b).
 - Still a **simulation** — name it "enterprise identity-to-cloud takeover," not literal AD → cloud.
 

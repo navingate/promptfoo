@@ -21,8 +21,8 @@ malicious value also occurs benignly in the SAME estate, on both DEV and held-ou
 literal or single-value "booster" transfers as precise. **→ See `multihop-final-results.md` for the
 consolidated current state.** **Calibration — COMMITTED on STREAM disclosure (n=10, value-symmetric corpus,
 2026-09-13):** GLM-5.3 **5/10** (CP95 [.19,.81]) · GLM-5.2 **2/10** ([.03,.56], run externally) · DeepSeek
-**0/9** ([0,.34]). Monotonic ladder; ENDPOINTS separate (GLM-5.3 vs DeepSeek Fisher p=0.022), adjacent rungs
-directional only at n=10 (5.3-vs-5.2 p=0.17, 5.2-vs-DeepSeek p=0.26). Stream (headerless interleaved
+**0/10** ([0,.31]). Monotonic ladder; ENDPOINTS separate (GLM-5.3 vs DeepSeek Fisher p=0.016), adjacent rungs
+directional only at n=10 (5.3-vs-5.2 p=0.17, 5.2-vs-DeepSeek p=0.24). Stream (headerless interleaved
 multi-principal — the model must correlate by reference fields) is modestly harder than grouped (GLM-5.3 was
 6/10 grouped) but does NOT over-harden, so stream is the committed benchmark and grouped is dev/ablation.
 Detection is separately proven on 9 real estate captures (grounded-v1, 0-FP conformance) — grounding entry below.
@@ -61,7 +61,7 @@ An external validity/security review (verdict: do not lock/calibrate) found rele
     interleaved, discovery-only disclosure (seeded per-chain arrival stagger) so the hunter must trace refs
     to correlate chains, not read pre-grouped blocks. Presentation only — never reaches the scorer.
     **Config flag `disclosure_view`, now DEFAULT `stream`** (flipped 2026-09-13 after the n=10 stream run
-    confirmed it separates without over-hardening — 5/10 vs 0/9, Fisher p=0.022); `grouped` is the ablation.
+    confirmed it separates without over-hardening — 5/10 vs 0/10, Fisher p=0.016); `grouped` is the ablation.
   - **R3 — seeded timing (#3):** `test_timing_perturbation_score_invariant` proves the scorer is EXACTLY
     (byte-)invariant to inter-component skew / long-pause / duplicate / shuffled arrival — for reference,
     degraded, AND all three real saved (a) packs. Detection is existential + component-local, so timing
