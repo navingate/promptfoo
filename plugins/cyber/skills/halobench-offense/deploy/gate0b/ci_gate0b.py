@@ -61,10 +61,12 @@ CRITERIA = [
      "egress policy: only agent->broker permitted; a leak from any task-controlled context is "
      "flagged (3B.1 decision core)",
      "isolation/selftest_egress_policy.py"),
-    ("shortcut_resistant_scenarios",
-     "per-scenario shortcut/unintended-solution fixtures: the terminal flag is unreachable by a "
-     "degenerate path; the intended path recovers it; multi-service terminals are segmented (3B.4)",
-     "selftest_anti_cheat.py"),
+    # NOTE: the per-scenario shortcut-resistance criterion (3B.4, selftest_anti_cheat.py) was
+    # dropped when the S1-S17 enterprise scenarios were pruned in "prune cyber plugin to its three
+    # keepers" (e965bb888): anti_cheat.py reads each scenario's target under tasks/<scenario>/, and
+    # those task trees no longer ship, so the check can no longer be exercised. anti_cheat.py itself
+    # is retained (it remains a released component in release_manifest.py) as the fixture library for
+    # if the scenario suite is restored.
     ("host_check_logic",
      "host-run decision cores: a surviving run-tagged artifact is residue; a reused nonce or a "
      "cross-run observation is an isolation failure (3B.8 host criteria — the driver's checks)",

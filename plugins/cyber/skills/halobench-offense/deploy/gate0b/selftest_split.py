@@ -59,7 +59,10 @@ check("a new task is public_dev by default", "BRAND_NEW" in rel2["public_dev"])
 print("== committed policy is valid against the real tree ==")
 policy = json.loads((HERE / "split.policy.json").read_text())
 ids = S._task_ids()
-check("real tree has tasks", len(ids) >= 40, f"tasks={len(ids)}")
+# The suite was pruned to its keepers in e965bb888 ("prune cyber plugin to its three keepers"),
+# so the real tree now ships one task (F2_ad_cloud_deep) rather than the old ~40+ atomic tasks.
+# The split policy must still enumerate the committed tree: require at least one task.
+check("real tree has tasks", len(ids) >= 1, f"tasks={len(ids)}")
 check("committed split.policy.json validates", S.validate(ids, policy) == [], str(S.validate(ids, policy)))
 real = S.public_release(ids, policy)
 check("current suite is all public-dev (no private set yet)", real["counts"]["private"] == 0)
