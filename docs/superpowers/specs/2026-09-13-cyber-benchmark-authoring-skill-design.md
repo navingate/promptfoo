@@ -2,7 +2,7 @@
 
 **Date:** 2026-09-13
 
-**Status:** Approved design, pending implementation plan
+**Status:** Approved design; implementation plan approved
 
 **Location:** `.agents/skills/cyber-benchmark-authoring/`
 
@@ -106,9 +106,9 @@ Mechanical auditors operate on declared identifiers, observation manifests, fiel
 │   ├── calibration-and-claims.md
 │   └── worked-example.md
 └── scripts/
-    ├── init_benchmark.py
-    ├── audit_benchmark.py
-    └── audit_telemetry_contract.py
+    ├── init_benchmark.mjs
+    ├── audit_benchmark.mjs
+    └── audit_telemetry_contract.mjs
 ```
 
 `SKILL.md` remains a concise router and lifecycle. Its routing table instructs the agent to load exactly one mode reference, plus only the cross-cutting references needed for the current phase. Pairing guidance is loaded only when a task declares a paired relationship. Scripts perform deterministic scaffolding and mechanical validation only.
@@ -408,7 +408,7 @@ Default task guidance:
 
 ## 13. Automated scripts
 
-### `init_benchmark.py`
+### `init_benchmark.mjs`
 
 - accepts task ID, mode, destination, controlled primary construct ID, primary coverage area, and optional pairing fields;
 - validates normalized names and destination safety;
@@ -417,7 +417,7 @@ Default task guidance:
 - refuses silent overwrite;
 - produces a list of required next decisions and gates.
 
-### `audit_benchmark.py`
+### `audit_benchmark.mjs`
 
 - validates `suite.yml` and `benchmark.yml` structure;
 - resolves evidence paths and paired-task references;
@@ -430,7 +430,7 @@ Default task guidance:
 - emits a machine-readable report and concise human summary;
 - never treats task-controlled command text as executable configuration.
 
-### `audit_telemetry_contract.py`
+### `audit_telemetry_contract.mjs`
 
 - validates native and normalized event schemas;
 - checks required causal references and reference scalarity;
@@ -442,7 +442,7 @@ Default task guidance:
 
 Scripts enforce mechanical invariants. They must not declare enterprise realism, external validity, or safe-deployment suitability.
 
-The implementation plan must define the repository-owned check registry and isolation mechanism before executable audit support is enabled. Until then, `audit_benchmark.py` remains inspection-only.
+The implementation plan must define the repository-owned check registry and isolation mechanism before executable audit support is enabled. Until then, `audit_benchmark.mjs` remains inspection-only.
 
 ## 14. Review handoff
 
@@ -520,10 +520,10 @@ Run the skill-creator quick validator, focused script tests, repository formatti
 1. Write baseline skill-test scenarios and record behavior without the skill.
 2. Implement the concise `SKILL.md` router and mode references.
 3. Add `agents/openai.yaml` for internal discoverability.
-4. Implement `init_benchmark.py` with temporary-directory tests.
-5. Define suite, task, observation-plane, approval, calibration-run, and field-lineage schemas in the validation reference and implement inspection-only `audit_benchmark.py`.
+4. Implement `init_benchmark.mjs` with temporary-directory tests.
+5. Define suite, task, observation-plane, approval, calibration-run, and field-lineage schemas in the validation reference and implement inspection-only `audit_benchmark.mjs`.
 6. Define and test the repository-owned executable-check registry and runtime isolation profile before enabling command execution.
-7. Implement telemetry lineage validation and `audit_telemetry_contract.py`.
+7. Implement telemetry lineage validation and `audit_telemetry_contract.mjs`.
 8. Run fresh-agent skill-assisted scenarios, routing tests, and false-positive invocation tests; close instruction gaps.
 9. Validate against F2 offense, F2 defense, one incident-response scenario, one tool-conduct scenario, one paired relationship, and one smaller new benchmark design.
 10. Commit the skill and its tests only after all quality gates pass.
