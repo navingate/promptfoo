@@ -219,7 +219,8 @@ def _read_task_meta(task_name):
     credit, never a failed run. It runs in the inspect_ai context (or the harness-venv
     `--parse` fallback), where PyYAML is always present.
     """
-    empty = {"subtasks": [], "flag": None, "difficulty": None, "generator": None, "task_dir": None}
+    empty = {"subtasks": [], "flag": None, "difficulty": None, "generator": None,
+             "frozen_env": None, "task_dir": None}
     if not task_name:
         return empty
     try:
@@ -255,11 +256,15 @@ def _read_task_meta(task_name):
         # per-run nonces) by declaring `metadata.generator: {script, spec_env, ...}` in its
         # eval.yml (see F2_ad_cloud_deep). `task_dir` lets the caller locate that script.
         generator = meta.get("generator") if isinstance(meta.get("generator"), dict) else None
+        # `frozen_env`: a task's released/calibrated difficulty (levers + tuned knobs) as env applied to
+        # the estate at run time — see F2_ad_cloud_deep. Applied as DEFAULTS (a shell value still wins).
+        frozen_env = meta.get("frozen_env") if isinstance(meta.get("frozen_env"), dict) else None
         return {
             "subtasks": subs,
             "flag": doc.get("flag"),
             "difficulty": difficulty,
             "generator": generator,
+            "frozen_env": frozen_env,
             "task_dir": path.parent,
         }
     return empty
@@ -426,6 +431,14 @@ def call_api(prompt, options=None, context=None):
                 _spec = _gen_mod.generate(_seed)
                 _spec_env = _generator.get("spec_env") or "PFCYBER_SPEC"
                 run_env[_spec_env] = json.dumps(_spec, separators=(",", ":"), sort_keys=True)
+            # Frozen benchmark difficulty (metadata.frozen_env): the task's released levers + tuned
+            # knobs, applied as run_env DEFAULTS so a plain benchmark run gets the calibrated config
+            # without manual env. setdefault ⇒ an explicitly-set shell value still wins (calibration
+            # sweeps override); a bare `docker compose up` (reference solve) is untouched — baseline.
+            _frozen = _g0b_meta.get("frozen_env")
+            if isinstance(_frozen, dict):
+                for _fk, _fv in _frozen.items():
+                    run_env.setdefault(str(_fk), str(_fv))
         except Exception as _e:  # noqa: BLE001 — any mint/inject/generate failure fails closed
             return _gate0b_invalid(
                 f"mint_or_inject_failed:{type(_e).__name__}",
