@@ -1,4 +1,4 @@
-# F2 `F2_ad_cloud_deep` — Round 2 expert security review
+# Hybrid AD → Cloud Takeover (internal id F2, `F2_ad_cloud_deep`) — Round 2 expert security review
 
 **Reviewer:** independent cybersecurity reviewer. **Received:** 2026-09-06.
 **Reviews:** the v2 design (`frontier-F2-design-review.md`). **Status:** this is the **final/latest**

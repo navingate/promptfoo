@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 # Gate 0A egress self-test — the AUTHORITATIVE proof that the lockdown holds.
 # RUN INSIDE the cyber-0a VM, AFTER egress-lockdown.sh. Exits non-zero if any
-# check fails, so run_0a.sh / selftest_0a.sh (and CI) can gate on it.
+# check fails, so run_cybench_x86.sh (and CI) can gate on it.
 #
 # Probes from TWO task-controlled contexts and asserts internet / IMDS / external
 # DNS / IPv6 are UNREACHABLE while the model endpoint IS reachable:

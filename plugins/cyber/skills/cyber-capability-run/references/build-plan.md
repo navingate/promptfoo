@@ -1,5 +1,12 @@
 # Authored-task build plan (living tracker)
 
+> **Status note (plugin pruned).** The plugin was pruned to its three keepers — Cybench,
+> the **Hybrid AD → Cloud Takeover** offense chain (internal id **F2** / `pfcyber-f2-adcloud`),
+> and its defense twin. The broad authored / scenarios / atomic suite this tracker was written
+> for has been removed; the sections below are retained as the **historical build log** of that
+> work, not a live backlog. See the [README](../../README.md) and [CYBER.md](../../CYBER.md) for
+> how to run what remains.
+
 The sequenced backlog for building the enterprise cyber-capability tasks in
 `task-catalog.md`. This file is the source of truth for **what's done, what's
 next, and how each task gets built**. Update the status boxes and the progress

@@ -1,8 +1,7 @@
 #!/usr/bin/env bash
 # Cybench baseline runner — RUN THIS ON A DEDICATED x86_64 LINUX CLOUD VM.
 #
-# Unlike run_0a.sh (which drives a disposable Colima VM from macOS), this script runs
-# EVERYTHING locally on an x86_64 Linux host, because the REAL CAISI agent image and
+# This script runs EVERYTHING locally on an x86_64 Linux host, because the REAL CAISI agent image and
 # the real Cybench targets are x86_64 (Kali + i386 + optional Ghidra) and cannot run
 # on Apple Silicon. It builds the real agent + Cybench target images, applies a
 # host-layer egress lockdown (model endpoint the only allowed destination), self-tests
@@ -25,12 +24,12 @@
 #   Phase 1 — PROVISION (egress ON, no lockdown, no eval): build + push cybench images.
 #     docker login ghcr.io                 # or gcloud/aws registry auth — YOUR step
 #     UCB_REGISTRY=ghcr.io/you/  PHASE=provision \
-#       HALO_ENV=~/.cyber-eval.env bash .../deploy/run_cybench_x86.sh
+#       bash .../deploy/run_cybench_x86.sh          # creds from the repo-root .env
 #
 #   Phase 2 — EVAL (this VM, locked down): pull the prebuilt images, then run.
 #     docker login ghcr.io                 # so the pull can auth (before lockdown)
 #     UCB_REGISTRY=ghcr.io/you/  FULL=1 \
-#       HALO_ENV=~/.cyber-eval.env bash .../deploy/run_cybench_x86.sh
+#       bash .../deploy/run_cybench_x86.sh          # creds from the repo-root .env
 #
 # Provision and eval can be the SAME VM (provision first, then eval) or DIFFERENT VMs
 # (one builder, many disposable locked eval VMs — build once, reuse everywhere).
@@ -39,20 +38,26 @@
 # NOTE: the trailing slash on UCB_REGISTRY matters (CAISI concatenates it to the tag).
 #
 # Usage (on the VM, from the repo root):
-#   HALO_ENV=~/.cyber-eval.env bash plugins/cyber/skills/cyber-capability-run/deploy/run_cybench_x86.sh
+#   bash plugins/cyber/skills/cyber-capability-run/deploy/run_cybench_x86.sh   # creds from the repo-root .env
 #   FULL=1 ...              # build/pull EVERY cybench target + GaaS and run the whole suite
 #   BUILD_GAAS=1 ...        # also build/start the Ghidra service (needed only for rev tasks)
-#   MODEL=openai/DeepSeek-V4-Flash ...     # override the target model for THIS run (no YAML edit);
-#                                          # pair it with a HALO_ENV whose AZURE_AI_BASE_URL points at
-#                                          # that model's OpenAI-compatible endpoint (e.g. Azure /openai/v1)
+#   CYBER_SUT_ENDPOINT=engy CYBER_MODEL=openai/glm-5.3 ...   # PREFERRED: pick a registered endpoint
+#                                          # (engy/chutes/azure/openai) from provider.py's SUT_ENDPOINTS —
+#                                          # same interface as F2 offense/defense. base_url + key + the egress
+#                                          # lockdown all resolve from the registry; needs that endpoint's key
+#                                          # (e.g. ENGY_API_KEY) in the repo-root .env. anthropic/local are
+#                                          # rejected here (no host to pin) — use scripts/run_cybench.sh.
+#   MODEL=openai/DeepSeek-V4-Flash ...     # override the target model for THIS run (no YAML edit; CYBER_MODEL
+#                                          # is the alias). Endpoint unset → legacy AZURE_AI_BASE_URL/
+#                                          # AZURE_AI_API_KEY from the repo-root .env (or pass those inline).
 #   PATCH_ROT=1 FULL=1 ...                 # repoint EOL-Debian task Dockerfiles at archive.debian.org
 #                                          # before building, to recover apt-rot'd image tasks
 #   UCB_REGISTRY=... PHASE=provision ...   # build + push images to a registry, then exit
 #   UCB_REGISTRY=... FULL=1 ...            # pull prebuilt images, then run the full suite
 #   CONFIG=promptfooconfig.yaml            # default; the cybench suite (edit its tests: to add samples)
-#   SUITE=authored ...                     # run promptfoo's OWN enterprise task set (../tasks) instead of
+#   SUITE=authored ...                     # run the Hybrid AD -> Cloud Takeover offense chain (../tasks) instead of
 #                                          # cybench: pre-builds the authored target images, uses
-#                                          # promptfooconfig.authored.yaml (override with CONFIG=...)
+#                                          # promptfooconfig.f2.yaml (override with CONFIG=...)
 #   RUNS=3 RUN_TAG=qwen-cybench ...        # Pass@k: repeat the eval 3x into out.<tag>.run{1,2,3}.json,
 #                                          # then aggregate with scripts/aggregate_runs.cjs
 set -uo pipefail
@@ -60,26 +65,33 @@ set -uo pipefail
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 SKILL_DIR="$(cd "$SCRIPT_DIR/.." && pwd)"
 CAISI="$SKILL_DIR/scripts/vendor/caisi-cyber-evals"
-HALO_ENV="${HALO_ENV:-$HOME/.cyber-eval.env}"
-# SUITE selects WHAT to run: 'cybench' (CAISI's public suite; default) or 'authored'
-# (promptfoo's own enterprise task set under ../tasks, via benchmark: authored).
+# Credentials come from the consolidated repo-root .env (single source — no separate creds file).
+REPO_ROOT="$(cd "$SKILL_DIR/../../../.." && pwd)"
+HALO_ENV="${HALO_ENV:-$REPO_ROOT/.env}"
+# SUITE selects WHAT to run: 'cybench' (CAISI's public CTF suite; default), 'cvebench'
+# (CAISI's CVE-Bench real web-exploitation suite, via benchmark: cvebench — the agent must
+# EXPLOIT a live vulnerable app; an evaluator service confirms the impact), or 'authored'
+# (the Hybrid AD -> Cloud Takeover offense chain under ../tasks, via benchmark: authored).
 SUITE="${SUITE:-cybench}"
 # FULL=1 → build/pull EVERY cybench target + GaaS and run the whole suite (auto-generates
 # a config listing every discovered sample). Default runs the 3-task slice. (cybench only)
 FULL="${FULL:-0}"
 # Config default depends on the suite: cybench → the 3-task slice (FULL overrides with the
-# generated full config); authored → the enterprise suite.
+# generated full config); authored → the Hybrid AD → Cloud Takeover offense chain (task id F2,
+# pfcyber-f2-adcloud — the only authored task kept after the plugin was pruned to its keepers).
 if [ "$SUITE" = "authored" ]; then
-  CONFIG="${CONFIG:-promptfooconfig.authored.yaml}"
+  CONFIG="${CONFIG:-promptfooconfig.f2.yaml}"
+elif [ "$SUITE" = "cvebench" ]; then
+  CONFIG="${CONFIG:-promptfooconfig.cve-bench.yaml}"
 else
   CONFIG="${CONFIG:-promptfooconfig.yaml}"
 fi
 BUILD_GAAS="${BUILD_GAAS:-$([ "$SUITE" = cybench ] && echo "$FULL" || echo 0)}"  # Ghidra: cybench-full only
-TIMEOUT_SECS="${TIMEOUT_SECS:-$([ "$FULL" = 1 ] || [ "$SUITE" = authored ] && echo 28800 || echo 7200)}"  # 8h full/authored / 2h slice
+TIMEOUT_SECS="${TIMEOUT_SECS:-$([ "$FULL" = 1 ] || [ "$SUITE" = authored ] || [ "$SUITE" = cvebench ] && echo 28800 || echo 7200)}"  # 8h full/authored/cvebench / 2h slice
 # --- Registry-backed image caching (build-once / pull-many; see the header) ---
 UCB_REGISTRY="${UCB_REGISTRY:-}"                  # e.g. ghcr.io/you/  (empty = local build, no cache)
 PHASE="${PHASE:-eval}"                            # 'provision' = build+push then exit; 'eval' = pull(if registry)+run
-MODEL="${MODEL:-}"                                # optional Inspect model id override (e.g. openai/DeepSeek-V4-Flash); blank = the config's model
+MODEL="${MODEL:-${CYBER_MODEL:-}}"                # optional Inspect model id override (MODEL= or the uniform CYBER_MODEL=, e.g. openai/glm-5.3); blank = the config's model
 PATCH_ROT="${PATCH_ROT:-0}"                       # 1 = repoint EOL-Debian task Dockerfiles at archive.debian.org before building (recovers apt-rot images)
 # --- Pass@k: repeat the eval to average out run-to-run variance ---
 RUNS="${RUNS:-1}"                                 # >1 = run the eval N times into per-run JSONs, then aggregate
@@ -135,18 +147,64 @@ fi
 
 # --- Read the target model endpoint (never echoed) ---
 # Both phases read it: eval uses it to lock egress + run; provision only needs the creds
-# file present so setup_caisi.sh can populate the harness .env (it is NOT used to build).
-[ -f "$HALO_ENV" ] || fail "creds file not found: $HALO_ENV (define AZURE_AI_BASE_URL + AZURE_AI_API_KEY)"
-set -a; . "$HALO_ENV"; set +a
-: "${AZURE_AI_BASE_URL:?AZURE_AI_BASE_URL missing from $HALO_ENV}"
-: "${AZURE_AI_API_KEY:?AZURE_AI_API_KEY missing from $HALO_ENV}"
-MODEL_BASE_URL="$AZURE_AI_BASE_URL"
+# present so setup_caisi.sh can populate the harness .env (it is NOT used to build).
+#
+# Endpoint resolution — uniform with F2 offense/defense and the arm64 run_cybench.sh:
+#   CYBER_SUT_ENDPOINT=<name>  → resolve base_url + key from the shared SUT_ENDPOINTS registry
+#     (scripts/provider.py, the single source of truth) via `provider.py --resolve-endpoint`.
+#     Keys the registry references (ENGY_API_KEY, CHUTES_API_KEY, …) come from the repo-root .env.
+#   unset                      → legacy: AZURE_AI_BASE_URL/AZURE_AI_API_KEY (inline or repo-root .env).
+# The resolved base_url drives BOTH the model call AND the egress lockdown (its host is pinned as the
+# ONLY allowed destination below), so an endpoint with no base_url (anthropic/local) is REJECTED on
+# this locked path — use scripts/run_cybench.sh for those, or pass AZURE_AI_BASE_URL for a one-off.
+if [ -n "${CYBER_SUT_ENDPOINT:-}" ]; then
+  # Resolve via the single-source registry. Capture FIRST so the resolver's non-zero exit is caught:
+  # `eval "$(cmd)" || fail` does NOT catch cmd's failure (its status is discarded as an arg to eval).
+  _sut_env="$(python3 "$SKILL_DIR/scripts/provider.py" --resolve-endpoint "$CYBER_SUT_ENDPOINT")" \
+    || fail "unknown CYBER_SUT_ENDPOINT '$CYBER_SUT_ENDPOINT' (see scripts/provider.py SUT_ENDPOINTS)"
+  # Only eval output that matches the resolver contract — never stale/garbage output (e.g. an older
+  # provider.py without --resolve-endpoint), which would otherwise mis-resolve the egress-locked endpoint.
+  case "$_sut_env" in PFCYBER_SUT_*) : ;; *) fail "provider.py --resolve-endpoint gave unexpected output — is it present and up to date?" ;; esac
+  eval "$_sut_env"; unset _sut_env
+  [ -n "${PFCYBER_SUT_BASE_URL:-}" ] \
+    || fail "endpoint '$CYBER_SUT_ENDPOINT' has no base_url (anthropic/local) — the egress-locked x86 runner needs a host to pin; use scripts/run_cybench.sh, or set AZURE_AI_BASE_URL for a one-off"
+  MODEL_BASE_URL="$PFCYBER_SUT_BASE_URL"
+  _ke="${PFCYBER_SUT_KEY_ENV:-}"
+  # Pull the key from the repo-root .env ONLY if it is not already in the env — so an inline key
+  # wins and an empty .env placeholder can't clobber it.
+  if [ -n "$_ke" ] && [ -z "$(printenv "$_ke" || true)" ] && [ -f "$HALO_ENV" ]; then
+    set -a; . "$HALO_ENV"; set +a
+  fi
+  MODEL_API_KEY="$(printenv "$_ke" 2>/dev/null || true)"
+  [ -n "$MODEL_API_KEY" ] || fail "endpoint '$CYBER_SUT_ENDPOINT' needs \$${_ke:-<api_key_env>} in the env (inline or in $HALO_ENV)"
+  unset _ke
+  log "endpoint from SUT_ENDPOINTS registry: $CYBER_SUT_ENDPOINT"
+  # setup_caisi.sh reads the model endpoint from $HALO_ENV as AZURE_AI_* (mapping them to OPENAI_* in the
+  # harness .env) and hard-requires them. On the registry path the repo .env need not carry AZURE_AI_*, so
+  # hand setup_caisi.sh a private temp creds file with the RESOLVED endpoint and repoint HALO_ENV at it
+  # (every setup_caisi.sh call site forwards "$HALO_ENV"). Mirrors run_0a.sh's vm.env carrier.
+  _caisi_creds="$(mktemp "${TMPDIR:-/tmp}/pfcyber-caisi-creds.XXXXXX")" || fail "could not create temp creds file"
+  chmod 600 "$_caisi_creds"
+  trap 'rm -f "$_caisi_creds"' EXIT
+  { printf 'AZURE_AI_BASE_URL=%s\n' "$MODEL_BASE_URL"; printf 'AZURE_AI_API_KEY=%s\n' "$MODEL_API_KEY"; } > "$_caisi_creds"
+  HALO_ENV="$_caisi_creds"
+else
+  # Legacy: inline AZURE_AI_BASE_URL/AZURE_AI_API_KEY win; otherwise pull from the repo-root .env ($HALO_ENV).
+  if [ -z "${AZURE_AI_BASE_URL:-}" ] || [ -z "${AZURE_AI_API_KEY:-}" ]; then
+    [ -f "$HALO_ENV" ] || fail "creds not found: add AZURE_AI_BASE_URL + AZURE_AI_API_KEY to $HALO_ENV, pass them inline, or use CYBER_SUT_ENDPOINT=<name>"
+    set -a; . "$HALO_ENV"; set +a
+  fi
+  : "${AZURE_AI_BASE_URL:?AZURE_AI_BASE_URL missing (add it to $HALO_ENV or pass inline)}"
+  : "${AZURE_AI_API_KEY:?AZURE_AI_API_KEY missing (add it to $HALO_ENV or pass inline)}"
+  MODEL_BASE_URL="$AZURE_AI_BASE_URL"
+  MODEL_API_KEY="$AZURE_AI_API_KEY"
+fi
 read -r MODEL_HOST MODEL_PORT < <(python3 -c '
 import sys, urllib.parse
 u = urllib.parse.urlparse(sys.argv[1])
 print(u.hostname, u.port or (443 if u.scheme=="https" else 80))
 ' "$MODEL_BASE_URL")
-[ -n "${MODEL_HOST:-}" ] || fail "could not parse host from AZURE_AI_BASE_URL"
+[ -n "${MODEL_HOST:-}" ] || fail "could not parse host from the resolved model base URL"
 log "target endpoint: ${MODEL_HOST}:${MODEL_PORT} (key hidden)"
 
 # --- Toolchain (internet ON — before lockdown) ---
@@ -185,6 +243,7 @@ docker compose version >/dev/null 2>&1 || fail "docker compose still unavailable
 # Egress stays ON (we must reach the registry). No lockdown, no eval. Run this on any
 # egress-open box (the eval VM itself before lockdown, or a separate builder).
 if [ "$PHASE" = "provision" ]; then
+  [ "$SUITE" = "cvebench" ] && fail "PHASE=provision is not supported for cvebench yet — use PHASE=eval (builds the cve-bench target+evaluator images locally)"
   log "PROVISION: build + push cybench images to ${UCB_REGISTRY}"
   log "NOTE: ensure you have authenticated to the registry first — e.g. 'docker login ${UCB_REGISTRY%%/*}'"
   log "      (or 'gcloud auth configure-docker' / 'aws ecr get-login-password | docker login ...'); push fails with an auth error otherwise."
@@ -247,6 +306,80 @@ if [ "$SUITE" = "authored" ]; then
     fi
   done
   log "authored pre-build done — ${a_built} built, ${a_failed} failed (failed tasks will error at eval)."
+elif [ "$SUITE" = "cvebench" ]; then
+  # CVE-Bench: real vulnerable web apps + a per-task evaluator service (scoring is
+  # evaluator-poll via ucb/cvebench_agent, not flags). Web exploitation only → no
+  # Ghidra/GaaS. Provision the harness + REAL agent, then pre-build each cve-bench
+  # task's images (target + evaluator) so eval-time `docker compose up` finds them
+  # present under egress lockdown. Local, bare tags (no registry) — same as the slice.
+  log "provisioning CAISI harness + agent for the cve-bench suite ..."
+  BUILD_AGENT_IMAGE=1 BUILD_CHALLENGE_TARGETS=0 HALO_ENV="$HALO_ENV" \
+    bash "$SKILL_DIR/scripts/setup_caisi.sh" || fail "CAISI setup failed"
+  CVEBENCH_DIR="$CAISI/src/ucb/benchmarks/cve-bench"
+  [ -d "$CVEBENCH_DIR" ] || fail "cve-bench dir not found at $CVEBENCH_DIR (unexpected clone layout)"
+  # Overlay promptfoo-OWNED ported cve-bench tasks into the (gitignored, re-cloned) clone.
+  # These committed task dirs are the durable home for the CVEs beyond upstream CAISI's 8
+  # (build-your-own — see cve-bench-tasks/README.md). Copy adds/overwrites, and runs BEFORE
+  # the patch-recipe + build so overlaid tasks are patched + built like the upstream ones.
+  OVERLAY="$SKILL_DIR/cve-bench-tasks"
+  if [ -d "$OVERLAY" ]; then
+    # ADDITIVE-ONLY + LOCAL: add promptfoo-owned ported CVE dirs; NEVER overwrite an upstream
+    # task already in the clone (the 8 stay pristine). Pure local copy — no network.
+    n_over=0
+    for od in "$OVERLAY"/CVE-*; do
+      [ -d "$od" ] || continue
+      oname="$(basename "$od")"
+      if [ -e "$CVEBENCH_DIR/$oname" ]; then
+        log "  overlay: ${oname} already present (upstream) — skip (additive-only)"
+      else
+        cp -a "$od" "$CVEBENCH_DIR/" && n_over=$((n_over + 1))
+      fi
+    done
+    log "overlaid ${n_over} promptfoo-owned cve-bench task(s) into the clone."
+  fi
+  # Curated cve-bench build-recipe — ALWAYS ON (reliability layer; scoped + idempotent; 3
+  # named build-rot fixes). CVEBENCH_NO_PATCH=1 = pristine upstream (reproducibility / CI rot-detection).
+  [ "${CVEBENCH_NO_PATCH:-0}" = "1" ] || { log "cve-bench build-recipe patches (CVEBENCH_NO_PATCH=1 to skip) ..."; bash "$SKILL_DIR/scripts/patch_rot_cvebench.sh" "$CVEBENCH_DIR" || log "WARN: patch_rot_cvebench.sh — genuine patch failure"; }
+  # Generic EOL-Debian distro-string scan — OPT-IN (broad blast radius); for future porting.
+  [ "$PATCH_ROT" = "1" ] && { log "PATCH_ROT=1: generic EOL-Debian scan of cve-bench ..."; bash "$SKILL_DIR/scripts/patch_rot.sh" "$CVEBENCH_DIR" || log "WARN: patch_rot.sh reported an error"; }
+  log "pre-building cve-bench task images (target + evaluator; egress on; heavy) ..."
+  c_built=0; c_failed=0; c_premiss=0
+  for c in "$CVEBENCH_DIR"/*/compose.yml "$CVEBENCH_DIR"/*/compose.yaml; do
+    [ -f "$c" ] || continue
+    d="$(dirname "$c")"; tname="$(basename "$d")"
+    # CAISI composes carry explicit `image:` tags with the build stanza commented (so
+    # eval-time `up` uses the prebuilt image). Uncomment build into a temp compose so
+    # `docker compose build` builds AND tags each service (target + evaluator) with that
+    # exact image: name — eval-time `up` then finds it locally under lockdown and never
+    # rebuilds (a rebuild under lockdown would fail: base-image pulls hit blocked docker.io).
+    ctmp="$d/compose.pfbuild.tmp.yml"
+    sed 's/ #context:/ context:/; s/ #build:/ build:/' "$c" > "$ctmp"
+    blog="$SKILL_DIR/cvebench-build-${tname}.log"   # per-task build log — captures the WHY on failure
+    if ( cd "$d" && UCB_CONTAINER_REGISTRY= docker compose -f "$(basename "$ctmp")" build >"$blog" 2>&1 ); then
+      c_built=$((c_built + 1))
+    else
+      c_failed=$((c_failed + 1)); log "WARN: cve-bench image build failed for ${tname} — see $(basename "$blog")"; tail -4 "$blog" | sed 's/^/      /'
+    fi
+    # Cache EXTERNAL image-only deps (e.g. mysql:8.0 in CVE-2024-5084) NOW, egress-on —
+    # else eval-time `up` pulls them from docker.io under lockdown and errors. Pull the
+    # image: refs WITHOUT the ${UCB_CONTAINER_REGISTRY} prefix; the prefixed ones are the
+    # task's own just-built images + the agent (local-only, so `compose pull` chokes on
+    # them and never reaches the external dep — the bug this replaces).
+    for img in $(grep -hE '^[[:space:]]*image:' "$c" | sed -E 's/^[[:space:]]*image:[[:space:]]*//' | grep -v 'UCB_CONTAINER_REGISTRY' | tr -d '"'); do
+      docker pull "$img" >/dev/null 2>&1 && log "  cached dep image $img" || log "  WARN: could not pre-pull dep image $img"
+    done
+    # POST-CHECK (fail-loud): every image the eval-time compose needs MUST be present now,
+    # or it becomes a SILENT harness_error under lockdown on a scored run. Resolve
+    # ${UCB_CONTAINER_REGISTRY} -> empty (local bare tags) and inspect each image: ref.
+    miss=""
+    for img in $(grep -hE '^[[:space:]]*image:' "$c" | sed -E 's/^[[:space:]]*image:[[:space:]]*//; s/\$\{UCB_CONTAINER_REGISTRY[^}]*\}//' | tr -d '"'); do
+      docker image inspect "$img" >/dev/null 2>&1 || miss="$miss $img"
+    done
+    [ -n "$miss" ] && { c_premiss=$((c_premiss + 1)); log "PREFLIGHT-MISS: ${tname} missing image(s):${miss} — WILL error at eval (not a scored result); fix build/pull first."; }
+    rm -f "$ctmp"
+  done
+  log "cve-bench pre-build done — ${c_built} built, ${c_failed} failed (failed tasks will error at eval)."
+  [ "$c_premiss" -gt 0 ] && log "PREFLIGHT: ${c_premiss} task(s) have MISSING images and will error if run — see PREFLIGHT-MISS lines above."
 elif [ "$FULL" = "1" ]; then
   # FULL: let CAISI's own tool build/pull EVERYTHING — the crude per-dir `docker compose
   # build target` loop breaks on image-only tasks, non-`target` service names, and
@@ -329,7 +462,8 @@ fi
 # line in the config we're about to run, into a throwaway promptfooconfig.run.yaml — so
 # you can retarget (e.g. the local Qwen vs an Azure DeepSeek endpoint) without editing
 # the committed default. Uniform for slice and full: it operates on whatever CONFIG is.
-# The matching endpoint/key still come from HALO_ENV (AZURE_AI_BASE_URL/AZURE_AI_API_KEY).
+# The matching endpoint/key come from the resolved endpoint above (CYBER_SUT_ENDPOINT=<name> via the
+# SUT_ENDPOINTS registry, or the legacy AZURE_AI_* creds) — MODEL/CYBER_MODEL rewrites only the model NAME.
 if [ -n "$MODEL" ]; then
   RUNCFG="$SKILL_DIR/scripts/promptfooconfig.run.yaml"
   sed -E "s|^([[:space:]]*)model:[[:space:]].*|\1model: ${MODEL}|" \
@@ -348,8 +482,21 @@ docker image inspect alpine:latest >/dev/null 2>&1 || docker pull alpine:latest 
   || log "WARN: alpine pull failed — the container-context self-test may fail"
 
 # --- Pin the model host, then lock egress down to it only ---
-MODEL_IP="$(getent hosts "$MODEL_HOST" | awk '{print $1; exit}')"
-[ -n "${MODEL_IP:-}" ] || fail "could not resolve $MODEL_HOST"
+# Resolve to IPv4 ONLY: the egress lockdown is IPv4 (iptables) and drops IPv6 wholesale, but a
+# dual-stack / Cloudflare-fronted endpoint (e.g. engy → api.engy.ai) has both A and AAAA records.
+# `getent hosts` returns the IPv6 first and `getent ahostsv4` returns nothing under systemd-resolved's
+# nss-resolve on some hosts — both break the IPv4 lockdown. Prefer Python getaddrinfo(AF_INET), then
+# fall back to getent-filtered-to-IPv4 and dig, so any host with an A record yields its IPv4.
+# Scrub any stale pin for this host from a prior (possibly failed) run BEFORE resolving. A leftover
+# /etc/hosts line — e.g. an IPv6 left by a run that died at the iptables step — poisons resolution: nss
+# 'files' finds the host with no IPv4 and does NOT fall through to DNS → gaierror "No address associated
+# with hostname". Scrubbing first makes resolution query DNS fresh; the pin below re-adds the IPv4.
+sudo sed -i.bak "/[[:space:]]${MODEL_HOST}\$/d" /etc/hosts 2>/dev/null \
+  || log "WARN: could not scrub a stale ${MODEL_HOST} pin from /etc/hosts (need sudo?) — resolution may fail if one is present"
+MODEL_IP="$(python3 -c 'import socket,sys;print(socket.getaddrinfo(sys.argv[1],None,socket.AF_INET,socket.SOCK_STREAM)[0][4][0])' "$MODEL_HOST" 2>/dev/null)"
+[ -n "$MODEL_IP" ] || MODEL_IP="$(getent hosts "$MODEL_HOST" | awk '$1 ~ /^[0-9]+\./ {print $1; exit}')"
+[ -n "$MODEL_IP" ] || { command -v dig >/dev/null 2>&1 && MODEL_IP="$(dig +short A "$MODEL_HOST" | grep -m1 -E '^[0-9]+\.')"; }
+[ -n "${MODEL_IP:-}" ] || fail "could not resolve $MODEL_HOST to an IPv4 address (egress lockdown is IPv4-only; an IPv6-only endpoint is unsupported)"
 sudo bash -c "sed -i.bak '/[[:space:]]${MODEL_HOST}\$/d' /etc/hosts 2>/dev/null; printf '%s %s\n' '${MODEL_IP}' '${MODEL_HOST}' >> /etc/hosts" \
   || log "WARN: could not pin ${MODEL_HOST} in /etc/hosts"
 log "locking down egress; only ${MODEL_HOST} (${MODEL_IP}:${MODEL_PORT}) allowed ..."
@@ -364,7 +511,7 @@ bash "$SCRIPT_DIR/egress-selftest.sh" "$MODEL_IP" "$MODEL_PORT" \
 log "running ${SUITE} through promptfoo (config=${CONFIG}; runs=${RUNS}; tag=${RUN_TAG}) ..."
 cd "$SKILL_DIR/scripts" || fail "cannot cd into scripts"
 export PROMPTFOO_PYTHON="$SKILL_DIR/scripts/vendor/caisi-cyber-evals/.venv/bin/python"
-export OPENAI_BASE_URL="$MODEL_BASE_URL" OPENAI_API_KEY="$AZURE_AI_API_KEY"
+export OPENAI_BASE_URL="$MODEL_BASE_URL" OPENAI_API_KEY="$MODEL_API_KEY"
 # Make the eval-time compose resolve the SAME registry-prefixed tags `ucb pull` fetched
 # (provider.py copies this process env into the Inspect subprocess). Empty for the local
 # path — bare tags — which is exactly what a local `ucb build`/slice/authored produced.
@@ -372,6 +519,19 @@ export UCB_CONTAINER_REGISTRY="$REG"
 export PROMPTFOO_DISABLE_TELEMETRY=1 PROMPTFOO_DISABLE_UPDATE=1
 # Pass@k: repeat the eval RUNS times. RUNS=1 writes the canonical out.<suite>.json; RUNS>1
 # also writes per-run out.<tag>.run<i>.json (aggregate with scripts/aggregate_runs.cjs).
+# CVE-Bench targets are heavy multi-container apps (some 3-service) that boot slowly —
+# WordPress wp-cli install / Dolibarr schema import — and their evaluator on :9091 only
+# answers once boot finishes. inspect's `docker compose up --wait` derives its wait-timeout
+# from the compose healthchecks; at promptfoo's default concurrency several slow targets
+# boot at once and contention pushes them past that timeout, aborting the sample with
+# "No services started". Cap concurrency for cvebench (override with CYBER_MAXCONC, any
+# suite); cybench/authored keep promptfoo's default (no flag) unless CYBER_MAXCONC is set.
+MAXCONC_FLAG=""
+if [ -n "$CYBER_MAXCONC" ]; then
+  MAXCONC_FLAG="--max-concurrency $CYBER_MAXCONC"
+elif [ "$SUITE" = "cvebench" ]; then
+  MAXCONC_FLAG="--max-concurrency 2"
+fi
 rc=0
 for i in $(seq 1 "$RUNS"); do
   OUT="$CANON"
@@ -379,7 +539,7 @@ for i in $(seq 1 "$RUNS"); do
     OUT="$SKILL_DIR/out.${RUN_TAG}.run${i}.json"
     log "── Pass@k run ${i}/${RUNS} → $(basename "$OUT") ──"
   fi
-  timeout "$TIMEOUT_SECS" promptfoo eval -c "$CONFIG" --no-cache \
+  timeout "$TIMEOUT_SECS" promptfoo eval -c "$CONFIG" --no-cache $MAXCONC_FLAG \
     --description "cybench-baseline (${SUITE}; ${RUN_TAG}; run ${i}/${RUNS}; x86 gate0a-grade)" -o "$OUT"
   r=$?
   [ "$r" -eq 124 ] && log "WARN: run ${i} hit the ${TIMEOUT_SECS}s wall-clock guard"

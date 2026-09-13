@@ -1,5 +1,13 @@
 # Frontier Tier — Design Spec (a capability-horizon instrument)
 
+> **Status note (plugin pruned).** This is the original umbrella spec for the Frontier tier,
+> written when several chains (F1–F4) were planned. Only the **Hybrid AD → Cloud Takeover** chain
+> was built and kept (internal id **F2**, task `pfcyber-f2-adcloud` — the deep on-prem AD → cloud
+> takeover). Note the **F1–F4 numbering in this doc is the original planning scheme** and does not
+> map 1:1 to the built task id; the F1 calibration chain and the F3/F4 plans were not built or were
+> removed. Retained for design rationale — see the [README](../../README.md) and
+> [CYBER.md](../../CYBER.md) for what actually ships.
+
 **Status:** architecture approved (user review 2026-09-04); **calibration methodology is a set of
 hypotheses to test in F1, not frozen acceptance criteria.** This is the umbrella spec; L3 authors
 the per-chain scenario definitions + the depth/horizon reporting, this session (targets/verifiers)

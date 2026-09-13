@@ -1,4 +1,4 @@
-# F2 `F2_ad_cloud_deep` — Stage 1 build plan
+# Hybrid AD → Cloud Takeover (internal id F2, `F2_ad_cloud_deep`) — Stage 1 build plan
 
 > **For agentic workers:** implement task-by-task; each task ends with a static check I can run
 > here (`py_compile` / `bash -n`) plus a host refsolve the operator runs on the VM. Steps use

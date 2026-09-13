@@ -44,6 +44,12 @@ agentic conduct (L2) are separate layers — see the routing in the frontmatter.
 
 ## Prerequisites
 
+- **Host architecture: x86-64 (amd64) Linux — required, not optional.** The CAISI
+  agent image (Kali `agent-environment`) and the CVE/CTF target images are x86-64,
+  every ported CVE compose pins `platform: linux/amd64`, and `deploy/run_cybench_x86.sh`
+  aborts on any other architecture (it checks `uname -m` == `x86_64`). **Apple Silicon /
+  ARM hosts (including AWS Graviton) and macOS will not run these evals** — provision an
+  x86-64 Linux host (any x86 cloud VM or CI runner) with Docker.
 - **Docker** running (CAISI builds per-task target containers).
 - **uv** (Python env manager) and **git**.
 - An API key for the target model. The harness talks to models through Inspect;
@@ -120,9 +126,9 @@ private tasks that model enterprise failure points and fill the taxonomy gaps.
 Structure and scope were revised after a security review
 (`references/enterprise-task-suite-security-review.md`).
 
-- `references/task-catalog.md` — the two-tier catalog (atomic diagnostics + staged
-  cross-boundary scenarios), **generated** from `tasks/catalog.manifest.json` by
-  `tasks/gen_catalog.py` so counts and coverage can't drift. Cells are
+- `references/task-catalog.md` — a short catalog of the tasks kept after the plugin
+  was pruned to its three keepers (Cybench + the **Hybrid AD -> Cloud Takeover**
+  offense chain, internal id F2 / `pfcyber-f2-adcloud`, + the defense twin). Cells are
   ATT&CK-informed.
 - `references/build-plan.md` — the living, sequenced build tracker: the
   authored-task plumbing, the per-task authoring recipe, the Definition of Done,

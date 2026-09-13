@@ -18,8 +18,10 @@ Prereq: the harness is installed (run setup_caisi.sh, or use the cyber
 devcontainer/image) and Docker is running.
 
 Config `benchmark` selects the task suite: "cybench" (default) runs CAISI's
-public Cybench tasks (the pipe-proof / contaminated demo); "authored" runs
-promptfoo's own enterprise task suite from ../tasks/loader.py.
+public Cybench CTF tasks (the pipe-proof / contaminated demo); "cvebench" runs
+CAISI's CVE-Bench real-exploitation tasks (ucb/cvebench — the agent must exploit
+a live vulnerable web app; scoring is evaluator-service based, not flag-string);
+"authored" runs promptfoo's own enterprise task suite from ../tasks/loader.py.
 """
 
 import json
@@ -93,6 +95,11 @@ TASKS_DIR = HERE.parent / "tasks"
 #     openai/glm-5.2). Needs ENGY_API_KEY in the outer process env. NOTE: Engy's docs do NOT
 #     document OpenAI tool/function-calling, which the agentic cyber tasks REQUIRE (the agent drives
 #     a bash tool) — verify tool-calls actually fire before trusting a full F2 run.
+#   "openai" / "anthropic" point at the REAL provider APIs (api.openai.com / api.anthropic.com) via
+#     inspect_ai's native providers: set CYBER_MODEL=openai/<name> or anthropic/<name> and put
+#     OPENAI_API_KEY / ANTHROPIC_API_KEY in the .env. (Any key already in the env also flows through
+#     since run_env inherits it, but the explicit preset validates it is present and, for Anthropic,
+#     routes it to ANTHROPIC_API_KEY — not OPENAI_API_KEY — via key_target.)
 # An explicit `base_url:`/`api_key_env:` in a config always overrides the registry, so a genuine
 # one-off endpoint still works without touching this table.
 SUT_ENDPOINTS = {
@@ -108,6 +115,20 @@ SUT_ENDPOINTS = {
     "engy": {
         "base_url": "https://api.engy.ai/v1",
         "api_key_env": "ENGY_API_KEY",
+    },
+    "abliteration": {
+        "base_url": "https://api.abliteration.ai/v1",
+        "api_key_env": "ABLIT_KEY",
+    },
+    "openai": {
+        "base_url": "https://api.openai.com/v1",
+        "api_key_env": "OPENAI_API_KEY",
+    },
+    "anthropic": {
+        # Anthropic is NOT OpenAI-compatible — no base_url, and the key must land in
+        # ANTHROPIC_API_KEY (not OPENAI_API_KEY); key_target handles that. Use CYBER_MODEL=anthropic/<name>.
+        "api_key_env": "ANTHROPIC_API_KEY",
+        "key_target": "ANTHROPIC_API_KEY",
     },
 }
 GATE0B_BROKER = HERE.parent / "deploy" / "gate0b" / "nonce_broker.py"
@@ -198,7 +219,8 @@ def _read_task_meta(task_name):
     credit, never a failed run. It runs in the inspect_ai context (or the harness-venv
     `--parse` fallback), where PyYAML is always present.
     """
-    empty = {"subtasks": [], "flag": None, "difficulty": None, "generator": None, "task_dir": None}
+    empty = {"subtasks": [], "flag": None, "difficulty": None, "generator": None,
+             "frozen_env": None, "task_dir": None}
     if not task_name:
         return empty
     try:
@@ -234,11 +256,15 @@ def _read_task_meta(task_name):
         # per-run nonces) by declaring `metadata.generator: {script, spec_env, ...}` in its
         # eval.yml (see F2_ad_cloud_deep). `task_dir` lets the caller locate that script.
         generator = meta.get("generator") if isinstance(meta.get("generator"), dict) else None
+        # `frozen_env`: a task's released/calibrated difficulty (levers + tuned knobs) as env applied to
+        # the estate at run time — see F2_ad_cloud_deep. Applied as DEFAULTS (a shell value still wins).
+        frozen_env = meta.get("frozen_env") if isinstance(meta.get("frozen_env"), dict) else None
         return {
             "subtasks": subs,
             "flag": doc.get("flag"),
             "difficulty": difficulty,
             "generator": generator,
+            "frozen_env": frozen_env,
             "task_dir": path.parent,
         }
     return empty
@@ -329,9 +355,17 @@ def call_api(prompt, options=None, context=None):
         eval_target = f"{AUTHORED_LOADER}@pfcyber"
     elif benchmark == "cybench":
         eval_target = "ucb/cybench"
+    elif benchmark == "cvebench":
+        # CAISI's CVE-Bench real-exploitation suite. The registered Inspect task is
+        # `ucb/cvebench` (NO hyphen) even though the benchmark dir is
+        # benchmarks/cve-bench/. Scoring is evaluator-based: fetch_score_from_agent()
+        # polls each task's evaluator service (store["score"]) — NOT flag includes() —
+        # so the task config MUST set solver: ucb/cvebench_agent. `-T samples=<CVE-id>`
+        # selects one CVE; the eval.yml `name:` equals the dir (e.g. CVE-2024-4323).
+        eval_target = "ucb/cvebench"
     else:
         return {
-            "error": f"unknown benchmark '{benchmark}' — use 'cybench' or 'authored'"
+            "error": f"unknown benchmark '{benchmark}' — use 'cybench', 'cvebench', or 'authored'"
         }
 
     if not caisi_dir.is_dir():
@@ -353,10 +387,13 @@ def call_api(prompt, options=None, context=None):
         run_env["OPENAI_BASE_URL"] = str(base_url)
     api_key = _cfg(options, "api_key")
     api_key_env = _cfg(options, "api_key_env") or preset.get("api_key_env")
+    # Which env var the key lands in: OPENAI_API_KEY for OpenAI-compatible endpoints
+    # (azure/chutes/engy/openai), ANTHROPIC_API_KEY for the native Anthropic provider.
+    key_target = str(_cfg(options, "key_target") or preset.get("key_target") or "OPENAI_API_KEY")
     if api_key:
-        run_env["OPENAI_API_KEY"] = str(api_key)
+        run_env[key_target] = str(api_key)
     elif api_key_env and os.environ.get(str(api_key_env)):
-        run_env["OPENAI_API_KEY"] = os.environ[str(api_key_env)]
+        run_env[key_target] = os.environ[str(api_key_env)]
 
     # Gate-0B (opt-in): mint a fresh per-run, per-stage nonce OUTSIDE any file/image and
     # inject it into the TARGET's env (PFCYBER_NONCE_*). The migrated targets read these
@@ -389,10 +426,19 @@ def call_api(prompt, options=None, context=None):
             if _generator and _generator.get("script") and _g0b_meta.get("task_dir"):
                 _gen_path = _g0b_meta["task_dir"] / _generator["script"]
                 _gen_mod = _load_generator(_gen_path)
-                _seed = secrets.randbits(63)
+                _forced = os.environ.get("PFCYBER_F2_SEED")
+                _seed = int(_forced) if _forced is not None else secrets.randbits(63)
                 _spec = _gen_mod.generate(_seed)
                 _spec_env = _generator.get("spec_env") or "PFCYBER_SPEC"
                 run_env[_spec_env] = json.dumps(_spec, separators=(",", ":"), sort_keys=True)
+            # Frozen benchmark difficulty (metadata.frozen_env): the task's released levers + tuned
+            # knobs, applied as run_env DEFAULTS so a plain benchmark run gets the calibrated config
+            # without manual env. setdefault ⇒ an explicitly-set shell value still wins (calibration
+            # sweeps override); a bare `docker compose up` (reference solve) is untouched — baseline.
+            _frozen = _g0b_meta.get("frozen_env")
+            if isinstance(_frozen, dict):
+                for _fk, _fv in _frozen.items():
+                    run_env.setdefault(str(_fk), str(_fv))
         except Exception as _e:  # noqa: BLE001 — any mint/inject/generate failure fails closed
             return _gate0b_invalid(
                 f"mint_or_inject_failed:{type(_e).__name__}",
@@ -698,9 +744,25 @@ if __name__ == "__main__":
                 )
             )
         )
+    elif len(sys.argv) == 3 and sys.argv[1] == "--resolve-endpoint":
+        # Single-source endpoint resolver for the bash runners (run_cybench*.sh): print the
+        # SUT_ENDPOINTS entry as shell-eval'able PFCYBER_SUT_* assignments so bash never
+        # duplicates the registry. NEVER prints a secret — only KEY_ENV (the var NAME).
+        import shlex
+
+        _name = sys.argv[2].strip().lower()
+        _preset = SUT_ENDPOINTS.get(_name)
+        if _preset is None:
+            sys.stderr.write(
+                f"unknown endpoint '{_name}' — valid: {', '.join(sorted(SUT_ENDPOINTS))}\n"
+            )
+            sys.exit(2)
+        print(f"PFCYBER_SUT_BASE_URL={shlex.quote(_preset.get('base_url') or '')}")
+        print(f"PFCYBER_SUT_KEY_ENV={shlex.quote(_preset.get('api_key_env') or '')}")
+        print(f"PFCYBER_SUT_KEY_TARGET={shlex.quote(_preset.get('key_target') or 'OPENAI_API_KEY')}")
     else:
         # Manual smoke test: python provider.py <task> [benchmark]
-        # e.g. python provider.py pfcyber-smoke authored
+        # e.g. python provider.py pfcyber-f2-adcloud authored
         t = sys.argv[1] if len(sys.argv) > 1 else "dynastic"
         bench = sys.argv[2] if len(sys.argv) > 2 else "cybench"
         print(

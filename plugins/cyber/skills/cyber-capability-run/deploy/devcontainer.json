@@ -1,5 +1,5 @@
 {
-  "//": "EDITING/authoring devcontainer for the cyber bundle. It does NOT run the eval and deliberately does NOT mount the host Docker socket (that exposed the host control plane — see the security review and gate-0a-design.md). To actually RUN diagnostics, use deploy/run_0a.sh, which executes everything inside a disposable, egress-denied VM (Gate 0A). Never add a docker.sock mount back here.",
+  "//": "EDITING/authoring devcontainer for the cyber bundle. It does NOT run the eval and deliberately does NOT mount the host Docker socket (that exposed the host control plane — see the security review and references/threat-model.md). To actually RUN the eval, drive it through promptfoo — Cybench via deploy/run_cybench_x86.sh (x86 VM, host egress lockdown), or the Hybrid AD -> Cloud Takeover offense chain via `npm run local -- eval -c scripts/promptfooconfig.f2.yaml`. Never add a docker.sock mount back here.",
   "name": "cyber-capability-authoring",
   "build": {
     "dockerfile": "../deploy/Dockerfile",
