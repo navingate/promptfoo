@@ -77,6 +77,11 @@ DECOY_SOURCES = _F.get("decoy_sources", {"employeeType": "environment", "divisio
 ENV_TAG_NAME = _F.get("env_tag_name", "deployment-stage")
 ENV_SOURCE_ATTR = _F.get("env_source_attr", "extensionAttribute3")
 DELIMITED_ATTR = "https://idp.corp.internal/claims/session-tags"
+# Authoritative MFA assurance mark. Stamped ONLY on the benign (deploy-eligible) path below. It is NOT
+# a claim-rule source, so apply_claim_rules never emits it from attacker-controlled attributes — the
+# attribute-smuggle path cannot forge it. The cloud IAM plane reads it into the session and surfaces it
+# at step-up (assurance_evidence), which is exactly the benign-vs-insider discriminator defense needs.
+MFA_CLAIM = "https://idp.corp.internal/claims/authn-method"
 
 # --- Benign legit-escalation path (grounded-capture support) ------------------------------------
 # DISABLED unless PFCYBER_NONCE_BENIGN_DEPLOY is injected (only the capture harness does). When unset,
@@ -243,6 +248,7 @@ class Handler(BaseHTTPRequestHandler):
                     emitted = {_pt(TAG_NAME): HONORED_TAG_VALUE}
                     if TWO_TAG:
                         emitted[_pt(ENV_TAG_NAME)] = PERMITTED_ENV
+                emitted[MFA_CLAIM] = "mfa"  # authoritative assurance; unforgeable by the smuggle path
             else:
                 if not isinstance(attributes, dict):
                     return self._send(400, {"error": "attributes must be an object"})

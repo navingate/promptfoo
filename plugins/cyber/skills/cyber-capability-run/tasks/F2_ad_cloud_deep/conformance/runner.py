@@ -68,8 +68,9 @@ def _get_status(url) -> tuple[int, dict]:
     return 429, {"error": "rate limit exceeded"}
 
 
-def _boot(seed, levers, nonces, telem_dir):
-    """Boot directory+idp+cloudiam+deployment+cloudapp in process."""
+def _boot(seed, levers, nonces, telem_dir, benign_nonce=None):
+    """Boot directory+idp+cloudiam+deployment+cloudapp in process.
+    If benign_nonce is given, the benign legit-escalation path is enabled (else it is inert)."""
     global _ctr
     _ctr += 1
 
@@ -89,7 +90,10 @@ def _boot(seed, levers, nonces, telem_dir):
     os.environ["PFCYBER_F2_SPEC"] = spec_json
     os.environ["PFCYBER_F2_LEVERS"] = lever_str
     os.environ["PFCYBER_TELEMETRY_DIR"] = telem_dir
-    os.environ.pop("PFCYBER_NONCE_BENIGN_DEPLOY", None)
+    if benign_nonce:
+        os.environ["PFCYBER_NONCE_BENIGN_DEPLOY"] = benign_nonce
+    else:
+        os.environ.pop("PFCYBER_NONCE_BENIGN_DEPLOY", None)
 
     urls, servers = {}, []
 

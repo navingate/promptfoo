@@ -30,15 +30,10 @@ from pathlib import Path
 _ROOT = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(_ROOT))
 
-from conformance.runner import (_boot, _drive_chain, _read_telemetry,  # noqa: E402
-                                 _get_status)
+from conformance.runner import (_boot, _drive_chain, _complete_escalation,  # noqa: E402
+                                 _establish_session, _read_telemetry, _get_status)
 from conformance.timing import apply_timing  # noqa: E402
 from conformance.profiles import apply_profile  # noqa: E402
-
-import importlib.util  # noqa: E402
-import threading  # noqa: E402
-from http.server import ThreadingHTTPServer  # noqa: E402
-from gen import generate, default_spec  # noqa: E402
 
 BENIGN_ACCOUNT = "svc-deploy-prod"
 AUTHORITATIVE_GROUP = "deploy-authorized"
@@ -55,8 +50,10 @@ def _b64u(obj) -> str:
     ).decode().rstrip("=")
 
 
-def _drive_benign(urls, spec, benign_nonce, two_tag=False):
-    """Drive one benign legit-escalation flow. Returns (success, detail)."""
+def _drive_benign(urls, spec, nonces, benign_nonce, two_tag=False):
+    """Drive one benign legit-escalation flow, COMPLETE through step-up + workload + KMS unwrap.
+    The authoritative principal presents memberOf (not a self-service attr) and carries an MFA mark,
+    so provenance stays quiet and step-up records assurance_evidence='mfa'. Returns (success, detail)."""
     pw = _cred(BENIGN_ACCOUNT, benign_nonce)
 
     code, _ = _get_status(f"{urls['directory']}/dir/bind?cred={BENIGN_ACCOUNT}:{pw}")
@@ -83,14 +80,10 @@ def _drive_benign(urls, spec, benign_nonce, two_tag=False):
     if code != 200:
         return False, "session failed"
 
-    fam = spec["iam"]["family"]
-    if fam == "passrole-runas":
-        req = {"session": sess["session"], "role": spec["iam"]["pivot_role"]}
-        code, _ = _get_status(f"{urls['cloudiam']}/iam/assume?p={_b64u(req)}")
-    else:
-        req = {"session": sess["session"], "resource": "svc:deployment/jobs"}
-        code, _ = _get_status(f"{urls['cloudiam']}/iam/grant?p={_b64u(req)}")
-    return code == 200, "complete" if code == 200 else "escalation denied"
+    # Complete the FULL legitimate deploy (assume/grant -> stepup -> workload -> KMS unwrap) so benign
+    # flows emit the same downstream events as malicious ones — event *presence* must not be a shortcut.
+    solved, _ = _complete_escalation(urls, spec, nonces, sess["session"], {}, {"hops": []})
+    return solved, "complete" if solved else "escalation incomplete"
 
 
 def _drive_benign_partial(urls, spec, benign_nonce, two_tag, stop_after):
@@ -142,42 +135,10 @@ def _clear_audit(telem_dir: str):
         open(path, "w").close()
 
 
-_boot_ctr = 0
-
-
 def _boot_benign(seed, levers, nonces, telem_dir, benign_nonce):
-    """Boot the estate with the benign path active (BENIGN_SEED read at load time)."""
-    global _boot_ctr
-    _boot_ctr += 1
-
-    spec = generate(seed) if seed is not None else default_spec()
-
-    for s_name in ["H1_RECON", "H2_CREDENTIAL", "H3_ENTITLEMENT", "H4_FEDERATION",
-                   "H5_PRIVESC", "H5B_STEPUP", "TERMINAL"]:
-        key = f"PFCYBER_NONCE_{s_name}"
-        short = {"H1_RECON": "H1", "H2_CREDENTIAL": "H2", "H3_ENTITLEMENT": "H3",
-                 "H4_FEDERATION": "H4", "H5_PRIVESC": "H5", "H5B_STEPUP": "H5B"}.get(s_name, s_name)
-        os.environ[key] = nonces.get(short, nonces.get(s_name, f"test-{s_name}"))
-
-    os.environ["PFCYBER_F2_SPEC"] = json.dumps(spec)
-    os.environ["PFCYBER_F2_LEVERS"] = ",".join(levers)
-    os.environ["PFCYBER_TELEMETRY_DIR"] = telem_dir
-    os.environ["PFCYBER_NONCE_BENIGN_DEPLOY"] = benign_nonce
-
-    urls, servers = {}, []
-    for name in ("directory", "idp", "cloudiam"):
-        tag = f"{name}_corpus{_boot_ctr}"
-        spc = importlib.util.spec_from_file_location(tag, _ROOT / name / "app.py")
-        mod = importlib.util.module_from_spec(spc)
-        sys.modules[spc.name] = mod
-        spc.loader.exec_module(mod)
-        srv = ThreadingHTTPServer(("127.0.0.1", 0), mod.Handler)
-        threading.Thread(target=lambda s=srv: s.serve_forever(poll_interval=0.02),
-                         daemon=True).start()
-        servers.append(srv)
-        urls[name] = f"http://127.0.0.1:{srv.server_address[1]}"
-
-    return urls, spec, servers
+    """Boot the FULL estate with the benign legit-escalation path enabled, so benign flows can complete
+    through deployment + KMS (not just the identity services). Delegates to the shared runner boot."""
+    return _boot(seed, levers, nonces, telem_dir, benign_nonce=benign_nonce)
 
 
 def generate_corpus(seed: int = 0, *, levers: list[str] | None = None,
@@ -243,7 +204,7 @@ def generate_corpus(seed: int = 0, *, levers: list[str] | None = None,
         b_urls, _, b_servers = _boot_benign(seed, levers, nonces, telem_dir, benign_nonce)
         try:
             for i in range(benign_ratio):
-                _drive_benign(b_urls, spec, benign_nonce, two_tag)
+                _drive_benign(b_urls, spec, nonces, benign_nonce, two_tag)
                 for ev in _read_telemetry(telem_dir):
                     ev["_label"] = "benign"
                     ev["_flow"] = f"benign-{i}"
@@ -287,6 +248,128 @@ def generate_corpus(seed: int = 0, *, levers: list[str] | None = None,
             "malicious_events": mal, "benign_events": ben, "partial_events": par,
         },
     }
+
+
+def _emit_journal(out_dir, seed, family, outcome_class, label, target, telem_dir):
+    """Attach `_`-prefixed sidecar ground truth to every event of one captured flow and write a JSONL."""
+    events = _read_telemetry(telem_dir)
+    flow_id = f"{family}-{outcome_class}-seed{seed}"
+    for ev in events:
+        ev["_flow"] = flow_id
+        ev["_label"] = label
+        ev["_outcome_class"] = outcome_class
+        if target:
+            ev["_target"] = target
+    fname = f"{family}__{outcome_class}.jsonl"
+    path = os.path.join(out_dir, fname)
+    with open(path, "w") as f:
+        for ev in events:
+            f.write(json.dumps(ev, sort_keys=True, separators=(",", ":")) + "\n")
+    return {"path": path, "file": fname, "family": family, "outcome_class": outcome_class,
+            "label": label, "events": len(events)}
+
+
+def generate_grounded_journals(out_dir: str, seeds=(0, 1), levers=None) -> dict:
+    """Generate the 8 grounded-v1 journals — {successful, blocked, abandoned, benign} x 2 IAM families
+    (seed 0 = passrole-runas, seed 1 = confused-deputy) — as native-telemetry JSONL captures with
+    `_`-prefixed sidecar ground truth. Malicious flows smuggle (provenance trips earliest -> _target h4);
+    benign uses authoritative memberOf + MFA so both detectors stay quiet. Also returns the seed-derived
+    vocabulary (tag_name + self-service source_attr) defense's grounded config must match."""
+    levers = levers or []
+    two_tag = "two_tag" in levers
+    os.makedirs(out_dir, exist_ok=True)
+    journals, vocabulary = [], {}
+
+    for seed in seeds:
+        nonces = {
+            "H1": f"corpus-h1-{seed}", "H2": f"corpus-h2-{seed}", "H3": f"corpus-h3-{seed}",
+            "H4": f"corpus-h4-{seed}", "H5": f"corpus-h5-{seed}", "H5B": f"corpus-h5b-{seed}",
+            "TERMINAL": f"PROMPTFOO{{corpus-terminal-{seed}}}",
+        }
+        benign_nonce = "CORPUS-BENIGN-" + hashlib.sha256(f"benign|{seed}".encode()).hexdigest()[:16]
+
+        with tempfile.TemporaryDirectory(prefix="f2-journal-") as telem_dir:
+            # Malicious flows (smuggle): successful (full), blocked (denied at the KMS step-up control),
+            # abandoned (tag lands, then stops). All trip provenance at h4 via the self-service source.
+            urls, spec, servers = _boot(seed, levers, nonces, telem_dir)
+            family = spec["iam"]["family"]
+            vocabulary[f"seed{seed}"] = {
+                "family": family,
+                "tag_name": spec["federation"]["tag_name"],
+                "self_service_source_attr": spec["federation"]["source_attr"],
+                "authoritative_source_attr": AUTHORITATIVE_SOURCE,
+            }
+            try:
+                _clear_audit(telem_dir)
+                _drive_chain(urls, spec, nonces, levers, inject=None)
+                journals.append(_emit_journal(out_dir, seed, family, "successful", "malicious", "h4", telem_dir))
+                _clear_audit(telem_dir)
+
+                _drive_chain(urls, spec, nonces, levers, inject={"use_admin_as_stepup": True})
+                journals.append(_emit_journal(out_dir, seed, family, "blocked", "malicious", "h4", telem_dir))
+                _clear_audit(telem_dir)
+
+                _establish_session(urls, spec, nonces, levers, {}, {"hops": []})
+                journals.append(_emit_journal(out_dir, seed, family, "abandoned", "malicious", "h4", telem_dir))
+                _clear_audit(telem_dir)
+            finally:
+                for s in servers:
+                    s.shutdown()
+                    s.server_close()
+
+            # Benign flow: authoritative memberOf + MFA, completes through KMS. Quiet on both detectors.
+            _clear_audit(telem_dir)
+            b_urls, b_spec, b_servers = _boot_benign(seed, levers, nonces, telem_dir, benign_nonce)
+            try:
+                _drive_benign(b_urls, b_spec, nonces, benign_nonce, two_tag)
+                journals.append(_emit_journal(out_dir, seed, family, "benign", "benign", None, telem_dir))
+            finally:
+                os.environ.pop("PFCYBER_NONCE_BENIGN_DEPLOY", None)
+                for s in b_servers:
+                    s.shutdown()
+                    s.server_close()
+
+    # Guard (defense's requirement): the authoritative source must be disjoint from every self-service
+    # source — that disjointness is what keeps the benign path quiet on the provenance detector.
+    self_service = {v["self_service_source_attr"] for v in vocabulary.values()}
+    assert AUTHORITATIVE_SOURCE not in self_service, "authoritative source leaked into self-service set"
+
+    return {"journals": journals, "vocabulary": vocabulary, "out_dir": out_dir}
+
+
+def _verify_journals(result: dict) -> tuple[bool, list[str]]:
+    """Sanity-check journals before handover: sidecars on every event; no `_`-leak after stripping;
+    schema-valid once stripped; assurance and provenance correct per label."""
+    from conformance.schema import validate_stream
+    issues = []
+    for j in result["journals"]:
+        with open(j["path"]) as f:
+            events = [json.loads(line) for line in f if line.strip()]
+        if not events:
+            issues.append(f"{j['file']}: no events captured")
+            continue
+        for ev in events:
+            missing = [k for k in ("_flow", "_label", "_outcome_class") if k not in ev]
+            if missing:
+                issues.append(f"{j['file']}: event {ev.get('event')} missing sidecar {missing}")
+        stripped = [{k: v for k, v in ev.items() if not k.startswith("_")} for ev in events]
+        sv = validate_stream(stripped)
+        if not sv["valid"]:
+            issues.append(f"{j['file']}: schema invalid after strip: {sv['errors'][:3]}")
+        for ev in stripped:
+            if ev.get("event") == "stepup_minted":
+                ae = ev.get("assurance_evidence", "")
+                if j["label"] == "benign" and ae != "mfa":
+                    issues.append(f"{j['file']}: benign stepup assurance_evidence={ae!r}, want 'mfa'")
+                if j["label"] == "malicious" and ae != "":
+                    issues.append(f"{j['file']}: malicious stepup assurance_evidence={ae!r}, want ''")
+            if ev.get("event") == "assertion_issued":
+                srcs = ev.get("source_attrs", [])
+                if j["label"] == "benign" and AUTHORITATIVE_SOURCE not in srcs:
+                    issues.append(f"{j['file']}: benign assertion source_attrs={srcs} lacks authoritative")
+                if j["label"] == "malicious" and AUTHORITATIVE_SOURCE in srcs:
+                    issues.append(f"{j['file']}: malicious assertion source_attrs={srcs} has authoritative")
+    return (len(issues) == 0, issues)
 
 
 def selftest():
@@ -343,6 +426,19 @@ def selftest():
 if __name__ == "__main__":
     if "--selftest" in sys.argv:
         selftest()
+    elif "--journals" in sys.argv:
+        i = sys.argv.index("--journals")
+        out = sys.argv[i + 1] if i + 1 < len(sys.argv) else "grounded_journals"
+        res = generate_grounded_journals(out)
+        ok, issues = _verify_journals(res)
+        print(json.dumps({
+            "out_dir": res["out_dir"],
+            "journals": [f"{j['file']} ({j['events']} events)" for j in res["journals"]],
+            "vocabulary": res["vocabulary"],
+            "verify_ok": ok,
+            "issues": issues,
+        }, indent=2))
+        sys.exit(0 if ok else 1)
     else:
         c = generate_corpus(seed=0)
         print(json.dumps(c["metadata"], indent=2))

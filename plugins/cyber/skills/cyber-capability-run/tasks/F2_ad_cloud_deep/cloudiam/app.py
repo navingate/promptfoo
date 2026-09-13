@@ -97,6 +97,7 @@ OWNER_TEAM = _F.get("owner_team", "platform")            # the trust predicate: 
 # Real AWS SAML PrincipalTag attribute name, and a delimited-claim IdP's single tags attribute.
 PRINCIPALTAG_ATTR = f"https://aws.amazon.com/SAML/Attributes/PrincipalTag:{TAG_NAME}"
 DELIMITED_ATTR = "https://idp.corp.internal/claims/session-tags"
+MFA_CLAIM = "https://idp.corp.internal/claims/authn-method"  # authoritative MFA mark (benign path only)
 FAMILY = _I.get("family", "passrole-runas")               # escalation mechanism (varies)
 PIVOT_ROLE = _I.get("pivot_role", "deploy-runner")        # family A pivot role name (varies)
 PASSED_ROLE = _I.get("passed_role", "infra-admin")        # the admin role (varies)
@@ -206,8 +207,10 @@ def verify_assertion(assertion: str):
         return None
 
 
-def mint_session(principal: str, tags: dict) -> str:
+def mint_session(principal: str, tags: dict, assurance: str = "") -> str:
     data: dict = {"principal": principal, "tags": tags}
+    if assurance:
+        data["assurance"] = assurance  # authoritative MFA mark from the signed assertion (benign only)
     if CRED_EXPIRE:
         data["mint_ctr"] = _ACTION_CTR  # logical clock at mint; expiry is measured in actions, not seconds
     payload = _b64u(json.dumps(data, sort_keys=True, separators=(",", ":")).encode())
@@ -485,8 +488,11 @@ class Handler(BaseHTTPRequestHandler):
                     if len(tag_claims) > 1:
                         return self._send(403, {"error": "invalid federation attribute schema"})
                     tags = {TAG_NAME: attrs[PRINCIPALTAG_ATTR]} if PRINCIPALTAG_ATTR in attrs else {}
+            # Authoritative MFA mark rides in the signed assertion on the benign path only; the smuggle
+            # path can never produce it (not a claim-rule source). Carried into the session for step-up.
+            _assurance = "mfa" if attrs.get(MFA_CLAIM) == "mfa" else ""
             body = {
-                "session": mint_session(GRANTED_ROLE, tags),
+                "session": mint_session(GRANTED_ROLE, tags, _assurance),
                 "principal": GRANTED_ROLE,
                 "tags": tags,
             }
@@ -540,7 +546,7 @@ class Handler(BaseHTTPRequestHandler):
                                        "replace infra-admin for reading the blob.")
             _telem("stepup_minted", from_session_ref=_sref(req.get("session", "")),
                    auth_context_ref=_AUTH_CTX_REF, auth_strength="session-tag-gate",
-                   assurance_evidence="", required_assurance="mfa-verified",
+                   assurance_evidence=session.get("assurance", ""), required_assurance="mfa-verified",
                    acceptable_assurance_levels=["mfa-verified", "hardware-key"],
                    requested_scope="tenant-vault:kms-unwrap",
                    issued_scope="tenant-vault:kms-unwrap")
