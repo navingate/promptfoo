@@ -152,7 +152,7 @@ Run on the **same three models** as the offense ladder, the defense side produce
 | GLM-5.2           | **2 / 10**           |
 | GLM-5.3           | **5 / 10**           |
 
-Same ordering as offense (the weakest catches nothing, the strongest catches half) on **one model axis** — the symmetric-benchmark story on a single ruler. Note it is **not** a head-to-head: offense and defense score different tasks (drive the attack vs. detect it), so read them as two ladders, not "attack beat defense". These numbers were measured by the defense harness on the value-symmetric corpus; the defense plugin's calibration record is the live authority.
+Same ordering as offense (the weakest catches nothing, the strongest catches half) on **one model axis** — the symmetric-benchmark story on a single ruler. Note it is **not** a head-to-head: offense and defense score different tasks (drive the attack vs. detect it), so read them as two ladders, not "attack beat defense". These numbers were measured by the defense harness on the value-symmetric corpus; the `halobench-defense` skill's calibration record is the live authority.
 
 ---
 
