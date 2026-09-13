@@ -50,10 +50,12 @@ def _b64u(obj) -> str:
     ).decode().rstrip("=")
 
 
-def _drive_benign(urls, spec, nonces, benign_nonce, two_tag=False):
-    """Drive one benign legit-escalation flow, COMPLETE through step-up + workload + KMS unwrap.
-    The authoritative principal presents memberOf (not a self-service attr) and carries an MFA mark,
-    so provenance stays quiet and step-up records assurance_evidence='mfa'. Returns (success, detail)."""
+def _drive_benign(urls, spec, nonces, benign_nonce, two_tag=False, present_mfa=True):
+    """Drive one authoritative legit-escalation flow, COMPLETE through step-up + workload + KMS unwrap.
+    The principal presents memberOf (not a self-service attr), so provenance stays quiet. When
+    present_mfa is True (a genuine benign user) it completes MFA and step-up records
+    assurance_evidence='mfa'; when False (an authoritative INSIDER bypassing MFA) it records '' and the
+    misconfigured broker still issues — the honest assurance-only attack. Returns (success, detail)."""
     pw = _cred(BENIGN_ACCOUNT, benign_nonce)
 
     code, _ = _get_status(f"{urls['directory']}/dir/bind?cred={BENIGN_ACCOUNT}:{pw}")
@@ -67,6 +69,8 @@ def _drive_benign(urls, spec, nonces, benign_nonce, two_tag=False):
 
     role = spec["federation"]["granted_role"]
     attrs: dict = {AUTHORITATIVE_SOURCE: AUTHORITATIVE_GROUP}
+    if present_mfa:
+        attrs["authn_method"] = "mfa"  # genuine MFA; omitted for the insider (assurance bypass)
     if two_tag:
         attrs[spec["federation"].get("env_source_attr", "extensionAttribute3")] = \
             spec["federation"].get("permitted_env", "prod")
@@ -250,23 +254,26 @@ def generate_corpus(seed: int = 0, *, levers: list[str] | None = None,
     }
 
 
-def _emit_journal(out_dir, seed, family, outcome_class, label, target, telem_dir):
-    """Attach `_`-prefixed sidecar ground truth to every event of one captured flow and write a JSONL."""
+def _emit_journal(out_dir, seed, family, scenario, label, target, telem_dir, outcome_class=None):
+    """Attach `_`-prefixed sidecar ground truth to every event of one captured flow and write a JSONL.
+    `scenario` names the file/flow; `outcome_class` (defaults to scenario) is the sidecar class — they
+    differ only for the insider (file 'insider', outcome_class 'successful')."""
+    outcome_class = outcome_class or scenario
     events = _read_telemetry(telem_dir)
-    flow_id = f"{family}-{outcome_class}-seed{seed}"
+    flow_id = f"{family}-{scenario}-seed{seed}"
     for ev in events:
         ev["_flow"] = flow_id
         ev["_label"] = label
         ev["_outcome_class"] = outcome_class
         if target:
             ev["_target"] = target
-    fname = f"{family}__{outcome_class}.jsonl"
+    fname = f"{family}__{scenario}.jsonl"
     path = os.path.join(out_dir, fname)
     with open(path, "w") as f:
         for ev in events:
             f.write(json.dumps(ev, sort_keys=True, separators=(",", ":")) + "\n")
-    return {"path": path, "file": fname, "family": family, "outcome_class": outcome_class,
-            "label": label, "events": len(events)}
+    return {"path": path, "file": fname, "family": family, "scenario": scenario,
+            "outcome_class": outcome_class, "label": label, "target": target, "events": len(events)}
 
 
 def generate_grounded_journals(out_dir: str, seeds=(0, 1), levers=None) -> dict:
@@ -323,6 +330,14 @@ def generate_grounded_journals(out_dir: str, seeds=(0, 1), levers=None) -> dict:
             try:
                 _drive_benign(b_urls, b_spec, nonces, benign_nonce, two_tag)
                 journals.append(_emit_journal(out_dir, seed, family, "benign", "benign", None, telem_dir))
+                # Insider (assurance-only): authoritative memberOf so provenance (h4) stays silent, but MFA
+                # suppressed so step-up records empty assurance and the misconfigured broker still issues —
+                # h5b fires ALONE. One is enough to ground h5b as an independent boundary (defense's ask).
+                if seed == 0:
+                    _clear_audit(telem_dir)
+                    _drive_benign(b_urls, b_spec, nonces, benign_nonce, two_tag, present_mfa=False)
+                    journals.append(_emit_journal(out_dir, seed, family, "insider", "malicious", "h5b",
+                                                   telem_dir, outcome_class="successful"))
             finally:
                 os.environ.pop("PFCYBER_NONCE_BENIGN_DEPLOY", None)
                 for s in b_servers:
@@ -356,6 +371,7 @@ def _verify_journals(result: dict) -> tuple[bool, list[str]]:
         sv = validate_stream(stripped)
         if not sv["valid"]:
             issues.append(f"{j['file']}: schema invalid after strip: {sv['errors'][:3]}")
+        etypes = [ev.get("event") for ev in stripped]
         for ev in stripped:
             if ev.get("event") == "stepup_minted":
                 ae = ev.get("assurance_evidence", "")
@@ -367,8 +383,15 @@ def _verify_journals(result: dict) -> tuple[bool, list[str]]:
                 srcs = ev.get("source_attrs", [])
                 if j["label"] == "benign" and AUTHORITATIVE_SOURCE not in srcs:
                     issues.append(f"{j['file']}: benign assertion source_attrs={srcs} lacks authoritative")
-                if j["label"] == "malicious" and AUTHORITATIVE_SOURCE in srcs:
-                    issues.append(f"{j['file']}: malicious assertion source_attrs={srcs} has authoritative")
+                # provenance (h4) flows are smuggles -> self-service source; the h5b insider is
+                # authoritative (memberOf) so provenance stays silent.
+                if j["target"] == "h4" and AUTHORITATIVE_SOURCE in srcs:
+                    issues.append(f"{j['file']}: h4 flow source_attrs={srcs} unexpectedly authoritative")
+                if j["target"] == "h5b" and AUTHORITATIVE_SOURCE not in srcs:
+                    issues.append(f"{j['file']}: h5b insider source_attrs={srcs} not authoritative")
+        # The h5b insider must fire assurance ALONE: an empty-assurance step-up AND a kms_unwrap present.
+        if j["target"] == "h5b" and ("kms_unwrap" not in etypes or "stepup_minted" not in etypes):
+            issues.append(f"{j['file']}: h5b insider missing stepup_minted/kms_unwrap ({etypes})")
     return (len(issues) == 0, issues)
 
 

@@ -248,7 +248,13 @@ class Handler(BaseHTTPRequestHandler):
                     emitted = {_pt(TAG_NAME): HONORED_TAG_VALUE}
                     if TWO_TAG:
                         emitted[_pt(ENV_TAG_NAME)] = PERMITTED_ENV
-                emitted[MFA_CLAIM] = "mfa"  # authoritative assurance; unforgeable by the smuggle path
+                # MFA assurance is stamped ONLY when the authoritative principal actually completed MFA
+                # (authn_method claim). It is orthogonal to entitlement: a deploy-eligible INSIDER who
+                # skips MFA gets no mark, yet the misconfigured step-up broker still issues for them
+                # (assurance_evidence="") — the honest assurance-bypass case. Still unforgeable by the
+                # smuggle path, which never reaches this authoritative branch.
+                if attributes.get("authn_method") == "mfa":
+                    emitted[MFA_CLAIM] = "mfa"
             else:
                 if not isinstance(attributes, dict):
                     return self._send(400, {"error": "attributes must be an object"})
