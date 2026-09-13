@@ -76,14 +76,15 @@ An external validity/security review (verdict: do not lock/calibrate) found rele
 - **GROUNDING (P0, cross-review) — BUILT + PASSING (2026-09-13).** `grounded-v1` (`mh_grounded.py`) is a
   narrow NATIVE-only subset + a DUMB offense→defense adapter (renames + drops + capture_seq only; NO
   synthesized security events, NO derived assurance, `obs_id`/`ts` preserved — per the review adjustments).
-  8 estate-generated native captures ({passrole-runas,confused-deputy} × {successful,blocked,abandoned,
-  benign}) are vendored immutably in `grounded_captures/` (PROVENANCE.md; de-oracle scan 0 hits/68 events).
-  `test_grounded_captures_conformance`: the shipped reference pack detects every malicious outcome class
-  (recall 1.0) at **0 benign false alarms**, both families, `successful` firing BOTH boundaries — using only
-  native fields. **"grounded in F2" is now a tested claim** (for these captures). Excluded (reserved option
-  b): intersection/two_tag events (`directory_lookup`, `authorization_request`, `*_policy_decision`,
-  `workload_run`). **Remaining gap:** no pure-h5b insider capture yet (h5b only co-fires with h4 on
-  `successful`); a 9th insider journal is requested to ground assurance independently.
+  **9** estate-generated native captures ({passrole-runas,confused-deputy} × {successful,blocked,abandoned,
+  benign} + a passrole `insider`) are vendored immutably in `grounded_captures/` (PROVENANCE.md; de-oracle
+  scan 0 hits/78 events). `test_grounded_captures_conformance`: the shipped reference pack detects every
+  malicious outcome class (recall 1.0) at **0 benign false alarms**, both families, `successful` firing BOTH
+  boundaries, and the **`insider` firing h5b ALONE** (authoritative source, MFA suppressed → assurance
+  grounds as an INDEPENDENT boundary, not co-fire-only) — using only native fields. **"grounded in F2" is a
+  tested claim, both boundaries independently.** Excluded (reserved option b): intersection/two_tag events
+  (`directory_lookup`, `authorization_request`, `*_policy_decision`, `workload_run`). Remaining defense item
+  is the model recalibration on stream disclosure (below) — the grounding itself is complete for these captures.
 - **OPEN — recalibration + option (b)**: honest n=3 recalibration on the value-symmetric (a) construct =
   GLM-5.3 **1/3** clean-solve (NOT >1/3), so option (b) — a REAL offense-side enforcement defect — is NOT
   triggered. An n=10 pass across all three models (to firm the rate + CIs) is the pending confirmation.
