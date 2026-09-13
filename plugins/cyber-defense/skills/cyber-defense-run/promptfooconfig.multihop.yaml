@@ -43,6 +43,11 @@ providers:
         # unset 8522 -> medium 1068) so packs fit under the cap. Set uniformly across models for comparability.
       feedback_detail: aggregate # TEST discloses score + counts + false-alert load only; "incidents" is richer
       hunt_mode: discovery # unlabeled threat-hunt + mission (harder, realistic); "supervised" = labelled practice set
+      disclosure_view:
+        stream # COMMITTED benchmark (cross-review): continuous multi-principal stream, no
+        # incident headers -- the hunter must correlate by reference fields. Recalibrated 2026-09-13 (n=10):
+        # GLM-5.3 5/10 [.19,.81] vs DeepSeek 0/9 [0,.34], Fisher p=0.022 -- separates and does NOT over-harden
+        # (grouped was 6/10). Set CYBER_DISCLOSURE_VIEW=grouped for the easier dev/ablation view.
       http_timeout: 300 # per-turn socket timeout (seconds); CYBER_HTTP_TIMEOUT overrides
 
 prompts:

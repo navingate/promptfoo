@@ -18,11 +18,13 @@ precision-gated metric. **Current honest state (after review-D + option-(a) + th
 the eval detects TWO grounded boundaries — provenance (h4) + assurance (h5b). The intersection/scope
 boundaries were REMOVED as ungroundable. The corpus is now **value-symmetric** (every discriminative
 malicious value also occurs benignly in the SAME estate, on both DEV and held-out) so no memorized
-literal or single-value "booster" transfers as precise. **Calibration (n=10, GROUPED view, synthetic
-corpus, 2026-09-12):** GLM-5.3 **6/10** clean-solve (CP95 [.26,.88]); DeepSeek-V4-Flash **0/10** [0,.31];
-Fisher p=0.005; GLM-5.2 engy-blocked. This is **PROVISIONAL** per the cross-review: grouped is the easier
-disclosure, and the number should be rerun on GROUNDED captures + STREAM disclosure (pending). Detection is
-separately proven on 8 real estate captures (grounded-v1, 0-FP conformance) — see the grounding entry below.
+literal or single-value "booster" transfers as precise. **Calibration — COMMITTED on STREAM disclosure
+(n=10, value-symmetric corpus, 2026-09-13):** GLM-5.3 **5/10** clean-solve (CP95 [.19,.81], mean band .57);
+DeepSeek-V4-Flash **0/9** [0,.34] (1 harness error); **Fisher p=0.022**; GLM-5.2 engy-blocked. Stream (the
+headerless interleaved multi-principal view — the model must correlate by reference fields) is modestly
+harder than grouped (GLM-5.3 was 6/10 grouped) but does NOT over-harden — the ladder still separates, so
+stream is the committed benchmark and grouped is the dev/ablation setting. Detection is separately proven on
+9 real estate captures (grounded-v1, 0-FP conformance) — see the grounding entry below.
 
 ## Review-D remediation status (2026-09-12)
 
@@ -57,8 +59,8 @@ An external validity/security review (verdict: do not lock/calibrate) found rele
   - **R2 — continuous multi-principal stream (#2):** `disclosed_dev_text(view="stream")` — a headerless,
     interleaved, discovery-only disclosure (seeded per-chain arrival stagger) so the hunter must trace refs
     to correlate chains, not read pre-grouped blocks. Presentation only — never reaches the scorer.
-    **Config flag `disclosure_view`, DEFAULT `grouped`** so the committed 1/3 stays honest; `stream` is the
-    realism target to flip after ONE paid run confirms it does not over-harden (the reverted-kms_ctx lesson).
+    **Config flag `disclosure_view`, now DEFAULT `stream`** (flipped 2026-09-13 after the n=10 stream run
+    confirmed it separates without over-hardening — 5/10 vs 0/9, Fisher p=0.022); `grouped` is the ablation.
   - **R3 — seeded timing (#3):** `test_timing_perturbation_score_invariant` proves the scorer is EXACTLY
     (byte-)invariant to inter-component skew / long-pause / duplicate / shuffled arrival — for reference,
     degraded, AND all three real saved (a) packs. Detection is existential + component-local, so timing
