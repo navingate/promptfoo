@@ -110,6 +110,18 @@ fi
 log() { printf '[cybench] %s\n' "$*"; }
 fail() { printf '[cybench][BLOCKER] %s\n' "$*" >&2; exit 1; }
 
+# Reopen host egress on exit so a finished OR crashed run never strands the VM behind the
+# OUTPUT DROP policy (which breaks DNS/git — see the recovery note). The eval is done by the
+# time this fires, so reopening is safe. Mirrors the pre-build reset below. Registered only
+# AFTER the lockdown is applied. KEEP_EGRESS_LOCKED=1 keeps the old leave-locked-then-destroy flow.
+restore_egress() {
+  [ "${KEEP_EGRESS_LOCKED:-0}" = "1" ] && { printf '[cybench] KEEP_EGRESS_LOCKED=1 — egress left locked (restore: sudo iptables -P OUTPUT ACCEPT; sudo iptables -F OUTPUT)\n'; return 0; }
+  printf '[cybench] restoring egress (KEEP_EGRESS_LOCKED=1 to keep it locked) ...\n'
+  sudo iptables  -P OUTPUT ACCEPT 2>/dev/null || true; sudo iptables  -F OUTPUT   2>/dev/null || true
+  sudo iptables  -F DOCKER-USER   2>/dev/null || true
+  sudo ip6tables -P OUTPUT ACCEPT 2>/dev/null || true; sudo ip6tables -F OUTPUT   2>/dev/null || true
+}
+
 # Restrict a `ucb build`/`ucb pull` to the CYBENCH benchmark only — the benchmarks dir
 # also holds cve-bench (large) and test, which we don't want. Prints a temp dir holding
 # just a symlink to cybench; caller must `rm -rf` it.
@@ -501,6 +513,10 @@ sudo bash -c "sed -i.bak '/[[:space:]]${MODEL_HOST}\$/d' /etc/hosts 2>/dev/null;
   || log "WARN: could not pin ${MODEL_HOST} in /etc/hosts"
 log "locking down egress; only ${MODEL_HOST} (${MODEL_IP}:${MODEL_PORT}) allowed ..."
 sudo bash "$SCRIPT_DIR/egress-lockdown.sh" "$MODEL_IP" "$MODEL_PORT" || fail "egress lockdown failed"
+# Egress is now locked. Restore it on ANY exit from here (crash or normal) so a dead run
+# never leaves the box with no DNS/git. Supersedes the registry-path creds-only trap (keeps
+# its cleanup). KEEP_EGRESS_LOCKED=1 opts back into leaving it locked.
+trap 'restore_egress; rm -f "${_caisi_creds:-}" 2>/dev/null' EXIT
 
 # --- HARD GATE: prove the boundary before running anything ---
 log "egress self-test (hard gate) ..."
@@ -553,6 +569,6 @@ if [ "$RUNS" -gt 1 ]; then
   log "    node $SKILL_DIR/scripts/aggregate_runs.cjs $SKILL_DIR/out.${RUN_TAG}.run*.json"
 fi
 log "results → ${CANON} (latest run; rc=$rc)"
-log "egress is still locked down. To restore: sudo iptables -P OUTPUT ACCEPT; sudo iptables -F OUTPUT"
+log "egress restores automatically on exit (KEEP_EGRESS_LOCKED=1 to keep it locked; manual: sudo iptables -P OUTPUT ACCEPT; sudo iptables -F OUTPUT)."
 log "This VM is yours to manage — snapshot results, then destroy the VM when done."
 exit "$rc"
