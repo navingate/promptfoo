@@ -11,6 +11,7 @@ import sys
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 
 import mh_metrics as M
+import mh_robustness as RB
 import mh_corpus as K
 import mh_schema as S
 import mh_reference_rules as RR
@@ -86,6 +87,27 @@ def test_ladder_separation():
     print("  test_ladder_separation OK")
 
 
+def test_arrival_order_diagnostic():
+    # P1 diagnostic: existential detection is arrival-order-invariant in RECALL (whether caught), but the
+    # credited earliest LANDMARK can shift LATER under out-of-order arrival. The headline stays deterministic;
+    # this MEASURES the latency cost the headline ignores.
+    d = RB.arrival_order_diagnostic(RR.REFERENCE_PACK, HO, CFG, seeds=range(6), jitter_window=2)
+    assert d["recall_stable"] is True and d["perturbed_recall_min"] == 1.0, d
+    assert 0.0 <= d["landmark_shift_later_frac"] <= 1.0, d
+    print(f"  test_arrival_order_diagnostic OK (recall stable; landmark-later={d['landmark_shift_later_frac']})")
+
+
+def test_telemetry_loss_diagnostic():
+    # P1 diagnostic: recall degrades GRACEFULLY (monotonic non-increasing) as telemetry is dropped -- a
+    # dropped key event makes an existential rule unable to fire. Mirrors offense complete/standard/degraded.
+    d = RB.telemetry_loss_diagnostic(RR.REFERENCE_PACK, HO, CFG, seeds=range(6))
+    vals = [d["recall_by_drop_rate"][k] for k in sorted(d["recall_by_drop_rate"])]
+    assert vals[0] == 1.0, d                                   # no loss -> full recall
+    assert vals == sorted(vals, reverse=True), d               # monotonic non-increasing (graceful)
+    assert vals[-1] < 1.0, d                                   # loss actually degrades recall (diagnostic bites)
+    print(f"  test_telemetry_loss_diagnostic OK ({d['recall_by_drop_rate']})")
+
+
 if __name__ == "__main__":
     test_clopper_pearson_known_values()
     test_metrics_for_reference()
@@ -93,4 +115,6 @@ if __name__ == "__main__":
     test_metrics_false_alarm_rate()
     test_seed_stability_determinism()
     test_ladder_separation()
+    test_arrival_order_diagnostic()
+    test_telemetry_loss_diagnostic()
     print("selftest_mh_metrics: ALL OK")
