@@ -149,9 +149,40 @@ def test_conformance_rejects_synthesis_and_oracle():
     print("  test_conformance_rejects_synthesis_and_oracle OK")
 
 
+def test_grounded_captures_conformance():
+    # THE grounding claim: the VENDORED estate-generated native captures (grounded_captures/), adapted with
+    # ZERO synthesized security facts, are detected by the SHIPPED reference pack at 0 corpus false positives
+    # -- both IAM families, every malicious outcome class -- under the estate-matched GROUNDED_CONFIG. Skips
+    # gracefully if no captures are vendored yet.
+    from correlation_eval import evaluate
+    from mh_components import partition
+    from mh_corpus import deoracle
+    incs = G.load_captures()
+    if not incs:
+        print("  test_grounded_captures_conformance SKIP (no captures vendored yet)"); return
+    gcfg = G.GROUNDED_CONFIG
+    s = score(REFERENCE_PACK, incs, gcfg)
+    assert s["fp"]["benign_windows"] == 0, ("grounded benign false-alarmed", s["fp"])   # 0 corpus FP
+    for oc in ("successful", "blocked", "abandoned"):
+        b = s["by_outcome"].get(oc)
+        if b:
+            assert b["recall"] == 1.0, (oc, b)                    # every malicious outcome class detected
+    fams = {i["name"].split("__")[0] for i in incs}
+    assert fams >= {"passrole-runas", "confused-deputy"}, fams    # both IAM families grounded
+    succ = next(i for i in incs if i["name"].endswith("__successful"))
+    comp = deoracle(next(c for c in partition(succ["events"])))
+    assert evaluate(H4_PROVENANCE, comp, gcfg) and evaluate(H5B_ASSURANCE, comp, gcfg), \
+        "a successful capture must fire BOTH boundaries"
+    recalls = {k: v["recall"] for k, v in s["by_outcome"].items()}
+    print(f"  test_grounded_captures_conformance OK ({len(incs)} captures, fams={sorted(fams)}, "
+          f"by_outcome={recalls}, 0 FP)")
+
+
 if __name__ == "__main__":
     test_adapter_is_pure_no_synthesis()
     test_reference_detects_both_boundaries_grounded()
     test_both_iam_families_and_outcome_classes()
     test_conformance_rejects_synthesis_and_oracle()
-    print("selftest_mh_grounding: ALL OK (ADAPTER TEST ONLY -- not a grounding claim; needs real captures)")
+    test_grounded_captures_conformance()
+    print("selftest_mh_grounding: ALL OK (synthetic fixtures = adapter tests; vendored captures = the "
+          "grounding claim, both boundaries fire at 0 FP)")

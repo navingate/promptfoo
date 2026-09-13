@@ -16,9 +16,23 @@ from telemetry, always stripped by de-oracle before a rule sees the events. The 
 stays available for experiments; grounded-v1 is the SUBSET that backs the 'grounded in F2' claim.
 """
 
+import glob
+import json
+import os
 import re
 
 GROUNDED_VERSION = "grounded-v1"
+
+# The defender's known vocabulary for the vendored captures (grounded_captures/), matching the estate's
+# seed-derived emission (see grounded_captures/PROVENANCE.md). The reference provenance rule resolves these
+# $config keys; the authoritative source (memberOf) is deliberately NOT in the self-service set, which is
+# what keeps the benign captures quiet. Distinct from the SYNTHETIC mh_schema.INVENTORIES.
+GROUNDED_CONFIG = {
+    "entitlement_tag_names": ["release-window", "estate-tier"],     # seed0 / seed1 entitlement tags
+    "self_service_attribute_names": ["employeeType", "userType"],   # seed0 / seed1 caller-editable attrs
+}
+
+CAPTURES_DIR = os.path.join(os.path.dirname(os.path.abspath(__file__)), "grounded_captures")
 
 # native offense event -> the native fields it must carry + renames to the frozen defense key names.
 # `native` lists the offense field names REQUIRED for grounding; `rename` maps native key -> defense key
@@ -42,8 +56,13 @@ GROUNDED_EVENTS = {
 EXCLUDED_NATIVE = frozenset([
     "directory_lookup", "authorization_request", "identity_policy_decision",
     "permissions_boundary_decision", "resource_policy_decision",  # intersection / two_tag -> option b
+    "workload_run",   # carries effective_target/action (scope/intersection signal) -> option b; NOT on the
+                      # h4/h5b path (assurance links stepup<->kms via auth_context_ref, no workload_ref)
 ])
-_SIDECAR = ("_cid", "_label", "_outcome_class", "_target", "_stage")   # evaluator-only; stripped by de-oracle
+# evaluator-only sidecar carried verbatim then stripped by de-oracle. `_flow` is the estate's flow id
+# (offense supplies it); the adapter derives defense's `_cid` from `_flow` + `_label` (label bookkeeping,
+# never a detection fact).
+_SIDECAR = ("_cid", "_flow", "_label", "_outcome_class", "_target", "_stage")
 _STAGE_OF = {"assertion_issued": "h4", "session_created": "h4", "session_tag_applied": "h4",
              "role_assumed": "h5", "grant_issued": "h5", "stepup_minted": "h5b", "kms_unwrap": "h5b"}
 _OUTCOMES = frozenset(["successful", "blocked", "abandoned", "benign"])
@@ -117,6 +136,12 @@ def adapt(native_events, *, drop_excluded=True):
         for k in _SIDECAR:
             if k in ne:
                 ev[k] = ne[k]
+        # derive defense _cid from the estate flow id + label (evaluator-only bookkeeping, not a detection
+        # fact): malicious/partial flows -> 'm<flow>', benign -> 't<flow>'. Keeps all events of one flow in
+        # one component and drives the malicious/benign truth.
+        if "_cid" not in ev and ev.get("_flow") is not None:
+            slug = re.sub(r"[^a-z0-9]", "", str(ev["_flow"]).lower())
+            ev["_cid"] = ("m" if ev.get("_label") in ("malicious", "partial_attack") else "t") + slug
         ev.setdefault("_stage", _STAGE_OF.get(et, "h4"))
         out.append(ev)
     return out, dropped
@@ -152,3 +177,15 @@ def build_incident(name, native_events):
     for ev in events:
         validate_grounded(ev)
     return {"name": name, "events": events, "truth": _grounded_truth(events)}
+
+
+def load_captures(captures_dir=CAPTURES_DIR):
+    """Load the vendored estate-generated native captures (grounded_captures/*.jsonl) into defense incidents
+    via the adapter. Each file is one flow -> one incident. Returns [] if none vendored yet (so the CI
+    conformance test can skip gracefully before captures land). One event per JSONL line."""
+    incs = []
+    for path in sorted(glob.glob(os.path.join(captures_dir, "*.jsonl"))):
+        name = os.path.basename(path)[:-6]
+        native = [json.loads(l) for l in open(path, encoding="utf-8") if l.strip()]
+        incs.append(build_incident(name, native))
+    return incs
