@@ -216,6 +216,8 @@ git clone https://github.com/navingate/promptfoo.git ~/promptfoo
 cd ~/promptfoo && nvm install && nvm use && npm ci     # npm ci makes `npm run local` runnable
 ```
 
+> The repo pins **Node 24.20.0** in `.nvmrc`, and `nvm install` installs exactly that. `npm ci` is `engine-strict`, so if you skip nvm you need **Node ≥ 24.20.0** on `PATH` or it fails with a cryptic engine error.
+
 Everything ships in the one `cyber` plugin on `main` — offense in `skills/halobench-offense/` (with Cybench/CVE-Bench under it), defense in `skills/halobench-defense/`. No separate plugin, no branch-switching.
 
 **4 · Credentials — one file, the repo-root `.env`** (auto-loaded; gitignored — **never commit it**): `cp .env.sample .env` and fill in the providers you'll use. `.env.sample` lists every key with an example (`ENGY_API_KEY`, `CHUTES_API_KEY`, `HALO_AZURE_AI_API_KEY`, `OPENAI_API_KEY`, `ANTHROPIC_API_KEY`). **Also set `AZURE_AI_BASE_URL` + `AZURE_AI_API_KEY`** — point them at any one OpenAI-compatible endpoint you have; `setup_caisi.sh` refuses to run without them, even when your actual target is chosen through the registry. A complete **Chutes-only** `.env` (the Azure vars just point at Chutes too):

@@ -527,8 +527,8 @@ export PROMPTFOO_DISABLE_TELEMETRY=1 PROMPTFOO_DISABLE_UPDATE=1
 # "No services started". Cap concurrency for cvebench (override with CYBER_MAXCONC, any
 # suite); cybench/authored keep promptfoo's default (no flag) unless CYBER_MAXCONC is set.
 MAXCONC_FLAG=""
-if [ -n "$CYBER_MAXCONC" ]; then
-  MAXCONC_FLAG="--max-concurrency $CYBER_MAXCONC"
+if [ -n "${CYBER_MAXCONC:-}" ]; then
+  MAXCONC_FLAG="--max-concurrency ${CYBER_MAXCONC}"
 elif [ "$SUITE" = "cvebench" ]; then
   MAXCONC_FLAG="--max-concurrency 2"
 fi
