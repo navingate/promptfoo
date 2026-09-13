@@ -192,7 +192,9 @@ The **defense twin** is a parallel plugin, `plugins/cyber-defense/`, in the same
 
 Provision once; reuse for every run.
 
-**1 · The box.** Ubuntu 22.04+ **x86_64**, ~4 vCPU / 16 GB RAM / 40 GB disk, with outbound internet **during setup** (an eval locks egress down afterwards). Apple Silicon cannot run the agent/target images.
+**1 · The box.** Ubuntu 22.04+ **x86_64**, ~4 vCPU / 16 GB RAM / 40 GB disk. Apple Silicon cannot run the agent/target images. Use a **dedicated, disposable** VM: the runs pull real security tooling and target containers, so keep them off any machine that holds personal files, credentials, or unrelated work. It needs **outbound internet during setup** (to install packages and build/pull images); during an actual eval, outbound access is locked to the chosen model endpoint only — intentional, so an agent on a real exploit task can't reach anything else.
+
+> **Why a VM at all:** the offense and Cybench runs drive the CAISI agent and target Docker images, which are x86-only. The **defense** evaluation is text-based and runs on any machine with Node — no VM needed.
 
 **2 · Toolchain.** Install Docker, `uv`, `git`, and Node (via `nvm`):
 
@@ -201,7 +203,11 @@ sudo apt-get update && sudo apt-get install -y git                         # if 
 curl -fsSL https://get.docker.com | sh && sudo usermod -aG docker "$USER"  # then log out/in for the group
 curl -fsSL https://astral.sh/uv/install.sh | sh                            # uv — the CAISI harness's Python env
 curl -fsSL https://raw.githubusercontent.com/nvm-sh/nvm/v0.40.1/install.sh | bash && . ~/.nvm/nvm.sh
+export PATH="$HOME/.local/bin:$PATH"   # uv installs here — add it so `uv` is found (esp. inside tmux)
+uv --version                           # confirm uv is on PATH
 ```
+
+> `uv` lands in `~/.local/bin`, which a fresh shell (a new `tmux` window included) may not have on `PATH`. If setup later says `uv not found`, re-run the `export PATH=…` line in that shell.
 
 **3 · Clone + install.** Clone to `~/promptfoo`, then install:
 
@@ -212,15 +218,36 @@ cd ~/promptfoo && nvm install && nvm use && npm ci     # npm ci makes `npm run l
 
 Both plugins ship on `main` — the offense chain in `plugins/cyber/`, the defense twin in `plugins/cyber-defense/`. No branch-switching.
 
-**4 · Credentials — one file, the repo-root `.env`** (auto-loaded; gitignored — **never commit it**): `cp .env.sample .env` and fill in the providers you'll use. `.env.sample` lists every key with an example (`ENGY_API_KEY`, `CHUTES_API_KEY`, `HALO_AZURE_AI_API_KEY`, `OPENAI_API_KEY`, `ANTHROPIC_API_KEY`). **Also set `AZURE_AI_BASE_URL` + `AZURE_AI_API_KEY`** — point them at any one OpenAI-compatible endpoint you have (e.g. your engy URL + key); `setup_caisi.sh` refuses to run without them, even when your actual target is chosen through the registry.
+**4 · Credentials — one file, the repo-root `.env`** (auto-loaded; gitignored — **never commit it**): `cp .env.sample .env` and fill in the providers you'll use. `.env.sample` lists every key with an example (`ENGY_API_KEY`, `CHUTES_API_KEY`, `HALO_AZURE_AI_API_KEY`, `OPENAI_API_KEY`, `ANTHROPIC_API_KEY`). **Also set `AZURE_AI_BASE_URL` + `AZURE_AI_API_KEY`** — point them at any one OpenAI-compatible endpoint you have; `setup_caisi.sh` refuses to run without them, even when your actual target is chosen through the registry. A complete **Chutes-only** `.env` (the Azure vars just point at Chutes too):
 
-**5 · CAISI harness (needed for offense + Cybench, not defense).** Once, from the repo root:
+```env
+CHUTES_API_KEY=<your Chutes API key>
+
+# Required by setup_caisi.sh — these can point at Chutes as well:
+AZURE_AI_BASE_URL=https://llm.chutes.ai/v1
+AZURE_AI_API_KEY=<your Chutes API key>
+```
+
+`.env` is read as a **shell file**, so validate it before setup — `bash -n .env` — and keep each comment on its own line (or put a space before `#`). An inline comment jammed onto a pasted key line makes the file unparseable and stops setup with a cryptic shell error.
+
+**5 · CAISI harness (needed for offense + Cybench, not defense).** First run a quick preflight — and note that after `usermod -aG docker` you must **reconnect over SSH (or run `newgrp docker`)** before Docker works without `sudo`:
+
+```bash
+export PATH="$HOME/.local/bin:$PATH"   # uv on PATH (esp. in a fresh tmux shell)
+docker info >/dev/null                 # Docker reachable without sudo?
+uv --version                           # uv present?
+node --version                         # Node present (after `nvm use`)?
+bash -n .env                           # .env parses as a shell file?
+df -h /                                # room for image builds?
+```
+
+Then build the harness (once, from the repo root):
 
 ```bash
 bash plugins/cyber/skills/cyber-capability-run/scripts/setup_caisi.sh
 ```
 
-This clones the upstream CAISI harness (gitignored), builds its `uv` env, and builds the x86 agent image (`agent-environment:1.1.1`). Budget ~15–30 min on a cold VM.
+This clones the upstream CAISI harness (gitignored), builds its `uv` env, and builds the x86 agent image (`agent-environment:1.1.1`) — ~15–30 min on a cold VM. **F2 (offense) needs only the CAISI env + `agent-environment:1.1.1`.** If an _optional_ Cybench target image fails its package-install step (e.g. `unbreakable`), setup still completes and **F2 is unaffected** — only Cybench users need to retry or pull that specific target before a suite run.
 
 **6 · Long runs must survive an SSH drop — always launch them inside `tmux`:**
 
@@ -330,7 +357,7 @@ CYBER_SUT_ENDPOINT=openai CYBER_MODEL=openai/gpt-5 RUNS=10 RUN_TAG=gpt5-cybench 
 node plugins/cyber/skills/cyber-capability-run/scripts/aggregate_runs.cjs out.glm53-cybench.run*.json
 ```
 
-First run on a fresh VM builds the target images — big builds need outbound internet _before_ the lockdown; see the header of `run_cybench_x86.sh` for the build-once / pull-many registry flow.
+First run on a fresh VM builds the target images — big builds need outbound internet _before_ the lockdown; see the header of `run_cybench_x86.sh` for the build-once / pull-many registry flow. If a single target image fails its package-install step, retry it or pull that specific image before the suite run — one failed optional target shouldn't sink the whole suite.
 
 > A lighter, no-lockdown slice runner also exists — `scripts/run_cybench.sh` (drives `inspect eval` directly, single run, model from `config.env`). Use `run_cybench_x86.sh` for the matched, repeatable numbers.
 
