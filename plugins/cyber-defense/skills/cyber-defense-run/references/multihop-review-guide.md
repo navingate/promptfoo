@@ -72,15 +72,17 @@ An external validity/security review (verdict: do not lock/calibrate) found rele
     (clean-solve-rate CI per model; non-overlap = a real rung), and `seed_stability` (the determinism guard:
     band spread is EXACTLY 0 across value seeds for every fixed pack, so ladder CIs come from model
     run-to-run variation, never seed noise). **43 selftests green.**
-- **OPEN — grounding (P0, cross-review 2026-09-12): offense emission NOW EXISTS but defense does NOT consume
-  it.** Corrected: F2's producer emission has since been built (plugin-cyber `F2_ad_cloud_deep/*/app.py` +
-  `conformance/{schema,contract}.py`, `obs_id`-keyed). A direct compatibility check rejects 55/55
-  offense-generated events against the current defense schema (`obs_id` vs `batch_id`; offense
-  `directory_lookup`/`authorization_request`/policy-decision events the defense schema drops;
-  `role_assumed.session_ref` vs defense's `via_session_ref`; missing `workload_ref`/`vault_access`/
-  `workload_output_returned` linkage). REQUIRED: one canonical event contract + an offense→defense adapter,
-  with committed malicious/benign/blocked/abandoned captures (both IAM families) that the defense schema
-  accepts in CI. Until then the corpus stays hand-authored and "grounded in F2" CANNOT be claimed.
+- **GROUNDING (P0, cross-review) — BUILT + PASSING (2026-09-13).** `grounded-v1` (`mh_grounded.py`) is a
+  narrow NATIVE-only subset + a DUMB offense→defense adapter (renames + drops + capture_seq only; NO
+  synthesized security events, NO derived assurance, `obs_id`/`ts` preserved — per the review adjustments).
+  8 estate-generated native captures ({passrole-runas,confused-deputy} × {successful,blocked,abandoned,
+  benign}) are vendored immutably in `grounded_captures/` (PROVENANCE.md; de-oracle scan 0 hits/68 events).
+  `test_grounded_captures_conformance`: the shipped reference pack detects every malicious outcome class
+  (recall 1.0) at **0 benign false alarms**, both families, `successful` firing BOTH boundaries — using only
+  native fields. **"grounded in F2" is now a tested claim** (for these captures). Excluded (reserved option
+  b): intersection/two_tag events (`directory_lookup`, `authorization_request`, `*_policy_decision`,
+  `workload_run`). **Remaining gap:** no pure-h5b insider capture yet (h5b only co-fires with h4 on
+  `successful`); a 9th insider journal is requested to ground assurance independently.
 - **OPEN — recalibration + option (b)**: honest n=3 recalibration on the value-symmetric (a) construct =
   GLM-5.3 **1/3** clean-solve (NOT >1/3), so option (b) — a REAL offense-side enforcement defect — is NOT
   triggered. An n=10 pass across all three models (to firm the rate + CIs) is the pending confirmation.
@@ -133,7 +135,7 @@ The directory contains ~60 `.py` files: v1 slices, other experiments, and shared
 
 ## Known limitations (honest)
 
-- **Still synthetic.** Everything runs on the hand-built corpus (`mh_corpus.py`). F2's producer emission now EXISTS in plugin-cyber, but the defense does not yet consume it (schema-incompatible — see the grounding P0 above), so the adapter that would ground the eval on real F2 captures is NOT built — this is the biggest open item and the honest limit on any real-world claim.
+- **Calibration is on the synthetic corpus; conformance is grounded.** The n=10 calibration runs on the hand-built `mh_corpus.py`. Detection is now ALSO proven on 8 real estate captures via `grounded-v1` (0-FP conformance, both families) — but only 8 flows, only co-fired h5b, and the CALIBRATION has not yet been rerun on grounded captures + stream disclosure. So "grounded in F2" holds for conformance; a grounded+stream _calibration ladder_ is still pending.
 - **Small n** — calibration is n=3 (directional); n=10 + per-seed CIs pending.
 - **Held-out is correlated copies, not independent samples.** The 24 held-out malicious are seeded rotations of 3 vectors over one withheld cell, now value-symmetric but still not independently sampled realizations — the honest per-seed variance / CI story needs the R2 stream + a regen pass.
 - **Two boundaries only** (provenance h4 + assurance h5b). The offense levers `two_tag` and the policy-intersection family are specified in the telemetry contract but OUT of the shipped defense construct (intersection removed as ungroundable — option a; `two_tag` not yet built). Adding rungs is the headroom question, gated on grounding + a >1/3 recalibration.
