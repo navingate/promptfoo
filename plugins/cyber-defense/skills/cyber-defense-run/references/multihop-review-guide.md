@@ -18,10 +18,11 @@ precision-gated metric. **Current honest state (after review-D + option-(a) + th
 the eval detects TWO grounded boundaries — provenance (h4) + assurance (h5b). The intersection/scope
 boundaries were REMOVED as ungroundable. The corpus is now **value-symmetric** (every discriminative
 malicious value also occurs benignly in the SAME estate, on both DEV and held-out) so no memorized
-literal or single-value "booster" transfers as precise. **Honest calibration (GLM-5.3, n=3, band metric,
-local):** 1/3 clean-solve — one genuine both-boundary solve (band 1.0), one provenance-only pack that now
-correctly scores 0 (its `source_attrs contains "department"` booster false-alarms once the held-out estate
-carries a benign `department` chain), one assurance-only pack (0.33). n=10 across all three models pending.
+literal or single-value "booster" transfers as precise. **Calibration (n=10, GROUPED view, synthetic
+corpus, 2026-09-12):** GLM-5.3 **6/10** clean-solve (CP95 [.26,.88]); DeepSeek-V4-Flash **0/10** [0,.31];
+Fisher p=0.005; GLM-5.2 engy-blocked. This is **PROVISIONAL** per the cross-review: grouped is the easier
+disclosure, and the number should be rerun on GROUNDED captures + STREAM disclosure (pending). Detection is
+separately proven on 8 real estate captures (grounded-v1, 0-FP conformance) — see the grounding entry below.
 
 ## Review-D remediation status (2026-09-12)
 
