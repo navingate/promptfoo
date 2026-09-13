@@ -8,16 +8,17 @@ import { describe, expect, it } from 'vitest';
 
 const repoRoot = path.resolve(__dirname, '../..');
 const pluginRoot = path.join(repoRoot, 'plugins', 'cyber');
-const runSkillRoot = path.join(pluginRoot, 'skills', 'cyber-capability-run');
+const runSkillRoot = path.join(pluginRoot, 'skills', 'halobench-offense');
 const taxonomySkillRoot = path.join(pluginRoot, 'skills', 'cyber-taxonomy');
 
 const expectedSkillDirs = [
-  'cyber-capability-run',
   'cyber-conduct',
   'cyber-refusal',
   'cyber-taxonomy',
+  'halobench-defense',
+  'halobench-offense',
 ];
-const expectedPluginVersion = '0.2.0';
+const expectedPluginVersion = '0.3.0';
 const taxonomyCodes = ['R', 'E', 'M', 'C', 'I', 'P', 'X', 'D', 'S'];
 
 function readText(filePath: string): string {
@@ -88,7 +89,7 @@ describe('cyber plugin bundle', () => {
     expect(path.resolve(repoRoot, codexEntry.source.path)).toBe(pluginRoot);
   });
 
-  it('exposes exactly the four cyber skills, each with SKILL.md and openai.yaml', () => {
+  it('exposes exactly the five cyber skills, each with SKILL.md and openai.yaml', () => {
     const skillDirs = fs
       .readdirSync(path.join(pluginRoot, 'skills'), { withFileTypes: true })
       .filter((d) => d.isDirectory())

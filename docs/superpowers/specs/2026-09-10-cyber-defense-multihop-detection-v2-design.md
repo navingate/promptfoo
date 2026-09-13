@@ -16,7 +16,7 @@ false-alert rate. Reuses the frozen grammar, deterministic grading, de-oracle ma
 schema widening, a server-side audit journal, and a bounded query-hunt harness.
 
 **Tech stack:** Python stdlib (scorer, shaper, selftests); promptfoo python provider + assertion; the
-offense F2 simulator (`plugins/cyber/skills/cyber-capability-run/tasks/F2_ad_cloud_deep`) as the
+offense F2 simulator (`plugins/cyber/skills/halobench-offense/tasks/F2_ad_cloud_deep`) as the
 telemetry source. No Docker for scoring.
 
 **Spec status:** incorporates **four** design-review passes (2026-09-10) + a source re-grounding.
@@ -38,7 +38,7 @@ construct-first validation spike (§15); the frontier claim is gated on §17 and
 > assurance-LEVEL are all field-vs-field non-membership the frozen grammar cannot express → the built
 > construct is **2-boundary (h4+h5b)**; §17's saturation gate is TRIPPED at the frontier (both GLMs 100%),
 > so it is a 2-tier discriminator, not yet frontier-hard. Full results + the earned-not-gamed verification:
-> `../../../plugins/cyber-defense/skills/cyber-defense-run/references/multihop-spike-a-results.md`.
+> `../../../plugins/cyber/skills/halobench-defense/references/multihop-spike-a-results.md`.
 
 ## Global Constraints
 
@@ -165,7 +165,7 @@ little here, because the h4 rule is independent of the IAM family.
 
 **DECIDED (2026-09-10): Path 2.** Path 2's content graduated into the required Spike-A corpus, §8 schema,
 and §3 gate targets. Built + calibrated — see the AS-BUILT note under Spec status and
-`../../../plugins/cyber-defense/skills/cyber-defense-run/references/multihop-spike-a-results.md`.
+`../../../plugins/cyber/skills/halobench-defense/references/multihop-spike-a-results.md`.
 
 ## 5. Scope — back half only, smallest construct first
 

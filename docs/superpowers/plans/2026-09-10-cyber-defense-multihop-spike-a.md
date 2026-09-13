@@ -4,7 +4,7 @@
 
 **Goal:** Prove — with **no live model and no Docker** — that the v2 multi-hop detection scoring construct is sound: visible-reference component partitioning, observation-batch prefix replay, earliest-only survival scoring, bounded-pack union false-alert counting, the both-family reference detectors, and the §3 stage-distinguishability gate all behave correctly on a hand-authored corpus; and determine which landmarks (h4, h5, h5b) are genuinely distinguishable + whether the two path-2 downstream detectors are expressible in the frozen rule grammar.
 
-**Architecture:** New flat `mh_*.py` modules under `plugins/cyber-defense/skills/cyber-defense-run/` (matching the existing flat-module + `selftest_*.py` pattern). They **reuse the frozen rule engine** `correlation_eval.evaluate(rule, events, config)` unchanged — the new code only adds an evaluator-side layer (schema, partition, replay, scoring, stage-gate) and a hand-authored corpus. Everything runs as pure-stdlib `selftest_mh_*.py` scripts in this worktree.
+**Architecture:** New flat `mh_*.py` modules under `plugins/cyber/skills/halobench-defense/` (matching the existing flat-module + `selftest_*.py` pattern). They **reuse the frozen rule engine** `correlation_eval.evaluate(rule, events, config)` unchanged — the new code only adds an evaluator-side layer (schema, partition, replay, scoring, stage-gate) and a hand-authored corpus. Everything runs as pure-stdlib `selftest_mh_*.py` scripts in this worktree.
 
 **Tech Stack:** Python 3 stdlib only. No pytest, no yaml, no Docker, no network, no model. Reuses `correlation_eval.py` (already on `plugin-defense`).
 
@@ -36,7 +36,7 @@
 | `selftest_mh_all.py`             | Runs every `selftest_mh_*` and prints PASS/FAIL summary.                                          |
 | `references/spike-a-findings.md` | Records the verdict: machinery, landmark distinguishability, grammar-expressibility.              |
 
-All paths below are relative to `plugins/cyber-defense/skills/cyber-defense-run/`. Run selftests from that directory (`python3 selftest_mh_core.py`) so `import correlation_eval` resolves, mirroring the existing selftests.
+All paths below are relative to `plugins/cyber/skills/halobench-defense/`. Run selftests from that directory (`python3 selftest_mh_core.py`) so `import correlation_eval` resolves, mirroring the existing selftests.
 
 ---
 
@@ -44,8 +44,8 @@ All paths below are relative to `plugins/cyber-defense/skills/cyber-defense-run/
 
 **Files:**
 
-- Create: `plugins/cyber-defense/skills/cyber-defense-run/mh_schema.py`
-- Test: `plugins/cyber-defense/skills/cyber-defense-run/selftest_mh_core.py` (create; grows across tasks)
+- Create: `plugins/cyber/skills/halobench-defense/mh_schema.py`
+- Test: `plugins/cyber/skills/halobench-defense/selftest_mh_core.py` (create; grows across tasks)
 
 **Interfaces:**
 
@@ -151,8 +151,8 @@ Expected: `Task1 OK`.
 - [ ] **Step 5: Commit**
 
 ```bash
-git add plugins/cyber-defense/skills/cyber-defense-run/mh_schema.py \
-        plugins/cyber-defense/skills/cyber-defense-run/selftest_mh_core.py
+git add plugins/cyber/skills/halobench-defense/mh_schema.py \
+        plugins/cyber/skills/halobench-defense/selftest_mh_core.py
 git commit -m "feat(cyber-defense): mh_schema — v2 edge table + flat inventories (Spike A t1)"
 ```
 
@@ -162,7 +162,7 @@ git commit -m "feat(cyber-defense): mh_schema — v2 edge table + flat inventori
 
 **Files:**
 
-- Create: `plugins/cyber-defense/skills/cyber-defense-run/mh_components.py`
+- Create: `plugins/cyber/skills/halobench-defense/mh_components.py`
 - Test: `selftest_mh_core.py` (append)
 
 **Interfaces:**
@@ -259,8 +259,8 @@ Expected: `Task1 OK` then no assertion error on the Task 2 block (add a `print("
 - [ ] **Step 5: Commit**
 
 ```bash
-git add plugins/cyber-defense/skills/cyber-defense-run/mh_components.py \
-        plugins/cyber-defense/skills/cyber-defense-run/selftest_mh_core.py
+git add plugins/cyber/skills/halobench-defense/mh_components.py \
+        plugins/cyber/skills/halobench-defense/selftest_mh_core.py
 git commit -m "feat(cyber-defense): mh_components — visible-ref connected-component partition (Spike A t2)"
 ```
 
@@ -270,7 +270,7 @@ git commit -m "feat(cyber-defense): mh_components — visible-ref connected-comp
 
 **Files:**
 
-- Create: `plugins/cyber-defense/skills/cyber-defense-run/mh_corpus.py`
+- Create: `plugins/cyber/skills/halobench-defense/mh_corpus.py`
 - Test: `selftest_mh_core.py` (append)
 
 **Interfaces:**
@@ -453,8 +453,8 @@ Expected: Task 3 block passes (add `print("Task3 OK")`). If a component spans tw
 - [ ] **Step 5: Commit**
 
 ```bash
-git add plugins/cyber-defense/skills/cyber-defense-run/mh_corpus.py \
-        plugins/cyber-defense/skills/cyber-defense-run/selftest_mh_core.py
+git add plugins/cyber/skills/halobench-defense/mh_corpus.py \
+        plugins/cyber/skills/halobench-defense/selftest_mh_core.py
 git commit -m "feat(cyber-defense): mh_corpus — hand-authored 2x2 + variants with truth (Spike A t3)"
 ```
 
@@ -464,7 +464,7 @@ git commit -m "feat(cyber-defense): mh_corpus — hand-authored 2x2 + variants w
 
 **Files:**
 
-- Create: `plugins/cyber-defense/skills/cyber-defense-run/mh_replay.py`
+- Create: `plugins/cyber/skills/halobench-defense/mh_replay.py`
 - Test: `selftest_mh_core.py` (append)
 
 **Interfaces:**
@@ -550,8 +550,8 @@ Run: `python3 selftest_mh_core.py` → add `print("Task4 OK")`. Expected: passes
 - [ ] **Step 5: Commit**
 
 ```bash
-git add plugins/cyber-defense/skills/cyber-defense-run/mh_replay.py \
-        plugins/cyber-defense/skills/cyber-defense-run/selftest_mh_core.py
+git add plugins/cyber/skills/halobench-defense/mh_replay.py \
+        plugins/cyber/skills/halobench-defense/selftest_mh_core.py
 git commit -m "feat(cyber-defense): mh_replay — observation-batch prefix replay (Spike A t4)"
 ```
 
@@ -561,7 +561,7 @@ git commit -m "feat(cyber-defense): mh_replay — observation-batch prefix repla
 
 **Files:**
 
-- Create: `plugins/cyber-defense/skills/cyber-defense-run/mh_reference_rules.py`
+- Create: `plugins/cyber/skills/halobench-defense/mh_reference_rules.py`
 - Test: `selftest_mh_core.py` (append)
 
 **Interfaces:**
@@ -675,8 +675,8 @@ Run: `python3 selftest_mh_core.py` → add `print("Task5 OK")`. Expected: passes
 - [ ] **Step 5: Commit**
 
 ```bash
-git add plugins/cyber-defense/skills/cyber-defense-run/mh_reference_rules.py \
-        plugins/cyber-defense/skills/cyber-defense-run/selftest_mh_core.py
+git add plugins/cyber/skills/halobench-defense/mh_reference_rules.py \
+        plugins/cyber/skills/halobench-defense/selftest_mh_core.py
 git commit -m "feat(cyber-defense): mh_reference_rules — h4/h5b rules + h5 scope expressibility finding (Spike A t5)"
 ```
 
@@ -686,7 +686,7 @@ git commit -m "feat(cyber-defense): mh_reference_rules — h4/h5b rules + h5 sco
 
 **Files:**
 
-- Create: `plugins/cyber-defense/skills/cyber-defense-run/mh_scoring.py`
+- Create: `plugins/cyber/skills/halobench-defense/mh_scoring.py`
 - Test: `selftest_mh_core.py` (append)
 
 **Interfaces:**
@@ -816,8 +816,8 @@ Run: `python3 selftest_mh_core.py` → add `print("Task6 OK")`. Expected: passes
 - [ ] **Step 5: Commit**
 
 ```bash
-git add plugins/cyber-defense/skills/cyber-defense-run/mh_scoring.py \
-        plugins/cyber-defense/skills/cyber-defense-run/selftest_mh_core.py
+git add plugins/cyber/skills/halobench-defense/mh_scoring.py \
+        plugins/cyber/skills/halobench-defense/selftest_mh_core.py
 git commit -m "feat(cyber-defense): mh_scoring — bounded-pack survival + union FP scoring (Spike A t6)"
 ```
 
@@ -827,7 +827,7 @@ git commit -m "feat(cyber-defense): mh_scoring — bounded-pack survival + union
 
 **Files:**
 
-- Create: `plugins/cyber-defense/skills/cyber-defense-run/mh_stage_gate.py`
+- Create: `plugins/cyber/skills/halobench-defense/mh_stage_gate.py`
 - Test: `selftest_mh_core.py` (append)
 
 **Interfaces:**
@@ -968,8 +968,8 @@ Run: `python3 selftest_mh_core.py` → add `print("Task7 OK")`. Expected: `h4=Tr
 - [ ] **Step 5: Commit**
 
 ```bash
-git add plugins/cyber-defense/skills/cyber-defense-run/mh_stage_gate.py \
-        plugins/cyber-defense/skills/cyber-defense-run/selftest_mh_core.py
+git add plugins/cyber/skills/halobench-defense/mh_stage_gate.py \
+        plugins/cyber/skills/halobench-defense/selftest_mh_core.py
 git commit -m "feat(cyber-defense): mh_stage_gate — §3 stage-distinguishability gate (Spike A t7)"
 ```
 
@@ -979,7 +979,7 @@ git commit -m "feat(cyber-defense): mh_stage_gate — §3 stage-distinguishabili
 
 **Files:**
 
-- Create: `plugins/cyber-defense/skills/cyber-defense-run/selftest_mh_shortcuts.py`
+- Create: `plugins/cyber/skills/halobench-defense/selftest_mh_shortcuts.py`
 - Test: itself (a selftest).
 
 **Interfaces:**
@@ -1054,7 +1054,7 @@ Expected: `shortcuts OK`.
 - [ ] **Step 5: Commit**
 
 ```bash
-git add plugins/cyber-defense/skills/cyber-defense-run/selftest_mh_shortcuts.py
+git add plugins/cyber/skills/halobench-defense/selftest_mh_shortcuts.py
 git commit -m "test(cyber-defense): mh shortcut/mutation/stitching audit (Spike A t8)"
 ```
 
@@ -1064,8 +1064,8 @@ git commit -m "test(cyber-defense): mh shortcut/mutation/stitching audit (Spike 
 
 **Files:**
 
-- Create: `plugins/cyber-defense/skills/cyber-defense-run/selftest_mh_all.py`
-- Create: `plugins/cyber-defense/skills/cyber-defense-run/references/spike-a-findings.md`
+- Create: `plugins/cyber/skills/halobench-defense/selftest_mh_all.py`
+- Create: `plugins/cyber/skills/halobench-defense/references/spike-a-findings.md`
 
 **Interfaces:**
 
@@ -1124,8 +1124,8 @@ without a grammar change; the scope invariant is blocked on a grammar decision. 
 - [ ] **Step 4: Commit**
 
 ```bash
-git add plugins/cyber-defense/skills/cyber-defense-run/selftest_mh_all.py \
-        plugins/cyber-defense/skills/cyber-defense-run/references/spike-a-findings.md
+git add plugins/cyber/skills/halobench-defense/selftest_mh_all.py \
+        plugins/cyber/skills/halobench-defense/references/spike-a-findings.md
 git commit -m "test(cyber-defense): mh run-all + Spike-A findings (grammar-expressibility verdict) (Spike A t9)"
 ```
 

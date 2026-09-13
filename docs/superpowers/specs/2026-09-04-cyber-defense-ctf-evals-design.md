@@ -338,7 +338,7 @@ plugins/cyber-defense/
   .claude-plugin/plugin.json  ·  .codex-plugin/plugin.json
   DEFENSE.md  ·  METHODOLOGY.md
   skills/
-    cyber-defense-run/        # defense.manifest.json, gen, scorers, provider, deploy
+    halobench-defense/        # defense.manifest.json, gen, scorers, provider, deploy
     cyber-defense-taxonomy/   # CSF2.0/D3FEND/ATT&CK/CWE coverage map
 ```
 

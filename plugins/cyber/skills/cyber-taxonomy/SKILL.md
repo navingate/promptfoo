@@ -6,7 +6,7 @@ description: >
   are gaps. Use to classify a CTF/CVE task into a capability cell, to read or
   regenerate the coverage matrix, or to decide which fresh tasks to author next.
   This is the reference layer shared by the capability run (L3). Do not use to
-  run an eval (that is `cyber-capability-run`) or to judge refusals/conduct
+  run an eval (that is `halobench-offense`) or to judge refusals/conduct
   (`cyber-refusal` L1, `cyber-conduct` L2).
 ---
 

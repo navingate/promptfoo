@@ -1,0 +1,81 @@
+"""Inspect task loader for promptfoo's own authored enterprise cyber tasks.
+
+Discovers every `eval.yml`/`eval.yaml` under this directory (each authored task
+gets its own subfolder — see `../references/build-plan.md` for the authoring
+recipe) via inspect_cyber's dataset loader, the same mechanism CAISI's own
+`ucb/cybench` uses. This lets us add tasks without ever touching the gitignored
+CAISI clone: this file lives in OUR bundle, not vendor/.
+
+Run directly with Inspect (a real agent solver is required — bare `generate()` has
+no tools and cannot fetch anything from the sandbox):
+
+    cd plugins/cyber/skills/halobench-offense
+    ../scripts/vendor/caisi-cyber-evals/.venv/bin/inspect eval tasks/loader.py \
+        --solver ucb/cybench_agent \
+        --model openai/DeepSeek-V4-Flash \
+        --token-limit 20000
+
+Or via the promptfoo provider by setting `benchmark: authored` in
+`scripts/promptfooconfig.yaml` (see provider.py).
+"""
+
+import os
+from pathlib import Path
+
+from inspect_ai import Task, task
+from inspect_ai.scorer import includes
+from inspect_cyber.dataset import create_agentic_eval_dataset
+
+TASKS_DIR = Path(__file__).resolve().parent
+
+
+def _apply_gate0b_target(dataset):
+    """Align the `includes()` scorer target with the PER-RUN terminal nonce Gate-0B serves.
+
+    Under Gate-0B the target container serves a fresh per-run flag (PFCYBER_NONCE_TERMINAL),
+    NOT eval.yml's static `flag`. The `includes()` scorer also drives the agent-facing
+    `submit()` feedback DURING the run, so if its target stayed the static flag the agent
+    would submit the (correct) per-run flag, be told "incorrect", derail, and leave an empty
+    final submission — which Gate-0B then reads as `empty_submission`. So when this run
+    injected a terminal nonce, use it as the target for the matching task's sample (the nonce
+    embeds the task id, so it only rewrites its own sample). No nonce in env (non-Gate-0B run)
+    -> targets are left as the static flag, unchanged.
+
+    FAIL CLOSED under Gate-0B: once a terminal nonce is present the rewrite MUST land, or the
+    scorer would silently keep eval.yml's static flag and score the agent's CORRECT per-run
+    submissions as "incorrect" — a corrupted non-solve. Any failure here (an iteration/assignment
+    error, or no loaded sample matching the nonce) raises, so the eval load errors and Gate-0B
+    records a harness error: an INVALID run excluded from the denominator, never a false score.
+    """
+    term = os.environ.get("PFCYBER_NONCE_TERMINAL")
+    if not term:
+        return dataset
+    matched = 0
+    for sample in dataset:
+        name = (getattr(sample, "metadata", None) or {}).get("eval_name", "")
+        if name and name in term:
+            sample.target = term
+            matched += 1
+    if matched == 0:
+        raise RuntimeError(
+            "Gate-0B terminal nonce is set but no loaded sample's eval_name matched it; refusing to "
+            "score against eval.yml's static flag (that would corrupt the run) — check nonce/task wiring"
+        )
+    return dataset
+
+
+@task
+def pfcyber(samples: str | list[str] | None = None) -> Task:
+    """Promptfoo-authored enterprise cyber-capability tasks.
+
+    Args:
+        samples: eval name(s) to include (matches each task dir's eval.yml
+            `name:`), e.g. "pfcyber-f2-adcloud". None loads every authored task.
+    """
+    dataset = create_agentic_eval_dataset(
+        TASKS_DIR, "pfcyber"
+    ).filter_by_metadata_field("eval_name", samples)
+    return Task(
+        dataset=_apply_gate0b_target(dataset),
+        scorer=includes(),
+    )
