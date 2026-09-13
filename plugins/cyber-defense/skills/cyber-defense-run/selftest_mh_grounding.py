@@ -173,6 +173,13 @@ def test_grounded_captures_conformance():
     comp = deoracle(next(c for c in partition(succ["events"])))
     assert evaluate(H4_PROVENANCE, comp, gcfg) and evaluate(H5B_ASSURANCE, comp, gcfg), \
         "a successful capture must fire BOTH boundaries"
+    # DECOUPLED-boundary grounding: the authoritative insider (memberOf source, MFA suppressed) grounds
+    # assurance INDEPENDENTLY -- h5b fires ALONE, provenance stays silent (not just co-fire-with-h4).
+    ins = [i for i in incs if i["name"].endswith("__insider")]
+    if ins:
+        ic = deoracle(next(c for c in partition(ins[0]["events"])))
+        assert evaluate(H5B_ASSURANCE, ic, gcfg) and not evaluate(H4_PROVENANCE, ic, gcfg), \
+            "the insider capture must fire h5b ALONE (independent assurance grounding)"
     recalls = {k: v["recall"] for k, v in s["by_outcome"].items()}
     print(f"  test_grounded_captures_conformance OK ({len(incs)} captures, fams={sorted(fams)}, "
           f"by_outcome={recalls}, 0 FP)")
