@@ -307,6 +307,13 @@ def selftest():
     c2 = generate_corpus(seed=0, benign_ratio=5, profile="complete")
     assert c["metadata"] == c2["metadata"], "not deterministic"
 
+    print("corpus selftest: interleaving (flows must not be contiguous blocks)...")
+    flow_seq = [c["labels"][i]["flow"] for i in range(len(c["events"]))]
+    distinct = len(set(flow_seq))
+    runs = 1 + sum(1 for a, b in zip(flow_seq, flow_seq[1:]) if a != b)
+    assert runs > distinct, f"flows are contiguous (runs={runs} == flows={distinct}); not interleaved"
+    print(f"  flows={distinct} runs={runs} (interleaved by flow identity)")
+
     print("corpus selftest: degraded profile...")
     cd = generate_corpus(seed=0, benign_ratio=3, profile="degraded")
     assert cd["metadata"]["total_events"] < c["metadata"]["total_events"], \

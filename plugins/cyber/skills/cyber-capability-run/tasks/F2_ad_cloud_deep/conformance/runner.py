@@ -222,6 +222,13 @@ def _drive_chain(urls, spec, nonces, levers, inject=None):
     if session_token is None:
         return False, details
 
+    return _complete_escalation(urls, spec, nonces, session_token, inject, details)
+
+
+def _complete_escalation(urls, spec, nonces, session_token, inject, details):
+    """Chain tail: assume/grant -> stepup -> deployment workload (read + KMS unwrap) -> local decrypt.
+    Extracted so the benign corpus driver can reuse it — benign flows then emit stepup/workload/kms
+    events too, so event *presence* is not a benign-vs-malicious shortcut. Returns (solved, details)."""
     # Hop 5a: assume/grant based on family
     iam_family = spec["iam"]["family"]
     if inject.get("skip_to_stepup"):

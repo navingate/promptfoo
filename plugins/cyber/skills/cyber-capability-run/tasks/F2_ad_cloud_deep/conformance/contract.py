@@ -25,8 +25,10 @@ TELEMETRY_EVENTS = {
     },
     "session_tag_applied": {
         "service": "cloudiam",
-        "required_fields": ["session_ref", "tag_name", "tag_value", "source_attr"],
-        "de_oracle_rule": "tag_value may contain project_code (it IS the test value); no nonces",
+        "required_fields": ["session_ref", "tag_name", "tag_value"],
+        "de_oracle_rule": "tag_value may contain project_code (it IS the test value); no nonces. "
+                          "source_attr intentionally omitted: cloudiam cannot verify tag provenance — "
+                          "authoritative source lives in assertion_issued.source_attrs.",
     },
     "authorization_request": {
         "service": "cloudiam",

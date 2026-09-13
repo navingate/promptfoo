@@ -45,35 +45,45 @@ class TimingModel:
 
 
 def apply_timing(events: list[dict], seed: int = 0, base_ts: float = 1700000000.0) -> list[dict]:
-    """Rewrite timestamps on a list of events with realistic timing.
+    """Rewrite timestamps so concurrent flows INTERLEAVE, like production SIEM data.
 
-    Events are assumed to be in causal order within each flow (identified by
-    obs_id grouping). Flows are spaced by flow_gap_ms. Within a flow, events
-    are spaced by hop_delay_ms for their type.
+    Flows are identified by the corpus '_flow' label (falls back to obs_id, then a per-event bucket).
+    Two deterministic passes:
+      1. Fix each event's hop delay + jitter once, and sum each flow's span.
+      2. Spread flow START times across a window narrower than the summed spans, so flows overlap and
+         their events intermix once merged by timestamp. Within a flow, causal order is preserved
+         (each event's ts is strictly later than its predecessor's).
     """
     model = TimingModel(seed)
     if not events:
         return events
 
-    obs_groups: dict[str, list[int]] = {}
+    flow_order: list[str] = []
+    flows: dict[str, list[int]] = {}
     for i, ev in enumerate(events):
-        obs = ev.get("obs_id", f"_solo_{i}")
-        obs_groups.setdefault(obs, []).append(i)
+        key = ev.get("_flow") or ev.get("obs_id") or f"_solo_{i}"
+        if key not in flows:
+            flows[key] = []
+            flow_order.append(key)
+        flows[key].append(i)
 
-    unique_obs = list(dict.fromkeys(
-        ev.get("obs_id", f"_solo_{i}") for i, ev in enumerate(events)
-    ))
-
-    cursor = base_ts
-    for obs in unique_obs:
-        indices = obs_groups.get(obs, [])
-        for idx in indices:
+    # Pass 1: fix per-event delays once so flow spans are stable across both passes.
+    delay_s: dict[int, float] = {}
+    for key in flow_order:
+        for idx in flows[key]:
             ev = events[idx]
-            delay_s = model.hop_delay_ms(ev.get("event", "")) / 1000.0
-            jitter_s = model.jitter_ms() / 1000.0
-            cursor += delay_s + jitter_s
-            events[idx] = {**ev, "ts": cursor}
-        cursor += model.flow_gap_ms() / 1000.0
+            delay_s[idx] = (model.hop_delay_ms(ev.get("event", "")) + model.jitter_ms()) / 1000.0
+    span = {key: sum(delay_s[idx] for idx in flows[key]) for key in flow_order}
+
+    # Pass 2: pack flow starts into a window narrower than the total content so flows overlap.
+    total = sum(span.values())
+    window = total * 0.5
+    n = len(flow_order)
+    for k, key in enumerate(flow_order):
+        cursor = base_ts + (window * k / (n - 1) if n > 1 else 0.0)
+        for idx in flows[key]:
+            cursor += delay_s[idx]
+            events[idx] = {**events[idx], "ts": cursor}
 
     events.sort(key=lambda e: e.get("ts", 0))
     return events

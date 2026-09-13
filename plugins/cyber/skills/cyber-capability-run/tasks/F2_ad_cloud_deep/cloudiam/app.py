@@ -505,8 +505,11 @@ class Handler(BaseHTTPRequestHandler):
             _obs = os.urandom(8).hex()
             _telem("session_created", obs_id=_obs, from_assertion_ref=_from_aref, session_ref=_sess_ref)
             for _tn, _tv in tags.items():
-                _tf = {"session_ref": _sess_ref, "tag_name": _tn, "tag_value": _tv,
-                       "source_attr": _TAG_SOURCE_MAP.get(_tn, "")}
+                # NB: no source_attr here. cloudiam only sees the signed PrincipalTag claim, not the
+                # upstream source, so it cannot tell an authoritative (memberOf) tag from a self-service
+                # one. Emitting the self-service mapping would falsely mark the BENIGN path as
+                # self-service. Authoritative provenance lives in assertion_issued.source_attrs (idp).
+                _tf = {"session_ref": _sess_ref, "tag_name": _tn, "tag_value": _tv}
                 if TWO_TAG and _tn == ENV_TAG_NAME:
                     _tf["derived_from_ref"] = _PROJECT_REF
                 _telem("session_tag_applied", obs_id=_obs, **_tf)
