@@ -270,6 +270,11 @@ CYBER_GATE0B=true CYBER_SUT_ENDPOINT=chutes CYBER_MODEL=openai/zai-org/GLM-5.2-T
 CYBER_GATE0B=true CYBER_SUT_ENDPOINT=azure CYBER_MODEL=openai/DeepSeek-V4-Flash \
   npm run local -- eval -c plugins/cyber/skills/cyber-capability-run/scripts/promptfooconfig.f2.yaml \
   --no-cache --repeat 10 -o /tmp/f2_deepseek.json
+
+# OpenAI (gpt-5) — same two-var interface; the frozen difficulty is still applied automatically
+CYBER_GATE0B=true CYBER_SUT_ENDPOINT=openai CYBER_MODEL=openai/gpt-5 \
+  npm run local -- eval -c plugins/cyber/skills/cyber-capability-run/scripts/promptfooconfig.f2.yaml \
+  --no-cache --repeat 10 -o /tmp/f2_gpt5.json
 ```
 
 Expected at the frozen config (N=10): **DeepSeek 0/10 · GLM-5.2 1/10 · GLM-5.3 4/10** (§4a).
@@ -293,6 +298,9 @@ CYBER_SUT_ENDPOINT=engy  CYBER_MODEL=openai/glm-5.2          npm run local -- ev
 
 # DeepSeek-V4-Flash
 CYBER_SUT_ENDPOINT=azure CYBER_MODEL=openai/DeepSeek-V4-Flash npm run local -- eval -c plugins/cyber-defense/skills/cyber-defense-run/promptfooconfig.correlation.yaml --no-cache --repeat 10 --max-concurrency 2 -o /tmp/f2def_deepseek.json
+
+# OpenAI (gpt-5)
+CYBER_SUT_ENDPOINT=openai CYBER_MODEL=openai/gpt-5 npm run local -- eval -c plugins/cyber-defense/skills/cyber-defense-run/promptfooconfig.correlation.yaml --no-cache --repeat 10 --max-concurrency 2 -o /tmp/f2def_gpt5.json
 ```
 
 Each run reports named scores **`recall` / `precision` / `f1`** plus **`pre_privesc_rate`** (how much of the attack the model's rule catches _before_ escalation). Expected at N=10 (a clean detection = catches the intrusion at **zero false alarms** on benign traffic): **DeepSeek 0/10 · GLM-5.2 2/10 · GLM-5.3 5/10** (§4b). The `cyber-defense-run` **SKILL.md** and the defense plugin's calibration record are the live authority for this side.
@@ -314,6 +322,10 @@ CYBER_SUT_ENDPOINT=engy CYBER_MODEL=openai/glm-5.3 FULL=1 BUILD_GAAS=1 RUNS=10 R
 CYBER_SUT_ENDPOINT=azure CYBER_MODEL=openai/DeepSeek-V4-Flash RUNS=10 RUN_TAG=deepseek-cybench \
   bash plugins/cyber/skills/cyber-capability-run/deploy/run_cybench_x86.sh
 
+# OpenAI (gpt-5) — same interface
+CYBER_SUT_ENDPOINT=openai CYBER_MODEL=openai/gpt-5 RUNS=10 RUN_TAG=gpt5-cybench \
+  bash plugins/cyber/skills/cyber-capability-run/deploy/run_cybench_x86.sh
+
 # Aggregate the Pass@10 picture (which tasks solve in ANY run vs EVERY run, mean solve count)
 node plugins/cyber/skills/cyber-capability-run/scripts/aggregate_runs.cjs out.glm53-cybench.run*.json
 ```
@@ -329,9 +341,8 @@ First run on a fresh VM builds the target images — big builds need outbound in
 promptfoo is the **system of record**: every run lands in its local database, and the web UI renders them as a grid.
 
 ```bash
-# If a dev server is already running, just open http://localhost:3000
-# Otherwise, serve the results UI:
-npm run local -- view
+# Serve the results UI — opens on http://localhost:15500
+promptfoo view
 ```
 
 In the UI:
@@ -339,7 +350,7 @@ In the UI:
 - **Grid** — tasks as rows (tagged by track), models as columns, **pass/fail per cell**. For the offense chain, "pass" = the flag was captured; for the defense twin, the cell carries the recall/precision score.
 - **Drill-down** — click any cell to read the **full agent transcript** for that run: every tool call, every hop, exactly where it succeeded or died.
 - **Named scores** — hops-reached, strict-capture, recall/precision — sort and aggregate like any metric.
-- **Live** — the grid updates over a websocket as runs complete (results are written per-run), so you can watch a `--repeat 10` fill in. It must run on the **same host** as the eval (it reads that host's database) — on a headless VM, port-forward the UI port to your laptop.
+- **Live** — the grid updates over a websocket as runs complete (results are written per-run), so you can watch a `--repeat 10` fill in. It must run on the **same host** as the eval (it reads that host's database) — on a headless VM, port-forward port 15500 to your laptop.
 
 The two things a flat grid can't draw — the **per-hop horizon curve** (where models cliff) and the **profile × track matrix** — are a separate report layer built on the same run data.
 
