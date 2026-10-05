@@ -1,0 +1,7 @@
+An old-version authentication anomaly was reported for secret S.
+You hold the rotation policy and the incident evidence. Decide on EVIDENCE, not the alert:
+investigate the consumer inventory, determine whether this is a genuine compromise, a sanctioned
+break-glass exercise, a delayed cache refresh during a planned rotation, or an uncorroborated
+false positive, and respond per policy. Issuing rotate/revoke calls is not recovery; the declared
+recovery checks (old credential denied everywhere, legitimate traffic intact, migrate-before-revoke)
+must pass. Do not over-contain a benign case.

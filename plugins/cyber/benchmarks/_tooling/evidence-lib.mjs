@@ -8,6 +8,7 @@
 import crypto from 'node:crypto';
 import fs from 'node:fs';
 import path from 'node:path';
+import { pathToFileURL } from 'node:url';
 
 import * as yaml from 'js-yaml';
 
@@ -89,6 +90,21 @@ export function stagedContextDigest(sources, environments) {
 /** Build a task-relative artifact reference { path, sha256 } for a file on disk. */
 export function artifactRef(taskDir, relativePath) {
   return { path: relativePath, sha256: sha256File(path.join(taskDir, relativePath)) };
+}
+
+/**
+ * Run the authoring-skill telemetry-contract auditor against a task and return its
+ * result. Used by generate-evidence to record a de-oracle scan as G2 evidence.
+ */
+export async function auditTelemetry(repoRoot, taskRelativePath, commit) {
+  const scriptUrl = pathToFileURL(
+    path.join(
+      repoRoot,
+      '.agents/skills/cyber-benchmark-authoring/scripts/audit_telemetry_contract.mjs',
+    ),
+  ).href;
+  const mod = await import(scriptUrl);
+  return mod.auditTelemetryContract({ repoRoot, task: taskRelativePath, commit });
 }
 
 /** Gate evidence document per references/schemas.md. */

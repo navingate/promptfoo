@@ -12,6 +12,7 @@ import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 
 import {
+  auditTelemetry,
   sha256File,
   sha256Text,
   stagedContextDigest,
@@ -40,10 +41,13 @@ import {
 const TASK_ID = 'f9-rotation-offense';
 const here = path.dirname(fileURLToPath(import.meta.url));
 const taskDir = path.resolve(here, '..');
+const repoRoot = path.resolve(here, '../../../../../..');
+const taskRel = 'plugins/cyber/benchmarks/f9-secret-rotation/offense';
 const evidenceDir = path.join(taskDir, 'evidence');
 const observationDir = path.join(evidenceDir, 'observation');
 const captureDir = path.join(evidenceDir, 'capture');
 const STAGED = { seed: 101, family: 'cached-interval', variant: 'malicious' };
+const PLACEHOLDER_COMMIT = '0'.repeat(40);
 
 function generateReference() {
   const corpus = scoredCorpus();
@@ -351,7 +355,30 @@ function generateCapture() {
   return { rows: rows.length, leaking };
 }
 
-function main() {
+// De-oracle scan (G2 evidence): run the real telemetry-contract auditor over the
+// staged observation plane and record that no oracle/digest/schema findings exist.
+// The completeness warning is expected here (the commit-bound inventory is added at
+// bind time) and is excluded from the de-oracle verdict.
+async function generateDeoracleScan() {
+  const result = await auditTelemetry(repoRoot, taskRel, PLACEHOLDER_COMMIT);
+  const findings = result.findings ?? [];
+  const blocking = findings.filter((f) => f.code !== 'OBSERVATION_COMPLETENESS_UNATTESTED');
+  const scan = {
+    task_id: TASK_ID,
+    kind: 'deoracle-scan',
+    auditor: 'audit_telemetry_contract.mjs',
+    oracle_material_findings: findings.filter((f) => f.code === 'ORACLE_MATERIAL_VISIBLE'),
+    other_blocking_findings: blocking.filter((f) => f.code !== 'ORACLE_MATERIAL_VISIBLE'),
+    de_oracled: blocking.length === 0,
+    completeness_attested_at_bind_time: findings.some(
+      (f) => f.code === 'OBSERVATION_COMPLETENESS_UNATTESTED',
+    ),
+  };
+  writeJson(path.join(evidenceDir, 'deoracle-scan.json'), scan);
+  return scan;
+}
+
+async function main() {
   const referenceDoc = generateReference();
   writeJson(path.join(evidenceDir, 'reference-results.json'), referenceDoc);
   const mutationDoc = generateMutations();
@@ -362,6 +389,7 @@ function main() {
   writeJson(path.join(evidenceDir, 'operational-results.json'), operationalDoc);
   const staged = stageObservationPlane();
   const capture = generateCapture();
+  const scan = await generateDeoracleScan();
 
   process.stdout.write(
     [
@@ -369,10 +397,13 @@ function main() {
       `[f9-offense] mutations ${mutationDoc.checks.filter((c) => c.status === 'pass').length}/${mutationDoc.checks.length} pass`,
       `[f9-offense] shortcuts: ${shortcutDoc.baselines.map((b) => `${b.name}=${(b.validator_success_rate * 100).toFixed(0)}%`).join(' ')}`,
       `[f9-offense] operational ${operationalDoc.checks.filter((c) => c.status === 'pass').length}/${operationalDoc.checks.length} pass`,
-      `[f9-offense] observation digest ${staged.digest.slice(0, 12)}…  capture rows=${capture.rows}`,
+      `[f9-offense] de-oracled=${scan.de_oracled}  observation digest ${staged.digest.slice(0, 12)}…  capture rows=${capture.rows}`,
       '',
     ].join('\n'),
   );
 }
 
-main();
+main().catch((error) => {
+  process.stderr.write(`${error instanceof Error ? error.stack : String(error)}\n`);
+  process.exitCode = 1;
+});

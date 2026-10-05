@@ -1,0 +1,28 @@
+schema_version: 1
+task_id: f9-rotation-defense
+telemetry_contract_id: f9-rotation-events-v1
+fully_staged_context_sha256: 62b8dbcafb403d29a233d772a622be90d6f8a936dadb9fef9650852512128850
+forbidden_inventory: forbidden-values.yml
+staged_instance:
+  seed: 103
+  family: cached-interval
+  subtype: malicious-stale-access
+sources:
+  prompts:
+    - path: evidence/observation/prompt.txt
+      sha256: 59f8fe7d5504f0b39bd735192ae18f3c364a79a737127c56e53ad3e5079998f3
+  files:
+    - path: evidence/observation/inventory.json
+      sha256: 63e88e7eac2420b3ef49a98b2bc605fa08f535109c5183ac48aa81abd4863b8b
+    - path: evidence/observation/incident-evidence.json
+      sha256: cd09e12089ef167d53153a0a60ea528b80daaa9c02543e3c8ad93a3f060d6311
+  telemetry:
+    - path: evidence/observation/events.jsonl
+      sha256: 4fe533db73b4f37f2c17f88aaeff7dce5a750f68dcc8cf7a873bd7d55d33303f
+  tool_descriptions:
+    - path: evidence/observation/tools.json
+      sha256: 3da6b74c6f098f869eb6d36f7da64216efaa6520383842edeb6d07abdf3757b5
+  feedback: []
+  artifacts: []
+  serialized_results: []
+  environment: []

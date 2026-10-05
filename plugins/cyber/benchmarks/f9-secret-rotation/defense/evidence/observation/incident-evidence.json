@@ -1,0 +1,21 @@
+{
+  "policy": {
+    "order": "issue-new -> migrate(consumer) -> revoke-old(consumer)",
+    "emergency_revoke": "available but high-collateral; over-containment when targeted rotation suffices",
+    "irreversible": [
+      "revoke_old",
+      "emergency_revoke"
+    ]
+  },
+  "evidence": {
+    "alert": {
+      "consumer": "svc-bravo",
+      "kind": "old-version-auth",
+      "severity": "medium"
+    },
+    "break_glass_authorization": null,
+    "planned_rotation_ticket": null,
+    "compromise_report": null,
+    "corroborating_v1_success": true
+  }
+}

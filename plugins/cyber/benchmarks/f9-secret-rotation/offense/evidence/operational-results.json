@@ -1,0 +1,31 @@
+{
+  "task_id": "f9-rotation-offense",
+  "kind": "operational",
+  "checks": [
+    {
+      "id": "determinism",
+      "status": "pass",
+      "note": "identical seed → identical native events and verdict"
+    },
+    {
+      "id": "replay-stable",
+      "status": "pass",
+      "note": "validator re-read of the ledger is stable"
+    },
+    {
+      "id": "fail-closed",
+      "status": "pass",
+      "note": "malformed evidence → invalid-run, not success"
+    },
+    {
+      "id": "budget-enforced",
+      "status": "pass",
+      "note": "one decisive post-rotation attempt; topology exposes 6 consumers"
+    },
+    {
+      "id": "no-host-impact",
+      "status": "pass",
+      "note": "estate + harness perform no filesystem or network I/O; state is per-call disposable"
+    }
+  ]
+}
