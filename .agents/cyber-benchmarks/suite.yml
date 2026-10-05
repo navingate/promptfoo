@@ -13,9 +13,9 @@ coverage_areas:
 
 # Portfolio anchor + the nine F3-F11 paired families.
 # Source of truth: next-nine-chains.md (selection + waves) and design-correction.md (architecture).
-# `families` is a descriptive roadmap the auditor ignores. Per-task binding records go in
-# `benchmarks[]` only at build time, because each record must bind a real implementation commit and
-# existing gate evidence (audit_benchmark validateSuite) — neither exists at G0-pending.
+# `families` is a descriptive roadmap the auditor ignores. Per-task binding records go in `benchmarks[]`
+# only at build time, because each record must bind a real implementation commit and existing gate
+# evidence (audit_benchmark validateSuite) — neither exists at G0-pending.
 anchor:
   id: F2
   title: Enterprise Identity-to-Cloud Takeover
@@ -74,7 +74,7 @@ families:
     status: designed-g0-pending
     shared_estate: IdP + OAuth consent plane + protected API + approved-app population + access ledger
     pair_contract_version: '1'
-    f2_relationship: adjacent to F2 identity-federation; distinct decision (delegation persistence across reset)
+    f2_relationship: adjacent to F2 identity-federation; distinct decision (remediation-query-defect persistence)
     offense:
       {
         task_id: f4-consent-offense,
@@ -94,44 +94,140 @@ families:
   - id: F10
     title: Sanctioned-Channel Exfiltration
     wave: 2
-    status: planned
-    f2_relationship: reuses F2 data-asset-egress discipline; emphasis on cumulative-sequence judgement
-    offense: { mode: offense-capability, role: producer }
-    defense: { mode: defense-detection, role: consumer }
+    status: designed-g0-pending
+    shared_estate: warehouse + sanctioned export/reporting plane + approved destinations + transfer ledger
+    pair_contract_version: '1'
+    f2_relationship: reuses F2 asset-egress discipline; novel axis is cumulative-sequence judgement
+    offense:
+      {
+        task_id: f10-exfil-offense,
+        path: plugins/cyber/benchmarks/f10-sanctioned-exfil/offense,
+        mode: offense-capability,
+        construct: sanctioned-channel-exfil,
+        role: producer,
+      }
+    defense:
+      {
+        task_id: f10-exfil-defense,
+        path: plugins/cyber/benchmarks/f10-sanctioned-exfil/defense,
+        mode: defense-detection,
+        construct: cumulative-exfil-correlation,
+        role: consumer,
+      }
   - id: F7
     title: Cross-Tenant Support Boundary
     wave: 2
-    status: planned
-    f2_relationship: identity-federation adjacent; confused-deputy / tenant-binding decision
-    offense: { mode: offense-capability, role: producer }
-    defense: { mode: tool-conduct, role: consumer }
+    status: designed-g0-pending
+    shared_estate: multi-tenant support console + cross-tenant tools + case store + action ledger
+    pair_contract_version: '1'
+    f2_relationship: confused-deputy lineage of F2 federation hop; tenant/case binding decision
+    offense:
+      {
+        task_id: f7-support-offense,
+        path: plugins/cyber/benchmarks/f7-cross-tenant-support/offense,
+        mode: offense-capability,
+        construct: cross-tenant-confused-deputy,
+        role: producer,
+      }
+    defense:
+      {
+        task_id: f7-support-defense,
+        path: plugins/cyber/benchmarks/f7-cross-tenant-support/defense,
+        mode: tool-conduct,
+        construct: tenant-bound-support-conduct,
+        role: consumer,
+      }
   - id: F8
     title: Recovery Plane Sabotage
     wave: 2
-    status: planned
+    status: designed-g0-pending
+    shared_estate: datastore + backup/retention plane + immutability control + restore routine + ledger
+    pair_contract_version: '1'
     f2_relationship: independent; destructive-action + recoverability decision
-    offense: { mode: offense-capability, role: producer }
-    defense: { mode: incident-response, role: consumer }
+    offense:
+      {
+        task_id: f8-recovery-offense,
+        path: plugins/cyber/benchmarks/f8-recovery-sabotage/offense,
+        mode: offense-capability,
+        construct: recovery-plane-sabotage,
+        role: producer,
+      }
+    defense:
+      {
+        task_id: f8-recovery-defense,
+        path: plugins/cyber/benchmarks/f8-recovery-sabotage/defense,
+        mode: incident-response,
+        construct: contain-preserve-recover,
+        role: consumer,
+      }
   - id: F3
     title: Workload Identity Cascade
     wave: 3
-    status: planned
-    f2_relationship: deep technical anchor alongside F2; k8s/workload-identity composition
-    offense: { mode: offense-capability, role: producer }
-    defense: { mode: defense-detection, role: consumer }
+    status: designed-g0-pending
+    shared_estate: workload identity + namespace RBAC + controller/SA delegation + cloud role + ledger
+    pair_contract_version: '1'
+    f2_relationship: deep technical anchor alongside F2; workload->cloud via controller delegation
+    offense:
+      {
+        task_id: f3-workload-offense,
+        path: plugins/cyber/benchmarks/f3-workload-identity/offense,
+        mode: offense-capability,
+        construct: workload-identity-cascade,
+        role: producer,
+      }
+    defense:
+      {
+        task_id: f3-workload-defense,
+        path: plugins/cyber/benchmarks/f3-workload-identity/defense,
+        mode: defense-detection,
+        construct: cascade-correlation,
+        role: consumer,
+      }
   - id: F5
     title: Trusted Build, Untrusted Source
     wave: 3
-    status: planned
-    f2_relationship: independent; supply-chain provenance composition
-    offense: { mode: offense-capability, role: producer }
-    defense: { mode: defense-detection, role: consumer }
+    status: designed-g0-pending
+    shared_estate: source/dependency inputs + trusted CI build + signing + deploy/exec + provenance ledger
+    pair_contract_version: '1'
+    f2_relationship: independent; supply-chain provenance-composition anchor (valid signature)
+    offense:
+      {
+        task_id: f5-build-offense,
+        path: plugins/cyber/benchmarks/f5-trusted-build/offense,
+        mode: offense-capability,
+        construct: trusted-build-untrusted-source,
+        role: producer,
+      }
+    defense:
+      {
+        task_id: f5-build-defense,
+        path: plugins/cyber/benchmarks/f5-trusted-build/defense,
+        mode: defense-detection,
+        construct: provenance-break-detection,
+        role: consumer,
+      }
   - id: F11
     title: Poisoned Incident Evidence
     wave: 3
-    status: planned
-    f2_relationship: capstone; reuses native events/artifacts from earlier families
-    offense: { mode: offense-capability, role: producer }
-    defense: { mode: incident-response, role: consumer, note: detection axis reported separately }
+    status: designed-g0-pending
+    shared_estate: SOC telemetry + response plane; reuses F8/F9/F6/F4 native captures
+    pair_contract_version: '1'
+    f2_relationship: capstone; consumes earlier families' native telemetry; detection + response separate
+    offense:
+      {
+        task_id: f11-evidence-offense,
+        path: plugins/cyber/benchmarks/f11-poisoned-evidence/offense,
+        mode: offense-capability,
+        construct: poisoned-incident-evidence,
+        role: producer,
+      }
+    defense:
+      {
+        task_id: f11-evidence-defense,
+        path: plugins/cyber/benchmarks/f11-poisoned-evidence/defense,
+        mode: incident-response,
+        construct: evidence-not-authority,
+        role: consumer,
+      }
 
 benchmarks: []
