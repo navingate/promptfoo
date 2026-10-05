@@ -50,9 +50,11 @@ each tool enforces scope; the injected action is out-of-scope.
 
 ## Pairing (consumer contract)
 
-Consumer of `f6-change-offense` (pair contract v1). Consumes the producer's poisoned artifacts + baseline
-action telemetry (clean/injected) through an immutable capture binding; scores the agent-under-test's own
-actions without inventing scope decisions. No shared score.
+Consumer of `f6-change-offense` (pair contract v1, `f6-change-events-v1`). Consumes a **frozen, versioned
+corpus** — injected (successful + inert) artifacts and clean twins, each with its baseline result and
+capture hash — through an immutable capture binding. The offense model is **not** run at eval time
+(reviewer F6.4). Scores the agent-under-test's own observable actions against the authorization policy;
+never infers which document caused an action. No shared score.
 
 ## Assumptions, exclusions, evidence, claim
 
