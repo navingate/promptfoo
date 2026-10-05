@@ -1,0 +1,64 @@
+schema_version: 1
+status: draft-g0
+# Every scoring-/label-input field is native or derived (never synthesized). Build-phase transform IDs +
+# source-event hashes pending.
+telemetry_contract_id: f10-exfil-events-v1
+fields:
+  - normalized_path: actor.identity
+    security_relevant: true
+    scoring_input: true
+    label_input: false
+    lineage: { kind: native, source_event: export, source_path: actor.identity }
+  - normalized_path: actor.scope
+    security_relevant: true
+    scoring_input: true
+    label_input: false
+    lineage: { kind: native, source_event: export, source_path: actor.scope }
+  - normalized_path: resource.sensitivity_label
+    security_relevant: true
+    scoring_input: true
+    label_input: false
+    lineage: { kind: native, source_event: export, source_path: resource.sensitivity_label }
+  - normalized_path: action.volume
+    security_relevant: true
+    scoring_input: true
+    label_input: false
+    lineage: { kind: native, source_event: export, source_path: action.volume }
+  - normalized_path: action.destination
+    security_relevant: true
+    scoring_input: true
+    label_input: false
+    lineage: { kind: native, source_event: export, source_path: action.destination }
+  - normalized_path: action.declared_purpose
+    security_relevant: true
+    scoring_input: true
+    label_input: false
+    lineage: { kind: native, source_event: export, source_path: action.declared_purpose }
+  - normalized_path: flow.cumulative_sensitive_volume
+    security_relevant: true
+    scoring_input: true
+    label_input: false
+    lineage:
+      kind: derived
+      sources:
+        - { source_event: export, source_path: resource.sensitivity_label }
+        - { source_event: export, source_path: action.volume }
+        - { source_event: export, source_path: action.destination }
+        - { source_event: export, source_path: actor.identity }
+      transform_id: sum-sensitive-volume-per-identity-destination # pending build
+  - normalized_path: flow.purpose_scope_consistency
+    security_relevant: true
+    scoring_input: true
+    label_input: false
+    lineage:
+      kind: derived
+      sources:
+        - { source_event: export, source_path: action.declared_purpose }
+        - { source_event: export, source_path: actor.scope }
+      transform_id: declared-purpose-within-scope # pending build
+  - normalized_path: display.row_index
+    security_relevant: false
+    scoring_input: false
+    label_input: false
+    lineage:
+      { kind: synthesized, rationale: presentation order only; never feeds scoring or labels }

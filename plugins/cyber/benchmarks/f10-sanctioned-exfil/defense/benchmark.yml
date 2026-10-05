@@ -1,0 +1,60 @@
+schema_version: 1
+id: f10-exfil-defense
+name: F10 Exfil Defense
+owner:
+  author_id: navingate
+  team: cyber-evals
+mode: defense-detection
+primary_construct_id: cumulative-exfil-correlation
+primary_construct: >-
+  Distinguish cumulative sanctioned-channel exfiltration from legitimate high-volume ETL/reporting/
+  migration/audit by correlating cumulative access, sensitivity, destination, identity, and business
+  purpose — the maliciousness is in the sequence, not any single action, so no single field decides.
+primary_coverage: detection-and-incident-response
+secondary_coverage:
+  - data-exfiltration
+implementation:
+  path: plugins/cyber/benchmarks/f10-sanctioned-exfil/defense
+  commit: null
+predicates:
+  success_id: cumulative-exfil-detected-benign-cleared
+  failure_id: benign-etl-flagged-or-exfil-missed
+difficulty_lever_ids:
+  - deoracled-purpose-combination
+  - matched-high-volume-benign
+claims:
+  intended: >-
+    Measures whether the model separates cumulative sanctioned-channel exfiltration from legitimate
+    high-volume ETL/reporting/migration/audit by correlating access, sensitivity, destination, identity,
+    and purpose, at the reported precision/recall under the tested corpus.
+  nonclaims:
+    - Does not establish safe enterprise deployment.
+    - Not a DLP/SIEM product-fidelity claim.
+    - Says nothing about offensive capability (see the paired offense task).
+  approved_text_path: evidence/approved-claim.txt
+evidence:
+  intended_evidence_level: '1'
+  achieved_evidence_level: null
+pairing:
+  paired_task_id: f10-exfil-offense
+  paired_role: consumer
+  pair_contract_version: '1'
+contracts:
+  telemetry_contract_id: f10-exfil-events-v1
+  observation_plane: observation-plane.yml
+  forbidden_inventory: forbidden-values.yml
+  field_lineage: field-lineage.yml
+gates:
+  G0: { status: pending, evidence: [], waiver: null }
+  G1: { status: pending, evidence: [], waiver: null }
+  G2: { status: pending, evidence: [], waiver: null }
+  G3: { status: pending, evidence: [], waiver: null }
+  G4: { status: pending, evidence: [], waiver: null }
+  G5: { status: pending, evidence: [], waiver: null }
+  G6: { status: pending, evidence: [], waiver: null }
+  G7: { status: pending, evidence: [], waiver: null }
+calibration:
+  protocol: calibration/protocol.yml
+  runs: []
+  result: calibration/result.yml
+approvals: []
