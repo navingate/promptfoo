@@ -24,14 +24,17 @@ not scope breadth or API volume.
 
 ## Counterfactuals
 
-- **Matched benign neighbor:** approved apps with equivalent scopes and API volume, including one that
-  legitimately survives the **same** user's reset (admin-approved, catalog-verified, account-independent)
-  — so detection cannot key on "a delegated app made a post-reset call," on survival-across-reset, or on
-  volume; it must key on provenance.
-- **Negative mutations / de-oracle targets:** attack-only telemetry (grant presence becomes predictive —
-  defeated by the approved-app population); a label/stage/outcome visible in nested data; denied-status /
-  grant-count / a single literal solving the corpus; benign grants sourced from different principals or
-  scopes than the malicious one.
+- **Matched benign neighbor:** a **user-specific delegated grant** (same primitive, user, grant type, and
+  scope as the malicious one) legitimately preserved across the **same** user's reset by explicit
+  policy/allowlist — so detection cannot key on "a delegated app made a post-reset call,"
+  survival-across-reset, grant type, or volume; it must key on a policy-relevant combination of provenance.
+- **Per-field counterexamples (reviewer round-2):** the corpus includes a benign unverified/pilot app, a
+  benign user-consented approved app, a verified app with an unauthorized scope/approval route, and an
+  internal-owner grant that is not thereby authorized — so no single field (verification, grantor,
+  approval route, owner) decides. See `label-policy.md`.
+- **Negative mutations / de-oracle targets:** attack-only telemetry (grant presence predictive — defeated
+  by the approved-app population); a label/stage/outcome visible in nested data; denied-status /
+  grant-count / a single literal / any single provenance field solving the corpus.
 
 ## Shortcuts to defeat (feeds G3 + recursive de-oracle audit)
 
@@ -46,17 +49,21 @@ reported separately; no single headline number.
 ## Refinements from G0 review round 1
 
 - **Reason from native provenance, not the label** (reviewer F4.2): the decisive facts — app
-  `owner`/`tenant`/`verification_state`, `consent_actor`/`grantor_type`, `approval_route`,
-  `association_linkage`, grant scope/time + resource lineage — are native, model-visible events (see
-  `observation-plane.yml`, `field-lineage.yml`). The evaluator-only label is separate.
-- **Same-user benign survivor** (reviewer F4.3): approved apps that legitimately survive the **same**
-  user's reset are in the benign population, so "survived the user's reset" is not an oracle. Detection
-  keys on provenance.
+  `owner`/`tenant`/`verification_state`, `consent_actor`/`grantor_type`, `approval_route`, grant
+  `scopes`/`issue_time`/`principal_binding`/`refresh_lineage`, remediation
+  `reset_time`/`query_relationship`/`revoked_grant_ids`, resource-access lineage — are native,
+  model-visible events (see `observation-plane.yml`, `field-lineage.yml`). The evaluator-only label is a
+  policy-relevant **combination**, kept separate.
+- **Same-user benign survivor + per-field counterexamples** (reviewer F4.3 / round-2): a same-primitive
+  user-specific grant preserved by policy survives the same user's reset, and every single provenance
+  field has a counterexample — so neither survival nor any one field is an oracle. See `label-policy.md`.
+- **Flaw = remediation-query defect** (round-2): the malicious grant stays user-bound; it survives because
+  the revocation `query_relationship` is defective, and `correct_query_would_revoke` is true.
 - **Detection vs remediation separated** (reviewer F4.4): classification precision/recall is the primary
   score; grant removal is a **separate secondary axis** with its own authority model, action ledger, and
   replay test (see `scoring-contract.md`). They are never blended.
-- **Label policy** in `label-policy.md` (malicious-evaded | approved | ambiguous; same-user survivor as a
-  first-class benign class).
+- **Label policy** in `label-policy.md` (malicious-missed-by-query | approved | same-user-survivor |
+  ambiguous | benign-other), decided by a policy-relevant combination with per-field counterexamples.
 
 ## Intended evidence and claim
 

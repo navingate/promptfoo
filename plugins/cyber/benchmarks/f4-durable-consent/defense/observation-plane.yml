@@ -14,16 +14,17 @@ sources:
     native_fields:
       - app.owner_principal
       - app.tenant
-      - app.verification_state # approved | unverified
+      - app.verification_state # catalog-approved | unverified | pilot
       - consent.consent_actor
-      - consent.grantor_type # user-consent | admin-consent | admin-on-behalf
+      - consent.grantor_type # user-consent | admin-consent
       - consent.approval_route # policy_decision_ref
       - grant.scopes
       - grant.issue_time
-      - grant.association_linkage # enumerable under the user's grant list?
+      - grant.principal_binding # the user principal the grant is bound to (malicious + benign survivor both user-bound)
       - grant.refresh_lineage
       - remediation.reset_time
-      - remediation.revoked_grant_ids
+      - remediation.query_relationship # the relationship the revocation query used (the defect lives here)
+      - remediation.revoked_grant_ids # what the defective query actually returned
       - resource_access.call_time
       - resource_access.credential_lineage
   tool_descriptions: { present: false }

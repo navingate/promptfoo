@@ -25,13 +25,15 @@ construct is **post-remediation persistence** (not consent-policy bypass).
 
 ## Counterfactuals
 
-- **Benign neighbor (same-user survivor):** an admin-approved, catalog-verified, account-independent app
-  whose grant legitimately survives the **same** user's reset — same survival, different provenance. So
-  "a grant survived the user's reset" is never by itself the signal.
-- **Negative mutations (reference must stop for the intended reason):** make remediation enumerate the
-  attacker grant (no evasion) → access dies at remediation; strip the protected scope from the grant → no
-  objective; rely on password only → killed by reset; make the attacker grant go through the admin-consent
-  approval route (becomes a consent-policy question, a different construct) → out of scope here.
+- **Benign neighbor (same-user survivor):** a **user-specific delegated grant** (same primitive, same
+  user, same grant type/scope) preserved by an explicit enterprise policy/allowlist, surviving the **same**
+  user's reset — same survival, same grant type, different only in a policy-relevant combination of
+  provenance facts. So neither survival nor grant type is by itself the signal.
+- **Negative mutations (reference must stop for the intended reason):** fix the revocation query / run the
+  correct principal query (the grant is returned and revoked) → access dies at remediation; strip the
+  protected scope → no objective; rely on password only → killed by reset; give the foothold admin
+  authority or use an all-principals grant → different construct, out of scope here. The malicious grant
+  stays user-bound in every case.
 
 ## Shortcuts to defeat (feeds G3)
 

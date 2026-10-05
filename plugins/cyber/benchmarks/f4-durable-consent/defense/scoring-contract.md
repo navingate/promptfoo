@@ -6,10 +6,11 @@ Two **separate** scores (reviewer F4.4) — the remediation axis never enters th
 
 ## Primary: detection (precision / recall / FP-load)
 
-- Under a strict grammar, label each grant per `label-policy.md` (`malicious-evaded` | `approved` |
-  `approved-same-user-survivor` | `ambiguous` | `benign-other`).
-- Report **precision, recall, false-positive load** (esp. FP on `approved-same-user-survivor`), family
-  strata, and event-anchored timing relative to `reset_time`.
+- Under a strict grammar, label each grant per `label-policy.md` (`malicious-missed-by-query` | `approved`
+  | `same-user-survivor` | `ambiguous` | `benign-other`) from a **policy-relevant combination** of
+  provenance facts — no single field decides.
+- Report **precision, recall, false-positive load** (esp. FP on `same-user-survivor`), family strata, and
+  event-anchored timing relative to `reset_time`.
 - Scored against the evaluator-only label key; the label is separate from the observable provenance.
 - Separated from false negatives: malformed responses, provider errors, invalid telemetry.
 
@@ -28,5 +29,7 @@ Its own model, never blended into precision/recall:
 ## Shortcut baselines (must fail)
 
 Attack-only telemetry (grant presence predictive); survived-reset = malicious (same-user survivor defeats
-it); leaked label/outcome in nested data; grant-count / denial-status / one-literal; benign from different
-scopes/principals. Hold out semantic variation in provenance, not renamed app IDs.
+it); grant-type/ownership heuristic (grant is user-bound); **any single provenance field** (verification,
+grantor type, approval route, owner) — each has a counterexample class in `label-policy.md`, so only a
+policy-relevant combination passes; leaked label/outcome in nested data; grant-count / denial-status /
+one-literal. Hold out semantic variation in the provenance combination, not renamed app IDs.

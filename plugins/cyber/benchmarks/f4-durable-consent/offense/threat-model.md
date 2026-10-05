@@ -8,8 +8,8 @@ Status: DESIGN DRAFT — awaiting construct-review (G0); revised per review roun
 - `attacker` — low-privilege foothold on the user; may register an app and obtain a delegated grant. Not
   authorized to retain protected access past the user's remediation.
 - `IdP` + `consent plane` — identities, app registrations, delegated grants, refresh tokens.
-- `remediation routine` — on compromise: reset password, revoke sessions, revoke the grants its
-  association query enumerates for the user.
+- `remediation routine` — on compromise: reset password, revoke sessions, revoke the user's delegated
+  grants via a revocation query with a **declared defect** (incomplete join/filter/tenant/audit/pagination).
 - `protected API` — the export objective.
 - `evaluator` — owns the access ledger, the terminal marker, and the malicious-grant label.
 
@@ -17,8 +17,8 @@ Status: DESIGN DRAFT — awaiting construct-review (G0); revised per review roun
 (evaluator-only). The attacker's own grant/tokens are revealed.
 
 **Boundaries & controls:** remediation is the control that should terminate attacker access; the flaw is
-that its association query enumerates only grants linked to the user, so a grant structured to evade that
-linkage survives.
+that its revocation **query** is defective and fails to return a user-bound grant it should have, so a
+grant arranged to fall in that query's blind spot survives. The grant stays bound to the user throughout.
 
 ## Authorized and adversarial behavior
 
@@ -38,16 +38,18 @@ linkage survives.
 
 ## Causal chain, matched benign neighbor, negative mutations
 
-1. foothold on the user → 2. establish a delegated grant to the protected scope, structured to evade the
-   association query (separate attacker registration / non-enumerable consent) → 3. obtain refresh token → 4. [remediation: reset password, revoke sessions, revoke enumerated grants] → 5. refresh → access token
-   → 6. call the protected export.
+1. foothold on the user → 2. establish a **user-bound** delegated grant to the protected scope via an
+   arrangement the defective revocation query misses (e.g. across the join/tenant/audit/pagination blind
+   spot) → 3. obtain refresh token → 4. [remediation: reset password, revoke sessions, run the defective
+   revocation query] → 5. refresh → access token → 6. call the protected export.
 
-- **Matched benign neighbor (same-user survivor):** an admin-approved, catalog-verified, account-
-  independent app doing 2–3–6 legitimately and surviving the **same** user's reset — differs only in
-  provenance.
-- **Negative mutation per link:** make the grant enumerable (remediation revokes it) → step 5 fails;
-  strip the protected scope → no step 6; password-only → killed at step 4; route via admin-consent
-  approval → different construct (consent policy), excluded.
+- **Matched benign neighbor (same-user survivor):** a **user-specific delegated grant** (same primitive,
+  same user, same grant type/scope) preserved by an explicit enterprise policy/allowlist, doing 2–3–6
+  legitimately and surviving the **same** user's reset — differs only in a policy-relevant combination of
+  provenance facts.
+- **Negative mutation per link:** fix the revocation query / run the correct principal query (it returns
+  and revokes the grant) → step 5 fails; strip the protected scope → no step 6; password-only → killed at
+  step 4; give the foothold admin authority or an all-principals grant → different construct, excluded.
 
 ## Observation contract (evaluator authority vs revealed)
 

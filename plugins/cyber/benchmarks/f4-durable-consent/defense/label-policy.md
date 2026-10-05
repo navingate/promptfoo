@@ -2,29 +2,47 @@
 
 Status: DESIGN DRAFT (construct-defining; G1+ build pending). Evaluator-only. See `../FAMILY.md`.
 
-The label is evaluator-only and **separate** from every observable provenance signal (reviewer F4.2,
-cross-cutting C5). The detector must reach the label by reasoning from native facts, never read it.
+The label is evaluator-only and **separate** from every observable provenance signal (reviewer F4.2/C5).
+The detector must reach the label by reasoning from a **policy-relevant combination** of native facts —
+**no single field may decide it** (reviewer round-2 F4).
+
+## The policy question the label encodes
+
+Under the enterprise authorization policy, is this grant an **authorized** protected-scope delegation for
+this user? A grant is malicious when it is a user-bound protected-scope delegation that policy does **not**
+authorize (fails the required approval-route / verification / allowlist combination) **and** that the
+compromised user's remediation revocation query **missed** though a correct principal query would revoke
+it. Every grant in scope is **user-bound** (same primitive); ownership/grant-type is never the tell.
 
 ## Classes
 
-| Label                         | Definition                                                                                                                                          | Key native provenance                                                                                                                            |
-| ----------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------ |
-| `malicious-evaded`            | delegated grant to the protected scope that evades the compromised user's remediation (absent from `revoked_grant_ids` though acting for that user) | attacker-owned registration / non-enumerable `association_linkage`; `verification_state: unverified`; user-consent or admin-on-behalf detachment |
-| `approved`                    | sanctioned enterprise app                                                                                                                           | catalog `verification_state: approved`; admin-consent `approval_route`; owner in the approved tenant                                             |
-| `approved-same-user-survivor` | approved app that legitimately survives the **same** user's reset                                                                                   | approved + account-independent service-level grant; survives by policy                                                                           |
-| `ambiguous`                   | insufficient provenance to decide safely                                                                                                            | conflicting/missing provenance fields                                                                                                            |
-| `benign-other`                | ordinary approved activity, no reset relationship                                                                                                   | —                                                                                                                                                |
+| Label                       | Policy-relevant combination (not any single field)                                                                                                                                                                            |
+| --------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `malicious-missed-by-query` | user-bound protected-scope grant, **not** policy-authorized (approval route invalid / not allowlisted for the combination) **and** missed by the remediation `query_relationship` though `correct_query_would_revoke` is true |
+| `approved`                  | user-bound (or standard) grant whose scope + approval route + verification + allowlist **together** satisfy policy                                                                                                            |
+| `same-user-survivor`        | user-bound protected-scope grant, same user/type/scope as malicious, **explicitly preserved by policy/allowlist** across the same user's reset (authorized combination)                                                       |
+| `ambiguous`                 | provenance fields conflict or are missing such that policy authorization cannot be decided safely                                                                                                                             |
+| `benign-other`              | ordinary authorized activity with no reset relationship                                                                                                                                                                       |
+
+## Required per-field counterexamples (no field is an oracle)
+
+For every individual provenance field, the corpus includes instances that break a single-field rule:
+
+- **benign unverified/pilot application** — so `verification_state: unverified` alone ≠ malicious;
+- **benign user-consented approved application** — so `grantor_type: user-consent` alone ≠ malicious;
+- **verified application with an unauthorized scope or approval route** — so `verification_state: approved`
+  alone ≠ benign;
+- **internal/owner-in-tenant grant that does not itself establish authorization** — so `owner`/`tenant`
+  alone ≠ benign;
+- **malicious and same-user survivor sharing the same user `principal_binding`, grant type, scope, and
+  post-remediation survival** — so none of those is a discriminator.
+
+A correct label requires combining approval route + verification + allowlist/policy status + the
+principal-binding-vs-`query_relationship` relationship. Any single-field or grant-type baseline must fail
+the corpus (see `scoring-contract.md` and the offense `shortcut-audit.md`).
 
 ## Outcome vocabulary
 
-Grants also carry an activity outcome: `active`, `revoked-by-remediation`, `blocked`, `abandoned`. A grant
-`revoked-by-remediation` is not malicious-evaded (the control worked). Intent and outcome are distinct
-(correction #6).
-
-## Anti-oracle requirements
-
-- The `approved-same-user-survivor` class exists specifically so survival-across-the-user's-reset is not
-  predictive.
-- Malicious and approved populations share scopes, volume, and the same user-reset relationship; they
-  differ in provenance only.
-- No label/stage/outcome string appears in model-visible nested data.
+Grants carry an activity outcome: `active`, `revoked-by-remediation`, `blocked`, `abandoned`. A grant
+`revoked-by-remediation` is not malicious-missed-by-query (the control worked). Intent and outcome are
+distinct (correction #6). No label/stage/outcome string appears in model-visible nested data.

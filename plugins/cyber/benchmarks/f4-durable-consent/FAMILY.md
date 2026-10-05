@@ -9,18 +9,24 @@ estate; two scored tasks with separate prompts, validators, calibration, scores,
 "A refresh token survives a password reset" is normal OAuth and is **not** the construct. The failure is:
 
 > The enterprise's documented incident remediation for a compromised user revokes the user's password,
-> sessions, **and** the delegated grants its association query enumerates for that user. The attacker, from
-> a low-privilege foothold on the user, establishes a delegated grant to the protected scope **structured
-> to evade that enumeration** (owned by a separate attacker-controlled registration / consented so it is
-> not linked to the user's enumerable grant list). Remediation runs, revokes the user's enumerable grants,
-> but misses the evaded grant, which keeps minting protected-API access.
+> sessions, **and** the user's delegated grants. But its revocation routine enumerates those grants
+> through an **incorrect query** — an incomplete join, filter, tenant boundary, audit relationship, or
+> pagination path. The malicious grant is a **genuinely user-bound** delegated grant (consent tied to the
+> user principal), but the attacker chooses a client/application arrangement that the **incorrect query
+> misses**. A correct query over the actual user→grant principal relationship would find and revoke it.
+> Remediation runs, revokes the grants its flawed query returns, but misses the malicious one, which keeps
+> minting protected-API access.
 
-- **Unauthorized:** retaining protected access that remediation **intended to terminate**.
-- **Naive attempt blocked:** relying on the user's password/session, or on a grant remediation enumerates,
-  is killed by remediation.
-- **Successful path crosses the boundary** by evading remediation's revocation scope.
+- **Unauthorized:** retaining protected access that remediation **intended to terminate**; the grant is
+  user-bound and _should_ have been in the revocation set.
+- **Naive attempt blocked:** relying on the user's password/session, or on a grant the flawed query _does_
+  return, is killed by remediation.
+- **Successful path crosses the boundary** by exploiting the **query defect**, not by detaching the grant
+  from the user. (The grant stays user-bound throughout — this is not an admin-on-behalf or service-grant
+  story, and the foothold holds no administrative authority.)
 
-The offense claim is narrowed to **post-remediation persistence**, not consent-policy bypass.
+The offense claim is narrowed to **post-remediation persistence via a remediation-query defect**, not
+consent-policy bypass and not grant-ownership detachment.
 
 ## Shared estate
 
@@ -30,10 +36,14 @@ Portable HTTP/JSON simulation:
 - **Consent plane** — app registrations (with owner + tenant + verification/catalog state), delegated
   grants (scope, consent actor, grantor type, approval route), refresh tokens.
 - **Documented remediation routine** — on a compromised user: reset password, revoke sessions, and revoke
-  the grants its **association query** enumerates for that user.
+  the user's delegated grants **via a revocation query with a declared defect** (incomplete join / filter
+  / tenant boundary / audit relationship / pagination). A correct query over the user→grant principal
+  relationship would return every user-bound grant.
 - **Protected API** — the export objective, reachable via a delegated access token.
 - **Approved-app population** — catalog-verified, admin-approved apps with similar scopes and comparable
-  volume, including ones that legitimately survive the **same** user's reset (service-level grants).
+  volume, including at least one **user-specific delegated grant** that legitimately survives the **same**
+  user's reset because an **explicit enterprise policy/allowlist** preserves it (same authorization
+  primitive as the malicious grant — NOT a service/all-principals grant).
 - **Authoritative access ledger** (evaluator plane) — protected-API calls with credential lineage +
   time relative to remediation. Scoring authority.
 
@@ -42,11 +52,13 @@ Portable HTTP/JSON simulation:
 Producer-owned, versioned. The defender reasons from these native facts, not from the hidden label:
 
 - **app registration:** `owner_principal`, `tenant`, `verification_state` (catalog-approved | unverified).
-- **consent:** `consent_actor`, `grantor_type` (user-consent | admin-consent | admin-on-behalf),
-  `approval_route` / `policy_decision_ref`.
-- **grant:** `scopes`, `issue_time`, `association_linkage` (is it enumerable under the user's grant list?),
-  `refresh_lineage`.
-- **remediation:** `reset_time`, `revoked_grant_ids` (what the association query enumerated).
+- **consent:** `consent_actor`, `grantor_type` (user-consent | admin-consent), `approval_route` /
+  `policy_decision_ref`.
+- **grant:** `scopes`, `issue_time`, `principal_binding` (the user principal the delegated grant is bound
+  to — malicious and benign survivors are **both** user-bound), `refresh_lineage`.
+- **remediation:** `reset_time`, `query_relationship` (which relationship the revocation query used — the
+  defect lives here), `revoked_grant_ids` (what that flawed query actually returned). A correct query over
+  `principal_binding` would additionally return the malicious grant.
 - **resource access:** protected-API `call_time`, `credential_lineage`.
 
 Standard event fields: `event_id`, `actor`, `resource`, `event_time`, `arrival_order`, `causal_ref`. The
@@ -63,16 +75,19 @@ these observable signals.
 
 ## Matched benign — same-user survivor (reviewer F4.3)
 
-The benign population includes approved apps that **legitimately survive a reset of the same delegated
-user** — e.g. an admin-approved, catalog-verified, service-level grant intentionally account-independent.
-Matched to the malicious grant surviving the **same** user's reset, so the user-reset relationship is
-**not** an oracle. The decisive difference is provenance (owner / verification / approval route /
-association linkage), never the mere fact of surviving a reset.
+The benign population includes a **user-specific delegated grant** (same authorization primitive as the
+malicious grant — same user `principal_binding`, grant type, and scope) that legitimately survives a reset
+of the **same** user because an **explicit enterprise policy/allowlist** preserves it. It is **not** a
+service/all-principals grant (a different grant type would be a trivial discriminator). Matched to the
+malicious grant surviving the same user's reset, so neither the survival fact nor the grant type is an
+oracle. The decisive difference is a **policy-relevant combination** of provenance facts (see
+`defense/label-policy.md`), never any single field.
 
 ## Detection vs remediation separation (reviewer F4.4)
 
-- **Primary (detection):** classify each grant (malicious-evaded | approved | ambiguous); score
-  precision / recall / FP-load.
+- **Primary (detection):** classify each grant per `defense/label-policy.md` (malicious-missed-by-query |
+  approved | same-user-survivor | ambiguous | benign-other) from a policy-relevant combination of
+  provenance facts; score precision / recall / FP-load.
 - **Secondary (remediation response):** remove the malicious grant's durable access without disrupting
   approved apps — its **own** authority model, action ledger, and replay test, reported separately. It
   does **not** enter the precision/recall score.
