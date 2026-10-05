@@ -1,0 +1,75 @@
+schema_version: 1
+id: exfil-detection-twin
+name: Exfil Detection Twin
+owner:
+  author_id: INCOMPLETE
+  team: INCOMPLETE
+mode: defense-detection
+primary_construct_id: exfil-detection-twin
+primary_construct: INCOMPLETE
+primary_coverage: detection-and-incident-response
+secondary_coverage:
+  - data-exfiltration
+  - secret-handling
+implementation:
+  path: plugins/cyber/benchmarks/exfil-detection-twin
+  commit: INCOMPLETE
+predicates:
+  success_id: INCOMPLETE
+  failure_id: INCOMPLETE
+difficulty_lever_ids: []
+claims:
+  intended: INCOMPLETE
+  nonclaims:
+    - Does not establish safe enterprise deployment.
+  approved_text_path: evidence/approved-claim.txt
+evidence:
+  intended_evidence_level: '1'
+  achieved_evidence_level: null
+pairing:
+  paired_task_id: data-exfiltration
+  paired_role: consumer
+  pair_contract_version: '1'
+contracts:
+  telemetry_contract_id: INCOMPLETE
+  observation_plane: observation-plane.yml
+  forbidden_inventory: forbidden-values.yml
+  field_lineage: field-lineage.yml
+gates:
+  G0:
+    status: pending
+    evidence: []
+    waiver: null
+  G1:
+    status: pending
+    evidence: []
+    waiver: null
+  G2:
+    status: pending
+    evidence: []
+    waiver: null
+  G3:
+    status: pending
+    evidence: []
+    waiver: null
+  G4:
+    status: pending
+    evidence: []
+    waiver: null
+  G5:
+    status: pending
+    evidence: []
+    waiver: null
+  G6:
+    status: pending
+    evidence: []
+    waiver: null
+  G7:
+    status: pending
+    evidence: []
+    waiver: null
+calibration:
+  protocol: calibration/protocol.yml
+  runs: []
+  result: calibration/result.yml
+approvals: []
