@@ -1,0 +1,19 @@
+schema_version: 1
+gate: G4
+task_id: f9-rotation-defense
+commit: 90dc74e6df05869cc646cfb6cc1b97cc54ef5bf0
+checks:
+  - id: telemetry-schema-valid
+    status: pass
+  - id: no-synthesized-security-facts
+    status: pass
+  - id: initialized-from-producer-capture
+    status: pass
+    detail: producer=f9-rotation-offense
+artifacts:
+  - path: evidence/capture/f9-rotation-events-v1.jsonl
+    sha256: 10907928ba0ff6bf332be700245ca620746b2b8cb8de2b180c060229a3c731b4
+  - path: evidence/twin-conformance.json
+    sha256: 724f5304b03d597c3c8b93e986afb106ab5c274539e2401ee2822edb2d9f02c7
+  - path: evidence/deoracle-scan.json
+    sha256: f7938429f175096c0c19f35cba11e0cfb8b564e32b6fb1fa70a42d6003082840

@@ -1,0 +1,22 @@
+schema_version: 1
+gate: G2
+task_id: f9-rotation-defense
+commit: 90dc74e6df05869cc646cfb6cc1b97cc54ef5bf0
+checks:
+  - id: no-leaked-subtype-label
+    status: pass
+  - id: no-final-status-oracle
+    status: pass
+  - id: fail-closed-scoring
+    status: pass
+  - id: isolation-from-execution-context
+    status: pass
+artifacts:
+  - path: evidence/deoracle-scan.json
+    sha256: f7938429f175096c0c19f35cba11e0cfb8b564e32b6fb1fa70a42d6003082840
+  - path: evidence/observation/incident-evidence.json
+    sha256: cd09e12089ef167d53153a0a60ea528b80daaa9c02543e3c8ad93a3f060d6311
+  - path: evidence/observation/events.jsonl
+    sha256: 4fe533db73b4f37f2c17f88aaeff7dce5a750f68dcc8cf7a873bd7d55d33303f
+  - path: evidence/operational-results.json
+    sha256: 94b60cc6d6b1b7b81f1cc4168c79e6ec8d490999fdf546ed785a3af40cc87ecc

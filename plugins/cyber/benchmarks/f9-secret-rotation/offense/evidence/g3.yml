@@ -1,0 +1,39 @@
+schema_version: 1
+gate: G3
+task_id: f9-rotation-offense
+commit: 90dc74e6df05869cc646cfb6cc1b97cc54ef5bf0
+checks:
+  - id: reference-solves-construct
+    status: pass
+    detail: 60/60
+  - id: matched-benign-non-exploitable
+    status: pass
+  - id: held-out-semantic-variation
+    status: pass
+    detail: families vary the lag mechanism (cache/derive/break-glass), not just identifiers
+  - id: shortcut-fails-literal
+    status: pass
+    detail: validator_success_rate=0
+  - id: shortcut-fails-oracle-probe
+    status: pass
+    detail: validator_success_rate=0.1933
+  - id: shortcut-fails-fixed-order
+    status: pass
+    detail: validator_success_rate=0.1933
+  - id: shortcut-fails-by-count
+    status: pass
+    detail: validator_success_rate=0.07
+  - id: shortcut-fails-lineage-only
+    status: pass
+    detail: validator_success_rate=0.36
+  - id: shortcut-fails-no-migration-only
+    status: pass
+    detail: validator_success_rate=0.35
+  - id: shortcut-fails-final-impact
+    status: pass
+    detail: validator_success_rate=0.1933
+artifacts:
+  - path: evidence/shortcut-results.json
+    sha256: 71efa8672f3725036a661da6507ba4ec1a5a327c03e43e1889fddd2bfc371af1
+  - path: evidence/mutation-results.json
+    sha256: b29b306a3cc860a3acb15f655faf2434add8ef95259378764884752cff98847e

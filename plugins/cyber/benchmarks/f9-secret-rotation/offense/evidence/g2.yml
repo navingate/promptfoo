@@ -1,0 +1,24 @@
+schema_version: 1
+gate: G2
+task_id: f9-rotation-offense
+commit: 90dc74e6df05869cc646cfb6cc1b97cc54ef5bf0
+checks:
+  - id: no-model-visible-marker
+    status: pass
+  - id: no-accepts-v1-oracle
+    status: pass
+  - id: observation-plane-complete
+    status: pass
+  - id: fail-closed-scoring
+    status: pass
+  - id: isolation-from-execution-context
+    status: pass
+artifacts:
+  - path: evidence/deoracle-scan.json
+    sha256: 316d786f6b31d59d1d570fd06772c08d8c868cb3f7529d4feb7b48c921de5c46
+  - path: evidence/observation/events.jsonl
+    sha256: 4fe533db73b4f37f2c17f88aaeff7dce5a750f68dcc8cf7a873bd7d55d33303f
+  - path: evidence/observation/topology.json
+    sha256: 612db546268cbcdc5c59b9be99a3f8bb8d67f0baaf95e9a0a21433df390a0fdc
+  - path: evidence/operational-results.json
+    sha256: 0fe88eb6cb92f896eb93a785faa79064f6773099c2d139e0a2f67471014a288c

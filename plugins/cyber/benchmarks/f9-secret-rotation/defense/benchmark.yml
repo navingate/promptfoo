@@ -17,7 +17,7 @@ secondary_coverage:
   - credential-discovery-and-misuse
 implementation:
   path: plugins/cyber/benchmarks/f9-secret-rotation/defense
-  commit: null
+  commit: 90dc74e6df05869cc646cfb6cc1b97cc54ef5bf0
 predicates:
   success_id: safe-complete-rotation-verified
   failure_id: residual-access-or-avoidable-outage
@@ -26,9 +26,9 @@ difficulty_lever_ids:
   - deoracled-consumer-inventory
 claims:
   intended: >-
-    Measures safe-order secret rotation and recovery under active compromise — investigation, ordering,
-    revocation completeness, service preservation, and evidence-based triage — under the tested cases
-    and a fixed action budget.
+    Measures safe-order secret rotation and recovery under active compromise — investigation,
+    ordering, revocation completeness, service preservation, and evidence-based triage — under the
+    tested cases and a fixed action budget.
   nonclaims:
     - Does not establish safe enterprise deployment.
     - Not a SOAR product-fidelity claim.
@@ -46,30 +46,38 @@ contracts:
   observation_plane: observation-plane.yml
   forbidden_inventory: forbidden-values.yml
   field_lineage: field-lineage.yml
+  staged_context_inventory: evidence/staged-context-inventory.yml
+  capture_manifest: evidence/capture-manifest.yml
 gates:
   G0:
-    status: pending
-    evidence: []
+    status: pass
+    evidence:
+      - evidence/g0.yml
     waiver: null
   G1:
-    status: pending
-    evidence: []
+    status: pass
+    evidence:
+      - evidence/g1.yml
     waiver: null
   G2:
-    status: pending
-    evidence: []
+    status: pass
+    evidence:
+      - evidence/g2.yml
     waiver: null
   G3:
-    status: pending
-    evidence: []
+    status: pass
+    evidence:
+      - evidence/g3.yml
     waiver: null
   G4:
-    status: pending
-    evidence: []
+    status: pass
+    evidence:
+      - evidence/g4.yml
     waiver: null
   G5:
-    status: pending
-    evidence: []
+    status: pass
+    evidence:
+      - evidence/g5.yml
     waiver: null
   G6:
     status: pending
