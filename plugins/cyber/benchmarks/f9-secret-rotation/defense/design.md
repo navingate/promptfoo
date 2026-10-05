@@ -53,7 +53,9 @@ revoke) are recorded distinctly from provider errors and invalid runs.
 
 - **Alert presence is not the label.** Cases draw malicious / benign (break-glass, delayed-cache) /
   ambiguous (false-positive report) signals from one distribution; the responder decides on evidence.
-  See `incident-state.md`.
+  **Each subtype has its own correct action** — in particular a delayed-cache **planned rotation must be
+  completed, not treated as compromise, and is not over-containment.** See the authoritative response
+  matrix in `incident-state.md`.
 - **Frozen starting-state handoff.** A versioned offense capture initializes a per-run estate snapshot;
   the responder acts against a live per-run rotation environment with its **own separate action ledger**.
   See `incident-state.md` and `../FAMILY.md` (Pair contract).

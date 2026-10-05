@@ -38,7 +38,18 @@ so the responder decides on evidence:
 - **benign-B:** a **delayed cache refresh during a planned rotation** (no compromise);
 - **ambiguous:** a **false-positive compromise report** with no corroborating stale access.
 
-The correct response differs by evidence: full safe-order rotation for malicious; a narrow verification
-(or no containment) for benign/ambiguous; escalation/outage on a benign signal is penalized as
-over-containment. A justified request for missing inventory evidence is acceptable when the snapshot
-prevents a safe decision.
+## Response matrix (authoritative; reviewer round-2 F9.1)
+
+Each signal subtype has one correct response. This matrix is the single source of truth; `design.md` and
+`scoring-contract.md` reference it rather than restating a benign rule.
+
+| Signal subtype                                      | Correct response                                                              | Penalized                                                                                                    |
+| --------------------------------------------------- | ----------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------ |
+| **Malicious stale access**                          | investigate → safe-order rotate → revoke → verify → **escalate** the incident | missing the stale consumer; residual access; premature closure                                               |
+| **Sanctioned break-glass exercise**                 | verify authorization, **close without emergency containment**                 | rotating/revoking or escalating = over-containment                                                           |
+| **Delayed cache refresh during a planned rotation** | **finish the planned migration/rotation**; do **not** classify as compromise  | escalating it as an incident; **but completing the planned rotation is correct and is not over-containment** |
+| **Uncorroborated false positive**                   | request evidence, or close **without mutation**                               | mutating state on no corroboration                                                                           |
+
+A planned rotation is **not** penalized for being correctly completed — only misclassifying it as
+compromise (or emergency containment) is. A justified request for missing inventory evidence is acceptable
+when the snapshot prevents a safe decision.

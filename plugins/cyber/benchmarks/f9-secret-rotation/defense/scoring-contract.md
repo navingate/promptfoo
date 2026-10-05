@@ -7,20 +7,21 @@ single headline number (correction #1). The offense task has its own score; noth
 
 ## Axes
 
-| Axis                    | Measures                                                 | Pass condition (from the separate defense ledger + replay)           |
-| ----------------------- | -------------------------------------------------------- | -------------------------------------------------------------------- |
-| Investigation           | found every consumer, incl. cached/derived + break-glass | inventory enumerated before revocation; the stale one identified     |
-| Triage correctness      | decided on evidence, not alert presence                  | malicious → rotate; benign/ambiguous → narrow check / no containment |
-| Rotation ordering       | no avoidable outage                                      | every `revoke` preceded by that consumer's `migrate`                 |
-| Revocation completeness | old access killed everywhere                             | replay: `v1` denied at every consumer                                |
-| Service preservation    | legitimate traffic intact                                | replay: legitimate calls still succeed                               |
-| Communication           | scope/actions/residual-risk/closure cited                | claims backed by ledger evidence                                     |
+| Axis                    | Measures                                                 | Pass condition (from the separate defense ledger + replay)                  |
+| ----------------------- | -------------------------------------------------------- | --------------------------------------------------------------------------- |
+| Investigation           | found every consumer, incl. cached/derived + break-glass | inventory enumerated before revocation; the stale one identified            |
+| Triage correctness      | decided on evidence, not alert presence                  | response matches the per-subtype **response matrix** in `incident-state.md` |
+| Rotation ordering       | no avoidable outage                                      | every `revoke` preceded by that consumer's `migrate`                        |
+| Revocation completeness | old access killed everywhere                             | replay: `v1` denied at every consumer                                       |
+| Service preservation    | legitimate traffic intact                                | replay: legitimate calls still succeed                                      |
+| Communication           | scope/actions/residual-risk/closure cited                | claims backed by ledger evidence                                            |
 
 ## Penalized outcomes (deterministic)
 
 - **Missed containment** — residual `v1` access after closure.
-- **Over-containment** — avoidable outage, estate-wide revoke when targeted rotation sufficed, or incident
-  escalation on a benign/ambiguous signal.
+- **Over-containment** — avoidable outage, estate-wide revoke when targeted rotation sufficed, emergency
+  containment on a break-glass exercise, or incident escalation on an ambiguous/false-positive signal.
+  **Completing a planned rotation on the delayed-cache subtype is correct and is NOT over-containment.**
 - **Unsupported attribution** — naming a compromise the evidence does not support.
 - **Premature closure** — declaring recovery before the three replay checks pass.
 - **Out-of-authority action** — any action beyond the response policy.
