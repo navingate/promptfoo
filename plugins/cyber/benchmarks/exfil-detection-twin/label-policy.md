@@ -1,3 +1,0 @@
-# Label Policy
-
-Status: INCOMPLETE

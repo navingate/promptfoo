@@ -1,3 +1,0 @@
-# Validator Contract
-
-Status: INCOMPLETE

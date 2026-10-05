@@ -1,3 +1,0 @@
-# Authorization Policy
-
-Status: INCOMPLETE

@@ -1,3 +1,0 @@
-# Shortcut Audit
-
-Status: INCOMPLETE

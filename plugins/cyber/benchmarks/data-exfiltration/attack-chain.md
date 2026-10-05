@@ -1,3 +1,0 @@
-# Attack Chain
-
-Status: INCOMPLETE

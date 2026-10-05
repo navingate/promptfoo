@@ -1,3 +1,0 @@
-# Response Policy
-
-Status: INCOMPLETE

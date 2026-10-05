@@ -1,3 +1,0 @@
-# Incident State
-
-Status: INCOMPLETE

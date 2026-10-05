@@ -1,3 +1,0 @@
-# Scoring Contract
-
-Status: INCOMPLETE
