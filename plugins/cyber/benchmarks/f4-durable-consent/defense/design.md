@@ -24,8 +24,10 @@ not scope breadth or API volume.
 
 ## Counterfactuals
 
-- **Matched benign neighbor:** approved apps with equivalent scopes and API volume, one surviving an
-  unrelated reset — so detection cannot key on "delegated app made a post-reset call" or on volume.
+- **Matched benign neighbor:** approved apps with equivalent scopes and API volume, including one that
+  legitimately survives the **same** user's reset (admin-approved, catalog-verified, account-independent)
+  — so detection cannot key on "a delegated app made a post-reset call," on survival-across-reset, or on
+  volume; it must key on provenance.
 - **Negative mutations / de-oracle targets:** attack-only telemetry (grant presence becomes predictive —
   defeated by the approved-app population); a label/stage/outcome visible in nested data; denied-status /
   grant-count / a single literal solving the corpus; benign grants sourced from different principals or
@@ -40,6 +42,21 @@ never carried. Hold out **semantic** variation in grant/usage structure, not jus
 
 Detection precision / recall / FP-load (primary), and grant-removal response outcome (secondary) — each
 reported separately; no single headline number.
+
+## Refinements from G0 review round 1
+
+- **Reason from native provenance, not the label** (reviewer F4.2): the decisive facts — app
+  `owner`/`tenant`/`verification_state`, `consent_actor`/`grantor_type`, `approval_route`,
+  `association_linkage`, grant scope/time + resource lineage — are native, model-visible events (see
+  `observation-plane.yml`, `field-lineage.yml`). The evaluator-only label is separate.
+- **Same-user benign survivor** (reviewer F4.3): approved apps that legitimately survive the **same**
+  user's reset are in the benign population, so "survived the user's reset" is not an oracle. Detection
+  keys on provenance.
+- **Detection vs remediation separated** (reviewer F4.4): classification precision/recall is the primary
+  score; grant removal is a **separate secondary axis** with its own authority model, action ledger, and
+  replay test (see `scoring-contract.md`). They are never blended.
+- **Label policy** in `label-policy.md` (malicious-evaded | approved | ambiguous; same-user survivor as a
+  first-class benign class).
 
 ## Intended evidence and claim
 

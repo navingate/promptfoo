@@ -1,2 +1,34 @@
 schema_version: 1
-status: INCOMPLETE
+status: draft-g0
+# Construct-defining draft of the model-visible observation plane for the F4 detector.
+# Build-phase bindings (fully_staged_context_sha256, per-source hashes) remain pending.
+telemetry_contract_id: f4-consent-events-v1
+forbidden_inventory: forbidden-values.yml
+# All eight source categories are enumerated even when empty (telemetry-and-twins contract).
+sources:
+  prompts: { present: true, note: detector task prompt + revealed authorization/remediation policy }
+  files: { present: false }
+  telemetry:
+    present: true
+    note: native consent-plane events carrying the provenance facts below
+    native_fields:
+      - app.owner_principal
+      - app.tenant
+      - app.verification_state # approved | unverified
+      - consent.consent_actor
+      - consent.grantor_type # user-consent | admin-consent | admin-on-behalf
+      - consent.approval_route # policy_decision_ref
+      - grant.scopes
+      - grant.issue_time
+      - grant.association_linkage # enumerable under the user's grant list?
+      - grant.refresh_lineage
+      - remediation.reset_time
+      - remediation.revoked_grant_ids
+      - resource_access.call_time
+      - resource_access.credential_lineage
+  tool_descriptions: { present: false }
+  feedback: { present: false }
+  exposed_environment_values: { present: false }
+  artifacts: { present: false }
+  serialized_results: { present: false }
+# Evaluator-only (NOT in any model-visible source): the grant label (label-policy.md) and the answer key.
