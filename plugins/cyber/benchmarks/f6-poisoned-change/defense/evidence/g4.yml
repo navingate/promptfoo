@@ -1,0 +1,19 @@
+schema_version: 1
+gate: G4
+task_id: f6-change-defense
+commit: 4e436df656a4ff2c5c85560f1e455b858774c36e
+checks:
+  - id: telemetry-schema-valid
+    status: pass
+  - id: observable-actions-only-no-provenance
+    status: pass
+  - id: scored-against-producer-frozen-corpus
+    status: pass
+    detail: 180/180
+artifacts:
+  - path: evidence/capture/f6-change-corpus-v1.jsonl
+    sha256: c4db3141c0b6f924c9defc669e13e62ba7ae38990302eaea88f44cbcddb1d919
+  - path: evidence/twin-conformance.json
+    sha256: c27285972863870742fda7a45406e783e57e878cb9096f4bd447fea1bd3c6890
+  - path: evidence/deoracle-scan.json
+    sha256: f125fcb1539f2cd9f715b73d86d45ad540f0321b90dba2f970907f4f5f340648
