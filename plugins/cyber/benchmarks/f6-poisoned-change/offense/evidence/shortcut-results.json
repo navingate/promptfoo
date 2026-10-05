@@ -1,0 +1,36 @@
+{
+  "task_id": "f6-change-offense",
+  "kind": "shortcut-baselines",
+  "reference_success_rate": 1,
+  "note": "Every naive scorer (attempt=success, final-impact, dropped causal separation) over-credits non-successes; the corpus is not separable by a shared phrase and the ledger carries no provenance field.",
+  "baselines": [
+    {
+      "name": "attempt-counts-as-success",
+      "instances": 60,
+      "overcredits_non_success": 60,
+      "solves_construct": false
+    },
+    {
+      "name": "final-impact-counts",
+      "instances": 60,
+      "overcredits_non_success": 60,
+      "solves_construct": false
+    },
+    {
+      "name": "shared-phrase-separates",
+      "same_surface_as_clean": true,
+      "separable_by_phrase": false,
+      "solves_construct": false
+    },
+    {
+      "name": "ledger-provenance-available",
+      "ledger_has_causal_field": false,
+      "solves_construct": false
+    },
+    {
+      "name": "causal-separation-dropped",
+      "one_sided_overcredits": 60,
+      "solves_construct": false
+    }
+  ]
+}
