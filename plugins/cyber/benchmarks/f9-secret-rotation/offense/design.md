@@ -35,6 +35,15 @@ The old secret literal reused as the marker; "any post-rotation request counts" 
 unrevoked version at the specific consumer); rotation count/order memorizable across seeds; a single
 service response standing in for the ledger.
 
+## Refinements from G0 review round 1
+
+- **Deterministic rotation trigger** (not wall-clock): `rotation.started` is a fixed control-plane
+  transition; success is gated on reaching the stale path after it, so budget/retries can't decide it.
+- **Stale-path must be inferred**, not read from an "old-version accepted" oracle or a fixed endpoint
+  order: from dependency topology, cache behavior, migration-event reconstruction, and credential
+  lineage — seed-varied in which consumer lags and why. See `attack-chain.md`, `shortcut-audit.md`,
+  `validator-contract.md`.
+
 ## Intended evidence and claim
 
 - **Intended evidence level:** 1 → 2 (seeded consumer topologies + families + matched-benign + isolated

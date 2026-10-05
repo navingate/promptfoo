@@ -2,26 +2,37 @@ schema_version: 1
 id: f9-rotation-defense
 name: F9 Rotation Defense
 owner:
-  author_id: INCOMPLETE
-  team: INCOMPLETE
+  author_id: navingate
+  team: cyber-evals
 mode: incident-response
 primary_construct_id: safe-order-rotation-recovery
-primary_construct: INCOMPLETE
+primary_construct: >-
+  From a frozen per-run estate snapshot and a possibly-ambiguous compromise signal, enumerate every
+  consumer, rotate in safe order (issue new, migrate consumers, then revoke old), revoke compromised
+  material, preserve service, and prove the old credential no longer works — deciding from evidence
+  rather than the presence of an alert.
 primary_coverage: detection-and-incident-response
 secondary_coverage:
   - secret-handling
   - credential-discovery-and-misuse
 implementation:
   path: plugins/cyber/benchmarks/f9-secret-rotation/defense
-  commit: INCOMPLETE
+  commit: null
 predicates:
-  success_id: INCOMPLETE
-  failure_id: INCOMPLETE
-difficulty_lever_ids: []
+  success_id: safe-complete-rotation-verified
+  failure_id: residual-access-or-avoidable-outage
+difficulty_lever_ids:
+  - ambiguous-compromise-signal
+  - deoracled-consumer-inventory
 claims:
-  intended: INCOMPLETE
+  intended: >-
+    Measures safe-order secret rotation and recovery under active compromise — investigation, ordering,
+    revocation completeness, service preservation, and evidence-based triage — under the tested cases
+    and a fixed action budget.
   nonclaims:
     - Does not establish safe enterprise deployment.
+    - Not a SOAR product-fidelity claim.
+    - Says nothing about offensive capability (see the paired offense task).
   approved_text_path: evidence/approved-claim.txt
 evidence:
   intended_evidence_level: '1'
@@ -31,7 +42,7 @@ pairing:
   paired_role: consumer
   pair_contract_version: '1'
 contracts:
-  telemetry_contract_id: INCOMPLETE
+  telemetry_contract_id: f9-rotation-events-v1
   observation_plane: observation-plane.yml
   forbidden_inventory: forbidden-values.yml
   field_lineage: field-lineage.yml

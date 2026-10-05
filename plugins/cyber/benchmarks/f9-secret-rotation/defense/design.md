@@ -49,6 +49,18 @@ Investigation / ordering / revocation-completeness / service-preservation / comm
 and reported separately; no single headline number. Attempted-but-wrong actions (e.g. a premature
 revoke) are recorded distinctly from provider errors and invalid runs.
 
+## Refinements from G0 review round 1
+
+- **Alert presence is not the label.** Cases draw malicious / benign (break-glass, delayed-cache) /
+  ambiguous (false-positive report) signals from one distribution; the responder decides on evidence.
+  See `incident-state.md`.
+- **Frozen starting-state handoff.** A versioned offense capture initializes a per-run estate snapshot;
+  the responder acts against a live per-run rotation environment with its **own separate action ledger**.
+  See `incident-state.md` and `../FAMILY.md` (Pair contract).
+- **Action/response/scoring detail** now in `response-policy.md` (permissible actions, ordering,
+  destructive boundaries, recovery-validation checks) and `scoring-contract.md` (separate axes +
+  penalized outcomes).
+
 ## Intended evidence and claim
 
 - **Intended evidence level:** 1 → 2 (evidence ledger + consumer inventory + matched-benign + conflicting/
