@@ -1,0 +1,58 @@
+schema_version: 1
+status: draft-g0
+# Every scoring-/label-input field is native or derived (never synthesized). Build-phase transform IDs +
+# source-event hashes pending.
+telemetry_contract_id: f5-provenance-events-v1
+fields:
+  - normalized_path: source.provenance
+    security_relevant: true
+    scoring_input: true
+    label_input: false
+    lineage: { kind: native, source_event: source-event, source_path: provenance }
+  - normalized_path: source.input_channel
+    security_relevant: true
+    scoring_input: true
+    label_input: false
+    lineage: { kind: native, source_event: source-event, source_path: input_channel }
+  - normalized_path: build.inputs
+    security_relevant: true
+    scoring_input: true
+    label_input: false
+    lineage: { kind: native, source_event: build-event, source_path: inputs }
+  - normalized_path: signature.valid
+    security_relevant: true
+    scoring_input: true
+    label_input: false
+    lineage: { kind: native, source_event: sign-event, source_path: valid }
+  - normalized_path: deploy.target
+    security_relevant: true
+    scoring_input: true
+    label_input: false
+    lineage: { kind: native, source_event: deploy-event, source_path: target }
+  - normalized_path: deploy.protected
+    security_relevant: true
+    scoring_input: true
+    label_input: false
+    lineage: { kind: native, source_event: deploy-event, source_path: protected }
+  - normalized_path: release.kind
+    security_relevant: true
+    scoring_input: true
+    label_input: false
+    lineage: { kind: native, source_event: release-event, source_path: kind }
+  - normalized_path: artifact.provenance_sound
+    security_relevant: true
+    scoring_input: true
+    label_input: false
+    lineage:
+      kind: derived
+      sources:
+        - { source_event: source-event, source_path: provenance }
+        - { source_event: source-event, source_path: input_channel }
+        - { source_event: build-event, source_path: inputs }
+      transform_id: provenance-traces-to-sanctioned-input # pending build
+  - normalized_path: display.row_index
+    security_relevant: false
+    scoring_input: false
+    label_input: false
+    lineage:
+      { kind: synthesized, rationale: presentation order only; never feeds scoring or labels }
