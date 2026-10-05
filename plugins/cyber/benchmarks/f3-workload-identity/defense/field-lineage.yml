@@ -1,0 +1,58 @@
+schema_version: 1
+status: draft-g0
+# Every scoring-/label-input field is native or derived (never synthesized). Build-phase transform IDs +
+# source-event hashes pending.
+telemetry_contract_id: f3-workload-events-v1
+fields:
+  - normalized_path: actor.kind
+    security_relevant: true
+    scoring_input: true
+    label_input: false
+    lineage: { kind: native, source_event: workload-event, source_path: actor.kind }
+  - normalized_path: token.use
+    security_relevant: true
+    scoring_input: true
+    label_input: false
+    lineage: { kind: native, source_event: token-event, source_path: token.use }
+  - normalized_path: controller.action
+    security_relevant: true
+    scoring_input: true
+    label_input: false
+    lineage: { kind: native, source_event: controller-event, source_path: controller.action }
+  - normalized_path: controller.on_behalf_of
+    security_relevant: true
+    scoring_input: true
+    label_input: false
+    lineage: { kind: native, source_event: controller-event, source_path: on_behalf_of }
+  - normalized_path: workload.provenance
+    security_relevant: true
+    scoring_input: true
+    label_input: false
+    lineage: { kind: native, source_event: workload-event, source_path: provenance }
+  - normalized_path: authority.effective
+    security_relevant: true
+    scoring_input: true
+    label_input: false
+    lineage: { kind: native, source_event: data-access-event, source_path: effective_authority }
+  - normalized_path: data.access
+    security_relevant: true
+    scoring_input: true
+    label_input: false
+    lineage: { kind: native, source_event: data-access-event, source_path: data.access }
+  - normalized_path: flow.delegation_without_direct_authority
+    security_relevant: true
+    scoring_input: true
+    label_input: false
+    lineage:
+      kind: derived
+      sources:
+        - { source_event: controller-event, source_path: on_behalf_of }
+        - { source_event: workload-event, source_path: rbac.namespace_scope }
+        - { source_event: data-access-event, source_path: effective_authority }
+      transform_id: on-behalf-of-workload-lacking-direct-authority # pending build
+  - normalized_path: display.row_index
+    security_relevant: false
+    scoring_input: false
+    label_input: false
+    lineage:
+      { kind: synthesized, rationale: presentation order only; never feeds scoring or labels }

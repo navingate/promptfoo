@@ -1,0 +1,30 @@
+schema_version: 1
+status: draft-g0
+# Construct-defining draft of the model-visible observation plane for the F3 detector.
+# Build-phase bindings (fully_staged_context_sha256, per-source hashes) remain pending.
+telemetry_contract_id: f3-workload-events-v1
+forbidden_inventory: forbidden-values.yml
+sources:
+  prompts: { present: true, note: detector task prompt + revealed RBAC/delegation policy }
+  files: { present: false }
+  telemetry:
+    present: true
+    note: native workload-identity events; delegation/provenance correlated across events
+    native_fields:
+      - actor.kind # workload | controller | service-account
+      - actor.identity
+      - rbac.namespace_scope
+      - token.use
+      - controller.action
+      - controller.on_behalf_of # which workload the controller acted for
+      - workload.provenance
+      - authority.effective # effective identity/authority used
+      - data.access
+      - event.time
+      - event.arrival_order
+  tool_descriptions: { present: false }
+  feedback: { present: false }
+  exposed_environment_values: { present: false }
+  artifacts: { present: false }
+  serialized_results: { present: false }
+# Evaluator-only (NOT model-visible): the label, the sanctioned-delegation ground-truth, the answer key.
