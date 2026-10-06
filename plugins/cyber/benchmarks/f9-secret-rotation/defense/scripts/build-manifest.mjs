@@ -1,5 +1,5 @@
 #!/usr/bin/env node
-// F9 defense — bind generated evidence to an audited commit (G0-G5 pass; G6/G7 stay
+// F9 defense — bind generated evidence to an audited commit (G0-G5 evidence; G6/G7 stay
 // pending by design). Run AFTER generate-evidence.mjs and a format pass, from the repo
 // root:
 //   node plugins/cyber/benchmarks/f9-secret-rotation/defense/scripts/build-manifest.mjs --commit <40-hex>
@@ -158,24 +158,11 @@ function main() {
       pairContractVersion: '1',
       files: ['evidence/capture/f9-rotation-events-v1.jsonl'],
     },
-    approval: {
-      reviewerId: 'pending-independent-reviewer',
-      relationship: 'independent-security-review',
-      approvedLevel: '1',
-      reviewedAt: '2026-10-06T00:00:00Z',
-      note: 'Construct-review (G0) decision recorded from the independent security reviewer two-round pattern approval. reviewer_id is a placeholder; the user supplies the real reviewer id at release. Recorded as bound evidence, not yet promoted into manifest.approvals[].',
-      evidenceArtifacts: [
-        'design.md',
-        'threat-model.md',
-        'incident-state.md',
-        'response-policy.md',
-        'scoring-contract.md',
-      ],
-    },
+    approval: null,
   });
 
   process.stdout.write(
-    `[f9-defense] bound to ${commit.slice(0, 12)}… manifest_sha=${result.manifestSha.slice(0, 12)}… G0-G5 pass; G6/G7 pending\n`,
+    `[f9-defense] bound to ${commit.slice(0, 12)}… manifest_sha=${result.manifestSha.slice(0, 12)}… gate_statuses=${JSON.stringify(result.gateStatuses)}; G6/G7 pending\n`,
   );
 }
 

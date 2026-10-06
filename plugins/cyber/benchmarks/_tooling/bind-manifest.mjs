@@ -1,13 +1,12 @@
 // Shared commit-binding for a cyber benchmark task. Given a chosen audited commit,
-// writes the G0-G5 gate evidence, the harness staged-context inventory, the recorded
-// construct-review (G0) approval, and (for a paired consumer) the capture manifest,
-// then flips G0-G5 to `pass` in benchmark.yml. G6 (calibration) and G7 (claim) stay
-// `pending` by design — that is the intended unreleasable, pre-calibration state.
+// writes G0-G5 gate evidence, the staged-context inventory, any genuine construct
+// approval, and the consumer capture manifest. A missing independent reviewer keeps
+// G0 pending. G6/G7 remain pending until calibration and claim review.
 //
 // The commit is a label the auditor verifies by string equality against working-tree
 // bytes; it is bound as the implementation commit whose frozen artifacts this evidence
-// validates. The recorded approval is NOT added to manifest.approvals[] (the auditor
-// ties any listed approval to an achieved evidence level, which only exists after G6).
+// validates. A recorded approval is not promoted into manifest.approvals[] until
+// achieved evidence exists after G6.
 
 import fs from 'node:fs';
 import path from 'node:path';
@@ -170,5 +169,11 @@ export function bindTask(config) {
     writeYaml(path.join(taskDir, `evidence/${gate.toLowerCase()}.yml`), doc);
   }
 
-  return { manifestSha, claimSha };
+  return {
+    manifestSha,
+    claimSha,
+    gateStatuses: Object.fromEntries(
+      Object.keys(gates).map((gate) => [gate, manifest.gates[gate].status]),
+    ),
+  };
 }

@@ -1,5 +1,5 @@
 #!/usr/bin/env node
-// F9 offense — bind generated evidence to an audited commit (G0-G5 pass; G6/G7 stay
+// F9 offense — bind generated evidence to an audited commit (G0-G5 evidence; G6/G7 stay
 // pending by design). Run AFTER generate-evidence.mjs and a format pass, from the repo
 // root, passing the implementation commit whose frozen artifacts this evidence validates:
 //
@@ -167,24 +167,11 @@ function main() {
     author: AUTHOR,
     gates,
     claimText,
-    approval: {
-      reviewerId: 'pending-independent-reviewer',
-      relationship: 'independent-security-review',
-      approvedLevel: '1',
-      reviewedAt: '2026-10-06T00:00:00Z',
-      note: 'Construct-review (G0) decision recorded from the independent security reviewer two-round pattern approval. reviewer_id is a placeholder; the user supplies the real reviewer id at release. Recorded as bound evidence, not yet promoted into manifest.approvals[] (an achieved evidence level is set only after G6 calibration).',
-      evidenceArtifacts: [
-        'design.md',
-        'threat-model.md',
-        'attack-chain.md',
-        'validator-contract.md',
-        'shortcut-audit.md',
-      ],
-    },
+    approval: null,
   });
 
   process.stdout.write(
-    `[f9-offense] bound to ${commit.slice(0, 12)}… manifest_sha=${result.manifestSha.slice(0, 12)}… G0-G5 pass; G6/G7 pending\n`,
+    `[f9-offense] bound to ${commit.slice(0, 12)}… manifest_sha=${result.manifestSha.slice(0, 12)}… gate_statuses=${JSON.stringify(result.gateStatuses)}; G6/G7 pending\n`,
   );
 }
 

@@ -1,5 +1,5 @@
 #!/usr/bin/env node
-// F6 defense — bind generated evidence to an audited commit (G0-G5 pass; G6/G7 pending).
+// F6 defense — bind generated evidence to an audited commit (G0-G5 evidence; G6/G7 pending).
 //   node plugins/cyber/benchmarks/f6-poisoned-change/defense/scripts/build-manifest.mjs --commit <40-hex>
 
 import fs from 'node:fs';
@@ -137,23 +137,10 @@ function main() {
       pairContractVersion: '1',
       files: ['evidence/capture/f6-change-corpus-v1.jsonl'],
     },
-    approval: {
-      reviewerId: 'pending-independent-reviewer',
-      relationship: 'independent-security-review',
-      approvedLevel: '1',
-      reviewedAt: '2026-10-06T00:00:00Z',
-      note: 'Construct-review (G0) recorded from the independent security reviewer two-round pattern approval. reviewer_id is a placeholder; the user supplies the real id at release. Recorded as bound evidence, not yet in manifest.approvals[].',
-      evidenceArtifacts: [
-        'design.md',
-        'threat-model.md',
-        'authorization-policy.md',
-        'tool-boundaries.yml',
-        'scoring-contract.md',
-      ],
-    },
+    approval: null,
   });
   process.stdout.write(
-    `[f6-defense] bound to ${commit.slice(0, 12)}… manifest_sha=${result.manifestSha.slice(0, 12)}… G0-G5 pass; G6/G7 pending\n`,
+    `[f6-defense] bound to ${commit.slice(0, 12)}… manifest_sha=${result.manifestSha.slice(0, 12)}… gate_statuses=${JSON.stringify(result.gateStatuses)}; G6/G7 pending\n`,
   );
 }
 

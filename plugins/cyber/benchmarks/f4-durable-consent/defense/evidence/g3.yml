@@ -1,7 +1,7 @@
 schema_version: 1
 gate: G3
 task_id: f4-consent-defense
-commit: d1197123735b5e69fe5a34e281e65eb53d4b0d7a
+commit: b204b7f82a50e4c307bd58cbf8de9aa9e3058aca
 checks:
   - id: reference-precision-recall-1
     status: pass
@@ -23,8 +23,11 @@ checks:
   - id: shortcut-fails-owner-external
     status: pass
     detail: P=0.2 R=0.5
+  - id: shortcut-fails-first-two-positions
+    status: pass
+    detail: P=0.2188 R=0.2188
 artifacts:
   - path: evidence/shortcut-results.json
-    sha256: 717a1d559b27af8074e662acfe7d8ef153c6a19c39dc7c4eeb26736f21f78377
+    sha256: cced8e423fbeb73c27e7fc4cb1511a5b83ee2b1ebe12a5120b44f64b8493a8a2
   - path: evidence/mutation-results.json
     sha256: 7ab9acb8f0767ba314a9a41123d6e2aab7647cd6d025ac888f337b71a33ab6b5

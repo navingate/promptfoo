@@ -10,6 +10,7 @@ import { fileURLToPath } from 'node:url';
 
 import {
   auditTelemetry,
+  readYaml,
   sha256File,
   sha256Text,
   stagedContextDigest,
@@ -274,7 +275,11 @@ function stageObservationPlane() {
 }
 
 async function generateDeoracleScan() {
-  const result = await auditTelemetry(repoRoot, taskRel, PLACEHOLDER_COMMIT);
+  const result = await auditTelemetry(
+    repoRoot,
+    taskRel,
+    readYaml(path.join(taskDir, 'benchmark.yml')).implementation?.commit ?? PLACEHOLDER_COMMIT,
+  );
   const findings = result.findings ?? [];
   const blocking = findings.filter((f) => f.code !== 'OBSERVATION_COMPLETENESS_UNATTESTED');
   const scan = {
@@ -284,7 +289,7 @@ async function generateDeoracleScan() {
     oracle_material_findings: findings.filter((f) => f.code === 'ORACLE_MATERIAL_VISIBLE'),
     other_blocking_findings: blocking.filter((f) => f.code !== 'ORACLE_MATERIAL_VISIBLE'),
     de_oracled: blocking.length === 0,
-    completeness_attested_at_bind_time: findings.some(
+    completeness_attested_at_bind_time: !findings.some(
       (f) => f.code === 'OBSERVATION_COMPLETENESS_UNATTESTED',
     ),
   };
