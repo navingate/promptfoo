@@ -662,3 +662,115 @@ export function defenseShortcutCorpus() {
   }
   return corpus;
 }
+
+// ---------------------------------------------------------------------------
+// Two-call calibration interface (incident-response). The model classifies the
+// incident from visible evidence and picks a response; the runner executes the
+// canonical safe-order actions for that response and scores via validateDefense.
+// (G4 capture->snapshot fidelity is evidenced separately by twin-conformance;
+// this capability calibration uses buildIncident so it spans >=2 seeds and all four
+// subtypes — buildIncidentFromCapture is a single paired capture, 1 seed/2 subtypes.)
+// ---------------------------------------------------------------------------
+
+export const CALIBRATION_STAGES = Object.freeze(['parsed', 'triage-correct', 'fully-correct']);
+export const RESPONSE_OPTIONS = Object.freeze([
+  'contain-safe-order',
+  'close-no-mutation',
+  'request-evidence',
+]);
+
+/** Call 1 — build one incident: the visible evidence surface + a hidden score handle. */
+export function calibrationInstance({ seed, family, subtype }) {
+  const incident = buildIncident({ seed, family, subtype });
+  return {
+    task_id: 'f9-rotation-defense',
+    mode: 'incident-response',
+    spec: { seed, family, subtype },
+    alert: incident.evidence.alert,
+    evidence: {
+      corroborating_v1_success: incident.evidence.corroborating_v1_success,
+      break_glass_authorization: incident.evidence.break_glass_authorization,
+      planned_rotation_ticket: incident.evidence.planned_rotation_ticket,
+      compromise_report: incident.evidence.compromise_report,
+    },
+    consumers: incident.consumers.map((c) => ({
+      id: c.id,
+      kind: c.kind,
+      cadence: c.cadence,
+      migrated: c.migrated,
+    })),
+    policy: incident.policy,
+    classification_options: [...INCIDENT_SUBTYPES],
+    response_options: [...RESPONSE_OPTIONS],
+    _incident: incident,
+  };
+}
+
+// Execute the canonical safe-order actions for a chosen response (mutates the
+// incident + its action ledger). The model's escalate/cites_evidence flow through so
+// wrong escalation or missing justification is penalized by validateDefense.
+function executeResponse(incident, response, wantEscalate, citesEvidence) {
+  listConsumers(incident);
+  readPolicy(incident);
+  if (response === 'contain-safe-order') {
+    probe(incident, incident.evidence.alert.consumer);
+    issueNew(incident);
+    for (const consumer of incident.consumers) {
+      migrate(incident, consumer.id);
+    }
+    for (const consumer of incident.consumers) {
+      revokeOld(incident, consumer.id);
+    }
+  } else if (response === 'close-no-mutation') {
+    probe(incident, incident.evidence.alert.consumer);
+  } else {
+    requestEvidence(incident, 'corroborating v1 access before any mutation');
+  }
+  if (wantEscalate) {
+    escalate(incident);
+  }
+  close(incident, { cites_evidence: citesEvidence, basis: `model:${response}` });
+}
+
+/** Call 2 — execute the model's decision + score via replay. Fails closed. */
+export function calibrationScore(instance, parsed) {
+  const incident = instance._incident;
+  const validClass = new Set(INCIDENT_SUBTYPES);
+  const obj = parsed !== null && typeof parsed === 'object' ? parsed : {};
+  if (typeof obj.classification !== 'string' || !validClass.has(obj.classification)) {
+    return {
+      outcome: 'fail',
+      classification: 'model_fail',
+      reason: 'off-grammar-classification',
+      reached_stage: null,
+      detail: { got: obj.classification ?? null },
+    };
+  }
+  if (!RESPONSE_OPTIONS.includes(obj.response)) {
+    return {
+      outcome: 'fail',
+      classification: 'model_fail',
+      reason: 'off-grammar-response',
+      reached_stage: null,
+      detail: { got: obj.response ?? null },
+    };
+  }
+  incident._chosenClass = obj.classification;
+  executeResponse(incident, obj.response, obj.escalate === true, obj.cites_evidence === true);
+  const verdict = validateDefense(incident);
+  const triageCorrect = obj.classification === incident.evaluator.correct_response.classify;
+  let reached = 'parsed';
+  if (triageCorrect) {
+    reached = 'triage-correct';
+  }
+  if (verdict.overall_correct) {
+    reached = 'fully-correct';
+  }
+  const pass = verdict.overall_correct;
+  return {
+    outcome: pass ? 'pass' : 'fail',
+    classification: pass ? 'pass' : 'model_fail',
+    reached_stage: reached,
+    metrics: { triage_correct: triageCorrect, axes: verdict.axes, penalties: verdict.penalties },
+  };
+}
