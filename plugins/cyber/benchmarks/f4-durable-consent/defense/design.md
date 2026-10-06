@@ -65,6 +65,33 @@ reported separately; no single headline number.
 - **Label policy** in `label-policy.md` (malicious-missed-by-query | approved | same-user-survivor |
   ambiguous | benign-other), decided by a policy-relevant combination with per-field counterexamples.
 
+## OPEN for re-review — malicious-vs-survivor decidability (surfaced by the 2026-10-06 sufficiency pass)
+
+**Unresolved; needs a reviewer construct decision before F4 defense is built.** The `malicious-missed-by-query`
+grant and the matched `same-user-survivor` are, by design, identical on every model-visible provenance field
+(principal binding, grant type, scope, verification, grantor, approval route, owner/tenant, survival). In the
+Wave-1 reference corpus they differed **only** by a per-grant `allowlisted` boolean (plus `issue_time`). So no
+_combination_ of the currently exposed fields separates them — the pair is **either oracle'd** (if the
+allowlist/authorization status is a model-visible per-grant field, it is a single-field answer, the exact
+defect the reviewer removed from F10/F3/F5) **or undecidable** (if it is hidden, mirroring the F10
+"hidden policy boundary" finding). The "revealed authorization policy" cannot break the tie because both
+grants share the same provenance combination the policy would key on.
+
+Resolution options for the reviewer (each is a construct change, not applied here):
+
+1. Give the survivor a **legitimately differing, model-visible provenance dimension** the revealed policy can
+   authorize (e.g., a valid attestation / approval-decision reference the malicious grant lacks), so a policy
+   application — not a flag — separates them; **and** add a per-field counterexample so that new dimension is
+   not itself an oracle.
+2. Expose the **allowlist/authorization entries** as model-visible structured policy evidence (scoped to an
+   app/scope/route combination, with validity windows) **and** add counterexamples (an expired or
+   wrong-combination entry on a still-unauthorized grant; a benign grant with no entry) so entry-presence
+   alone is not the tell.
+
+Until this is settled, the detection task is not decidable-without-oracle for the hardest pair. Build must
+also ensure the capture adapter strips label-correlated fields (`_label`, `_archetype`, a raw `allowlisted`
+boolean) so none leaks into model-visible telemetry (the Wave-1 build carried all three).
+
 ## Intended evidence and claim
 
 - **Intended evidence level:** 1 → 2 (versioned contracts + matched approved-app population + shortcut

@@ -44,6 +44,11 @@ A correct label requires combining approval route + verification + allowlist/pol
 principal-binding-vs-`query_relationship` relationship. Any single-field or grant-type baseline must fail
 the corpus (see `scoring-contract.md` and the offense `shortcut-audit.md`).
 
+> **OPEN (re-review):** the "allowlist/policy status" term above is not yet backed by a model-visible,
+> policy-derivable signal with its own counterexample. `malicious-missed-by-query` and `same-user-survivor`
+> are provenance-identical, so this status is currently the sole separator — an oracle if exposed,
+> undecidable if hidden. See `design.md` → "OPEN for re-review — malicious-vs-survivor decidability".
+
 ## Outcome vocabulary
 
 Grants carry an activity outcome: `active`, `revoked-by-remediation`, `blocked`, `abandoned`. A grant
