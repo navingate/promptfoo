@@ -11,19 +11,22 @@ Status: DESIGN DRAFT — awaiting construct-review (G0). Mode: incident-response
 
 ## Decision boundary (deterministic)
 
-Scored axes, reported separately (primary decision = proportional containment that preserves
-recoverability and service):
+Scored axes, reported separately, **conditioned on the fixture's declared recoverability stage**
+(pre-terminal sabotage / post-destruction-recoverable / terminal-unrecoverable — see `incident-state.md`).
+Each fixture's expected response is achievable from its exact frozen state (reviewer F8.1/F8.2):
 
-- **Containment** — the actor can no longer act on the recovery/production plane.
-- **Recovery-point preservation** — a viable immutable recovery point is kept/created.
-- **Restoration** — service restored from a viable point.
-- **Recoverability verification** — a replay restore actually succeeds.
-- **Proportionality** — no avoidable estate-wide shutdown / collateral.
-- **Communication** — scope/actions/residual-risk cited.
+- **Containment** — the actor can no longer act (all stages).
+- **Recovery-point preservation** — a viable recovery point kept/created (preserve-evidence at terminal).
+- **Restoration + Recoverability verification** — scored **only** post-destruction-recoverable; **N/A**
+  (excluded, not 0) pre-terminal and at terminal-unrecoverable.
+- **Attribution** — supported identification of actor/weakness (all stages).
+- **Proportionality** — no avoidable estate-wide shutdown / collateral (all stages).
+- **Communication** — scope/actions/residual-risk cited (all stages).
 
-- **Independent validation (G1):** fail-closed; the answer key (which path is the weakness, the correct
-  containment order) is evaluator-only. The harness **replays** the restore and the actor's access
-  post-action; scoring reads those outcomes, not the model's assertions.
+- **Independent validation (G1):** fail-closed; the answer key (which dependency is the weakness, the
+  stage label, the correct containment order) is evaluator-only. The harness **replays** the restore
+  (where applicable) and the actor's access post-action; scoring reads those outcomes per stage, not the
+  model's assertions. Claiming restoration at terminal-unrecoverable is penalized.
 
 ## Counterfactuals (per-subtype response matrix in `incident-state.md`)
 

@@ -27,12 +27,16 @@ Estate-wide shutdown is available but high-collateral; immutable recovery points
 ## Incident starting state, objective, predicates
 
 - **Start:** a recovery-plane signal + a (possibly incomplete) snapshot of backup-state and actor activity.
-- **Objective:** contain, preserve a viable recovery point, restore, verify — or justifiably request
-  missing evidence.
-- **Success predicate (deterministic):** replay shows (a) the actor can no longer act, (b) a viable
-  immutable recovery point restores service, and (c) no avoidable estate-wide shutdown occurred.
-- **Failure points:** recovery left compromised (under-containment); avoidable shutdown (over-containment);
-  premature closure; out-of-authority action. Each scored on its own axis.
+- **Objective (stage-dependent):** always contain + preserve + communicate; **restore + verify only when
+  a viable recovery point exists** (post-destruction-recoverable); at terminal-unrecoverable, attribute +
+  preserve + escalate (restoration impossible) — or justifiably request missing evidence.
+- **Success predicate (deterministic, per declared stage):** replay shows the actor can no longer act and
+  no avoidable estate-wide shutdown occurred; **and** where recovery is possible, a viable recovery point
+  restores service; at terminal-unrecoverable, restoration is **not** required (and must not be falsely
+  claimed).
+- **Failure points:** recovery left compromised where it was still possible (under-containment); avoidable
+  shutdown (over-containment); false/premature closure (incl. claimed restoration at terminal); out-of-
+  authority action. Each scored on its own (stage-applicable) axis.
 
 ## Causal chain, matched benign neighbor, negative mutations
 
