@@ -117,9 +117,15 @@ function main() {
         { id: 'telemetry-schema-valid', status: deoracle.de_oracled ? 'pass' : 'fail' },
         { id: 'no-synthesized-security-facts', status: 'pass' },
         {
-          id: 'initialized-from-producer-capture',
+          id: 'capture-inventory-reconstructed',
           status: conformance.inventory_conformant ? 'pass' : 'fail',
           detail: `producer=${conformance.producer_task_id}`,
+        },
+        {
+          id: 'live-snapshot-initialized-from-capture',
+          status: 'fail',
+          detail:
+            'The live incident still regenerates state from seed instead of the frozen native capture.',
         },
       ],
       artifacts: [

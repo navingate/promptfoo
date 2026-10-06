@@ -107,7 +107,7 @@ function main() {
         { id: 'no-accepts-v1-oracle', status: deoracle.de_oracled ? 'pass' : 'fail' },
         {
           id: 'observation-plane-complete',
-          status: deoracle.completeness_attested_at_bind_time ? 'pass' : 'pass',
+          status: deoracle.completeness_attested_at_bind_time ? 'pass' : 'fail',
         },
         {
           id: 'fail-closed-scoring',
@@ -137,6 +137,12 @@ function main() {
           id: 'capture-accepted-by-consumer',
           status: conformance.inventory_conformant ? 'pass' : 'fail',
           detail: `consumer=${conformance.task_id}`,
+        },
+        {
+          id: 'consumer-snapshot-initialized-from-capture',
+          status: 'fail',
+          detail:
+            'The live incident still regenerates state from seed instead of the frozen native capture.',
         },
       ],
       artifacts: [

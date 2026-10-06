@@ -23,6 +23,7 @@ import {
 } from '../../../_tooling/evidence-lib.mjs';
 import {
   buildScenario,
+  recordAuthAttempt,
   TELEMETRY_CONTRACT_ID,
   visibleEvents,
   visibleTopology,
@@ -188,7 +189,7 @@ function generateOperational() {
   })();
   checks.push({
     id: 'budget-enforced',
-    status: firstAttempt.success && extra.budget_exhausted !== undefined ? 'pass' : 'pass',
+    status: firstAttempt.success && extra.budget_exhausted === true ? 'pass' : 'fail',
     note: `one decisive post-rotation attempt; topology exposes ${topo.consumers.length} consumers`,
   });
   // No host/shared-state impact: estate is pure in-memory (no fs/net in estate.mjs/harness.mjs).
@@ -329,30 +330,21 @@ function stageObservationPlane() {
 }
 
 function generateCapture() {
-  // Producer-native capture for the defense twin: the native events plus the
-  // observed compromise anomaly (an old-version auth success). No marker, no
-  // accepts-v1 oracle — only the facts a responder would legitimately see.
+  // Capture the actual producer action event. Never manufacture an auth success
+  // from evaluator truth in the adapter.
   const scenario = buildScenario(STAGED);
   referenceSolveOffense(scenario);
-  const events = visibleEvents(scenario);
-  const flow = events[0].flow_id;
-  const leaking = scenario.evaluator.leaking_consumer_id;
-  const compromise = {
-    id: `${flow}-compromise`,
-    flow_id: flow,
-    type: 'auth.attempt',
-    sequence: events.length,
-    arrival_order: events.length,
-    event_time: scenario.rotation.trigger_time + 300,
-    actor: 'unknown-principal',
-    resource: leaking,
-    credential_lineage: { key_version: 'v1', derivation_anchor: `${leaking}:stale` },
-    status: 'allow',
-    causes: [`${flow}-rotation`],
-  };
-  const rows = [...events, compromise];
+  const benign = buildScenario({ ...STAGED, variant: 'benign' });
+  const benignConsumer = benign.consumers.find((consumer) => consumer.role === 'lag');
+  recordAuthAttempt(benign, {
+    actor: 'authorized-rotation-check',
+    consumerId: benignConsumer.id,
+    version: 'v2',
+    phase: 'post-rotation',
+  });
+  const rows = [...visibleEvents(scenario), ...visibleEvents(benign)];
   writeJsonl(path.join(captureDir, 'f9-rotation-events-v1.jsonl'), rows);
-  return { rows: rows.length, leaking };
+  return { rows: rows.length };
 }
 
 // De-oracle scan (G2 evidence): run the real telemetry-contract auditor over the

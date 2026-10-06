@@ -36,7 +36,6 @@ export const ARCHETYPES = Object.freeze({
     belongs: true,
     revoked_by_query: false,
     reset_relationship: true,
-    ambiguous: false,
     label: 'malicious-missed-by-query',
   },
   // Verified app, but unauthorized approval route → still malicious (verification alone ≠ benign).
@@ -50,7 +49,6 @@ export const ARCHETYPES = Object.freeze({
     belongs: true,
     revoked_by_query: false,
     reset_relationship: true,
-    ambiguous: false,
     label: 'malicious-missed-by-query',
   },
   // Same primitive/user/scope/route/verification as malicious-a; differs only by the
@@ -65,7 +63,6 @@ export const ARCHETYPES = Object.freeze({
     belongs: true,
     revoked_by_query: false,
     reset_relationship: true,
-    ambiguous: false,
     label: 'same-user-survivor',
   },
   'approved-admin': {
@@ -78,7 +75,6 @@ export const ARCHETYPES = Object.freeze({
     belongs: false,
     revoked_by_query: false,
     reset_relationship: false,
-    ambiguous: false,
     label: 'benign-other',
   },
   // Unverified pilot → authorized standard self-service (unverified alone ≠ malicious).
@@ -92,7 +88,6 @@ export const ARCHETYPES = Object.freeze({
     belongs: false,
     revoked_by_query: false,
     reset_relationship: false,
-    ambiguous: false,
     label: 'benign-other',
   },
   // User-consent approved app (user-consent alone ≠ malicious).
@@ -106,7 +101,6 @@ export const ARCHETYPES = Object.freeze({
     belongs: false,
     revoked_by_query: false,
     reset_relationship: false,
-    ambiguous: false,
     label: 'benign-other',
   },
   // Unauthorized user grant the defective query DID catch → control worked, not a
@@ -121,7 +115,6 @@ export const ARCHETYPES = Object.freeze({
     belongs: true,
     revoked_by_query: true,
     reset_relationship: true,
-    ambiguous: false,
     label: 'approved',
   },
   ambiguous: {
@@ -134,7 +127,6 @@ export const ARCHETYPES = Object.freeze({
     belongs: true,
     revoked_by_query: false,
     reset_relationship: true,
-    ambiguous: true,
     label: 'ambiguous',
   },
 });
@@ -177,7 +169,6 @@ export function buildGrant(archetypeName, { seed, family, compromisedUser }) {
     reset_relationship: a.reset_relationship,
     query_relationship: family,
     revoked_by_query: a.revoked_by_query,
-    ambiguous: a.ambiguous,
     _label: a.label, // evaluator-only
     _archetype: archetypeName,
   };
@@ -227,7 +218,11 @@ export function buildPopulation({ seed, family }) {
   const { compromised_user } = resetEvent(seed);
   const grants = ARCHETYPE_NAMES.map((name) =>
     buildGrant(name, { seed, family, compromisedUser: compromised_user }),
-  );
+  ).sort((left, right) => {
+    const a = hashSeed(`order|${seed}|${family}|${left.grant_id}`);
+    const b = hashSeed(`order|${seed}|${family}|${right.grant_id}`);
+    return a - b || left.grant_id.localeCompare(right.grant_id);
+  });
   return { meta: { seed, family }, reset: resetEvent(seed), grants };
 }
 

@@ -472,5 +472,19 @@ export function recordAuthAttempt(scenario, { actor, consumerId, version, phase 
     ledger_index: scenario.ledger.length,
   };
   scenario.ledger.push(entry);
+  const flow = `f9-${scenario.meta.seed}-${scenario.meta.family}-${scenario.meta.variant}`;
+  scenario.events.push({
+    id: `${flow}-auth-${entry.ledger_index}`,
+    flow_id: flow,
+    type: 'auth.attempt',
+    sequence: scenario.events.length,
+    arrival_order: scenario.events.length,
+    event_time: scenario.rotation.trigger_time + 300 + entry.ledger_index,
+    actor,
+    resource: consumerId,
+    credential_lineage: { key_version: version, derivation_anchor: `${consumerId}:auth` },
+    status: accepted ? 'allow' : 'deny',
+    causes: [`${flow}-rotation`],
+  });
   return entry;
 }

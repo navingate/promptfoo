@@ -9,6 +9,7 @@
 // validates. The recorded approval is NOT added to manifest.approvals[] (the auditor
 // ties any listed approval to an achieved evidence level, which only exists after G6).
 
+import fs from 'node:fs';
 import path from 'node:path';
 
 import {
@@ -92,11 +93,27 @@ export function bindTask(config) {
   const { taskDir, taskId, commit, gates } = config;
   const manifest = readYaml(path.join(taskDir, 'benchmark.yml'));
   manifest.implementation.commit = commit;
+  const hasIndependentReviewer =
+    config.approval?.reviewerId &&
+    config.approval.reviewerId !== config.author &&
+    !config.approval.reviewerId.startsWith('pending-');
+
+  if (!hasIndependentReviewer && gates.G0) {
+    for (const check of gates.G0.checks) {
+      if (check.id === 'construct-review-recorded') {
+        check.status = 'fail';
+      }
+    }
+    gates.G0.artifacts = gates.G0.artifacts.filter(
+      (rel) => rel !== 'evidence/approval-g0-construct.yml',
+    );
+  }
 
   for (const gate of Object.keys(gates)) {
+    const allChecksPass = gates[gate].checks.every((check) => check.status === 'pass');
     manifest.gates[gate] = {
-      status: 'pass',
-      evidence: [`evidence/${gate.toLowerCase()}.yml`],
+      status: allChecksPass ? 'pass' : 'pending',
+      evidence: allChecksPass ? [`evidence/${gate.toLowerCase()}.yml`] : [],
       waiver: null,
     };
   }
@@ -119,28 +136,32 @@ export function bindTask(config) {
   }
 
   // Recorded construct-review (G0) decision, bound to this commit/manifest/claim.
-  const evidenceSha = Object.fromEntries(
-    (config.approval.evidenceArtifacts ?? []).map((rel) => [
-      rel,
-      sha256File(path.join(taskDir, rel)),
-    ]),
-  );
-  const approval = approvalDoc({
-    approvalId: `${taskId}-construct-g0`,
-    taskId,
-    role: 'construct-reviewer',
-    reviewerId: config.approval.reviewerId,
-    authorId: config.author,
-    relationship: config.approval.relationship,
-    reviewedCommit: commit,
-    manifestSha256: manifestSha,
-    evidenceSha256: evidenceSha,
-    claimTextSha256: claimSha,
-    approvedEvidenceLevel: config.approval.approvedLevel,
-    reviewedAt: config.approval.reviewedAt,
-    note: config.approval.note,
-  });
-  writeYaml(path.join(taskDir, 'evidence/approval-g0-construct.yml'), approval);
+  if (hasIndependentReviewer) {
+    const evidenceSha = Object.fromEntries(
+      (config.approval.evidenceArtifacts ?? []).map((rel) => [
+        rel,
+        sha256File(path.join(taskDir, rel)),
+      ]),
+    );
+    const approval = approvalDoc({
+      approvalId: `${taskId}-construct-g0`,
+      taskId,
+      role: 'construct-reviewer',
+      reviewerId: config.approval.reviewerId,
+      authorId: config.author,
+      relationship: config.approval.relationship,
+      reviewedCommit: commit,
+      manifestSha256: manifestSha,
+      evidenceSha256: evidenceSha,
+      claimTextSha256: claimSha,
+      approvedEvidenceLevel: config.approval.approvedLevel,
+      reviewedAt: config.approval.reviewedAt,
+      note: config.approval.note,
+    });
+    writeYaml(path.join(taskDir, 'evidence/approval-g0-construct.yml'), approval);
+  } else {
+    fs.rmSync(path.join(taskDir, 'evidence/approval-g0-construct.yml'), { force: true });
+  }
 
   // Gate evidence written LAST so G0 can bind the approval file's digest.
   for (const [gate, spec] of Object.entries(gates)) {

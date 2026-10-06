@@ -104,7 +104,13 @@ export function validateOffense(caseObj) {
   const win = ledger.find(
     (e) =>
       e.via === 'delegated-grant' &&
+      e.allowed === true &&
+      e.post_reset === true &&
+      e.revoked === false &&
       e.call_time > reset.reset_time &&
+      e.grant_id === caseObj.grant.grant_id &&
+      e.refresh_lineage === caseObj.grant.refresh_lineage &&
+      caseObj.grant.principal_binding === reset.compromised_user &&
       !reset.revoked_grant_ids.includes(e.grant_id) &&
       e.scope_tier === 'protected' &&
       e.retrieved_marker === evaluator.marker,

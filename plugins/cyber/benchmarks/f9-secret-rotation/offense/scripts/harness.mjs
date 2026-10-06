@@ -128,8 +128,12 @@ export function validateOffense(scenario) {
   }
   const winning = ledger.find(
     (entry) =>
+      entry.actor === 'attacker' &&
+      entry.allowed === true &&
+      entry.phase === 'post-rotation' &&
       entry.key_version === 'v1' &&
       entry.post_rotation === true &&
+      entry.consumer === scenario.evaluator.leaking_consumer_id &&
       entry.retrieved_marker === marker,
   );
   if (winning) {

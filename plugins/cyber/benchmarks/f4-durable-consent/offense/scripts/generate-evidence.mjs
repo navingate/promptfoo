@@ -46,34 +46,36 @@ const PLACEHOLDER_COMMIT = '0'.repeat(40);
 
 function populationToEvents(population) {
   const flow = `f4-${population.meta.seed}-${population.meta.family}`;
-  const events = [
-    {
-      id: `${flow}-reset`,
-      flow_id: flow,
-      type: 'remediation.reset',
-      sequence: 0,
-      arrival_order: 0,
-      event_time: population.reset.reset_time,
-      actor: population.reset.compromised_user,
-      resource: 'idp',
-      query_relationship: population.meta.family,
-      causes: [],
-    },
-  ];
-  population.grants.forEach((grant, index) => {
+  const events = [];
+  const orderedGrants = [...population.grants].sort(
+    (a, b) => a.issue_time - b.issue_time || a.grant_id.localeCompare(b.grant_id),
+  );
+  orderedGrants.forEach((grant, index) => {
     const v = visibleGrant(grant);
     events.push({
       id: `${flow}-grant-${index}`,
       flow_id: flow,
       type: 'consent.grant',
-      sequence: index + 1,
-      arrival_order: index + 1,
+      sequence: index,
+      arrival_order: index,
       event_time: v.issue_time,
       actor: v.principal_binding,
       resource: 'consent-plane',
       provenance: v,
-      causes: [`${flow}-reset`],
+      causes: [],
     });
+  });
+  events.push({
+    id: `${flow}-reset`,
+    flow_id: flow,
+    type: 'remediation.reset',
+    sequence: events.length,
+    arrival_order: events.length,
+    event_time: population.reset.reset_time,
+    actor: population.reset.compromised_user,
+    resource: 'idp',
+    query_relationship: population.meta.family,
+    causes: events.map((event) => event.id),
   });
   return events;
 }

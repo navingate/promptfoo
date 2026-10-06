@@ -17,7 +17,8 @@ import {
 // ---------------------------------------------------------------------------
 
 export function classify(grant, resetUser) {
-  if (grant.ambiguous) {
+  // Missing approval provenance is unresolved evidence, not an evaluator label.
+  if (grant.approval_route === 'none' && grant.verification_state === 'unverified') {
     return 'ambiguous';
   }
   const belongs = grant.principal_binding === resetUser;
@@ -114,6 +115,7 @@ export const SHORTCUT_FLAGGERS = Object.freeze({
   'not-allowlisted': (g) => g.allowlisted === false,
   'survived-reset': (g) => g.revoked_by_query === false,
   'owner-external': (g) => g.owner_tenant === 'external',
+  'first-two-positions': (_g, index) => index < 2,
 });
 
 export const SHORTCUT_NAMES = Object.freeze(Object.keys(SHORTCUT_FLAGGERS));
@@ -127,8 +129,8 @@ export function scoreShortcut(name) {
     let fn = 0;
     let tn = 0;
     let fpOnSurvivor = 0;
-    for (const grant of population.grants) {
-      const flagged = flag(visibleGrant(grant));
+    for (const [index, grant] of population.grants.entries()) {
+      const flagged = flag(visibleGrant(grant), index);
       const trulyMalicious = isMaliciousLabel(grant._label);
       if (flagged && trulyMalicious) {
         tp += 1;

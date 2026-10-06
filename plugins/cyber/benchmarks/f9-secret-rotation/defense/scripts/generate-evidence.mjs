@@ -46,7 +46,7 @@ const taskRel = 'plugins/cyber/benchmarks/f9-secret-rotation/defense';
 const evidenceDir = path.join(taskDir, 'evidence');
 const observationDir = path.join(evidenceDir, 'observation');
 const captureDir = path.join(evidenceDir, 'capture');
-const STAGED = { seed: 103, family: 'cached-interval', subtype: 'malicious-stale-access' };
+const STAGED = { seed: 101, family: 'cached-interval', subtype: 'malicious-stale-access' };
 const PLACEHOLDER_COMMIT = '0'.repeat(40);
 const AXES = [
   'investigation',
@@ -237,33 +237,33 @@ function generateConformance() {
   // Freeze the consumer's own immutable copy of the capture (same bytes → same hash).
   writeText(path.join(captureDir, 'f9-rotation-events-v1.jsonl'), raw);
 
-  const reconstructed = reconstructFromCapture(rows);
-  // Expected inventory from the shared estate the producer used (seed 101 cached-interval).
-  const expectedScenario = buildScenario({
-    seed: 101,
-    family: 'cached-interval',
-    variant: 'malicious',
+  const captures = ['malicious', 'benign'].map((variant) => {
+    const flow = `f9-101-cached-interval-${variant}`;
+    const nativeRows = rows.filter((row) => row.flow_id === flow);
+    const reconstructed = reconstructFromCapture(nativeRows);
+    const expectedScenario = buildScenario({ seed: 101, family: 'cached-interval', variant });
+    const expected = expectedScenario.consumers
+      .map((c) => ({ id: c.id, migrated: c._migrated, latest_lineage: c._lineageLatest }))
+      .sort((x, y) => x.id.localeCompare(y.id));
+    const matches =
+      nativeRows.some((row) => row.type === 'auth.attempt') &&
+      reconstructed.length === expected.length &&
+      reconstructed.every((row) => {
+        const item = expected.find((candidate) => candidate.id === row.id);
+        return item && item.migrated === row.migrated && item.latest_lineage === row.latest_lineage;
+      });
+    return { variant, flow, matches, reconstructed, expected };
   });
-  const expected = expectedScenario.consumers
-    .map((c) => ({ id: c.id, migrated: c._migrated, latest_lineage: c._lineageLatest }))
-    .sort((x, y) => x.id.localeCompare(y.id));
-
-  const matches =
-    reconstructed.length === expected.length &&
-    reconstructed.every((r) => {
-      const e = expected.find((x) => x.id === r.id);
-      return e && e.migrated === r.migrated && e.latest_lineage === r.latest_lineage;
-    });
+  const matches = captures.every((capture) => capture.matches);
   const conformance = {
     task_id: TASK_ID,
     producer_task_id: PRODUCER_ID,
     pair_contract_version: '1',
     telemetry_contract_id: TELEMETRY_CONTRACT_ID,
     capture_sha256: sha256Text(raw),
-    reconstructed,
-    expected,
+    captures,
     inventory_conformant: matches,
-    note: 'Defense snapshot initialized from the producer-native capture reconstructs the inventory and migration state without synthesized facts.',
+    note: 'The consumer adapter reconstructs inventory and migration state from both producer-native captures; live incident initialization remains separate.',
   };
   writeJson(path.join(evidenceDir, 'twin-conformance.json'), conformance);
   // Mirror a copy under the producer so its G4 can cite acceptance by the consumer.

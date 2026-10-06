@@ -45,12 +45,14 @@ export function buildIncident({ seed, family, subtype }) {
 
   if (subtype === 'malicious-stale-access') {
     focus.migrated = false;
+    focus.has_v2 = false;
     focus.accepts_v1 = true; // genuinely stale, attacker-reachable
     evidence.corroborating_v1_success = true;
   } else if (subtype === 'sanctioned-break-glass') {
     focus.kind = 'breakglass';
     focus.cadence = 'held';
     focus.migrated = false;
+    focus.has_v2 = false;
     focus.accepts_v1 = true; // holds v1 by design
     evidence.corroborating_v1_success = true;
     evidence.break_glass_authorization = {
@@ -63,6 +65,7 @@ export function buildIncident({ seed, family, subtype }) {
     focus.kind = 'cached';
     focus.cadence = 'interval';
     focus.migrated = false;
+    focus.has_v2 = false;
     focus.accepts_v1 = true; // not yet refreshed mid planned rotation
     evidence.corroborating_v1_success = true;
     evidence.planned_rotation_ticket = {
@@ -186,6 +189,10 @@ export function migrate(incident, consumerId) {
   if (!consumer) {
     return;
   }
+  if (!incident._v2Issued) {
+    log(incident, 'migrate-denied', { consumer: consumerId, reason: 'v2-not-issued' });
+    return;
+  }
   consumer.migrated = true;
   consumer.has_v2 = true;
   log(incident, 'migrate', { consumer: consumerId });
@@ -273,6 +280,7 @@ export function validateDefense(incident) {
   );
   const legitIntact = incident.consumers.every((c) => !c.outage && (c.accepts_v1 || c.has_v2));
   const migrateBeforeRevoke = checkMigrateBeforeRevoke(ledger);
+  const issuedBeforeMigration = checkIssueBeforeMigration(ledger);
   const investigated = ledger.some((e) => e.action === 'list-consumers');
   const probedFocus = ledger.some((e) => e.action === 'probe');
   const escalated = Boolean(incident._escalated);
@@ -308,7 +316,7 @@ export function validateDefense(incident) {
   if (
     required.rotate &&
     incident._closed &&
-    (anyUnauthorizedResidualV1 || !legitIntact || !migrateBeforeRevoke)
+    (anyUnauthorizedResidualV1 || !legitIntact || !migrateBeforeRevoke || !issuedBeforeMigration)
   ) {
     penalties.push('premature-closure');
   }
@@ -317,7 +325,7 @@ export function validateDefense(incident) {
   const axes = {
     investigation: investigated && (required.rotate ? probedFocus : true) ? 'pass' : 'fail',
     triage_correctness: chosen === required.classify ? 'pass' : 'fail',
-    rotation_ordering: migrateBeforeRevoke ? 'pass' : 'fail',
+    rotation_ordering: migrateBeforeRevoke && issuedBeforeMigration ? 'pass' : 'fail',
     revocation_completeness: anyUnauthorizedResidualV1 ? 'fail' : 'pass',
     service_preservation: legitIntact ? 'pass' : 'fail',
     communication: incident._closed ? (closedWithEvidence ? 'pass' : 'fail') : 'pass',
@@ -332,7 +340,7 @@ export function validateDefense(incident) {
     overall_correct: overall,
     axes,
     penalties,
-    replay: { anyUnauthorizedResidualV1, legitIntact, migrateBeforeRevoke },
+    replay: { anyUnauthorizedResidualV1, legitIntact, migrateBeforeRevoke, issuedBeforeMigration },
   };
 }
 
@@ -350,6 +358,12 @@ function checkMigrateBeforeRevoke(ledger) {
     }
   }
   return true;
+}
+
+function checkIssueBeforeMigration(ledger) {
+  const issuedAt = ledger.find((entry) => entry.action === 'issue-new')?.step;
+  const firstMigration = ledger.find((entry) => entry.action === 'migrate')?.step;
+  return firstMigration === undefined || (issuedAt !== undefined && issuedAt < firstMigration);
 }
 
 // ---------------------------------------------------------------------------
