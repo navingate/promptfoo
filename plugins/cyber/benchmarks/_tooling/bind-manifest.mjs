@@ -120,6 +120,14 @@ export function bindTask(config) {
   if (config.captureManifest) {
     manifest.contracts.capture_manifest = 'evidence/capture-manifest.yml';
   }
+  // G6 calibration run records (written by the runner into calibration/). The protocol +
+  // result paths are already declared in the manifest; this wires in the recorded run(s) so
+  // the manifest digest covers them. The G6 gate status is NOT flipped here — it stays
+  // pending until a frontier ceiling run; the recorded local run is floor/middle evidence.
+  if (Array.isArray(config.calibrationRuns)) {
+    manifest.calibration = manifest.calibration ?? {};
+    manifest.calibration.runs = config.calibrationRuns;
+  }
   writeYaml(path.join(taskDir, 'benchmark.yml'), manifest);
   const manifestSha = sha256File(path.join(taskDir, 'benchmark.yml'));
 

@@ -26,6 +26,8 @@
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 
+import { writeCalibrationEvidence } from './calibration-record.mjs';
+
 const here = path.dirname(fileURLToPath(import.meta.url));
 
 // --- Task registry: task_id -> { harness, mode, forbidden: [{kind, value}] } ---
@@ -125,6 +127,24 @@ function parseArgs(argv) {
         break;
       case '--timeout-ms':
         args.timeoutMs = Number(next());
+        break;
+      case '--record':
+        args.record = next();
+        break;
+      case '--commit':
+        args.commit = next();
+        break;
+      case '--run-id':
+        args.runId = next();
+        break;
+      case '--mock-reference':
+        args.mockReference = true;
+        break;
+      case '--declared-min-instances':
+        args.declaredMinInstances = Number(next());
+        break;
+      case '--declared-min-attempts':
+        args.declaredMinAttempts = Number(next());
         break;
       default:
         throw new Error(`Unknown arg: ${a}`);
@@ -401,6 +421,20 @@ async function runAttempt({ harnessModule, registry, spec, cfg }) {
   const hit = forbiddenHit(messages, registry.forbidden);
   if (hit) {
     return { classification: 'invalid_run', reason: `forbidden-value-in-prompt:${hit}` };
+  }
+  // Offline schema validation: use the harness's intended-reasoning reference as the
+  // "model output" (no endpoint). Exercises the full score/tally/record path deterministically.
+  if (cfg.mockReference) {
+    const ref = harnessModule.calibrationReference(instance);
+    const scored = harnessModule.calibrationScore(instance, ref);
+    return {
+      classification: scored.classification,
+      outcome: scored.outcome,
+      reached_stage: scored.reached_stage,
+      metrics: scored.metrics,
+      reason: scored.reason,
+      raw: JSON.stringify(ref),
+    };
   }
   const resp = await callModel({ ...cfg, messages });
   if (resp.kind === 'provider_error') {
@@ -821,6 +855,191 @@ async function smoke(args) {
 
 // ---------------------------------------------------------------------------
 
+// ---------------------------------------------------------------------------
+// Record — run a calibration and write auditor-shaped G6 evidence into <taskDir>/calibration/.
+// ---------------------------------------------------------------------------
+
+function wilson95(pass, n) {
+  if (n === 0) {
+    return { low: 0, high: 0 };
+  }
+  const p = pass / n;
+  const z = 1.96;
+  const denom = 1 + (z * z) / n;
+  const centre = p + (z * z) / (2 * n);
+  const margin = z * Math.sqrt((p * (1 - p) + (z * z) / (4 * n)) / n);
+  return {
+    low: Math.max(0, (centre - margin) / denom),
+    high: Math.min(1, (centre + margin) / denom),
+  };
+}
+
+function enumerateInstances(task, seeds, families, subtypes) {
+  const instances = [];
+  for (const family of families) {
+    for (const seed of seeds) {
+      for (const subtype of subtypes) {
+        const spec = subtype ? { seed, family, subtype } : { seed, family };
+        const instanceId = [task, seed, family, subtype].filter(Boolean).join('-').toLowerCase();
+        instances.push({ spec, instanceId });
+      }
+    }
+  }
+  return instances;
+}
+
+async function runCalibrationLoop({
+  harnessModule,
+  registry,
+  instances,
+  attemptsPer,
+  runCfg,
+  stages,
+}) {
+  const tally = emptyTally(stages);
+  const rawLines = [];
+  const summaryLines = [];
+  let samplePrompt = null;
+  for (const { spec, instanceId } of instances) {
+    for (let attempt = 0; attempt < attemptsPer; attempt += 1) {
+      const result = await runAttempt({ harnessModule, registry, spec, cfg: runCfg });
+      recordOutcome(tally, stages, result);
+      rawLines.push(JSON.stringify({ instance: instanceId, attempt, raw: result.raw ?? null }));
+      summaryLines.push({
+        instance: instanceId,
+        attempt,
+        classification: result.classification,
+        reached_stage: result.reached_stage ?? null,
+        reason: result.reason ?? null,
+        metrics: result.metrics ?? null,
+      });
+      if (!samplePrompt) {
+        samplePrompt = renderMessages(harnessModule.calibrationInstance(spec))
+          .map((m) => `[${m.role}]\n${m.content}`)
+          .join('\n\n');
+      }
+      process.stdout.write(
+        `  ${instanceId} a${attempt} -> ${result.classification}${result.reached_stage ? ` [${result.reached_stage}]` : ''}${metricSummary(result.metrics)}\n`,
+      );
+    }
+  }
+  return { tally, rawLines, summaryLines, samplePrompt };
+}
+
+async function record(args) {
+  const registry = TASK_REGISTRY[args.task];
+  if (!registry) {
+    throw new Error(`Unknown task: ${args.task}`);
+  }
+  if (!/^[a-f0-9]{40}$|^[a-f0-9]{64}$/u.test(args.commit ?? '')) {
+    throw new Error('Pass --commit <40-or-64-hex> (the C0 the evidence binds).');
+  }
+  const harnessModule = await import(path.resolve(here, registry.harness));
+  const stages = harnessModule.CALIBRATION_STAGES;
+  const endpoint = args.mockReference
+    ? { baseUrl: 'mock://reference', model: 'reference-oracle', apiKey: null }
+    : endpointConfig();
+  if (!args.mockReference && (!endpoint.baseUrl || !endpoint.model)) {
+    throw new Error('Set CYBER_MODEL and a base URL env, or pass --mock-reference.');
+  }
+  const seeds = args.seeds ?? [];
+  const families = args.families ?? [];
+  const subtypes = args.subtypes ?? [null];
+  if (new Set(seeds).size < 2 || families.length === 0) {
+    throw new Error('Need --seeds (>=2 distinct) and --families (>=1).');
+  }
+  const attemptsPer = args.attempts ?? 1;
+  const instances = enumerateInstances(args.task, seeds, families, subtypes);
+  const runCfg = {
+    baseUrl: endpoint.baseUrl,
+    apiKey: endpoint.apiKey,
+    model: endpoint.model,
+    timeoutMs: args.timeoutMs,
+    maxTokens: args.maxTokens,
+    temperature: args.temperature,
+    mockReference: args.mockReference === true,
+  };
+  const { tally, rawLines, summaryLines, samplePrompt } = await runCalibrationLoop({
+    harnessModule,
+    registry,
+    instances,
+    attemptsPer,
+    runCfg,
+    stages,
+  });
+  const instanceIds = instances.map((i) => i.instanceId);
+  const runId = (args.runId ?? `${args.task}-local-1`).toLowerCase();
+  const model = {
+    provider: args.mockReference ? 'reference-oracle' : 'openai-compatible',
+    id: endpoint.model,
+    endpoint: endpoint.baseUrl,
+  };
+  const harness = { name: 'cyber-calibration-runner', version: '1' };
+  const opportunityBudget = {
+    max_tokens: args.maxTokens,
+    temperature: args.temperature,
+    tool_calls: 0,
+    retries: 0,
+    logical_deadline_ms: args.timeoutMs,
+  };
+  const declaredMinimum = {
+    instances: args.declaredMinInstances ?? Math.min(4, instanceIds.length),
+    attempts: args.declaredMinAttempts ?? Math.min(8, instanceIds.length * attemptsPer),
+  };
+  const passRate = tally.completed === 0 ? 0 : tally.pass / tally.completed;
+  const ci = wilson95(tally.pass, tally.completed);
+  const paths = writeCalibrationEvidence({
+    taskDir: args.record,
+    taskId: args.task,
+    commit: args.commit,
+    runId,
+    model,
+    harness,
+    opportunityBudget,
+    seeds,
+    families,
+    instanceIds,
+    tally,
+    declaredMinimum,
+    rawLines,
+    summaryLines,
+    samplePrompt: samplePrompt ?? '',
+    runConfig: {
+      seeds,
+      families,
+      subtypes,
+      attempts_per_instance: attemptsPer,
+      model,
+      opportunity_budget: opportunityBudget,
+      mock_reference: args.mockReference === true,
+    },
+    protocolMeta: {
+      attempts_per_instance: attemptsPer,
+      sample_size_rationale: `${instanceIds.length} instances x ${attemptsPer} attempts across ${families.length} families and ${seeds.length} seeds; a local floor/middle probe, not a powered estimate.`,
+      outcome_taxonomy: {
+        provider_error: 'timeout / connection failure / HTTP 5xx / 429',
+        invalid_run: 'harness fault or a forbidden-value hit in the rendered prompt',
+        model_fail: 'off-grammar / truncated / wrong answer (fail closed)',
+        pass: 'scored success',
+      },
+      tiers: { floor_middle: 'this local run', ceiling: 'PENDING — frontier model via .env keys' },
+    },
+    uncertainty: {
+      method: 'Wilson score 95% interval on the pass rate',
+      result: `pass_rate=${passRate.toFixed(4)} (pass ${tally.pass}/${tally.completed}); 95% CI [${ci.low.toFixed(4)}, ${ci.high.toFixed(4)}]`,
+    },
+    limitations: [
+      'No frontier ceiling run — this is the local model only (floor/middle); the G6 gate is kept PENDING.',
+      `Single model (${endpoint.model}); not a cross-model calibration.`,
+      'Local sample size is a probe, not a powered estimate; the interval is wide.',
+    ],
+  });
+  process.stdout.write(`\n[record] ${args.task} tally ${JSON.stringify(tally)}\n`);
+  process.stdout.write(
+    `[record] wrote ${JSON.stringify(paths)} (run_id=${runId}, commit=${args.commit.slice(0, 12)})\n`,
+  );
+}
+
 async function main() {
   const args = parseArgs(process.argv.slice(2));
   if (args.selftest) {
@@ -831,7 +1050,11 @@ async function main() {
     await smoke(args);
     return;
   }
-  throw new Error('Specify --selftest or --smoke (recorded-run mode lands at calibration time).');
+  if (args.record) {
+    await record(args);
+    return;
+  }
+  throw new Error('Specify --selftest, --smoke, or --record <taskDir>.');
 }
 
 main().catch((error) => {

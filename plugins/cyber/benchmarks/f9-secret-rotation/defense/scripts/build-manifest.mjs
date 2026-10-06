@@ -143,6 +143,14 @@ function main() {
     'preservation — scored by replay under the tested cases. Draft wording; not yet claim-reviewer ' +
     'approved and not published.\n';
 
+  const calibDir = path.join(taskDir, 'calibration');
+  const calibrationRuns = fs.existsSync(calibDir)
+    ? fs
+        .readdirSync(calibDir)
+        .filter((f) => f.endsWith('.yml') && f !== 'protocol.yml' && f !== 'result.yml')
+        .sort()
+        .map((f) => `calibration/${f}`)
+    : [];
   const result = bindTask({
     taskDir,
     taskId: TASK_ID,
@@ -150,6 +158,7 @@ function main() {
     author: AUTHOR,
     gates,
     claimText,
+    calibrationRuns,
     captureManifest: {
       producerId: PRODUCER_ID,
       consumerId: TASK_ID,

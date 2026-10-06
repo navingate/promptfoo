@@ -774,3 +774,21 @@ export function calibrationScore(instance, parsed) {
     metrics: { triage_correct: triageCorrect, axes: verdict.axes, penalties: verdict.penalties },
   };
 }
+
+/** The intended-reasoning correct output for an instance (offline --mock-reference runs). */
+export function calibrationReference(instance) {
+  const cr = instance._incident.evaluator.correct_response;
+  const subtype = instance._incident.evaluator.subtype;
+  let response = 'close-no-mutation';
+  if (cr.rotate) {
+    response = 'contain-safe-order';
+  } else if (subtype === 'uncorroborated-false-positive') {
+    response = 'request-evidence';
+  }
+  return {
+    classification: subtype,
+    response,
+    escalate: cr.escalate === true,
+    cites_evidence: true,
+  };
+}

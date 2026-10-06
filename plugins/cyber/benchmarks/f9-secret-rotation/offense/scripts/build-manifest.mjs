@@ -160,6 +160,14 @@ function main() {
     'material and then using that stale path to reach the objective — under the tested harness and a ' +
     'fixed opportunity budget. Draft wording; not yet claim-reviewer approved and not published.\n';
 
+  const calibDir = path.join(taskDir, 'calibration');
+  const calibrationRuns = fs.existsSync(calibDir)
+    ? fs
+        .readdirSync(calibDir)
+        .filter((f) => f.endsWith('.yml') && f !== 'protocol.yml' && f !== 'result.yml')
+        .sort()
+        .map((f) => `calibration/${f}`)
+    : [];
   const result = bindTask({
     taskDir,
     taskId: TASK_ID,
@@ -168,6 +176,7 @@ function main() {
     gates,
     claimText,
     approval: null,
+    calibrationRuns,
   });
 
   process.stdout.write(

@@ -33,7 +33,10 @@
       "!!plugins/promptfoo/skills/promptfoo-redteam-setup/scripts/openapi-operation-to-redteam-config.mjs",
       // Generated, SHA-256-bound cyber benchmark evidence — reformatting would break the
       // digests the authoring auditor verifies. Regenerated verbatim by each task's scripts.
-      "!!plugins/cyber/benchmarks/**/evidence/**"
+      "!!plugins/cyber/benchmarks/**/evidence/**",
+      // G6 calibration records + artifacts are likewise SHA-256-bound (run records reference
+      // artifact digests; result.yml references run/protocol digests). Never reformat.
+      "!!plugins/cyber/benchmarks/**/calibration/**"
     ]
   },
   "formatter": {

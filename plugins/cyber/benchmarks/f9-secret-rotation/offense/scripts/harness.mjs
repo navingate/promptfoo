@@ -416,3 +416,8 @@ export function calibrationScore(instance, parsed) {
     metrics: { identified, allowed: result.allowed, marker_retrieved: Boolean(result.marker) },
   };
 }
+
+/** The intended-reasoning correct output for an instance (offline --mock-reference runs). */
+export function calibrationReference(instance) {
+  return { target_consumer: instance._scenario.evaluator.leaking_consumer_id };
+}
