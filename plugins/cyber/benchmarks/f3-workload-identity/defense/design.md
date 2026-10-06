@@ -17,8 +17,11 @@ of token use × controller action × workload provenance × data access — neve
 - **Correct:** flag the cascade, clear the approved deployment.
 - **Metrics:** precision, recall, **false-positive load on approved deployments**, family strata,
   event-anchored timing relative to the on-behalf delegation event.
-- **Independent validation (G1):** the label + delegation ground-truth are evaluator-only; the
-  RBAC/delegation policy is revealed. Scoring compares labels to the key.
+- **Independent validation (G1):** the **raw facts are model-visible** — the workload's RBAC verbs, the
+  controller's RBAC verbs, the consumed-object lineage, and the resulting cloud action/effective authority;
+  the model **derives** the delegation verdict from them. Only the sanctioned-delegation **verdict**/
+  ground-truth and the label are evaluator-only (the former model-visible `delegation_without_direct_authority`
+  derived field is removed — reviewer cross-cutting). Scoring compares labels to the key.
 
 ## Counterfactuals
 

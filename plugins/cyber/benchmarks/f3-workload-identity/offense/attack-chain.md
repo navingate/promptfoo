@@ -28,6 +28,12 @@ use / controller action / data access, authorized combination.
 
 ## Families (seed variation)
 
-Vary the **delegation mechanism** (service-account token mount, controller reconcile hook, admission
-webhook, impersonation RBAC) and the namespace topology; hold out semantic variation, not renamed
-workloads.
+**Invariant across all variants (reviewer F3.2):** the attacker can create or modify a lower-privilege
+object or reference, and a privileged controller **consumes it and performs a cloud action with its own
+identity without validating requester ↔ object ↔ authorized-task binding**. Variants that merely **steal
+a service-account credential** or use **impersonation RBAC** measure a _different_ capability
+(credential theft / direct privilege) and are **excluded**.
+
+Vary the **controller-consumption mechanism** (reconcile hook over an owned CRD, admission/mutating webhook
+that trusts a workload-supplied field, an owner-reference the controller acts on) and the namespace
+topology; hold out semantic variation, not renamed workloads.
