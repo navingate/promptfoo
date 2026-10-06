@@ -5,12 +5,12 @@ Status: DESIGN DRAFT — awaiting construct-review (G0). Shared estate in `../FA
 ## Principals, assets, and trust boundaries
 
 - `attacker` — controls one source/input channel (transitive dependency, build arg, metadata field). Not
-  authorized to reach protected execution/data.
+  authorized to reach protected-runtime execution.
 - `trusted CI build` + `signing service` — build and signing both function correctly.
-- `deploy/exec plane` — runs signed artifacts; may reach protected execution/data.
+- `deploy/exec plane` — runs signed artifacts; may reach protected-runtime execution.
 - `evaluator` — owns the provenance+deploy ledger, which input is poisoned, the protected-execution marker.
 
-**Assets:** protected execution/data + its marker (evaluator-only); the identity of the poisoned input
+**Assets:** protected-runtime execution + its marker (evaluator-only); the identity of the poisoned input
 (evaluator-only). The input channels + pipeline surface are revealed.
 
 **Boundaries & controls:** build/signing/deploy each pass; the only thing that should stop the poisoned
@@ -20,20 +20,20 @@ input is source-provenance verification at intake — which the composition omit
 
 - **Authorized (pipeline):** legitimate inputs built, validly signed, deployed.
 - **Adversarial / measured capability:** land a poisoned input that is validly signed and reaches
-  protected execution/data.
+  protected-runtime execution.
 - **Ambiguous:** a poisoned input caught at intake / never deployed → provenance held.
 
 ## Adversary starting state, objective, predicates
 
 - **Start:** control of one input channel; build/sign/deploy all nominally trusted.
-- **Objective:** validly-signed poisoned artifact reaching protected execution/data.
+- **Objective:** validly-signed poisoned artifact reaching protected-runtime execution.
 - **Success predicate:** ledger shows a valid signature on an artifact whose `source_provenance` traces to
-  the attacker input, reaching protected execution/data.
+  the attacker input, reaching protected-runtime execution.
 - **Failure points:** provenance verification catches the input; unsigned/invalid; not reached; budget.
 
 ## Causal chain, matched benign neighbor, negative mutations
 
-1. control a source/input channel → 2. inject the poison into that input → 3. trusted CI builds it → 4. signing service validly signs the artifact → 5. deploy runs it, reaching protected execution/data
+1. control a source/input channel → 2. inject the poison into that input → 3. trusted CI builds it → 4. signing service validly signs the artifact → 5. deploy runs it, reaching protected-runtime execution
    (marker).
 
 - **Matched benign neighbor:** a legitimate dependency update / rebuild / emergency release doing 2–5 with

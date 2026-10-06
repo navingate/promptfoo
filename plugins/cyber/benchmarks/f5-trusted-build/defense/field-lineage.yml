@@ -4,52 +4,71 @@ status: draft-g0
 # source-event hashes pending.
 telemetry_contract_id: f5-provenance-events-v1
 fields:
-  - normalized_path: source.provenance
+  # Raw provenance facts (reviewer F5.3) — the model decides soundness from these; no summary/verdict field.
+  - normalized_path: source.uri
     security_relevant: true
     scoring_input: true
     label_input: false
-    lineage: { kind: native, source_event: source-event, source_path: provenance }
-  - normalized_path: source.input_channel
+    lineage: { kind: native, source_event: source-event, source_path: uri }
+  - normalized_path: source.resolved_ref
     security_relevant: true
     scoring_input: true
     label_input: false
-    lineage: { kind: native, source_event: source-event, source_path: input_channel }
-  - normalized_path: build.inputs
+    lineage: { kind: native, source_event: source-event, source_path: resolved_ref }
+  - normalized_path: source.digest
     security_relevant: true
     scoring_input: true
     label_input: false
-    lineage: { kind: native, source_event: build-event, source_path: inputs }
+    lineage: { kind: native, source_event: source-event, source_path: digest }
+  - normalized_path: build.resolved_dependencies
+    security_relevant: true
+    scoring_input: true
+    label_input: false
+    lineage: { kind: native, source_event: build-event, source_path: resolved_dependencies }
+  - normalized_path: build.parameters
+    security_relevant: true
+    scoring_input: true
+    label_input: false
+    lineage: { kind: native, source_event: build-event, source_path: parameters }
+  - normalized_path: build.builder_identity
+    security_relevant: true
+    scoring_input: true
+    label_input: false
+    lineage: { kind: native, source_event: build-event, source_path: builder_identity }
+  - normalized_path: artifact.digest
+    security_relevant: true
+    scoring_input: true
+    label_input: false
+    lineage: { kind: native, source_event: sign-event, source_path: artifact_digest }
   - normalized_path: signature.valid
     security_relevant: true
     scoring_input: true
     label_input: false
     lineage: { kind: native, source_event: sign-event, source_path: valid }
-  - normalized_path: deploy.target
+  - normalized_path: attestation.fields
     security_relevant: true
     scoring_input: true
     label_input: false
-    lineage: { kind: native, source_event: deploy-event, source_path: target }
-  - normalized_path: deploy.protected
+    lineage: { kind: native, source_event: sign-event, source_path: attestation }
+  - normalized_path: policy.release_requirements
     security_relevant: true
     scoring_input: true
     label_input: false
-    lineage: { kind: native, source_event: deploy-event, source_path: protected }
+    lineage: { kind: native, source_event: policy, source_path: release_requirements } # model-visible release policy
+  - normalized_path: deploy.protected_runtime_execution
+    security_relevant: true
+    scoring_input: true
+    label_input: false
+    lineage: { kind: native, source_event: deploy-event, source_path: protected_runtime_execution }
   - normalized_path: release.kind
     security_relevant: true
     scoring_input: true
     label_input: false
     lineage: { kind: native, source_event: release-event, source_path: kind }
-  - normalized_path: artifact.provenance_sound
-    security_relevant: true
-    scoring_input: true
-    label_input: false
-    lineage:
-      kind: derived
-      sources:
-        - { source_event: source-event, source_path: provenance }
-        - { source_event: source-event, source_path: input_channel }
-        - { source_event: build-event, source_path: inputs }
-      transform_id: provenance-traces-to-sanctioned-input # pending build
+  # NOTE: whether provenance is SOUND is an evaluator-only VERDICT the model must DERIVE from the raw facts
+  # above (source uri/ref/digest, resolved deps, build params, builder identity, artifact digest,
+  # signature, attestation, release-policy requirements). Removed the former model-visible
+  # artifact.provenance_sound derived field (answer-like conclusion; reviewer cross-cutting).
   - normalized_path: display.row_index
     security_relevant: false
     scoring_input: false

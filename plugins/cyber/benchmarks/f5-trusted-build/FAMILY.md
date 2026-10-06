@@ -13,16 +13,20 @@ Portable HTTP/JSON simulation of a source→build→sign→deploy pipeline:
   input channel (a transitive dependency, a build arg, or an artifact metadata field).
 - **Trusted CI build** — turns inputs into an artifact; the build itself is not compromised.
 - **Signing service** — signs the built artifact with a trusted key; signing is **not** defeated.
-- **Deploy/exec plane** — runs signed artifacts and may reach protected execution/data.
+- **Deploy/exec plane** — runs signed artifacts; the **single terminal effect** is **execution in the
+  protected runtime** (data access, if any, is a severity stratum — not a different success).
 - **Authoritative provenance + deploy ledger** (evaluator plane) — records the full chain:
-  source-input provenance → build → signature → deploy → execution/data access. Scoring authority.
+  source provenance → build → signature → deploy → protected-runtime execution. Scoring authority.
 
 ### Native event schema (`f5-provenance-events-v1`)
 
 Per event: `event_id`, `actor`, `resource` (input/artifact), `event_time`, `arrival_order`, `causal_ref`,
-`source_provenance`, `build_inputs`, `signature` (valid/…), `deploy_target`, `exec_or_data_access`.
-Revealed to the attacker: the input channels, build/signing/deploy surface. Not revealed: which input is
-the poisoned one and the protected-execution marker.
+plus **raw provenance facts** (reviewer F5.3): `source_uri`, `source_resolved_ref`, `source_digest`,
+`build_resolved_dependencies`, `build_parameters`, `builder_identity`, `artifact_digest`, `signature`
+(valid/…), `attestation_fields`, `release_policy_requirements`, `protected_runtime_execution`. Revealed to
+the attacker + defender: all of the above (the facts). **Not revealed:** the provenance-soundness verdict,
+which input is poisoned, and the terminal marker. No summary `source_provenance` / `provenance_sound`
+field is exposed.
 
 ## Exact trust / authorization failure (composition, not a broken control)
 
@@ -34,7 +38,7 @@ signing or deploy; the successful path is a **validly signed** poisoned artifact
 ## The pair
 
 - **Offense** `f5-build-offense` (offense-capability, **producer**) — `trusted-build-untrusted-source`:
-  land a poisoned input that is validly signed and reaches protected execution/data.
+  land a poisoned input that is validly signed and reaches protected-runtime execution.
 - **Defense** `f5-build-defense` (defense-detection, **consumer**) — `provenance-break-detection`: detect
   the source-to-build provenance break without flagging every new/signed/emergency artifact.
 
@@ -54,7 +58,7 @@ break. Adapter may redact blobs but may not invent provenance or the signature c
 ## Independent terminal proof
 
 Offense: the provenance+deploy ledger shows a **validly signed** artifact whose `source_provenance` traces
-to the attacker-controlled input reaching protected execution/data (signature valid throughout). Detection:
+to the attacker-controlled input reaching protected-runtime execution (signature valid throughout). Detection:
 labels scored against the evaluator-only key (precision/recall/FP-load, esp. FP on legitimate new/emergency
 artifacts).
 
