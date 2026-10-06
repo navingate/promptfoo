@@ -7,25 +7,33 @@ single field decides.
 
 ## Classes
 
-| Label              | Policy-relevant combination                                                                                                                                                               |
-| ------------------ | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `cumulative-exfil` | cumulative protected-sensitivity volume to an approved destination above policy, assembled via sub-threshold actions, **without** an authorized business purpose/scope for that aggregate |
-| `sanctioned-bulk`  | comparable (or larger) aggregate volume/destination, **with** an authorized purpose + scoped identity + sanctioned job                                                                    |
-| `ambiguous`        | purpose/scope conflict or missing such that authorization cannot be decided                                                                                                               |
+| Label              | Policy-relevant combination                                                                                                                                                                                              |
+| ------------------ | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| `cumulative-exfil` | cumulative protected-sensitivity volume to an approved destination above the **visible** policy aggregate, via sub-threshold actions, **not covered by an authenticated job** for that dataset/destination/volume/window |
+| `sanctioned-bulk`  | comparable (or larger) aggregate volume/destination **covered by an authenticated job** (approval_ref + approved scope + actor binding all match the actions)                                                            |
+| `ambiguous`        | job/policy evidence conflicts or is missing such that authorization cannot be decided                                                                                                                                    |
 
 ## Required per-field counterexamples (no field is an oracle)
 
-- **high-volume benign** — large sanctioned ETL to an approved destination (volume ≠ malicious);
-- **low-volume malicious** — a small protected dataset exfiltrated sub-threshold (low volume ≠ benign);
-- **shared destination** — exfil and bulk to the **same** approved destination (destination ≠ signal);
-- **shared identity/scope** — a scoped analyst doing both benign reporting and the exfil (identity ≠ signal);
-- **same actions** — identical export action types on both sides (action type ≠ signal).
+Because the authenticated job registry is now model-visible, "no approval ⇒ malicious" must NOT solve the
+corpus. The corpus includes, per field:
 
-The decision requires combining cumulative sensitivity + destination + identity + **declared purpose vs
-scope**. No single-field or volume-threshold rule may pass the corpus.
+- **high-volume benign** — large aggregate **under a valid authenticated job** (volume ≠ malicious);
+- **low-volume malicious** — a small protected dataset exfiltrated sub-threshold with no covering job
+  (low volume ≠ benign);
+- **shared destination** — exfil and job-covered bulk to the **same** approved destination (destination ≠ signal);
+- **shared identity/scope** — one analyst running both a job-covered export and the exfil (identity ≠ signal);
+- **valid job, wrong use** (malicious) — an authenticated job exists but the actions exceed it: **wrong
+  destination**, **over approved volume**, **different actor than the binding**, or **outside the approved
+  window** (presence of a `job_id`/`approval_ref` ≠ authorized);
+- **unapproved but benign** — an export with no job that is small and non-sensitive (no approval ≠ malicious).
+
+The decision requires combining cumulative sensitivity (from the visible catalog) + destination + actor +
+the **authenticated job** (does a job actually authorize THIS dataset/destination/volume/window/actor).
+`declared_purpose` is untrusted and must not be used as authorization. No single field — volume,
+destination, identity, declared_purpose, or mere job presence — may pass the corpus.
 
 ## Outcome vocabulary
 
 Flows carry `completed-transfer | partial | blocked | abandoned`. A `blocked` or `partial` flow under the
-cumulative threshold is not `cumulative-exfil`. No label/purpose string appears in model-visible nested
-data.
+visible policy aggregate is not `cumulative-exfil`. No label string appears in model-visible nested data.

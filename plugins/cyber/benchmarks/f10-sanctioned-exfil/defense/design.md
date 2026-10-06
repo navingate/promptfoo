@@ -17,8 +17,10 @@ identity × business purpose — never a single field.
 - **Correct:** flag the cumulative exfil and clear the sanctioned high-volume jobs.
 - **Metrics:** precision, recall, **false-positive load on sanctioned-bulk jobs**, family strata, and
   event-anchored timing relative to the first contributing export.
-- **Independent validation (G1):** the label + cumulative policy threshold are evaluator-only; the
-  data-handling policy is revealed. Scoring compares labels to the key.
+- **Independent validation (G1):** only the exfil **label** + terminal marker are evaluator-only; the
+  **policy aggregate limit, the catalog classification, and the authenticated job registry are
+  model-visible** (reviewer F10.1/F10.2/F10.3 — the model derives authorization from authenticated jobs,
+  not the self-asserted `declared_purpose`). Scoring compares labels to the key.
 
 ## Counterfactuals
 
@@ -26,8 +28,9 @@ identity × business purpose — never a single field.
   volume to the same destinations via the same export actions — so volume/destination/identity alone must
   not flag it.
 - **Negative mutations / de-oracle:** attack-only telemetry (any high volume predictive — defeated by the
-  benign bulk population); a label/purpose visible in nested data; a single field (volume, destination,
-  identity, sensitivity) solving the corpus; benign flows from different actions than malicious.
+  job-covered bulk population); a label visible in nested data; a single field (volume, destination,
+  identity, classification, declared_purpose, or **mere job presence**) solving the corpus; benign flows
+  from different actions than malicious.
 
 ## Shortcuts to defeat (feeds G3 + recursive de-oracle)
 

@@ -15,7 +15,9 @@ Detection only (no containment in this task). Deterministic, fail-closed, strict
 
 ## Shortcut baselines (must fail)
 
-Volume-threshold-alone; destination-alone; identity-alone; sensitivity-alone; one-literal; count/denial —
-each has a counterexample class in `label-policy.md`. Only the cumulative combination (incl. declared
-purpose vs scope) passes. Hold out semantic variation in the exfil-vs-bulk structure, not renamed
-datasets.
+Volume-threshold-alone; destination-alone; identity-alone; classification-alone; **declared_purpose**
+(untrusted); **no-job-⇒-malicious** / **job-present-⇒-benign** (mere presence of a `job_id`/`approval_ref`
+is not authorization); one-literal; count/denial — each has a counterexample class in `label-policy.md`.
+Only the combination (visible cumulative aggregate vs the policy limit **and** whether an authenticated
+job actually authorizes this dataset/destination/volume/window/actor) passes. Hold out semantic variation
+in the exfil-vs-bulk structure, not renamed datasets.

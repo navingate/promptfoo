@@ -14,11 +14,11 @@ fields:
     scoring_input: true
     label_input: false
     lineage: { kind: native, source_event: export, source_path: actor.scope }
-  - normalized_path: resource.sensitivity_label
+  - normalized_path: resource.catalog_classification
     security_relevant: true
     scoring_input: true
     label_input: false
-    lineage: { kind: native, source_event: export, source_path: resource.sensitivity_label }
+    lineage: { kind: native, source_event: catalog, source_path: classification } # model-visible catalog, not an evaluator secret
   - normalized_path: action.volume
     security_relevant: true
     scoring_input: true
@@ -30,32 +30,51 @@ fields:
     label_input: false
     lineage: { kind: native, source_event: export, source_path: action.destination }
   - normalized_path: action.declared_purpose
+    security_relevant: false # UNTRUSTED self-asserted context; visible but NOT an authorization basis
+    scoring_input: false
+    label_input: false
+    lineage: { kind: native, source_event: export, source_path: action.declared_purpose }
+  # Authenticated job evidence — the real authorization basis (reviewer F10.3), all native/model-visible:
+  - normalized_path: job.approval_ref
     security_relevant: true
     scoring_input: true
     label_input: false
-    lineage: { kind: native, source_event: export, source_path: action.declared_purpose }
+    lineage: { kind: native, source_event: job-registry, source_path: approval_ref }
+  - normalized_path: job.approved_scope
+    security_relevant: true
+    scoring_input: true
+    label_input: false
+    lineage:
+      {
+        kind: native,
+        source_event: job-registry,
+        source_path: approved_dataset_destination_volume_window,
+      }
+  - normalized_path: job.actor_binding
+    security_relevant: true
+    scoring_input: true
+    label_input: false
+    lineage: { kind: native, source_event: job-registry, source_path: actor_binding }
+  - normalized_path: policy.cumulative_aggregate_limit
+    security_relevant: true
+    scoring_input: true
+    label_input: false
+    lineage: { kind: native, source_event: policy, source_path: cumulative_aggregate_limit } # model-visible rule
   - normalized_path: flow.cumulative_sensitive_volume
     security_relevant: true
     scoring_input: true
     label_input: false
     lineage:
-      kind: derived
+      kind: derived # deterministic mechanical aggregation over visible events (NOT a policy verdict)
       sources:
-        - { source_event: export, source_path: resource.sensitivity_label }
+        - { source_event: catalog, source_path: classification }
         - { source_event: export, source_path: action.volume }
         - { source_event: export, source_path: action.destination }
         - { source_event: export, source_path: actor.identity }
       transform_id: sum-sensitive-volume-per-identity-destination # pending build
-  - normalized_path: flow.purpose_scope_consistency
-    security_relevant: true
-    scoring_input: true
-    label_input: false
-    lineage:
-      kind: derived
-      sources:
-        - { source_event: export, source_path: action.declared_purpose }
-        - { source_event: export, source_path: actor.scope }
-      transform_id: declared-purpose-within-scope # pending build
+  # NOTE: the authorized-vs-exfiltration VERDICT (whether an authenticated job covers the aggregate) is
+  # evaluator-only and the model's to derive — it is NOT a model-visible derived field (removed the former
+  # flow.purpose_scope_consistency, which was an answer-like policy conclusion; reviewer cross-cutting).
   - normalized_path: display.row_index
     security_relevant: false
     scoring_input: false

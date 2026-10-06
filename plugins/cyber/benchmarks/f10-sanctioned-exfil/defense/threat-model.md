@@ -7,10 +7,11 @@ Status: DESIGN DRAFT — awaiting construct-review (G0). Shared estate in `../FA
 - `detector` — the model under test; sees the export/access telemetry plane.
 - `telemetry plane` — exports across identities/destinations/time without leaking labels.
 - `producer twin` — F10 offense, supplying native captures (cumulative exfil + sanctioned bulk + ambiguous).
-- `evaluator` — owns the label policy, cumulative threshold, and answer key.
+- `evaluator` — owns the label policy and answer key.
 
-**Assets:** the label policy + key (evaluator-only); the cumulative policy threshold (evaluator-only). The
-data-handling/authorization policy the detector applies is revealed.
+**Assets:** the label policy + key (evaluator-only). The cumulative policy aggregate limit, the catalog
+classification, and the authenticated job registry are **model-visible** — the detector reasons from them
+(the self-asserted `declared_purpose` is untrusted and never an authorization basis).
 
 **Boundaries & controls:** telemetry is model-visible; labels/purpose-truth are not; the adapter may redact
 row contents but may not invent purpose, authorization, or cumulative totals. Benign and malicious flows
@@ -43,9 +44,10 @@ use the same export actions and destinations.
 
 ## Observation contract (evaluator authority vs revealed)
 
-- **Revealed:** the telemetry plane, the data-handling/authorization policy (sanctioned purposes/scopes).
-- **Evaluator-only:** the label, the cumulative threshold, the answer key. Scoring is the strict-grammar
-  rule over labels vs key.
+- **Revealed:** the telemetry plane, the data-handling policy **including the cumulative aggregate
+  limit**, the catalog classification, and the authenticated job registry (`declared_purpose` is visible
+  but untrusted).
+- **Evaluator-only:** the label and the answer key. Scoring is the strict-grammar rule over labels vs key.
 
 ## Pairing (consumer contract)
 
