@@ -316,6 +316,8 @@ function stageObservationPlane() {
       nativeField('event_time', true, '*'),
       nativeField('actor', true, '*'),
       nativeField('resource', true, '*'),
+      nativeField('kind', true, 'consumer.inventory'),
+      nativeField('declared_refresh_cadence', true, 'consumer.inventory'),
       nativeField(
         'credential_lineage.key_version',
         true,
@@ -340,9 +342,21 @@ function generateCapture() {
   recordAuthAttempt(benign, {
     actor: 'authorized-rotation-check',
     consumerId: benignConsumer.id,
-    version: 'v2',
+    version: 'v1',
     phase: 'post-rotation',
   });
+  for (const captured of [scenario, benign]) {
+    for (const consumer of captured.consumers) {
+      for (const version of ['v1', 'v2']) {
+        recordAuthAttempt(captured, {
+          actor: 'rotation-audit',
+          consumerId: consumer.id,
+          version,
+          phase: 'post-rotation',
+        });
+      }
+    }
+  }
   const rows = [...visibleEvents(scenario), ...visibleEvents(benign)];
   writeJsonl(path.join(captureDir, 'f9-rotation-events-v1.jsonl'), rows);
   return { rows: rows.length };

@@ -24,6 +24,7 @@ import {
 import { buildScenario, INCIDENT_SUBTYPES, TELEMETRY_CONTRACT_ID } from '../../shared/estate.mjs';
 import {
   buildIncident,
+  buildIncidentFromCapture,
   buildMutatedIncident,
   DEFENSE_MUTATIONS,
   DEFENSE_SHORTCUTS,
@@ -211,7 +212,7 @@ function reconstructFromCapture(rows) {
       : consumers.has(row.actor)
         ? row.actor
         : null;
-    const version = row.credential_lineage?.key_version;
+    const version = row.type === 'credential.lineage' ? row.credential_lineage?.key_version : null;
     if (owner && version && row.event_time > consumers.get(owner).latest_time) {
       const entry = consumers.get(owner);
       entry.latest_time = row.event_time;
@@ -239,21 +240,35 @@ function generateConformance() {
   writeText(path.join(captureDir, 'f9-rotation-events-v1.jsonl'), raw);
 
   const captures = ['malicious', 'benign'].map((variant) => {
-    const flow = `f9-101-cached-interval-${variant}`;
+    const expectedScenario = buildScenario({ seed: 101, family: 'cached-interval', variant });
+    const flow = expectedScenario.events[0].flow_id;
     const nativeRows = rows.filter((row) => row.flow_id === flow);
     const reconstructed = reconstructFromCapture(nativeRows);
-    const expectedScenario = buildScenario({ seed: 101, family: 'cached-interval', variant });
     const expected = expectedScenario.consumers
       .map((c) => ({ id: c.id, migrated: c._migrated, latest_lineage: c._lineageLatest }))
       .sort((x, y) => x.id.localeCompare(y.id));
+    const incident = buildIncidentFromCapture(rows, {
+      seed: 101,
+      family: 'cached-interval',
+      subtype: variant === 'malicious' ? 'malicious-stale-access' : 'uncorroborated-false-positive',
+    });
+    const response = referenceRespond(incident);
     const matches =
       nativeRows.some((row) => row.type === 'auth.attempt') &&
+      response.overall_correct &&
       reconstructed.length === expected.length &&
       reconstructed.every((row) => {
         const item = expected.find((candidate) => candidate.id === row.id);
         return item && item.migrated === row.migrated && item.latest_lineage === row.latest_lineage;
       });
-    return { variant, flow, matches, reconstructed, expected };
+    return {
+      variant,
+      flow,
+      matches,
+      response_correct: response.overall_correct,
+      reconstructed,
+      expected,
+    };
   });
   const matches = captures.every((capture) => capture.matches);
   const conformance = {
@@ -273,13 +288,24 @@ function generateConformance() {
 }
 
 function stageObservationPlane() {
-  const incident = buildIncident(STAGED);
+  const captureRows = fs
+    .readFileSync(
+      path.join(familyDir, 'offense', 'evidence', 'capture', 'f9-rotation-events-v1.jsonl'),
+      'utf8',
+    )
+    .trim()
+    .split(/\r?\n/u)
+    .map((line) => JSON.parse(line));
+  const incident = buildIncidentFromCapture(captureRows, STAGED);
   const inventory = listConsumers(incident);
   const policy = readPolicy(incident);
-  const offenseEvents = fs.readFileSync(
-    path.join(familyDir, 'offense', 'evidence', 'observation', 'events.jsonl'),
-    'utf8',
-  );
+  const anomalyFlow = captureRows.find(
+    (row) => row.type === 'auth.attempt' && row.actor === 'attacker',
+  )?.flow_id;
+  const offenseEvents = `${captureRows
+    .filter((row) => row.flow_id === anomalyFlow)
+    .map((row) => JSON.stringify(row))
+    .join('\n')}\n`;
 
   const prompt = [
     'An old-version authentication anomaly was reported for secret S.',
@@ -393,6 +419,8 @@ function stageObservationPlane() {
       nativeField('event_time', true, '*'),
       nativeField('actor', true, '*'),
       nativeField('resource', true, '*'),
+      nativeField('kind', true, 'consumer.inventory'),
+      nativeField('declared_refresh_cadence', true, 'consumer.inventory'),
       nativeField(
         'credential_lineage.key_version',
         true,

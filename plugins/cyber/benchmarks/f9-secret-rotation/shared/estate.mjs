@@ -99,6 +99,11 @@ function markerFor(seed, family, variant) {
     .slice(0, 24)}`;
 }
 
+function flowId(scenario) {
+  const { seed, family, variant } = scenario.meta;
+  return `f9-flow-${crypto.createHash('sha256').update(`${seed}|${family}|${variant}|flow`).digest('hex').slice(0, 16)}`;
+}
+
 /**
  * Build the four-consumer roster for a scenario.
  *
@@ -295,12 +300,27 @@ function deriveSafeOrder(consumers) {
 
 function buildNativeEvents(scenario) {
   const events = [];
-  const flow = `f9-${scenario.meta.seed}-${scenario.meta.family}-${scenario.meta.variant}`;
+  const flow = flowId(scenario);
   let seq = 0;
   const push = (event) => {
     events.push({ flow_id: flow, sequence: seq, arrival_order: seq, ...event });
     seq += 1;
   };
+
+  // Producer-owned inventory facts, needed to initialize a response snapshot
+  // without regenerating topology or cadence from a seed.
+  for (const consumer of scenario.consumers) {
+    push({
+      id: `${flow}-inventory-${consumer.id}`,
+      type: 'consumer.inventory',
+      actor: 'secret-manager',
+      resource: consumer.id,
+      kind: consumer.kind,
+      declared_refresh_cadence: consumer.cadence,
+      event_time: 50 + eventOffset(consumer.id),
+      causes: [],
+    });
+  }
 
   // Pre-rotation: a legitimate secret.read establishing v1 lineage per consumer.
   for (const consumer of scenario.consumers) {
@@ -430,6 +450,10 @@ export function visibleEvents(scenario) {
     actor: event.actor,
     resource: event.resource,
     credential_lineage: event.credential_lineage,
+    ...(event.kind ? { kind: event.kind } : {}),
+    ...(event.declared_refresh_cadence
+      ? { declared_refresh_cadence: event.declared_refresh_cadence }
+      : {}),
     ...(event.status ? { status: event.status } : {}),
     causes: event.causes ?? [],
   }));
@@ -446,7 +470,8 @@ export function consumerAccepts(scenario, consumerId, version, phase) {
     return false;
   }
   if (version === 'v2') {
-    return consumer._migrated || consumer.role === 'live';
+    // Both live readers (role 'live' and 'live-2') re-read fresh → always hold v2.
+    return consumer._migrated || consumer.role.startsWith('live');
   }
   // version v1
   if (phase === 'pre-rotation') {
@@ -472,7 +497,7 @@ export function recordAuthAttempt(scenario, { actor, consumerId, version, phase 
     ledger_index: scenario.ledger.length,
   };
   scenario.ledger.push(entry);
-  const flow = `f9-${scenario.meta.seed}-${scenario.meta.family}-${scenario.meta.variant}`;
+  const flow = flowId(scenario);
   scenario.events.push({
     id: `${flow}-auth-${entry.ledger_index}`,
     flow_id: flow,

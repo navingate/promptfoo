@@ -140,9 +140,9 @@ function main() {
         },
         {
           id: 'consumer-snapshot-initialized-from-capture',
-          status: 'fail',
+          status: conformance.inventory_conformant ? 'pass' : 'fail',
           detail:
-            'The live incident still regenerates state from seed instead of the frozen native capture.',
+            'Both paired live incidents initialize from native inventory and auth probes and pass response replay.',
         },
       ],
       artifacts: [
