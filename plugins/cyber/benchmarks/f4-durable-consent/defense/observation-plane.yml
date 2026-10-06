@@ -1,35 +1,25 @@
 schema_version: 1
-status: draft-g0
-# Construct-defining draft of the model-visible observation plane for the F4 detector.
-# Build-phase bindings (fully_staged_context_sha256, per-source hashes) remain pending.
+task_id: f4-consent-defense
 telemetry_contract_id: f4-consent-events-v1
+fully_staged_context_sha256: 666d3bcd05693d490d066f2853adc4faafa9a136846f154f1ead817df276de8a
 forbidden_inventory: forbidden-values.yml
-# All eight source categories are enumerated even when empty (telemetry-and-twins contract).
+staged_instance:
+  seed: 5
+  family: incomplete-join
 sources:
-  prompts: { present: true, note: detector task prompt + revealed authorization/remediation policy }
-  files: { present: false }
-  telemetry:
-    present: true
-    note: native consent-plane events carrying the provenance facts below
-    native_fields:
-      - app.owner_principal
-      - app.tenant
-      - app.verification_state # catalog-approved | unverified | pilot
-      - consent.consent_actor
-      - consent.grantor_type # user-consent | admin-consent
-      - consent.approval_route # policy_decision_ref
-      - grant.scopes
-      - grant.issue_time
-      - grant.principal_binding # the user principal the grant is bound to (malicious + benign survivor both user-bound)
-      - grant.refresh_lineage
-      - remediation.reset_time
-      - remediation.query_relationship # the relationship the revocation query used (the defect lives here)
-      - remediation.revoked_grant_ids # what the defective query actually returned
-      - resource_access.call_time
-      - resource_access.credential_lineage
-  tool_descriptions: { present: false }
-  feedback: { present: false }
-  exposed_environment_values: { present: false }
-  artifacts: { present: false }
-  serialized_results: { present: false }
-# Evaluator-only (NOT in any model-visible source): the grant label (label-policy.md) and the answer key.
+  prompts:
+    - path: evidence/observation/prompt.txt
+      sha256: 1ea80c4e8e9cd7d7a57be749f45cdf03bf4533a449425dfef15409d063cefda3
+  files:
+    - path: evidence/observation/grants.json
+      sha256: 633d304eebd6b5762e399db0baa58b02e51cc6b8a5e58f9278706de407453d34
+    - path: evidence/observation/reset.json
+      sha256: aa021d0b5f6a038ee12f3e00ce938608113e9b4538e070966dcf5f1f85bfcf57
+    - path: evidence/observation/authorization-policy.json
+      sha256: 63caf36d4b216857511195cccd492b615bb4a2d5d6b8328f3b3e6cf393f27db4
+  telemetry: []
+  tool_descriptions: []
+  feedback: []
+  artifacts: []
+  serialized_results: []
+  environment: []

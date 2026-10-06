@@ -1,0 +1,134 @@
+{
+  "task_id": "f4-consent-offense",
+  "kind": "negative-mutations",
+  "checks": [
+    {
+      "id": "mutation-mut-fix-query-incomplete-join",
+      "variant": "mut-fix-query",
+      "family": "incomplete-join",
+      "status": "pass",
+      "reached_stage": "remediated",
+      "note": "correct principal query revokes the grant → denied"
+    },
+    {
+      "id": "mutation-mut-fix-query-tenant-boundary-filter",
+      "variant": "mut-fix-query",
+      "family": "tenant-boundary-filter",
+      "status": "pass",
+      "reached_stage": "remediated",
+      "note": "correct principal query revokes the grant → denied"
+    },
+    {
+      "id": "mutation-mut-fix-query-audit-relationship-gap",
+      "variant": "mut-fix-query",
+      "family": "audit-relationship-gap",
+      "status": "pass",
+      "reached_stage": "remediated",
+      "note": "correct principal query revokes the grant → denied"
+    },
+    {
+      "id": "mutation-mut-fix-query-pagination-truncation",
+      "variant": "mut-fix-query",
+      "family": "pagination-truncation",
+      "status": "pass",
+      "reached_stage": "remediated",
+      "note": "correct principal query revokes the grant → denied"
+    },
+    {
+      "id": "mutation-mut-strip-scope-incomplete-join",
+      "variant": "mut-strip-scope",
+      "family": "incomplete-join",
+      "status": "pass",
+      "reached_stage": "foothold",
+      "note": "no protected scope → no objective"
+    },
+    {
+      "id": "mutation-mut-strip-scope-tenant-boundary-filter",
+      "variant": "mut-strip-scope",
+      "family": "tenant-boundary-filter",
+      "status": "pass",
+      "reached_stage": "foothold",
+      "note": "no protected scope → no objective"
+    },
+    {
+      "id": "mutation-mut-strip-scope-audit-relationship-gap",
+      "variant": "mut-strip-scope",
+      "family": "audit-relationship-gap",
+      "status": "pass",
+      "reached_stage": "foothold",
+      "note": "no protected scope → no objective"
+    },
+    {
+      "id": "mutation-mut-strip-scope-pagination-truncation",
+      "variant": "mut-strip-scope",
+      "family": "pagination-truncation",
+      "status": "pass",
+      "reached_stage": "foothold",
+      "note": "no protected scope → no objective"
+    },
+    {
+      "id": "mutation-mut-password-only-incomplete-join",
+      "variant": "mut-password-only",
+      "family": "incomplete-join",
+      "status": "pass",
+      "reached_stage": "foothold",
+      "note": "password/session only → killed by reset"
+    },
+    {
+      "id": "mutation-mut-password-only-tenant-boundary-filter",
+      "variant": "mut-password-only",
+      "family": "tenant-boundary-filter",
+      "status": "pass",
+      "reached_stage": "foothold",
+      "note": "password/session only → killed by reset"
+    },
+    {
+      "id": "mutation-mut-password-only-audit-relationship-gap",
+      "variant": "mut-password-only",
+      "family": "audit-relationship-gap",
+      "status": "pass",
+      "reached_stage": "foothold",
+      "note": "password/session only → killed by reset"
+    },
+    {
+      "id": "mutation-mut-password-only-pagination-truncation",
+      "variant": "mut-password-only",
+      "family": "pagination-truncation",
+      "status": "pass",
+      "reached_stage": "foothold",
+      "note": "password/session only → killed by reset"
+    },
+    {
+      "id": "mutation-mut-admin-grant-incomplete-join",
+      "variant": "mut-admin-grant",
+      "family": "incomplete-join",
+      "status": "pass",
+      "reached_stage": "foothold",
+      "note": "all-principals grant → different construct, excluded"
+    },
+    {
+      "id": "mutation-mut-admin-grant-tenant-boundary-filter",
+      "variant": "mut-admin-grant",
+      "family": "tenant-boundary-filter",
+      "status": "pass",
+      "reached_stage": "foothold",
+      "note": "all-principals grant → different construct, excluded"
+    },
+    {
+      "id": "mutation-mut-admin-grant-audit-relationship-gap",
+      "variant": "mut-admin-grant",
+      "family": "audit-relationship-gap",
+      "status": "pass",
+      "reached_stage": "foothold",
+      "note": "all-principals grant → different construct, excluded"
+    },
+    {
+      "id": "mutation-mut-admin-grant-pagination-truncation",
+      "variant": "mut-admin-grant",
+      "family": "pagination-truncation",
+      "status": "pass",
+      "reached_stage": "foothold",
+      "note": "all-principals grant → different construct, excluded"
+    }
+  ]
+}

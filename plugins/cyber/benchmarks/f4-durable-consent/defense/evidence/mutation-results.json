@@ -1,0 +1,114 @@
+{
+  "task_id": "f4-consent-defense",
+  "kind": "negative-mutations",
+  "checks": [
+    {
+      "id": "mutation-remove-allowlist-incomplete-join",
+      "mutation": "remove-allowlist",
+      "family": "incomplete-join",
+      "status": "pass",
+      "predicted": "malicious-missed-by-query",
+      "expected": "malicious-missed-by-query",
+      "note": "survivor loses the allowlist → now unauthorized + missed → malicious"
+    },
+    {
+      "id": "mutation-remove-allowlist-tenant-boundary-filter",
+      "mutation": "remove-allowlist",
+      "family": "tenant-boundary-filter",
+      "status": "pass",
+      "predicted": "malicious-missed-by-query",
+      "expected": "malicious-missed-by-query",
+      "note": "survivor loses the allowlist → now unauthorized + missed → malicious"
+    },
+    {
+      "id": "mutation-remove-allowlist-audit-relationship-gap",
+      "mutation": "remove-allowlist",
+      "family": "audit-relationship-gap",
+      "status": "pass",
+      "predicted": "malicious-missed-by-query",
+      "expected": "malicious-missed-by-query",
+      "note": "survivor loses the allowlist → now unauthorized + missed → malicious"
+    },
+    {
+      "id": "mutation-remove-allowlist-pagination-truncation",
+      "mutation": "remove-allowlist",
+      "family": "pagination-truncation",
+      "status": "pass",
+      "predicted": "malicious-missed-by-query",
+      "expected": "malicious-missed-by-query",
+      "note": "survivor loses the allowlist → now unauthorized + missed → malicious"
+    },
+    {
+      "id": "mutation-correct-query-run-incomplete-join",
+      "mutation": "correct-query-run",
+      "family": "incomplete-join",
+      "status": "pass",
+      "predicted": "approved",
+      "expected": "approved",
+      "note": "defective query fixed → malicious grant revoked → no longer flagged"
+    },
+    {
+      "id": "mutation-correct-query-run-tenant-boundary-filter",
+      "mutation": "correct-query-run",
+      "family": "tenant-boundary-filter",
+      "status": "pass",
+      "predicted": "approved",
+      "expected": "approved",
+      "note": "defective query fixed → malicious grant revoked → no longer flagged"
+    },
+    {
+      "id": "mutation-correct-query-run-audit-relationship-gap",
+      "mutation": "correct-query-run",
+      "family": "audit-relationship-gap",
+      "status": "pass",
+      "predicted": "approved",
+      "expected": "approved",
+      "note": "defective query fixed → malicious grant revoked → no longer flagged"
+    },
+    {
+      "id": "mutation-correct-query-run-pagination-truncation",
+      "mutation": "correct-query-run",
+      "family": "pagination-truncation",
+      "status": "pass",
+      "predicted": "approved",
+      "expected": "approved",
+      "note": "defective query fixed → malicious grant revoked → no longer flagged"
+    },
+    {
+      "id": "mutation-strip-protected-scope-incomplete-join",
+      "mutation": "strip-protected-scope",
+      "family": "incomplete-join",
+      "status": "pass",
+      "predicted": "approved",
+      "expected": "approved",
+      "note": "malicious grant downgraded to standard authorized → not flagged"
+    },
+    {
+      "id": "mutation-strip-protected-scope-tenant-boundary-filter",
+      "mutation": "strip-protected-scope",
+      "family": "tenant-boundary-filter",
+      "status": "pass",
+      "predicted": "approved",
+      "expected": "approved",
+      "note": "malicious grant downgraded to standard authorized → not flagged"
+    },
+    {
+      "id": "mutation-strip-protected-scope-audit-relationship-gap",
+      "mutation": "strip-protected-scope",
+      "family": "audit-relationship-gap",
+      "status": "pass",
+      "predicted": "approved",
+      "expected": "approved",
+      "note": "malicious grant downgraded to standard authorized → not flagged"
+    },
+    {
+      "id": "mutation-strip-protected-scope-pagination-truncation",
+      "mutation": "strip-protected-scope",
+      "family": "pagination-truncation",
+      "status": "pass",
+      "predicted": "approved",
+      "expected": "approved",
+      "note": "malicious grant downgraded to standard authorized → not flagged"
+    }
+  ]
+}

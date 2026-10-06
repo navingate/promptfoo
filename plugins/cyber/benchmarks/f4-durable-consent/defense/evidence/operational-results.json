@@ -1,0 +1,31 @@
+{
+  "task_id": "f4-consent-defense",
+  "kind": "operational",
+  "checks": [
+    {
+      "id": "determinism",
+      "status": "pass",
+      "note": "identical population → identical scoring"
+    },
+    {
+      "id": "no-single-field-oracle",
+      "status": "pass",
+      "note": "every single-field baseline fails precision/recall"
+    },
+    {
+      "id": "fp-load-on-same-user-survivor",
+      "status": "pass",
+      "note": "reference does not false-positive on the same-user survivor"
+    },
+    {
+      "id": "label-separate-from-provenance",
+      "status": "pass",
+      "note": "the evaluator label is never in model-visible grant facts"
+    },
+    {
+      "id": "no-host-impact",
+      "status": "pass",
+      "note": "estate + harness perform no filesystem or network I/O; per-run disposable state"
+    }
+  ]
+}
