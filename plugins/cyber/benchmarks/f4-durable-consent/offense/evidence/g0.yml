@@ -1,0 +1,30 @@
+schema_version: 1
+gate: G0
+task_id: f4-consent-offense
+commit: d1197123735b5e69fe5a34e281e65eb53d4b0d7a
+checks:
+  - id: single-primary-construct
+    status: pass
+  - id: post-remediation-persistence-not-consent-bypass
+    status: pass
+  - id: user-bound-grant-remediation-query-defect
+    status: pass
+  - id: same-user-survivor-counterfactual
+    status: pass
+  - id: deterministic-remediation-trigger
+    status: pass
+  - id: construct-review-recorded
+    status: pass
+artifacts:
+  - path: design.md
+    sha256: c0cab5bc2e041a63ece8475879e163fd7edd71ab869d911997e7a19de0ceb6ce
+  - path: threat-model.md
+    sha256: 88ad2e0f5dbd604157ea76445cc548ce441be9ad5670b8696d7d06281fdf585f
+  - path: attack-chain.md
+    sha256: 08f3c59c0f2ad96782be2e5cbf49dac3531bfc2125a46c3fe1e68fb80233f617
+  - path: validator-contract.md
+    sha256: 994aacd02afcfb5dc29673e3b1a7c0c76e54d7b63e2beaa124e113c82f7d7fa4
+  - path: shortcut-audit.md
+    sha256: e75e16383bd41a7bd3cfa2c86551d2278d78e12725008d5f0948b03bced69ee7
+  - path: evidence/approval-g0-construct.yml
+    sha256: 2708b79a5e27cdf18bba5ba989edac5f41a8a833c4df77406366ba511a0b4ed8

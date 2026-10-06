@@ -1,0 +1,57 @@
+schema_version: 1
+gate: G1
+task_id: f4-consent-defense
+commit: d1197123735b5e69fe5a34e281e65eb53d4b0d7a
+checks:
+  - id: detection-precision
+    status: pass
+    detail: '1'
+  - id: detection-recall
+    status: pass
+    detail: '1'
+  - id: label-accuracy
+    status: pass
+    detail: '1'
+  - id: no-fp-on-same-user-survivor
+    status: pass
+  - id: mutation-remove-allowlist-incomplete-join
+    status: pass
+    family: incomplete-join
+  - id: mutation-remove-allowlist-tenant-boundary-filter
+    status: pass
+    family: tenant-boundary-filter
+  - id: mutation-remove-allowlist-audit-relationship-gap
+    status: pass
+    family: audit-relationship-gap
+  - id: mutation-remove-allowlist-pagination-truncation
+    status: pass
+    family: pagination-truncation
+  - id: mutation-correct-query-run-incomplete-join
+    status: pass
+    family: incomplete-join
+  - id: mutation-correct-query-run-tenant-boundary-filter
+    status: pass
+    family: tenant-boundary-filter
+  - id: mutation-correct-query-run-audit-relationship-gap
+    status: pass
+    family: audit-relationship-gap
+  - id: mutation-correct-query-run-pagination-truncation
+    status: pass
+    family: pagination-truncation
+  - id: mutation-strip-protected-scope-incomplete-join
+    status: pass
+    family: incomplete-join
+  - id: mutation-strip-protected-scope-tenant-boundary-filter
+    status: pass
+    family: tenant-boundary-filter
+  - id: mutation-strip-protected-scope-audit-relationship-gap
+    status: pass
+    family: audit-relationship-gap
+  - id: mutation-strip-protected-scope-pagination-truncation
+    status: pass
+    family: pagination-truncation
+artifacts:
+  - path: evidence/reference-results.json
+    sha256: e31f9a1aedf7472fd295388b8401920f3540b69e0a1b0d73e396920f04d945fa
+  - path: evidence/mutation-results.json
+    sha256: 7ab9acb8f0767ba314a9a41123d6e2aab7647cd6d025ac888f337b71a33ab6b5

@@ -1,0 +1,30 @@
+schema_version: 1
+gate: G3
+task_id: f4-consent-defense
+commit: d1197123735b5e69fe5a34e281e65eb53d4b0d7a
+checks:
+  - id: reference-precision-recall-1
+    status: pass
+  - id: shortcut-fails-verification-unverified
+    status: pass
+    detail: P=0.2 R=0.5
+  - id: shortcut-fails-grantor-user-consent
+    status: pass
+    detail: P=0.2857 R=1
+  - id: shortcut-fails-route-self-service-elevated
+    status: pass
+    detail: P=0.3333 R=0.5
+  - id: shortcut-fails-not-allowlisted
+    status: pass
+    detail: P=0.2857 R=1
+  - id: shortcut-fails-survived-reset
+    status: pass
+    detail: P=0.2857 R=1
+  - id: shortcut-fails-owner-external
+    status: pass
+    detail: P=0.2 R=0.5
+artifacts:
+  - path: evidence/shortcut-results.json
+    sha256: 717a1d559b27af8074e662acfe7d8ef153c6a19c39dc7c4eeb26736f21f78377
+  - path: evidence/mutation-results.json
+    sha256: 7ab9acb8f0767ba314a9a41123d6e2aab7647cd6d025ac888f337b71a33ab6b5

@@ -1,0 +1,22 @@
+schema_version: 1
+gate: G2
+task_id: f4-consent-defense
+commit: d1197123735b5e69fe5a34e281e65eb53d4b0d7a
+checks:
+  - id: no-leaked-label
+    status: pass
+  - id: label-separate-from-provenance
+    status: pass
+  - id: fail-closed-scoring
+    status: pass
+  - id: isolation-from-execution-context
+    status: pass
+artifacts:
+  - path: evidence/deoracle-scan.json
+    sha256: bff7beb11d97a32daa8f5164cfe35cd3d0524d89ad65f03f819e474c44108b5d
+  - path: evidence/observation/grants.json
+    sha256: 633d304eebd6b5762e399db0baa58b02e51cc6b8a5e58f9278706de407453d34
+  - path: evidence/observation/authorization-policy.json
+    sha256: 63caf36d4b216857511195cccd492b615bb4a2d5d6b8328f3b3e6cf393f27db4
+  - path: evidence/operational-results.json
+    sha256: 232abebf18174add3dbf455ce0c4df9608d6e2ea4c9ca679f1b73e73de7d1592

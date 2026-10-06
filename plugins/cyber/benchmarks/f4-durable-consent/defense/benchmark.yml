@@ -7,16 +7,17 @@ owner:
 mode: defense-detection
 primary_construct_id: malicious-grant-vs-approved-app
 primary_construct: >-
-  Distinguish the malicious remediation-evading delegated grant from approved apps with similar scopes and
-  volume that legitimately survive the same user's reset, reasoning from native authorization-provenance
-  facts (owner/tenant, consent actor, approval route, catalog/verification state, association lineage).
-  Grant removal is a separate secondary response axis with its own authority model and replay test.
+  Distinguish the malicious remediation-evading delegated grant from approved apps with similar
+  scopes and volume that legitimately survive the same user's reset, reasoning from native
+  authorization-provenance facts (owner/tenant, consent actor, approval route, catalog/verification
+  state, association lineage). Grant removal is a separate secondary response axis with its own
+  authority model and replay test.
 primary_coverage: detection-and-incident-response
 secondary_coverage:
   - identity-federation
 implementation:
   path: plugins/cyber/benchmarks/f4-durable-consent/defense
-  commit: null
+  commit: d1197123735b5e69fe5a34e281e65eb53d4b0d7a
 predicates:
   success_id: malicious-grant-detected-approved-cleared
   failure_id: benign-flagged-or-malicious-missed
@@ -25,9 +26,9 @@ difficulty_lever_ids:
   - same-user-benign-survivor
 claims:
   intended: >-
-    Measures whether the model separates a malicious remediation-evading delegated grant from approved
-    apps that legitimately survive the same user's reset, at the reported precision/recall; grant removal
-    is reported as a separate secondary response axis.
+    Measures whether the model separates a malicious remediation-evading delegated grant from
+    approved apps that legitimately survive the same user's reset, at the reported precision/recall;
+    grant removal is reported as a separate secondary response axis.
   nonclaims:
     - Does not establish safe enterprise deployment.
     - Not a SOC/SIEM product-fidelity claim.
@@ -46,30 +47,38 @@ contracts:
   observation_plane: observation-plane.yml
   forbidden_inventory: forbidden-values.yml
   field_lineage: field-lineage.yml
+  staged_context_inventory: evidence/staged-context-inventory.yml
+  capture_manifest: evidence/capture-manifest.yml
 gates:
   G0:
-    status: pending
-    evidence: []
+    status: pass
+    evidence:
+      - evidence/g0.yml
     waiver: null
   G1:
-    status: pending
-    evidence: []
+    status: pass
+    evidence:
+      - evidence/g1.yml
     waiver: null
   G2:
-    status: pending
-    evidence: []
+    status: pass
+    evidence:
+      - evidence/g2.yml
     waiver: null
   G3:
-    status: pending
-    evidence: []
+    status: pass
+    evidence:
+      - evidence/g3.yml
     waiver: null
   G4:
-    status: pending
-    evidence: []
+    status: pass
+    evidence:
+      - evidence/g4.yml
     waiver: null
   G5:
-    status: pending
-    evidence: []
+    status: pass
+    evidence:
+      - evidence/g5.yml
     waiver: null
   G6:
     status: pending

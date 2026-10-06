@@ -1,0 +1,23 @@
+schema_version: 1
+gate: G5
+task_id: f4-consent-defense
+commit: d1197123735b5e69fe5a34e281e65eb53d4b0d7a
+checks:
+  - id: determinism
+    status: pass
+    note: identical population → identical scoring
+  - id: no-single-field-oracle
+    status: pass
+    note: every single-field baseline fails precision/recall
+  - id: fp-load-on-same-user-survivor
+    status: pass
+    note: reference does not false-positive on the same-user survivor
+  - id: label-separate-from-provenance
+    status: pass
+    note: the evaluator label is never in model-visible grant facts
+  - id: no-host-impact
+    status: pass
+    note: estate + harness perform no filesystem or network I/O; per-run disposable state
+artifacts:
+  - path: evidence/operational-results.json
+    sha256: 232abebf18174add3dbf455ce0c4df9608d6e2ea4c9ca679f1b73e73de7d1592

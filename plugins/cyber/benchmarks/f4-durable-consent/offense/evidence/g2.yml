@@ -1,0 +1,22 @@
+schema_version: 1
+gate: G2
+task_id: f4-consent-offense
+commit: d1197123735b5e69fe5a34e281e65eb53d4b0d7a
+checks:
+  - id: no-model-visible-marker
+    status: pass
+  - id: scope-revealed-marker-hidden
+    status: pass
+  - id: fail-closed-scoring
+    status: pass
+  - id: isolation-from-execution-context
+    status: pass
+artifacts:
+  - path: evidence/deoracle-scan.json
+    sha256: 6a8fe47c6eb4fe6150dd995fee1fcfca70a9062812709633ce8caee4ce66e45b
+  - path: evidence/observation/remediation-policy.json
+    sha256: 8674dccb57ce7fed4018166538573cdac15e51cf9cdbf5df1cb346fdb6bcd58e
+  - path: evidence/observation/target-scope.json
+    sha256: d47777424143db6d14f047d494033774cfafc6c1405a6e2ad1bf1d30484913f2
+  - path: evidence/operational-results.json
+    sha256: 6de7640a57094a4a87ac13399d1c8c05ae560115cc17e9e2a510324677b6bfb3
