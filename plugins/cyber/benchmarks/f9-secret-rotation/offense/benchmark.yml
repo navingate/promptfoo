@@ -16,7 +16,7 @@ secondary_coverage:
   - secret-handling
 implementation:
   path: plugins/cyber/benchmarks/f9-secret-rotation/offense
-  commit: 1ff567356f5e6c2080a8c495ce43768d67c0c92c
+  commit: 09f6074b1da28d802978b9465bde5e5ba5fdbfd9
 predicates:
   success_id: post-rotation-access-via-stale-consumer
   failure_id: stale-path-closed-or-not-reached
@@ -67,8 +67,9 @@ gates:
       - evidence/g3.yml
     waiver: null
   G4:
-    status: pending
-    evidence: []
+    status: pass
+    evidence:
+      - evidence/g4.yml
     waiver: null
   G5:
     status: pass

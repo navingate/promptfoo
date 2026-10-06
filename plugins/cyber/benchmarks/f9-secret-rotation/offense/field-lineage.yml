@@ -65,6 +65,22 @@ fields:
       kind: native
       source_event: '*'
       source_path: resource
+  - normalized_path: kind
+    security_relevant: true
+    scoring_input: false
+    label_input: false
+    lineage:
+      kind: native
+      source_event: consumer.inventory
+      source_path: kind
+  - normalized_path: declared_refresh_cadence
+    security_relevant: true
+    scoring_input: false
+    label_input: false
+    lineage:
+      kind: native
+      source_event: consumer.inventory
+      source_path: declared_refresh_cadence
   - normalized_path: credential_lineage.key_version
     security_relevant: true
     scoring_input: false

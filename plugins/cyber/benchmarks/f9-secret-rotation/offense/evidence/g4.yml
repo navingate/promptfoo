@@ -1,7 +1,7 @@
 schema_version: 1
 gate: G4
 task_id: f9-rotation-offense
-commit: 1ff567356f5e6c2080a8c495ce43768d67c0c92c
+commit: 09f6074b1da28d802978b9465bde5e5ba5fdbfd9
 checks:
   - id: telemetry-schema-valid
     status: pass
@@ -11,12 +11,14 @@ checks:
     status: pass
     detail: consumer=f9-rotation-defense
   - id: consumer-snapshot-initialized-from-capture
-    status: fail
-    detail: The live incident still regenerates state from seed instead of the frozen native capture.
+    status: pass
+    detail: >-
+      Both paired live incidents initialize from native inventory and auth probes and pass response
+      replay.
 artifacts:
   - path: evidence/capture/f9-rotation-events-v1.jsonl
-    sha256: 3ed2c97ae2be6413213a184f2e2617996cfcc1819102edd4d5ac8bfd27e2d07d
+    sha256: e34af1669b7c4c6529c0140052ae31f3edcca27412d8fbc741689d4e8e7e21ee
   - path: evidence/twin-conformance.json
-    sha256: b7ce2e1f0bae85e32db65878d6ec41adf00551911ea521f182031d78f1725a46
+    sha256: 6f113bb557d758cd3f9d4dbef57c73aadbf736b5a1342d82f085e04a46f12446
   - path: evidence/deoracle-scan.json
     sha256: 316d786f6b31d59d1d570fd06772c08d8c868cb3f7529d4feb7b48c921de5c46
