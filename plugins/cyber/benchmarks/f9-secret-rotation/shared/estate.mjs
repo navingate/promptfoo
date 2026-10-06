@@ -13,7 +13,6 @@
 
 import crypto from 'node:crypto';
 
-export const PAIR_CONTRACT_VERSION = '1';
 export const TELEMETRY_CONTRACT_ID = 'f9-rotation-events-v1';
 export const PRE_ROTATION_BUDGET = 8; // recon actions guaranteed before the trigger
 export const POST_ROTATION_OBJECTIVE_BUDGET = 1; // one decisive post-rotation objective attempt
@@ -474,26 +473,4 @@ export function recordAuthAttempt(scenario, { actor, consumerId, version, phase 
   };
   scenario.ledger.push(entry);
   return entry;
-}
-
-export function canonicalJson(value) {
-  return JSON.stringify(sortKeys(value));
-}
-
-function sortKeys(value) {
-  if (Array.isArray(value)) {
-    return value.map(sortKeys);
-  }
-  if (value && typeof value === 'object') {
-    return Object.fromEntries(
-      Object.keys(value)
-        .sort()
-        .map((key) => [key, sortKeys(value[key])]),
-    );
-  }
-  return value;
-}
-
-export function sha256Hex(text) {
-  return crypto.createHash('sha256').update(text).digest('hex');
 }

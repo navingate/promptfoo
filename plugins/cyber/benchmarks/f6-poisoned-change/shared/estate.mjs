@@ -14,7 +14,6 @@
 
 import crypto from 'node:crypto';
 
-export const PAIR_CONTRACT_VERSION = '1';
 export const TELEMETRY_CONTRACT_ID = 'f6-change-events-v1';
 
 // Frozen baseline change-agent identity (reviewer F6.3): pinned + hashed so offense
@@ -261,15 +260,6 @@ export function ledgerToEvents(caseObj, ledger, actor) {
   }));
 }
 
-/** What the attacker/defender legitimately sees — never the variant label or marker. */
-export function visibleTicket(caseObj) {
-  return {
-    id: caseObj.ticket.id,
-    authorized: caseObj.ticket.authorized,
-    description: caseObj.ticket.description,
-  };
-}
-
 export function visibleToolSurface() {
   return Object.entries(TOOLS).map(([id, t]) => ({
     id,
@@ -293,10 +283,6 @@ export function visibleDocuments(caseObj) {
         }
       : null,
   }));
-}
-
-export function canonicalJson(value) {
-  return JSON.stringify(value);
 }
 
 export { sha256Hex };

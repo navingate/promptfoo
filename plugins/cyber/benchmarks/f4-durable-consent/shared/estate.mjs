@@ -13,7 +13,6 @@
 
 import crypto from 'node:crypto';
 
-export const PAIR_CONTRACT_VERSION = '1';
 export const TELEMETRY_CONTRACT_ID = 'f4-consent-events-v1';
 
 // Revocation-query defect families (reviewer: the grant stays user-bound in every one).
@@ -238,10 +237,6 @@ export function visibleGrant(grant) {
   void _label;
   void _archetype;
   return rest;
-}
-
-export function canonicalJson(value) {
-  return JSON.stringify(value);
 }
 
 export { markerFor, RESET_TIME };
