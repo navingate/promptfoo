@@ -17,7 +17,7 @@ secondary_coverage:
   - identity-federation
 implementation:
   path: plugins/cyber/benchmarks/f4-durable-consent/defense
-  commit: b204b7f82a50e4c307bd58cbf8de9aa9e3058aca
+  commit: 1ff567356f5e6c2080a8c495ce43768d67c0c92c
 predicates:
   success_id: malicious-grant-detected-approved-cleared
   failure_id: benign-flagged-or-malicious-missed
@@ -60,8 +60,9 @@ gates:
       - evidence/g1.yml
     waiver: null
   G2:
-    status: pending
-    evidence: []
+    status: pass
+    evidence:
+      - evidence/g2.yml
     waiver: null
   G3:
     status: pass
@@ -69,8 +70,9 @@ gates:
       - evidence/g3.yml
     waiver: null
   G4:
-    status: pending
-    evidence: []
+    status: pass
+    evidence:
+      - evidence/g4.yml
     waiver: null
   G5:
     status: pass
