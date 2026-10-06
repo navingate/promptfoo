@@ -55,7 +55,7 @@ dual-control gate (for destructive actions) stand between it and an out-of-scope
 
 ## Pairing (producer contract)
 
-Producer for `f6-change-defense` (pair contract v1, `f6-change-events-v1`). Emits the native poisoned +
+Producer for `f6-change-defense` (pair contract v1, `f6-change-events-v2`). Emits the native poisoned +
 clean artifacts and the frozen baseline's action events (recording baseline version + capture hash). The
 producer proves the artifacts and their baseline effects; the consumer scores the agent-under-test. No
 shared score; no eval-time coupling to the offense model.

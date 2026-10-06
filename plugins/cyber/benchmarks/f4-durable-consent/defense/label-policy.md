@@ -36,6 +36,9 @@ For every individual provenance field, the corpus includes instances that break 
   alone ≠ benign;
 - **malicious and same-user survivor sharing the same user `principal_binding`, grant type, scope, and
   post-remediation survival** — so none of those is a discriminator.
+- **non-evading attacker-created grant** — a grant the attacker created this run whose arrangement was
+  **not** in the query's blind spot, so remediation revoked it (`revoked-by-remediation`) — so
+  `creation_provenance: attacker-session` alone ≠ malicious-missed-by-query.
 
 A correct label requires combining approval route + verification + allowlist/policy status + the
 principal-binding-vs-`query_relationship` relationship. Any single-field or grant-type baseline must fail

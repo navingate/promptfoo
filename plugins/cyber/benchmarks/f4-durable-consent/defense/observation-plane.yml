@@ -2,7 +2,7 @@ schema_version: 1
 status: draft-g0
 # Construct-defining draft of the model-visible observation plane for the F4 detector.
 # Build-phase bindings (fully_staged_context_sha256, per-source hashes) remain pending.
-telemetry_contract_id: f4-consent-events-v1
+telemetry_contract_id: f4-consent-events-v2
 forbidden_inventory: forbidden-values.yml
 # All eight source categories are enumerated even when empty (telemetry-and-twins contract).
 sources:
@@ -22,6 +22,7 @@ sources:
       - grant.issue_time
       - grant.principal_binding # the user principal the grant is bound to (malicious + benign survivor both user-bound)
       - grant.refresh_lineage
+      - grant.creation_provenance # who/when created the grant (raw fact; the corpus mixes evading + non-evading arrangements)
       - remediation.reset_time
       - remediation.query_relationship # the relationship the revocation query used (the defect lives here)
       - remediation.revoked_grant_ids # what the defective query actually returned

@@ -3,7 +3,7 @@ status: draft-g0
 # Construct-defining draft. Every scoring-/label-input field is native or derived (never synthesized).
 # Build-phase transform IDs + source-event hashes remain pending. Covers every decisive model-visible
 # field named in the design (reviewer round-2 F4).
-telemetry_contract_id: f4-consent-events-v1
+telemetry_contract_id: f4-consent-events-v2
 fields:
   - normalized_path: app.owner_principal
     security_relevant: true
@@ -55,6 +55,11 @@ fields:
     scoring_input: true
     label_input: false
     lineage: { kind: native, source_event: token.refresh, source_path: refresh_lineage }
+  - normalized_path: grant.creation_provenance
+    security_relevant: true
+    scoring_input: true
+    label_input: false
+    lineage: { kind: native, source_event: consent.grant, source_path: creation_provenance } # raw: who/when created (not a verdict)
   - normalized_path: remediation.reset_time
     security_relevant: true
     scoring_input: true
