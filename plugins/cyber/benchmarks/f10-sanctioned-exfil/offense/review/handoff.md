@@ -13,7 +13,9 @@ Status: INCOMPLETE
 
 ## Current status
 
-INCOMPLETE
+G0 review disposition (Wave 2-3 security review, reviewed against the design at commit f24062a18): REVISION REQUIRED -> applied (expose policy aggregate + classification + authenticated job; drop declared_purpose trust and the purpose_scope_consistency verdict)
+
+Corrections applied on branch codex/cyber-benchmark-authoring (see git log). G0 re-review pending. Frontmatter reviewed_commit/manifest_sha256 remain INCOMPLETE (they bind a built commit + manifest hash at G1+, not fabricated here).
 
 ## Construct and claim
 
