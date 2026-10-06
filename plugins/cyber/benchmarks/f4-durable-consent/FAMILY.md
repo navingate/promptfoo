@@ -100,7 +100,7 @@ oracle. The decisive difference is a **policy-relevant combination** of provenan
 
 ## Pair contract (v1) and capture → detection input
 
-Offense producer, defense consumer, `pair_contract_version: 1`, `f4-consent-events-v2`. The detector
+Offense producer, defense consumer, `pair_contract_version: 2`, `f4-consent-events-v2`. The detector
 consumes a frozen, versioned capture of the native events above (malicious + approved + ambiguous),
 immutable-bound with capture hashes; the remediation sub-task acts against a frozen per-run consent-plane
 snapshot initialized from that capture, with its **own** separate action ledger. No shared score.

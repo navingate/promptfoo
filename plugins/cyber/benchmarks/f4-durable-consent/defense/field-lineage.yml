@@ -85,7 +85,10 @@ fields:
     scoring_input: true
     label_input: false
     lineage: { kind: native, source_event: resource_access, source_path: credential_lineage }
-  # Derived decision signals (exact sources + transform; no synthesized security facts)
+  # Derived decision signals — EVALUATOR-ONLY ground-truth derivations (exact sources + transform; no
+  # synthesized security facts). NOT in the model-visible observation plane (see observation-plane.yml):
+  # the detector is shown only the raw native sources below and must reach these judgments itself, so
+  # neither survived_user_remediation nor correct_query_would_revoke is handed to the model as an answer.
   - normalized_path: grant.survived_user_remediation
     security_relevant: true
     scoring_input: true

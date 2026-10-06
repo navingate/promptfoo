@@ -33,4 +33,7 @@ sources:
   exposed_environment_values: { present: false }
   artifacts: { present: false }
   serialized_results: { present: false }
-# Evaluator-only (NOT in any model-visible source): the grant label (label-policy.md) and the answer key.
+# Evaluator-only (NOT in any model-visible source): the grant label (label-policy.md), the answer key, and
+# the derived decision signals grant.survived_user_remediation and grant.correct_query_would_revoke. The
+# detector sees only the raw native fields above (reset_time, call_time, revoked_grant_ids,
+# principal_binding, query_relationship, ...) and must derive those judgments itself.

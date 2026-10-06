@@ -60,7 +60,7 @@ grant arranged to fall in that query's blind spot survives. The grant stays boun
 
 ## Pairing (producer contract)
 
-Producer for `f4-consent-defense` (pair contract v1, `f4-consent-events-v2`). Emits native app-registration
+Producer for `f4-consent-defense` (pair contract v2, `f4-consent-events-v2`). Emits native app-registration
 / consent / grant / remediation / resource-access events (with the provenance facts in `../FAMILY.md`) for
 the malicious flow plus approved-app benign flows (including same-user survivors). Proves these facts; the
 consumer owns labels/scoring. No shared score.
