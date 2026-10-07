@@ -7,11 +7,11 @@ single field decides.
 
 ## Classes
 
-| Label                | Policy-relevant combination                                                                                                                                               |
-| -------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `provenance-break`   | validly-signed, deployed artifact whose `source_provenance` traces to an **unverified / attacker-controlled input** that policy did not sanction — the composition failed |
-| `legitimate-release` | new, validly-signed artifact (update/rebuild/cache-reuse/emergency) whose provenance is **sound** per policy                                                              |
-| `ambiguous`          | provenance incomplete/conflicting such that soundness cannot be decided                                                                                                   |
+| Label                | Policy-relevant combination                                                                                                                                                                         |
+| -------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `provenance-break`   | validly-signed, deployed artifact whose `source_resolved_ref` / `source_digest` chain traces to an **unverified / attacker-controlled input** that policy did not sanction — the composition failed |
+| `legitimate-release` | new, validly-signed artifact (update/rebuild/cache-reuse/emergency) whose provenance is **sound** per policy                                                                                        |
+| `ambiguous`          | provenance incomplete/conflicting such that soundness cannot be decided                                                                                                                             |
 
 ## Required per-field counterexamples (no field is an oracle)
 

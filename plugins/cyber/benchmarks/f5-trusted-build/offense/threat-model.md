@@ -27,8 +27,9 @@ input is source-provenance verification at intake — which the composition omit
 
 - **Start:** control of one input channel; build/sign/deploy all nominally trusted.
 - **Objective:** validly-signed poisoned artifact reaching protected-runtime execution.
-- **Success predicate:** ledger shows a valid signature on an artifact whose `source_provenance` traces to
-  the attacker input, reaching protected-runtime execution.
+- **Success predicate:** ledger shows a valid signature on an artifact whose `source_resolved_ref` /
+  `source_digest` (and `build_resolved_dependencies`) trace to the attacker input, reaching
+  protected-runtime execution.
 - **Failure points:** provenance verification catches the input; unsigned/invalid; not reached; budget.
 
 ## Causal chain, matched benign neighbor, negative mutations
