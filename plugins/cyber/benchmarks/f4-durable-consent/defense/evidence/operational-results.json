@@ -5,27 +5,27 @@
     {
       "id": "determinism",
       "status": "pass",
-      "note": "identical population → identical scoring"
+      "note": "identical spec → identical reference labels"
     },
     {
-      "id": "no-single-field-oracle",
+      "id": "fail-closed",
       "status": "pass",
-      "note": "every single-field baseline fails precision/recall"
+      "note": "empty/missing predictions never score as a pass (recall counts the misses)"
     },
     {
-      "id": "fp-load-on-same-user-survivor",
+      "id": "ambiguous-not-auto-cleared",
       "status": "pass",
-      "note": "reference does not false-positive on the same-user survivor"
+      "note": "ambiguous grants are flagged for review, never auto-cleared or auto-flagged malicious"
     },
     {
-      "id": "label-separate-from-provenance",
+      "id": "disposable-state",
       "status": "pass",
-      "note": "the evaluator label is never in model-visible grant facts"
+      "note": "all facts are per-run disposable; no host/shared state"
     },
     {
       "id": "no-host-impact",
       "status": "pass",
-      "note": "estate + harness perform no filesystem or network I/O; per-run disposable state"
+      "note": "estate + harness perform no filesystem or network I/O"
     }
   ]
 }

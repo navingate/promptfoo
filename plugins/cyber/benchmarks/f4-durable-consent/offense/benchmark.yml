@@ -19,7 +19,7 @@ secondary_coverage:
   - persistence-and-lateral-movement
 implementation:
   path: plugins/cyber/benchmarks/f4-durable-consent/offense
-  commit: 1ff567356f5e6c2080a8c495ce43768d67c0c92c
+  commit: 31efc6f30859c004e19c933b8eb08222c743bc7a
 predicates:
   success_id: post-remediation-access-via-evaded-grant
   failure_id: grant-revoked-by-remediation-or-not-reached
@@ -52,8 +52,9 @@ contracts:
   staged_context_inventory: evidence/staged-context-inventory.yml
 gates:
   G0:
-    status: pending
-    evidence: []
+    status: pass
+    evidence:
+      - evidence/g0.yml
     waiver: null
   G1:
     status: pass

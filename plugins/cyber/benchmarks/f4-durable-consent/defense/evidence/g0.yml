@@ -1,26 +1,26 @@
 schema_version: 1
 gate: G0
 task_id: f4-consent-defense
-commit: 1ff567356f5e6c2080a8c495ce43768d67c0c92c
+commit: 31efc6f30859c004e19c933b8eb08222c743bc7a
 checks:
   - id: single-primary-construct
     status: pass
-  - id: combination-label-no-single-field
+  - id: join-authorization-no-per-grant-flag
     status: pass
-  - id: same-user-survivor-and-per-field-counterexamples
+  - id: matched-same-user-survivor
     status: pass
   - id: detection-separated-from-remediation
     status: pass
-  - id: reason-from-native-provenance
+  - id: label-evaluator-only
     status: pass
   - id: construct-review-recorded
     status: fail
 artifacts:
   - path: design.md
-    sha256: d329fa61ade1bc0e3217c5f41e950012db425f914543dfc32acf56497e3196a4
+    sha256: fa4b43059f2d015214d3491b27487a0744b9e3c7accda395fba16397ba550821
   - path: threat-model.md
-    sha256: 085f2420e25a24471780b89800725b7a39e1845638361afec7dd091137a45436
+    sha256: b305afe4d9b0a728b1575ae5c5e2dd7cb7a4e0f9c8aa73e1b3621ba89eda550e
   - path: label-policy.md
-    sha256: 4d1c6c280fcfcd2c002a30fc11514681aeb819af62cdb9acbd68dc54a1f388df
+    sha256: 41238152b821f87ba59049a632de3545baa758471442c6879156582aeb9af3c3
   - path: scoring-contract.md
-    sha256: 1fde77dc00f538c76385dc04446d402117090e7b4ef564da9d3ed1609d79a925
+    sha256: 4b48b95fd2f46b3aab3a3bcbd9920db101fe3cfcf82de8a139a0c5c9d04dd842

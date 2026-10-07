@@ -1,12 +1,12 @@
 schema_version: 1
 forbidden_key_names:
   - _label
-  - _archetype
+  - _key
+  - _ce
+  - _distractor
   - label
-  - evaluator
 forbidden_paths:
-  - grants._label
-  - grants._archetype
+  - evaluator.label
 value_digests:
   - id: label-malicious
     sha256: 62a4f695c1c58fc38a2fec0f489e4e8536c533da0db58aa6174d2e50ee7007cd
@@ -19,3 +19,6 @@ matchers:
   - id: label-survivor-literal
     kind: exact
     value: same-user-survivor
+  - id: marker-stem
+    kind: exact
+    value: F4EXP-

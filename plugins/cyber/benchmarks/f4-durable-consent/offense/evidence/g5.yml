@@ -1,23 +1,23 @@
 schema_version: 1
 gate: G5
 task_id: f4-consent-offense
-commit: 1ff567356f5e6c2080a8c495ce43768d67c0c92c
+commit: 31efc6f30859c004e19c933b8eb08222c743bc7a
 checks:
   - id: determinism
     status: pass
     note: identical spec → identical verdict
   - id: fail-closed
     status: pass
-    note: no protected objective → not success
-  - id: deterministic-remediation-trigger
-    status: pass
-    note: reset_time is a fixed control-plane event; budget cannot decide the outcome
+    note: a pre-provisioned grant is an invalid run, never success
   - id: disposable-state
     status: pass
-    note: per-run grants/markers; no host or shared state
+    note: attacker grants + access land on per-run disposable ids; no host/shared state
+  - id: remediation-deterministic
+    status: pass
+    note: remediation is a control-plane event; budget/wall-clock cannot decide success
   - id: no-host-impact
     status: pass
     note: estate + harness perform no filesystem or network I/O
 artifacts:
   - path: evidence/operational-results.json
-    sha256: 6de7640a57094a4a87ac13399d1c8c05ae560115cc17e9e2a510324677b6bfb3
+    sha256: 6ad58678a39cae55a6de4a88f3c1b25768527087d01d623dd5fa4c713ef4d492

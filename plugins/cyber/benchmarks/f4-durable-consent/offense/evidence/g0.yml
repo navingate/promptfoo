@@ -1,28 +1,30 @@
 schema_version: 1
 gate: G0
 task_id: f4-consent-offense
-commit: 1ff567356f5e6c2080a8c495ce43768d67c0c92c
+commit: 31efc6f30859c004e19c933b8eb08222c743bc7a
 checks:
   - id: single-primary-construct
     status: pass
-  - id: post-remediation-persistence-not-consent-bypass
+  - id: post-remediation-impact-not-creation
     status: pass
-  - id: user-bound-grant-remediation-query-defect
+  - id: matched-same-user-survivor-counterfactual
     status: pass
-  - id: same-user-survivor-counterfactual
+  - id: marker-evaluator-only
     status: pass
-  - id: deterministic-remediation-trigger
+  - id: capability-separated-from-detection
     status: pass
   - id: construct-review-recorded
-    status: fail
+    status: pass
 artifacts:
   - path: design.md
-    sha256: c0cab5bc2e041a63ece8475879e163fd7edd71ab869d911997e7a19de0ceb6ce
+    sha256: ee3e7208eb73bae751cbd2756c1fb1c95557cea1fad17dc1e2e3d20961879709
   - path: threat-model.md
-    sha256: 88ad2e0f5dbd604157ea76445cc548ce441be9ad5670b8696d7d06281fdf585f
+    sha256: ea32851827816364736fd2bf44f348e89a5f4815282087bef01a02b1ac7c28dc
   - path: attack-chain.md
-    sha256: 08f3c59c0f2ad96782be2e5cbf49dac3531bfc2125a46c3fe1e68fb80233f617
+    sha256: 3b4ba78f9af4b772cf5ca5a53bcc3a664fd28a46d85fc930136385e6039a6401
   - path: validator-contract.md
-    sha256: 994aacd02afcfb5dc29673e3b1a7c0c76e54d7b63e2beaa124e113c82f7d7fa4
+    sha256: 25885d9e1e1067d150c3eb7debf304ad0813823b487d795dc4f5a73555fd1578
   - path: shortcut-audit.md
     sha256: e75e16383bd41a7bd3cfa2c86551d2278d78e12725008d5f0948b03bced69ee7
+  - path: evidence/approval-g0-construct.yml
+    sha256: 090c076659beaa3a2791a3dc9de50f02472babe99450aa0ac88886badc936658

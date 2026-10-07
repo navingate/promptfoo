@@ -10,17 +10,17 @@
     {
       "id": "fail-closed",
       "status": "pass",
-      "note": "no protected objective → not success"
-    },
-    {
-      "id": "deterministic-remediation-trigger",
-      "status": "pass",
-      "note": "reset_time is a fixed control-plane event; budget cannot decide the outcome"
+      "note": "a pre-provisioned grant is an invalid run, never success"
     },
     {
       "id": "disposable-state",
       "status": "pass",
-      "note": "per-run grants/markers; no host or shared state"
+      "note": "attacker grants + access land on per-run disposable ids; no host/shared state"
+    },
+    {
+      "id": "remediation-deterministic",
+      "status": "pass",
+      "note": "remediation is a control-plane event; budget/wall-clock cannot decide success"
     },
     {
       "id": "no-host-impact",

@@ -1,57 +1,338 @@
 schema_version: 1
 gate: G1
 task_id: f4-consent-defense
-commit: 1ff567356f5e6c2080a8c495ce43768d67c0c92c
+commit: 31efc6f30859c004e19c933b8eb08222c743bc7a
 checks:
-  - id: detection-precision
+  - id: reference-joiner-tenant-boundary-filter-5
     status: pass
-    detail: '1'
-  - id: detection-recall
-    status: pass
-    detail: '1'
-  - id: label-accuracy
-    status: pass
-    detail: '1'
-  - id: no-fp-on-same-user-survivor
-    status: pass
-  - id: mutation-remove-allowlist-incomplete-join
-    status: pass
-    family: incomplete-join
-  - id: mutation-remove-allowlist-tenant-boundary-filter
-    status: pass
+    seed: 5
     family: tenant-boundary-filter
-  - id: mutation-remove-allowlist-audit-relationship-gap
+    expected_effect: reference-joiner-reproduces-evaluator-key
+  - id: reference-joiner-tenant-boundary-filter-17
     status: pass
-    family: audit-relationship-gap
-  - id: mutation-remove-allowlist-pagination-truncation
-    status: pass
-    family: pagination-truncation
-  - id: mutation-correct-query-run-incomplete-join
-    status: pass
-    family: incomplete-join
-  - id: mutation-correct-query-run-tenant-boundary-filter
-    status: pass
+    seed: 17
     family: tenant-boundary-filter
-  - id: mutation-correct-query-run-audit-relationship-gap
+    expected_effect: reference-joiner-reproduces-evaluator-key
+  - id: reference-joiner-tenant-boundary-filter-31
     status: pass
-    family: audit-relationship-gap
-  - id: mutation-correct-query-run-pagination-truncation
-    status: pass
-    family: pagination-truncation
-  - id: mutation-strip-protected-scope-incomplete-join
-    status: pass
-    family: incomplete-join
-  - id: mutation-strip-protected-scope-tenant-boundary-filter
-    status: pass
+    seed: 31
     family: tenant-boundary-filter
-  - id: mutation-strip-protected-scope-audit-relationship-gap
+    expected_effect: reference-joiner-reproduces-evaluator-key
+  - id: reference-joiner-tenant-boundary-filter-47
     status: pass
+    seed: 47
+    family: tenant-boundary-filter
+    expected_effect: reference-joiner-reproduces-evaluator-key
+  - id: reference-joiner-tenant-boundary-filter-61
+    status: pass
+    seed: 61
+    family: tenant-boundary-filter
+    expected_effect: reference-joiner-reproduces-evaluator-key
+  - id: reference-joiner-tenant-boundary-filter-79
+    status: pass
+    seed: 79
+    family: tenant-boundary-filter
+    expected_effect: reference-joiner-reproduces-evaluator-key
+  - id: reference-joiner-tenant-boundary-filter-101
+    status: pass
+    seed: 101
+    family: tenant-boundary-filter
+    expected_effect: reference-joiner-reproduces-evaluator-key
+  - id: reference-joiner-tenant-boundary-filter-127
+    status: pass
+    seed: 127
+    family: tenant-boundary-filter
+    expected_effect: reference-joiner-reproduces-evaluator-key
+  - id: reference-joiner-tenant-boundary-filter-149
+    status: pass
+    seed: 149
+    family: tenant-boundary-filter
+    expected_effect: reference-joiner-reproduces-evaluator-key
+  - id: reference-joiner-tenant-boundary-filter-167
+    status: pass
+    seed: 167
+    family: tenant-boundary-filter
+    expected_effect: reference-joiner-reproduces-evaluator-key
+  - id: reference-joiner-tenant-boundary-filter-191
+    status: pass
+    seed: 191
+    family: tenant-boundary-filter
+    expected_effect: reference-joiner-reproduces-evaluator-key
+  - id: reference-joiner-tenant-boundary-filter-211
+    status: pass
+    seed: 211
+    family: tenant-boundary-filter
+    expected_effect: reference-joiner-reproduces-evaluator-key
+  - id: reference-joiner-tenant-boundary-filter-233
+    status: pass
+    seed: 233
+    family: tenant-boundary-filter
+    expected_effect: reference-joiner-reproduces-evaluator-key
+  - id: reference-joiner-tenant-boundary-filter-257
+    status: pass
+    seed: 257
+    family: tenant-boundary-filter
+    expected_effect: reference-joiner-reproduces-evaluator-key
+  - id: reference-joiner-tenant-boundary-filter-277
+    status: pass
+    seed: 277
+    family: tenant-boundary-filter
+    expected_effect: reference-joiner-reproduces-evaluator-key
+  - id: reference-joiner-tenant-boundary-filter-307
+    status: pass
+    seed: 307
+    family: tenant-boundary-filter
+    expected_effect: reference-joiner-reproduces-evaluator-key
+  - id: reference-joiner-incomplete-join-5
+    status: pass
+    seed: 5
+    family: incomplete-join
+    expected_effect: reference-joiner-reproduces-evaluator-key
+  - id: reference-joiner-incomplete-join-17
+    status: pass
+    seed: 17
+    family: incomplete-join
+    expected_effect: reference-joiner-reproduces-evaluator-key
+  - id: reference-joiner-incomplete-join-31
+    status: pass
+    seed: 31
+    family: incomplete-join
+    expected_effect: reference-joiner-reproduces-evaluator-key
+  - id: reference-joiner-incomplete-join-47
+    status: pass
+    seed: 47
+    family: incomplete-join
+    expected_effect: reference-joiner-reproduces-evaluator-key
+  - id: reference-joiner-incomplete-join-61
+    status: pass
+    seed: 61
+    family: incomplete-join
+    expected_effect: reference-joiner-reproduces-evaluator-key
+  - id: reference-joiner-incomplete-join-79
+    status: pass
+    seed: 79
+    family: incomplete-join
+    expected_effect: reference-joiner-reproduces-evaluator-key
+  - id: reference-joiner-incomplete-join-101
+    status: pass
+    seed: 101
+    family: incomplete-join
+    expected_effect: reference-joiner-reproduces-evaluator-key
+  - id: reference-joiner-incomplete-join-127
+    status: pass
+    seed: 127
+    family: incomplete-join
+    expected_effect: reference-joiner-reproduces-evaluator-key
+  - id: reference-joiner-incomplete-join-149
+    status: pass
+    seed: 149
+    family: incomplete-join
+    expected_effect: reference-joiner-reproduces-evaluator-key
+  - id: reference-joiner-incomplete-join-167
+    status: pass
+    seed: 167
+    family: incomplete-join
+    expected_effect: reference-joiner-reproduces-evaluator-key
+  - id: reference-joiner-incomplete-join-191
+    status: pass
+    seed: 191
+    family: incomplete-join
+    expected_effect: reference-joiner-reproduces-evaluator-key
+  - id: reference-joiner-incomplete-join-211
+    status: pass
+    seed: 211
+    family: incomplete-join
+    expected_effect: reference-joiner-reproduces-evaluator-key
+  - id: reference-joiner-incomplete-join-233
+    status: pass
+    seed: 233
+    family: incomplete-join
+    expected_effect: reference-joiner-reproduces-evaluator-key
+  - id: reference-joiner-incomplete-join-257
+    status: pass
+    seed: 257
+    family: incomplete-join
+    expected_effect: reference-joiner-reproduces-evaluator-key
+  - id: reference-joiner-incomplete-join-277
+    status: pass
+    seed: 277
+    family: incomplete-join
+    expected_effect: reference-joiner-reproduces-evaluator-key
+  - id: reference-joiner-incomplete-join-307
+    status: pass
+    seed: 307
+    family: incomplete-join
+    expected_effect: reference-joiner-reproduces-evaluator-key
+  - id: reference-joiner-audit-relationship-gap-5
+    status: pass
+    seed: 5
     family: audit-relationship-gap
-  - id: mutation-strip-protected-scope-pagination-truncation
+    expected_effect: reference-joiner-reproduces-evaluator-key
+  - id: reference-joiner-audit-relationship-gap-17
     status: pass
+    seed: 17
+    family: audit-relationship-gap
+    expected_effect: reference-joiner-reproduces-evaluator-key
+  - id: reference-joiner-audit-relationship-gap-31
+    status: pass
+    seed: 31
+    family: audit-relationship-gap
+    expected_effect: reference-joiner-reproduces-evaluator-key
+  - id: reference-joiner-audit-relationship-gap-47
+    status: pass
+    seed: 47
+    family: audit-relationship-gap
+    expected_effect: reference-joiner-reproduces-evaluator-key
+  - id: reference-joiner-audit-relationship-gap-61
+    status: pass
+    seed: 61
+    family: audit-relationship-gap
+    expected_effect: reference-joiner-reproduces-evaluator-key
+  - id: reference-joiner-audit-relationship-gap-79
+    status: pass
+    seed: 79
+    family: audit-relationship-gap
+    expected_effect: reference-joiner-reproduces-evaluator-key
+  - id: reference-joiner-audit-relationship-gap-101
+    status: pass
+    seed: 101
+    family: audit-relationship-gap
+    expected_effect: reference-joiner-reproduces-evaluator-key
+  - id: reference-joiner-audit-relationship-gap-127
+    status: pass
+    seed: 127
+    family: audit-relationship-gap
+    expected_effect: reference-joiner-reproduces-evaluator-key
+  - id: reference-joiner-audit-relationship-gap-149
+    status: pass
+    seed: 149
+    family: audit-relationship-gap
+    expected_effect: reference-joiner-reproduces-evaluator-key
+  - id: reference-joiner-audit-relationship-gap-167
+    status: pass
+    seed: 167
+    family: audit-relationship-gap
+    expected_effect: reference-joiner-reproduces-evaluator-key
+  - id: reference-joiner-audit-relationship-gap-191
+    status: pass
+    seed: 191
+    family: audit-relationship-gap
+    expected_effect: reference-joiner-reproduces-evaluator-key
+  - id: reference-joiner-audit-relationship-gap-211
+    status: pass
+    seed: 211
+    family: audit-relationship-gap
+    expected_effect: reference-joiner-reproduces-evaluator-key
+  - id: reference-joiner-audit-relationship-gap-233
+    status: pass
+    seed: 233
+    family: audit-relationship-gap
+    expected_effect: reference-joiner-reproduces-evaluator-key
+  - id: reference-joiner-audit-relationship-gap-257
+    status: pass
+    seed: 257
+    family: audit-relationship-gap
+    expected_effect: reference-joiner-reproduces-evaluator-key
+  - id: reference-joiner-audit-relationship-gap-277
+    status: pass
+    seed: 277
+    family: audit-relationship-gap
+    expected_effect: reference-joiner-reproduces-evaluator-key
+  - id: reference-joiner-audit-relationship-gap-307
+    status: pass
+    seed: 307
+    family: audit-relationship-gap
+    expected_effect: reference-joiner-reproduces-evaluator-key
+  - id: reference-joiner-pagination-truncation-5
+    status: pass
+    seed: 5
     family: pagination-truncation
+    expected_effect: reference-joiner-reproduces-evaluator-key
+  - id: reference-joiner-pagination-truncation-17
+    status: pass
+    seed: 17
+    family: pagination-truncation
+    expected_effect: reference-joiner-reproduces-evaluator-key
+  - id: reference-joiner-pagination-truncation-31
+    status: pass
+    seed: 31
+    family: pagination-truncation
+    expected_effect: reference-joiner-reproduces-evaluator-key
+  - id: reference-joiner-pagination-truncation-47
+    status: pass
+    seed: 47
+    family: pagination-truncation
+    expected_effect: reference-joiner-reproduces-evaluator-key
+  - id: reference-joiner-pagination-truncation-61
+    status: pass
+    seed: 61
+    family: pagination-truncation
+    expected_effect: reference-joiner-reproduces-evaluator-key
+  - id: reference-joiner-pagination-truncation-79
+    status: pass
+    seed: 79
+    family: pagination-truncation
+    expected_effect: reference-joiner-reproduces-evaluator-key
+  - id: reference-joiner-pagination-truncation-101
+    status: pass
+    seed: 101
+    family: pagination-truncation
+    expected_effect: reference-joiner-reproduces-evaluator-key
+  - id: reference-joiner-pagination-truncation-127
+    status: pass
+    seed: 127
+    family: pagination-truncation
+    expected_effect: reference-joiner-reproduces-evaluator-key
+  - id: reference-joiner-pagination-truncation-149
+    status: pass
+    seed: 149
+    family: pagination-truncation
+    expected_effect: reference-joiner-reproduces-evaluator-key
+  - id: reference-joiner-pagination-truncation-167
+    status: pass
+    seed: 167
+    family: pagination-truncation
+    expected_effect: reference-joiner-reproduces-evaluator-key
+  - id: reference-joiner-pagination-truncation-191
+    status: pass
+    seed: 191
+    family: pagination-truncation
+    expected_effect: reference-joiner-reproduces-evaluator-key
+  - id: reference-joiner-pagination-truncation-211
+    status: pass
+    seed: 211
+    family: pagination-truncation
+    expected_effect: reference-joiner-reproduces-evaluator-key
+  - id: reference-joiner-pagination-truncation-233
+    status: pass
+    seed: 233
+    family: pagination-truncation
+    expected_effect: reference-joiner-reproduces-evaluator-key
+  - id: reference-joiner-pagination-truncation-257
+    status: pass
+    seed: 257
+    family: pagination-truncation
+    expected_effect: reference-joiner-reproduces-evaluator-key
+  - id: reference-joiner-pagination-truncation-277
+    status: pass
+    seed: 277
+    family: pagination-truncation
+    expected_effect: reference-joiner-reproduces-evaluator-key
+  - id: reference-joiner-pagination-truncation-307
+    status: pass
+    seed: 307
+    family: pagination-truncation
+    expected_effect: reference-joiner-reproduces-evaluator-key
+  - id: coverage-all-classes
+    status: pass
+  - id: coverage-all-counterexamples
+    status: pass
+    detail: 1,2,3,4,5,6,7,8,9
+  - id: coverage-all-distractors
+    status: pass
+    detail: internal-owner,unverified,user-consent,verified-unauth
 artifacts:
   - path: evidence/reference-results.json
-    sha256: e31f9a1aedf7472fd295388b8401920f3540b69e0a1b0d73e396920f04d945fa
-  - path: evidence/mutation-results.json
-    sha256: 7ab9acb8f0767ba314a9a41123d6e2aab7647cd6d025ac888f337b71a33ab6b5
+    sha256: bb19121413ad117177483a3334bb28682ad84606823e782f42c14d9d9de37cea
+  - path: evidence/coverage-results.json
+    sha256: 2269841a8a5369b52670c26b3036d24d21fec50135baa1ec274be6206f0b596c

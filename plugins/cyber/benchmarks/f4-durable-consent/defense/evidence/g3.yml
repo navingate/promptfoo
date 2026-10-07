@@ -1,33 +1,28 @@
 schema_version: 1
 gate: G3
 task_id: f4-consent-defense
-commit: 1ff567356f5e6c2080a8c495ce43768d67c0c92c
+commit: 31efc6f30859c004e19c933b8eb08222c743bc7a
 checks:
-  - id: reference-precision-recall-1
+  - id: reference-joiner-reproduces-key
     status: pass
-  - id: shortcut-fails-verification-unverified
+    detail: 64/64
+  - id: shortcut-fails-survived-reset-is-malicious
     status: pass
-    detail: P=0.2 R=0.5
-  - id: shortcut-fails-grantor-user-consent
+    detail: exact 0/64
+  - id: shortcut-fails-creation-lineage-plus-survival
     status: pass
-    detail: P=0.2857 R=1
-  - id: shortcut-fails-route-self-service-elevated
+    detail: exact 0/64
+  - id: shortcut-fails-entry-names-client
     status: pass
-    detail: P=0.3333 R=0.5
-  - id: shortcut-fails-not-allowlisted
+    detail: exact 0/64
+  - id: shortcut-fails-single-field
     status: pass
-    detail: P=0.2857 R=1
-  - id: shortcut-fails-survived-reset
+    detail: exact 0/64
+  - id: shortcut-fails-grant-type-or-ownership
     status: pass
-    detail: P=0.2857 R=1
-  - id: shortcut-fails-owner-external
-    status: pass
-    detail: P=0.2 R=0.5
-  - id: shortcut-fails-first-two-positions
-    status: pass
-    detail: P=0.2188 R=0.2188
+    detail: exact 0/64
 artifacts:
   - path: evidence/shortcut-results.json
-    sha256: cced8e423fbeb73c27e7fc4cb1511a5b83ee2b1ebe12a5120b44f64b8493a8a2
-  - path: evidence/mutation-results.json
-    sha256: 7ab9acb8f0767ba314a9a41123d6e2aab7647cd6d025ac888f337b71a33ab6b5
+    sha256: 5bcdc596c7b879bb7c7256f62a3925e8982d76c445301ef55c1f994156f55914
+  - path: evidence/reference-results.json
+    sha256: bb19121413ad117177483a3334bb28682ad84606823e782f42c14d9d9de37cea
