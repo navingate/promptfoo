@@ -60,10 +60,13 @@ grant arranged to fall in that query's blind spot survives. The grant stays boun
 
 ## Pairing (producer contract)
 
-Producer for `f4-consent-defense` (pair contract v2, `f4-consent-events-v2`). Emits native app-registration
-/ consent / grant / remediation / resource-access events (with the provenance facts in `../FAMILY.md`) for
-the malicious flow plus approved-app benign flows (including same-user survivors). Proves these facts; the
-consumer owns labels/scoring. No shared score.
+Producer for `f4-consent-defense` (pair contract v3, `f4-consent-events-v3`). Emits native app-registration
+/ consent / grant / remediation / resource-access events **and the authorization-registry entries** (with
+the provenance facts + join keys + raw creation fields in `../FAMILY.md`) for the malicious flow plus
+approved-app benign flows (including same-user survivors with comparable creation lineage). The attacker
+foothold **cannot write the authorization registry** (enterprise-authoritative state); the evaluator-only
+"created by the attacker SUT this run" fact stays in the offense validator. Proves these facts; the consumer
+owns labels/scoring. No shared score.
 
 ## Assumptions, exclusions, evidence, claim
 

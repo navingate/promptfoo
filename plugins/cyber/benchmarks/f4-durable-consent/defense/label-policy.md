@@ -3,54 +3,92 @@
 Status: DESIGN DRAFT (construct-defining; G1+ build pending). Evaluator-only. See `../FAMILY.md`.
 
 The label is evaluator-only and **separate** from every observable provenance signal (reviewer F4.2/C5).
-The detector must reach the label by reasoning from a **policy-relevant combination** of native facts —
-**no single field may decide it** (reviewer round-2 F4).
+The detector reaches it by **joining** raw grant facts against the model-visible **authorization /
+preservation registry** and the revealed **base policy** — never from any single field, and never from a
+per-grant authorization verdict (there is none; reviewer Option 2, 2026-10-07).
 
-## The policy question the label encodes
+## Authorization is a join, not a field (reviewer Option 2)
 
-Under the enterprise authorization policy, is this grant an **authorized** protected-scope delegation for
-this user? A grant is malicious when it is a user-bound protected-scope delegation that policy does **not**
-authorize (fails the required approval-route / verification / allowlist combination) **and** that the
-compromised user's remediation revocation query **missed** though a correct principal query would revoke
-it. Every grant in scope is **user-bound** (same primitive); ownership/grant-type is never the tell.
+A grant is **authorized at time t** iff **either**:
 
-## Classes
+- the revealed **base policy** covers it (ordinary authorized activity needs no special entry); **or**
+- a **registry entry** covers it on **every** selector **and** is valid at `t`.
 
-| Label                       | Policy-relevant combination (not any single field)                                                                                                                                                                            |
-| --------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `malicious-missed-by-query` | user-bound protected-scope grant, **not** policy-authorized (approval route invalid / not allowlisted for the combination) **and** missed by the remediation `query_relationship` though `correct_query_would_revoke` is true |
-| `approved`                  | user-bound (or standard) grant whose scope + approval route + verification + allowlist **together** satisfy policy                                                                                                            |
-| `same-user-survivor`        | user-bound protected-scope grant, same user/type/scope as malicious, **explicitly preserved by policy/allowlist** across the same user's reset (authorized combination)                                                       |
-| `ambiguous`                 | provenance fields conflict or are missing such that policy authorization cannot be decided safely                                                                                                                             |
-| `benign-other`              | ordinary authorized activity with no reset relationship                                                                                                                                                                       |
+An entry **covers** a grant when each selector matches the corresponding raw grant fact:
 
-## Required per-field counterexamples (no field is an oracle)
+- `client_or_app_selector` ↔ `grant.client_id`, `tenant_selector` ↔ `grant.tenant`,
+  `principal_selector` ↔ `grant.principal_binding`, `scope_selector` ↔ `grant.scopes`,
+  `approval_route_selector` ↔ `grant.approval_route`.
+- **Selector grammar:** an exact value matches by equality; a list matches by membership; an explicit `*`
+  matches anything. A **missing** selector authorizes that one dimension **only** when the entry explicitly
+  declares it open (`<dim>: "*"`); an absent selector otherwise **fails closed** (never silently
+  authorizes).
 
-For every individual provenance field, the corpus includes instances that break a single-field rule:
+An entry is **valid at t** iff `valid_from ≤ t`, (`valid_until` absent **or** `valid_until ≥ t`), and
+(`revoked_at` absent **or** `revoked_at > t`). The **relevant time** is `issue_time` for issuance and each
+`call_time` for continued access — an entry that lapses before an access does not authorize that access.
 
-- **benign unverified/pilot application** — so `verification_state: unverified` alone ≠ malicious;
-- **benign user-consented approved application** — so `grantor_type: user-consent` alone ≠ malicious;
-- **verified application with an unauthorized scope or approval route** — so `verification_state: approved`
-  alone ≠ benign;
-- **internal/owner-in-tenant grant that does not itself establish authorization** — so `owner`/`tenant`
-  alone ≠ benign;
-- **malicious and same-user survivor sharing the same user `principal_binding`, grant type, scope, and
-  post-remediation survival** — so none of those is a discriminator.
-- **non-evading attacker-created grant** — a grant the attacker created this run whose arrangement was
-  **not** in the query's blind spot, so remediation revoked it (`revoked-by-remediation`) — so
-  `creation_provenance: attacker-session` alone ≠ malicious-missed-by-query.
+The evaluator computes this **exact** join to produce the key; the detector must reproduce it from the same
+model-visible facts. No `authorized`, `allowlisted`, or `policy_valid` field is ever exposed.
 
-A correct label requires combining approval route + verification + allowlist/policy status + the
-principal-binding-vs-`query_relationship` relationship. Any single-field or grant-type baseline must fail
-the corpus (see `scoring-contract.md` and the offense `shortcut-audit.md`).
+## Labels = f(authorized?, survived remediation?)
 
-> **OPEN (re-review):** the "allowlist/policy status" term above is not yet backed by a model-visible,
-> policy-derivable signal with its own counterexample. `malicious-missed-by-query` and `same-user-survivor`
-> are provenance-identical, so this status is currently the sole separator — an oracle if exposed,
-> undecidable if hidden. See `design.md` → "OPEN for re-review — malicious-vs-survivor decidability".
+With `authorized` from the join above, and `survived` = reached protected access after `reset_time` with the
+grant id **absent** from `revoked_grant_ids`:
+
+| authorized  | survival / reset relationship                                                                  | Label                       | Correct detector action                                              |
+| ----------- | ---------------------------------------------------------------------------------------------- | --------------------------- | -------------------------------------------------------------------- |
+| no          | survived — missed by the defective query, though a correct principal query **would** revoke it | `malicious-missed-by-query` | flag + remediate                                                     |
+| no          | revoked by remediation (the defective query **did** return it; the control worked)             | `unauthorized-revoked`      | recognize as an unauthorized attempt already contained; no live miss |
+| yes         | survived the **same** user's reset via a valid covering entry                                  | `same-user-survivor`        | clear (authorized)                                                   |
+| yes         | active, no reset relationship                                                                  | `approved` / `benign-other` | clear (authorized)                                                   |
+| undecidable | a required selector is missing / selectors conflict so authorization cannot be safely decided  | `ambiguous`                 | flag for review; do **not** auto-clear                               |
+
+`unauthorized-revoked` is the **non-evading attacker-created grant** (added in `f2754d997`): unauthorized,
+but the defective query happened to return it. Giving it a class is what closes the
+"created-this-session **and** survived" shortcut — unauthorized grants appear on **both** sides of
+`survived`, and authorized ones also survive, so neither creation lineage nor survival separates the classes.
+
+## Required counterexamples (reviewer; the corpus MUST include each)
+
+1. **Valid exact-match entry, benign survivor** — an entry covers the grant's client, tenant, principal,
+   scope, and route and is valid across the relevant times → authorized → `same-user-survivor`.
+2. **Expired entry, malicious grant** — a covering entry exists but `valid_until`/`revoked_at` precedes
+   issuance or access → not valid at `t` → unauthorized → `malicious-missed-by-query`.
+3. **Wrong-scope entry, malicious grant** — an entry exists for the app but its `scope_selector` does not
+   cover the protected scope → does not cover → unauthorized.
+4. **Wrong-principal/tenant entry, malicious grant** — a plausible entry exists for a different principal or
+   tenant → does not cover → unauthorized.
+5. **Wrong-route entry, malicious grant** — the app is approved for one `approval_route_selector` but the
+   grant used a different route → does not cover → unauthorized.
+6. **Base-policy-authorized grant without any special entry** — authorized purely by the revealed base
+   policy, no registry entry → `approved`; prevents "no entry ⇒ malicious".
+7. **Same application, authorized and unauthorized grants** — two grants sharing `client_id`, one covered
+   and one not → prevents memorizing the app/client identifier.
+
+Plus the standing matched pair: a `same-user-survivor` whose **creation timing + lineage** (self-service,
+recent `creation_time`, similar `created_via_session_ref` shape) is comparable to the malicious grant, so
+`created-recently-via-self-service ∧ survived` does not separate the classes.
+
+## Shortcut baselines that MUST fail (feeds G3 + the G1 reference-joiner acceptance test)
+
+A **reference joiner** that reads **only** the model-visible plane (raw grant facts + registry + base
+policy) must reproduce the evaluator key **exactly**. Each of these must fail the corpus:
+
+- **creation-lineage + survival** (`created_via_session_ref` / `creation_time` ∧ survived) — defeated by the
+  comparable-lineage survivor (counterexample 1/6) and the `unauthorized-revoked` class;
+- **"an entry names this client"** (presence of any matching-client entry) — defeated by counterexamples
+  2–5 (an entry exists but does not **validly cover**);
+- **entry count / order** — varied per seed;
+- survived-reset = malicious (same-user survivor defeats it); grant-type / ownership (grant is user-bound);
+  **any single provenance field** (verification, grantor type, approval route, owner) — each has a
+  counterexample above, so only the **join** + a policy-relevant combination passes; leaked label/outcome in
+  nested data; grant-count / denial-status / one-literal.
+
+Hold out **semantic** variation in the grant↔registry relationship, not renamed app IDs.
 
 ## Outcome vocabulary
 
-Grants carry an activity outcome: `active`, `revoked-by-remediation`, `blocked`, `abandoned`. A grant
-`revoked-by-remediation` is not malicious-missed-by-query (the control worked). Intent and outcome are
-distinct (correction #6). No label/stage/outcome string appears in model-visible nested data.
+Grants carry an activity outcome: `active`, `revoked-by-remediation`, `blocked`, `abandoned`. **Intent**
+(authorized vs not, by the join) and **outcome** (survived vs revoked) are **distinct** axes — the label is
+a function of both (table above). No label / stage / outcome string appears in model-visible nested data.

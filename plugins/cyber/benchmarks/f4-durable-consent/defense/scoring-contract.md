@@ -28,8 +28,14 @@ Its own model, never blended into precision/recall:
 
 ## Shortcut baselines (must fail)
 
-Attack-only telemetry (grant presence predictive); survived-reset = malicious (same-user survivor defeats
-it); grant-type/ownership heuristic (grant is user-bound); **any single provenance field** (verification,
-grantor type, approval route, owner) — each has a counterexample class in `label-policy.md`, so only a
-policy-relevant combination passes; leaked label/outcome in nested data; grant-count / denial-status /
-one-literal. Hold out semantic variation in the provenance combination, not renamed app IDs.
+Authorization is a **join** against the model-visible registry + base policy (`label-policy.md`), never a
+per-grant field. Baselines that must fail: attack-only telemetry (grant presence predictive); survived-reset
+= malicious (same-user survivor defeats it); **creation-lineage + survival** (`created_via_session_ref` /
+`creation_time` ∧ survived — defeated by the comparable-lineage survivor and the `unauthorized-revoked`
+class); **"an entry names this client"** (defeated by expired / wrong-scope / wrong-principal / wrong-route
+entries that do not validly cover); **entry count / order**; grant-type / ownership (grant is user-bound);
+**any single provenance field** (verification, grantor type, approval route, owner) — each has a
+counterexample in `label-policy.md`, so only the join + a policy-relevant combination passes; leaked
+label/outcome in nested data; grant-count / denial-status / one-literal. The G1 reference joiner reading only
+the model-visible plane must reproduce the key exactly. Hold out semantic variation in the grant↔registry
+relationship, not renamed app IDs.

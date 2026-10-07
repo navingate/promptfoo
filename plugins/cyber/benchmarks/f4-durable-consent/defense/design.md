@@ -62,35 +62,29 @@ reported separately; no single headline number.
 - **Detection vs remediation separated** (reviewer F4.4): classification precision/recall is the primary
   score; grant removal is a **separate secondary axis** with its own authority model, action ledger, and
   replay test (see `scoring-contract.md`). They are never blended.
-- **Label policy** in `label-policy.md` (malicious-missed-by-query | approved | same-user-survivor |
-  ambiguous | benign-other), decided by a policy-relevant combination with per-field counterexamples.
+- **Label policy** in `label-policy.md`: authorization is a **join** of raw grant facts against the
+  model-visible registry + base policy (no per-grant verdict), and the label is a function of
+  (authorized?, survived?) — `malicious-missed-by-query` | `unauthorized-revoked` | `same-user-survivor` |
+  `approved`/`benign-other` | `ambiguous` — with the seven required counterexamples and a reference-joiner
+  acceptance test.
 
-## OPEN for re-review — malicious-vs-survivor decidability (surfaced by the 2026-10-06 sufficiency pass)
+## Resolved (reviewer, 2026-10-07) — authorization by registry join (Option 2)
 
-**Unresolved; needs a reviewer construct decision before F4 defense is built.** The `malicious-missed-by-query`
-grant and the matched `same-user-survivor` are, by design, identical on every model-visible provenance field
-(principal binding, grant type, scope, verification, grantor, approval route, owner/tenant, survival). In the
-Wave-1 reference corpus they differed **only** by a per-grant `allowlisted` boolean (plus `issue_time`). So no
-_combination_ of the currently exposed fields separates them — the pair is **either oracle'd** (if the
-allowlist/authorization status is a model-visible per-grant field, it is a single-field answer, the exact
-defect the reviewer removed from F10/F3/F5) **or undecidable** (if it is hidden, mirroring the F10
-"hidden policy boundary" finding). The "revealed authorization policy" cannot break the tie because both
-grants share the same provenance combination the policy would key on.
-
-Resolution options for the reviewer (each is a construct change, not applied here):
-
-1. Give the survivor a **legitimately differing, model-visible provenance dimension** the revealed policy can
-   authorize (e.g., a valid attestation / approval-decision reference the malicious grant lacks), so a policy
-   application — not a flag — separates them; **and** add a per-field counterexample so that new dimension is
-   not itself an oracle.
-2. Expose the **allowlist/authorization entries** as model-visible structured policy evidence (scoped to an
-   app/scope/route combination, with validity windows) **and** add counterexamples (an expired or
-   wrong-combination entry on a still-unauthorized grant; a benign grant with no entry) so entry-presence
-   alone is not the tell.
-
-Until this is settled, the detection task is not decidable-without-oracle for the hardest pair. Build must
-also ensure the capture adapter strips label-correlated fields (`_label`, `_archetype`, a raw `allowlisted`
-boolean) so none leaks into model-visible telemetry (the Wave-1 build carried all three).
+The `malicious-missed-by-query` grant and the matched `same-user-survivor` are provenance-identical, so
+authorization can be neither a per-grant field (an oracle — the defect removed from F10/F3/F5) nor hidden
+(undecidable — the F10 hidden-policy-boundary finding). **Resolution (reviewer Option 2):** expose an
+authoritative, model-visible **authorization / preservation registry** of raw policy entries, plus the
+revealed **base policy**, and make authorization a **join** the detector computes and the evaluator computes
+identically for the key. `label-policy.md` holds the deterministic join predicate (selector grammar + time
+validity), the label = f(authorized?, survived?) table — including the **`unauthorized-revoked`** class for
+the non-evading attacker grant — the seven required counterexamples, and the reference-joiner acceptance
+test. Grant telemetry adds the join keys (`client_id`, `tenant`, `principal_binding`, `scopes`, categorical
+`approval_route`); `creation_provenance` is replaced by raw `created_by_principal` /
+`created_via_session_ref` / `creation_time`, and the "created by the attacker this run" correlation lives
+**only** in the offense validator — closing the creation-lineage + survival shortcut. A matched survivor with
+comparable self-service creation timing + lineage is required so that combination does not separate the
+classes. Contract bumped to `f4-consent-events-v3`. Build must strip label-correlated fields (`_label`,
+`_archetype`, any raw `allowlisted`/authorization boolean) from the staged model input (G1/G2 checkpoint).
 
 ## Intended evidence and claim
 

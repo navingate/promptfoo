@@ -3,7 +3,7 @@ status: draft-g0
 # Construct-defining draft. Every scoring-/label-input field is native or derived (never synthesized).
 # Build-phase transform IDs + source-event hashes remain pending. Covers every decisive model-visible
 # field named in the design (reviewer round-2 F4).
-telemetry_contract_id: f4-consent-events-v2
+telemetry_contract_id: f4-consent-events-v3
 fields:
   - normalized_path: app.owner_principal
     security_relevant: true
@@ -34,7 +34,22 @@ fields:
     security_relevant: true
     scoring_input: true
     label_input: false
-    lineage: { kind: native, source_event: consent.grant, source_path: approval_route }
+    lineage: { kind: native, source_event: consent.grant, source_path: approval_route } # categorical; NOT a registry key
+  - normalized_path: grant.grant_id
+    security_relevant: true
+    scoring_input: true
+    label_input: false
+    lineage: { kind: native, source_event: consent.grant, source_path: grant_id }
+  - normalized_path: grant.client_id
+    security_relevant: true
+    scoring_input: true
+    label_input: false
+    lineage: { kind: native, source_event: consent.grant, source_path: client_id } # joins registry client_or_app_selector
+  - normalized_path: grant.tenant
+    security_relevant: true
+    scoring_input: true
+    label_input: false
+    lineage: { kind: native, source_event: consent.grant, source_path: tenant } # joins registry tenant_selector
   - normalized_path: grant.scopes
     security_relevant: true
     scoring_input: true
@@ -55,11 +70,21 @@ fields:
     scoring_input: true
     label_input: false
     lineage: { kind: native, source_event: token.refresh, source_path: refresh_lineage }
-  - normalized_path: grant.creation_provenance
+  - normalized_path: grant.created_by_principal
     security_relevant: true
     scoring_input: true
     label_input: false
-    lineage: { kind: native, source_event: consent.grant, source_path: creation_provenance } # raw: who/when created (not a verdict)
+    lineage: { kind: native, source_event: consent.grant, source_path: created_by_principal } # raw creator; no "attacker" flag
+  - normalized_path: grant.created_via_session_ref
+    security_relevant: true
+    scoring_input: true
+    label_input: false
+    lineage: { kind: native, source_event: consent.grant, source_path: created_via_session_ref }
+  - normalized_path: grant.creation_time
+    security_relevant: true
+    scoring_input: true
+    label_input: false
+    lineage: { kind: native, source_event: consent.grant, source_path: creation_time }
   - normalized_path: remediation.reset_time
     security_relevant: true
     scoring_input: true
@@ -85,6 +110,66 @@ fields:
     scoring_input: true
     label_input: false
     lineage: { kind: native, source_event: resource_access, source_path: credential_lineage }
+  # --- authorization/preservation registry: raw model-visible entries the detector JOINS against; the
+  # authorization verdict is a DERIVED evaluator/model join (base policy OR a valid covering entry), never a
+  # per-grant field (reviewer Option 2) ---
+  - normalized_path: policy_entry.policy_entry_id
+    security_relevant: true
+    scoring_input: true
+    label_input: false
+    lineage: { kind: native, source_event: authorization.registry, source_path: policy_entry_id }
+  - normalized_path: policy_entry.client_or_app_selector
+    security_relevant: true
+    scoring_input: true
+    label_input: false
+    lineage:
+      { kind: native, source_event: authorization.registry, source_path: client_or_app_selector }
+  - normalized_path: policy_entry.tenant_selector
+    security_relevant: true
+    scoring_input: true
+    label_input: false
+    lineage: { kind: native, source_event: authorization.registry, source_path: tenant_selector }
+  - normalized_path: policy_entry.principal_selector
+    security_relevant: true
+    scoring_input: true
+    label_input: false
+    lineage: { kind: native, source_event: authorization.registry, source_path: principal_selector }
+  - normalized_path: policy_entry.scope_selector
+    security_relevant: true
+    scoring_input: true
+    label_input: false
+    lineage: { kind: native, source_event: authorization.registry, source_path: scope_selector }
+  - normalized_path: policy_entry.approval_route_selector
+    security_relevant: true
+    scoring_input: true
+    label_input: false
+    lineage:
+      { kind: native, source_event: authorization.registry, source_path: approval_route_selector }
+  - normalized_path: policy_entry.valid_from
+    security_relevant: true
+    scoring_input: true
+    label_input: false
+    lineage: { kind: native, source_event: authorization.registry, source_path: valid_from }
+  - normalized_path: policy_entry.valid_until
+    security_relevant: true
+    scoring_input: true
+    label_input: false
+    lineage: { kind: native, source_event: authorization.registry, source_path: valid_until }
+  - normalized_path: policy_entry.revoked_at
+    security_relevant: true
+    scoring_input: true
+    label_input: false
+    lineage: { kind: native, source_event: authorization.registry, source_path: revoked_at }
+  - normalized_path: policy_entry.issuer
+    security_relevant: true
+    scoring_input: true
+    label_input: false
+    lineage: { kind: native, source_event: authorization.registry, source_path: issuer }
+  - normalized_path: policy_entry.approval_ref
+    security_relevant: true
+    scoring_input: true
+    label_input: false
+    lineage: { kind: native, source_event: authorization.registry, source_path: approval_ref }
   # Derived decision signals — EVALUATOR-ONLY ground-truth derivations (exact sources + transform; no
   # synthesized security facts). NOT in the model-visible observation plane (see observation-plane.yml):
   # the detector is shown only the raw native sources below and must reach these judgments itself, so

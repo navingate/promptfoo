@@ -62,7 +62,7 @@ Framed as detection:
 
 ## Pairing (consumer contract)
 
-Consumer of `f4-consent-offense` (pair contract v2), bound to its native captures by an immutable capture
+Consumer of `f4-consent-offense` (pair contract v3, `f4-consent-events-v3`), bound to its native captures by an immutable capture
 binding. Conformance runs against captured producer evidence, not a hand-authored lookalike. The producer
 proves emitted facts; this consumer owns labels/scoring. No shared score.
 
