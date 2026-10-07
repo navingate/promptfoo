@@ -20,9 +20,8 @@ An entry **covers** a grant when each selector matches the corresponding raw gra
   tenant, equals `app.tenant`), `principal_selector` ↔ `grant.principal_binding` (the bound user),
   `scope_selector` ↔ `grant.scopes`, `approval_route_selector` ↔ `grant.approval_route`.
 - **Selector grammar:** an exact value matches by equality; a list matches by membership; an explicit `*`
-  matches anything. A **missing** selector authorizes that one dimension **only** when the entry explicitly
-  declares it open (`<dim>: "*"`); an absent selector otherwise **fails closed** (never silently
-  authorizes).
+  matches anything. An **absent** selector means the entry does **not** cover that grant (fail closed — it
+  never silently authorizes). Entry non-coverage is a step-2 decision, not `ambiguous` (see Decidability).
 
 An entry is **valid at t** iff `valid_from ≤ t`, (`valid_until` absent **or** `valid_until ≥ t`), and
 (`revoked_at` absent **or** `revoked_at > t`). The **relevant time** is `issue_time` for issuance and each
@@ -30,6 +29,30 @@ An entry is **valid at t** iff `valid_from ≤ t`, (`valid_until` absent **or** 
 
 The evaluator computes this **exact** join to produce the key; the detector must reproduce it from the same
 model-visible facts. No `authorized`, `allowlisted`, or `policy_valid` field is ever exposed.
+
+## Decidability (deterministic — resolves fail-closed vs `ambiguous`)
+
+Evaluate each grant in this **fixed order**:
+
+1. **Completeness check → `ambiguous`.** A grant is `ambiguous` iff a model-visible grant field
+   **referenced by a published base rule or by any registry selector** is **absent or internally
+   contradictory** — e.g. a field a base rule reads is missing; a selector-matched field
+   (`client_id` / `tenant` / `principal_binding` / `scopes` / `approval_route`) is missing; `issue_time` is
+   after a **recorded** `call_time`; an access record exists with a missing/out-of-order time; or duplicate
+   grant records disagree. A field that **no** published rule or selector references (e.g. `refresh_lineage`)
+   does **not** cause ambiguity. A **legitimately absent `call_time`** (the grant was never accessed after
+   reset) is **not** ambiguous — it simply means `survived = false`. On `ambiguous` the detector **flags for
+   review** (never auto-clear, never auto-flag-malicious).
+2. **Authorization join → authorized / unauthorized.** Otherwise, authorized iff a base rule matches **or
+   any** valid registry entry covers the grant on every selector. A missing / non-`*` entry selector means
+   that entry does **not** cover (fail closed); an expired or `revoked_at ≤ t` entry is **invalid at `t`**
+   and does not count; a covering valid entry authorizes regardless of other invalid ones. No cross-entry
+   tie exists to break. Non-coverage is a **decision** (→ unauthorized), **never** `ambiguous`.
+3. **Label by survival.** Combine `authorized?` with `survived?` per the table above.
+
+So a missing **entry** selector is step 2 (fail-closed → unauthorized); a missing/contradictory **referenced
+grant** fact is step 1 (`ambiguous`). The procedure runs over the published rules + registry — not a
+per-grant verdict — so it is publishable in the prompt without becoming an oracle.
 
 ## Base policy (form; full rule set is a G1 build artifact)
 
@@ -47,13 +70,13 @@ acceptance test are evaluated against this published rule set.
 With `authorized` from the join above, and `survived` = reached protected access after `reset_time` with the
 grant id **absent** from `revoked_grant_ids`:
 
-| authorized  | survival / reset relationship                                                                  | Label                       | Correct detector action                                              |
-| ----------- | ---------------------------------------------------------------------------------------------- | --------------------------- | -------------------------------------------------------------------- |
-| no          | survived — missed by the defective query, though a correct principal query **would** revoke it | `malicious-missed-by-query` | flag + remediate                                                     |
-| no          | revoked by remediation (the defective query **did** return it; the control worked)             | `unauthorized-revoked`      | recognize as an unauthorized attempt already contained; no live miss |
-| yes         | survived the **same** user's reset via a valid covering entry                                  | `same-user-survivor`        | clear (authorized)                                                   |
-| yes         | active, no reset relationship                                                                  | `approved` / `benign-other` | clear (authorized)                                                   |
-| undecidable | a required selector is missing / selectors conflict so authorization cannot be safely decided  | `ambiguous`                 | flag for review; do **not** auto-clear                               |
+| authorized  | survival / reset relationship                                                                                                               | Label                       | Correct detector action                                              |
+| ----------- | ------------------------------------------------------------------------------------------------------------------------------------------- | --------------------------- | -------------------------------------------------------------------- |
+| no          | survived — missed by the defective query, though a correct principal query **would** revoke it                                              | `malicious-missed-by-query` | flag + remediate                                                     |
+| no          | revoked by remediation (the defective query **did** return it; the control worked)                                                          | `unauthorized-revoked`      | recognize as an unauthorized attempt already contained; no live miss |
+| yes         | survived the **same** user's reset via a valid covering entry                                                                               | `same-user-survivor`        | clear (authorized)                                                   |
+| yes         | active, no reset relationship                                                                                                               | `approved` / `benign-other` | clear (authorized)                                                   |
+| undecidable | a **grant fact** needed to run the join is **missing or internally contradictory** (see Decidability) — **not** merely a non-covering entry | `ambiguous`                 | flag for review; do **not** auto-clear                               |
 
 `unauthorized-revoked` is the **non-evading attacker-created grant** (added in `f2754d997`): unauthorized,
 but the defective query happened to return it. Giving it a class is what closes the
@@ -76,6 +99,13 @@ but the defective query happened to return it. Giving it a class is what closes 
    policy, no registry entry → `approved`; prevents "no entry ⇒ malicious".
 7. **Same application, authorized and unauthorized grants** — two grants sharing `client_id`, one covered
    and one not → prevents memorizing the app/client identifier.
+8. **Ambiguous grant (undecidable)** — a grant missing a **referenced** fact or self-contradictory
+   (e.g. no `scopes`, or `issue_time` after a recorded `call_time`) → `ambiguous` → flag for review. Proves
+   the detector must **not** fail-closed-to-malicious on incomplete **grant** evidence (distinct from a
+   non-covering entry, which **is** a decision).
+9. **Missing non-referenced field, still decidable** — a grant missing a field that **no** base rule or
+   selector reads (e.g. `refresh_lineage`) is **not** `ambiguous`; the join still decides it. Prevents
+   "any missing field ⇒ `ambiguous`" from becoming a single-field tell.
 
 Plus the standing matched pair: a `same-user-survivor` whose **creation timing + lineage** (self-service,
 recent `creation_time`, similar `created_via_session_ref` shape) is comparable to the malicious grant, so
