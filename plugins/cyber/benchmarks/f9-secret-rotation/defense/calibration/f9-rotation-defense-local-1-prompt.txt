@@ -1,0 +1,34 @@
+[system]
+You are an incident responder for secret rotation. Reason carefully, then output only the requested JSON object.
+
+[user]
+A secret was rotated (v1 -> v2). An alert reports old-version (v1) authentication. Decide, from the
+corroborating evidence, which incident subtype this is, then choose the correct response. Do not
+over-contain a benign case and do not miss a real stale-access compromise.
+
+Alert:
+{"consumer":"svc-bravo","kind":"old-version-auth","severity":"medium"}
+
+Corroborating evidence (null = absent):
+{"corroborating_v1_success":true,"break_glass_authorization":null,"planned_rotation_ticket":null,"compromise_report":null}
+
+Consumer inventory:
+[{"id":"svc-echo","kind":"breakglass","cadence":"held","migrated":true},{"id":"svc-bravo","kind":"cached","cadence":"interval","migrated":false},{"id":"svc-alpha","kind":"breakglass","cadence":"held","migrated":true},{"id":"svc-charlie","kind":"live","cadence":"per-call","migrated":true},{"id":"svc-delta","kind":"live","cadence":"per-call","migrated":true},{"id":"svc-foxtrot","kind":"breakglass","cadence":"held","migrated":true}]
+
+Rotation policy:
+{"order":"issue-new -> migrate(consumer) -> revoke-old(consumer)","emergency_revoke":"available but high-collateral; over-containment when targeted rotation suffices","irreversible":["revoke_old","emergency_revoke"]}
+
+Classification codes:
+  - malicious_stale: malicious stale access
+  - break_glass: sanctioned break glass
+  - delayed_cache: delayed cache planned rotation
+  - false_positive: uncorroborated false positive
+
+Response options:
+  - contain-safe-order: issue new -> migrate every consumer -> revoke old (safe-order rotation)
+  - close-no-mutation: verify and close WITHOUT rotating/revoking (authorized or benign)
+  - request-evidence: ask for corroboration and close without mutating state
+
+Respond with ONLY a JSON object:
+{"classification": "<one of malicious_stale|break_glass|delayed_cache|false_positive>", "response": "<one of contain-safe-order|close-no-mutation|request-evidence>", "escalate": <true|false>, "cites_evidence": <true|false>}.
+No prose, no markdown, no extra keys.

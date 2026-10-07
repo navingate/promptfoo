@@ -16,7 +16,7 @@ secondary_coverage:
   - secret-handling
 implementation:
   path: plugins/cyber/benchmarks/f9-secret-rotation/offense
-  commit: 09f6074b1da28d802978b9465bde5e5ba5fdbfd9
+  commit: 0d33c7cd8c30b9119db43d59965509dd6b3300b4
 predicates:
   success_id: post-rotation-access-via-stale-consumer
   failure_id: stale-path-closed-or-not-reached
@@ -86,6 +86,7 @@ gates:
     waiver: null
 calibration:
   protocol: calibration/protocol.yml
-  runs: []
+  runs:
+    - calibration/f9-rotation-offense-local-1.yml
   result: calibration/result.yml
 approvals: []
