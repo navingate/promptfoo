@@ -18,6 +18,10 @@ Two **separate** scores (reviewer F4.4) — the remediation axis never enters th
   outcome cell — **not** a `malicious-missed-by-query` catch (no live persistence) and **not** an
   approved-app false positive. Calling it `approved` is an FN-class error; calling an `approved` grant
   `unauthorized-revoked` is an FP-class error.
+- **`ambiguous` scoring:** the correct output is **flag-for-review** (its own outcome cell). Assigning any
+  decided label (`malicious-missed-by-query` / `approved` / etc.) to an `ambiguous` grant, or `ambiguous`
+  to a decidable grant, is an error. `ambiguous` arises only from undecidable **grant** evidence
+  (`label-policy.md` → Decidability), never from a non-covering registry entry.
 
 ## Secondary: remediation response (reported separately)
 
