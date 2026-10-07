@@ -61,3 +61,12 @@ the G0 approval is (re)issued against `C0`:
 
 Any digests in a future bound record are **author-computed** at build time; the reviewer never saw manifest
 digests at G0.
+
+## Owner decision (2026-10-07) — resolves caveat 1
+
+The repository owner **accepts this AI construct review for G0**. Caveat 1 (AI vs "named independent
+reviewers") is resolved **for G0 only**: an independent AI construct review is a sufficient G0 bar here.
+**G7 (claims / release) requires a human or independent-organization reviewer** — an AI review is not
+sufficient for release, and that human gate also re-examines caveats 2 (F4 partial self-approval) and 3 (F9
+blanket coverage). See [`review-policy.md`](review-policy.md). This decision changes no gate state now
+(binding still deferred to build); it records which bar G0 and G7 must meet.
