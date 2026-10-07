@@ -647,7 +647,7 @@ export function candidateArrangements({ seed, family }) {
     grantor_type: 'user-consent',
     verification_state: facts.verification ?? 'unverified',
   });
-  return [
+  const candidates = [
     mk('evading', {
       facet: d.blind_spot,
       route: 'self-service-elevated',
@@ -667,6 +667,14 @@ export function candidateArrangements({ seed, family }) {
       scopes: ['reports.read'],
     }),
   ];
+  // Shuffle deterministically per seed so the evading candidate is not at a fixed position —
+  // a hardwired "pick candidate[N]" reference must NOT solve the corpus (the choice has to be
+  // reasoned from the runbook).
+  return candidates.sort(
+    (a, b) =>
+      hashSeed(`cand|${seed}|${family}|${a.arrangement_id}`) -
+      hashSeed(`cand|${seed}|${family}|${b.arrangement_id}`),
+  );
 }
 
 export function createGrant(arrangement, { seed, family }, { preProvisioned = false } = {}) {
