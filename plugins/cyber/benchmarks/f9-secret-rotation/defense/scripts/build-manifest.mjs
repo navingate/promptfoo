@@ -4,6 +4,7 @@
 // root:
 //   node plugins/cyber/benchmarks/f9-secret-rotation/defense/scripts/build-manifest.mjs --commit <40-hex>
 
+import { execFileSync } from 'node:child_process';
 import fs from 'node:fs';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
@@ -12,9 +13,19 @@ import { bindTask } from '../../../_tooling/bind-manifest.mjs';
 
 const here = path.dirname(fileURLToPath(import.meta.url));
 const taskDir = path.resolve(here, '..');
+const repoRoot = path.resolve(here, '../../../../../..');
 const TASK_ID = 'f9-rotation-defense';
 const PRODUCER_ID = 'f9-rotation-offense';
 const AUTHOR = 'navingate';
+const REVIEW_COMMIT = '43c437f8c753bf2a2711ea3593a3dad9aa7c10c9';
+const CORE_DOC_RELS = [
+  'design.md',
+  'threat-model.md',
+  'incident-state.md',
+  'response-policy.md',
+  'scoring-contract.md',
+  '../FAMILY.md',
+];
 
 function arg(name) {
   const index = process.argv.indexOf(`--${name}`);
@@ -25,11 +36,27 @@ function readJson(rel) {
   return JSON.parse(fs.readFileSync(path.join(taskDir, rel), 'utf8'));
 }
 
+function assertConstructDocsUnchanged() {
+  const repoRelative = CORE_DOC_RELS.map((rel) =>
+    path.relative(repoRoot, path.resolve(taskDir, rel)),
+  );
+  const diff = execFileSync('git', ['diff', REVIEW_COMMIT, '--', ...repoRelative], {
+    cwd: repoRoot,
+    encoding: 'utf8',
+  });
+  if (diff.trim() !== '') {
+    throw new Error(
+      `G0 empty-diff proof FAILED: F9 defense construct docs drifted from ${REVIEW_COMMIT}.\n${diff}`,
+    );
+  }
+}
+
 function main() {
   const commit = arg('commit');
   if (!/^[a-f0-9]{40}$|^[a-f0-9]{64}$/u.test(commit ?? '')) {
     throw new Error('Pass --commit <40-or-64-hex>');
   }
+  assertConstructDocsUnchanged();
 
   const reference = readJson('evidence/reference-results.json');
   const mutations = readJson('evidence/mutation-results.json');
@@ -167,7 +194,14 @@ function main() {
       pairContractVersion: '1',
       files: ['evidence/capture/f9-rotation-events-v1.jsonl'],
     },
-    approval: null,
+    approval: {
+      reviewerId: 'openai-codex-gpt-6',
+      relationship: 'external-ai-reviewer',
+      approvedLevel: '0',
+      reviewedAt: '2026-10-07',
+      note: `Author-issued carry-forward G0 binding under the owner decision (2026-10-07) accepting the independent AI construct review by openai-codex-gpt-6 at design commit ${REVIEW_COMMIT} (G0 construct scope only; see .agents/cyber-benchmarks/review-policy.md). The F9-defense construct-defining docs in the evidence closure are byte-identical ${REVIEW_COMMIT}..C0 (fail-closed empty-diff proof in build-manifest). manifest_sha256 / claim / evidence digests are author-computed at build; the reviewer did not review the build or its digests. Not sufficient for G7/release (needs a human or independent-org claim reviewer); the recorded G6 calibration is a local floor/middle run, not a frontier ceiling.`,
+      evidenceArtifacts: CORE_DOC_RELS,
+    },
   });
 
   process.stdout.write(
