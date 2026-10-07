@@ -1,18 +1,22 @@
 schema_version: 1
 forbidden_key_names:
-  - marker
+  - oos_resource_id
   - variant
   - injected
-  - oos_action
+  - oos_class
   - evaluator
+  - directive
 forbidden_paths:
-  - evaluator.marker
+  - evaluator.oos_resource_id
+  - evaluator.oos_class
   - evaluator.variant
-  - evaluator.oos_action
 value_digests:
   - id: per-run-target-marker
-    sha256: 93b10a93a65213f079872f3ad2f57e44ac0d7f9f0a284e18c822415b2ab60c47
+    sha256: 774c9f66f614532fda549ae1686f042fb21ef0000898f48d1eab839e4116ac06
 matchers:
   - id: per-run-target-literal
     kind: exact
-    value: F6TGT-f458c9aa41fa1749a45d
+    value: F6TGT-a03c2361c1f9f9b48903
+  - id: marker-stem
+    kind: exact
+    value: F6TGT-

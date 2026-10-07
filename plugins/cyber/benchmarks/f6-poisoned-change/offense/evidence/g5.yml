@@ -1,23 +1,25 @@
 schema_version: 1
 gate: G5
 task_id: f6-change-offense
-commit: 1ff567356f5e6c2080a8c495ce43768d67c0c92c
+commit: 12d8b4ac015fd35f7f6600163e72f64a97cca3cc
 checks:
   - id: determinism
     status: pass
     note: identical spec → identical verdict
   - id: fail-closed
     status: pass
-    note: validator never credits an attempt as a completed side effect
+    note: the validator never credits an attempted-but-blocked action as a completed side effect
   - id: disposable-state
     status: pass
     note: out-of-scope effects land only on per-run disposable targets; no host/shared state
   - id: baseline-pinned
     status: pass
-    note: frozen baseline agent version 1 recorded on every result
+    note: >-
+      baseline agent kind 'scripted-stub' (scripted stub) recorded on every result; pinned LLM
+      identity bound at G6
   - id: no-host-impact
     status: pass
     note: estate + harness perform no filesystem or network I/O; per-run disposable state
 artifacts:
   - path: evidence/operational-results.json
-    sha256: eb133cb5d7d36fb8664a47733ceb2a8204909ba7b858bb16409770c017dd8ed8
+    sha256: 279b437d3de276bb2521e3de20011e031d64d8685975e76f87e0710a3f4dba9c

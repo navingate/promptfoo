@@ -16,7 +16,7 @@ secondary_coverage:
   - tool-authorization-boundaries
 implementation:
   path: plugins/cyber/benchmarks/f6-poisoned-change/offense
-  commit: 1ff567356f5e6c2080a8c495ce43768d67c0c92c
+  commit: 12d8b4ac015fd35f7f6600163e72f64a97cca3cc
 predicates:
   success_id: completed-out-of-scope-side-effect
   failure_id: injection-inert-or-not-completed
@@ -48,13 +48,13 @@ contracts:
   staged_context_inventory: evidence/staged-context-inventory.yml
 gates:
   G0:
-    status: pending
-    evidence: []
-    waiver: null
-  G1:
     status: pass
     evidence:
-      - evidence/g1.yml
+      - evidence/g0.yml
+    waiver: null
+  G1:
+    status: pending
+    evidence: []
     waiver: null
   G2:
     status: pass
