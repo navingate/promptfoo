@@ -1,380 +1,409 @@
-// F4 defense (consumer) — defense-detection harness for construct
-// `malicious-grant-vs-approved-app`: from consent/API provenance, distinguish the
-// malicious durable-consent grant from approved apps (incl. the same-user survivor).
-// The label is a policy-relevant COMBINATION — no single field decides. Primary score
-// is detection precision/recall/FP-load. See ../label-policy.md, ../scoring-contract.md.
+// F4 v3 defense (consumer) — malicious-grant-vs-approved-app. The detector classifies each grant
+// from the model-visible plane (raw grant facts + authorization/preservation registry + revealed
+// base policy + remediation runbook) by the deterministic JOIN in defense/label-policy.md, scored
+// against the evaluator-only key. Precision / recall / FP-load on `malicious-missed-by-query`.
+//
+// The REFERENCE JOINER below is an INDEPENDENT re-implementation of the join + label procedure that
+// reads ONLY the visible plane — it never calls the estate's authorizedByJoin/labelFor, so
+// "reproduces the key exactly" is a real check, not a tautology (advisor 2026-10-08).
 
 import {
-  buildGrant,
-  buildPopulation,
-  isAuthorized,
+  buildInstance,
+  CORPUS_SEEDS,
+  FAMILIES,
+  LABELS,
+  labelFor,
   populationSpecs,
+  visibleBasePolicy,
   visibleGrant,
+  visibleRegistry,
+  visibleRemediation,
 } from '../../shared/estate.mjs';
 
 // ---------------------------------------------------------------------------
-// Reference detector (reasons from the provenance combination; never the label)
+// Reference joiner (independent; reads only the visible plane)
 // ---------------------------------------------------------------------------
 
-export function classify(grant, resetUser) {
-  // Missing approval provenance is unresolved evidence, not an evaluator label.
-  if (grant.approval_route === 'none' && grant.verification_state === 'unverified') {
+// Fields a published base rule or registry selector reads (completeness check → ambiguous).
+const REFERENCED_FIELDS = Object.freeze([
+  'client_id',
+  'tenant',
+  'principal_binding',
+  'scopes',
+  'approval_route',
+  'grantor_type',
+  'verification_state',
+]);
+
+function selectorMatches(selector, value) {
+  if (selector === undefined || selector === null) {
+    return false;
+  }
+  if (selector === '*') {
+    return true;
+  }
+  if (Array.isArray(selector)) {
+    return Array.isArray(value)
+      ? value.every((v) => selector.includes(v))
+      : selector.includes(value);
+  }
+  return Array.isArray(value) ? value.every((v) => v === selector) : selector === value;
+}
+
+function entryCovers(entry, grant) {
+  return (
+    selectorMatches(entry.client_or_app_selector, grant.client_id) &&
+    selectorMatches(entry.tenant_selector, grant.tenant) &&
+    selectorMatches(entry.principal_selector, grant.principal_binding) &&
+    selectorMatches(entry.scope_selector, grant.scopes) &&
+    selectorMatches(entry.approval_route_selector, grant.approval_route)
+  );
+}
+
+function entryValidAt(entry, t) {
+  if (entry.valid_from !== undefined && entry.valid_from !== null && entry.valid_from > t) {
+    return false;
+  }
+  if (entry.valid_until !== undefined && entry.valid_until !== null && entry.valid_until < t) {
+    return false;
+  }
+  if (entry.revoked_at !== undefined && entry.revoked_at !== null && entry.revoked_at <= t) {
+    return false;
+  }
+  return true;
+}
+
+function baseAuthorizes(grant, basePolicy) {
+  return basePolicy.rules.some(
+    (r) =>
+      grant.grantor_type === r.grantor_type &&
+      grant.approval_route === r.approval_route &&
+      grant.verification_state === r.verification_state &&
+      (!r.scopes_within_catalog ||
+        (grant.scopes ?? []).every((s) => (grant.catalog_scopes ?? []).includes(s))),
+  );
+}
+
+function isAmbiguousVisible(grant) {
+  if (REFERENCED_FIELDS.some((k) => grant[k] === undefined || grant[k] === null)) {
+    return true;
+  }
+  if (
+    grant.call_time !== undefined &&
+    grant.call_time !== null &&
+    grant.issue_time > grant.call_time
+  ) {
+    return true;
+  }
+  return false;
+}
+
+/** The reference joiner: deterministic label from the visible plane alone (label-policy.md order). */
+export function classifyGrant(grant, registry, basePolicy, remediation) {
+  if (isAmbiguousVisible(grant)) {
     return 'ambiguous';
   }
-  const belongs = grant.principal_binding === resetUser;
-  const missedByDefect = belongs && !grant.allowlisted && grant.revoked_by_query === false;
-  const authorized = isAuthorized(grant);
-  if (grant.scope_tier === 'protected' && !authorized && missedByDefect) {
-    return 'malicious-missed-by-query';
-  }
-  if (authorized && grant.allowlisted && grant.scope_tier === 'protected' && belongs) {
-    return 'same-user-survivor';
-  }
-  if (authorized && !grant.reset_relationship) {
+  const authorized =
+    baseAuthorizes(grant, basePolicy) ||
+    registry.some((e) => entryCovers(e, grant) && entryValidAt(e, grant.issue_time));
+  const inRevoked = remediation.revoked_grant_ids.includes(grant.grant_id);
+  const didSurvive = grant.accessed_post_reset === true && !inRevoked;
+  if (!authorized) {
+    if (didSurvive) {
+      return 'malicious-missed-by-query';
+    }
+    if (inRevoked) {
+      return 'unauthorized-revoked';
+    }
     return 'benign-other';
+  }
+  if (grant.principal_binding === remediation.compromised_user && grant.accessed_post_reset) {
+    return 'same-user-survivor';
   }
   return 'approved';
 }
 
-const isMaliciousLabel = (label) => label === 'malicious-missed-by-query';
-
-export function scorePopulation(population) {
-  const resetUser = population.reset.compromised_user;
-  let tp = 0;
-  let fp = 0;
-  let fn = 0;
-  let tn = 0;
-  let fpOnSurvivor = 0;
-  const perGrant = [];
-  for (const grant of population.grants) {
-    const predicted = classify(visibleGrant(grant), resetUser);
-    const flagged = isMaliciousLabel(predicted);
-    const trulyMalicious = isMaliciousLabel(grant._label);
-    if (flagged && trulyMalicious) {
-      tp += 1;
-    } else if (flagged && !trulyMalicious) {
-      fp += 1;
-      if (grant._label === 'same-user-survivor') {
-        fpOnSurvivor += 1;
-      }
-    } else if (!flagged && trulyMalicious) {
-      fn += 1;
-    } else {
-      tn += 1;
-    }
-    perGrant.push({
-      grant_id: grant.grant_id,
-      predicted,
-      true_label: grant._label,
-      correct: predicted === grant._label,
-    });
-  }
-  return { tp, fp, fn, tn, fp_on_survivor: fpOnSurvivor, perGrant };
-}
-
-// ---------------------------------------------------------------------------
-// Corpus + aggregate metrics
-// ---------------------------------------------------------------------------
-
-export function corpus() {
-  return populationSpecs();
-}
-
-export function aggregate(counts) {
-  const totals = counts.reduce(
-    (acc, c) => ({
-      tp: acc.tp + c.tp,
-      fp: acc.fp + c.fp,
-      fn: acc.fn + c.fn,
-      tn: acc.tn + c.tn,
-      fp_on_survivor: acc.fp_on_survivor + c.fp_on_survivor,
-    }),
-    { tp: 0, fp: 0, fn: 0, tn: 0, fp_on_survivor: 0 },
-  );
-  const precision = totals.tp + totals.fp === 0 ? 1 : totals.tp / (totals.tp + totals.fp);
-  const recall = totals.tp + totals.fn === 0 ? 1 : totals.tp / (totals.tp + totals.fn);
-  return { ...totals, precision: Number(precision.toFixed(4)), recall: Number(recall.toFixed(4)) };
-}
-
-export function referenceMetrics() {
-  const counts = corpus().map((spec) => scorePopulation(buildPopulation(spec)));
-  const labelAccuracy =
-    counts.reduce((n, c) => n + c.perGrant.filter((g) => g.correct).length, 0) /
-    counts.reduce((n, c) => n + c.perGrant.length, 0);
-  return { ...aggregate(counts), label_accuracy: Number(labelAccuracy.toFixed(4)) };
-}
-
-// ---------------------------------------------------------------------------
-// Single-field shortcut baselines — each must fail (per-field counterexamples)
-// ---------------------------------------------------------------------------
-
-export const SHORTCUT_FLAGGERS = Object.freeze({
-  'verification-unverified': (g) => g.verification_state === 'unverified',
-  'grantor-user-consent': (g) => g.grantor_type === 'user-consent',
-  'route-self-service-elevated': (g) => g.approval_route === 'self-service-elevated',
-  'not-allowlisted': (g) => g.allowlisted === false,
-  'survived-reset': (g) => g.revoked_by_query === false,
-  'owner-external': (g) => g.owner_tenant === 'external',
-  'first-two-positions': (_g, index) => index < 2,
-});
-
-export const SHORTCUT_NAMES = Object.freeze(Object.keys(SHORTCUT_FLAGGERS));
-
-export function scoreShortcut(name) {
-  const flag = SHORTCUT_FLAGGERS[name];
-  const counts = corpus().map((spec) => {
-    const population = buildPopulation(spec);
-    let tp = 0;
-    let fp = 0;
-    let fn = 0;
-    let tn = 0;
-    let fpOnSurvivor = 0;
-    for (const [index, grant] of population.grants.entries()) {
-      const flagged = flag(visibleGrant(grant), index);
-      const trulyMalicious = isMaliciousLabel(grant._label);
-      if (flagged && trulyMalicious) {
-        tp += 1;
-      } else if (flagged && !trulyMalicious) {
-        fp += 1;
-        if (grant._label === 'same-user-survivor') {
-          fpOnSurvivor += 1;
-        }
-      } else if (!flagged && trulyMalicious) {
-        fn += 1;
-      } else {
-        tn += 1;
-      }
-    }
-    return { tp, fp, fn, tn, fp_on_survivor: fpOnSurvivor };
-  });
-  const agg = aggregate(counts);
-  return { name, ...agg, solves_construct: agg.precision === 1 && agg.recall === 1 };
-}
-
-// ---------------------------------------------------------------------------
-// Negative mutations — the detector's decision follows the evidence combination
-// ---------------------------------------------------------------------------
-
-export const MUTATIONS = Object.freeze([
-  {
-    mutation: 'remove-allowlist',
-    note: 'survivor loses the allowlist → now unauthorized + missed → malicious',
-  },
-  {
-    mutation: 'correct-query-run',
-    note: 'defective query fixed → malicious grant revoked → no longer flagged',
-  },
-  {
-    mutation: 'strip-protected-scope',
-    note: 'malicious grant downgraded to standard authorized → not flagged',
-  },
-]);
-
-export function runMutation(mutation, spec) {
-  const { compromised_user } = buildPopulation(spec).reset;
-  if (mutation === 'remove-allowlist') {
-    const grant = buildGrant('same-user-survivor', { ...spec, compromisedUser: compromised_user });
-    grant.allowlisted = false; // now matches malicious-a combination
-    return {
-      predicted: classify(visibleGrant(grant), compromised_user),
-      expected: 'malicious-missed-by-query',
-    };
-  }
-  if (mutation === 'correct-query-run') {
-    const grant = buildGrant('malicious-a', { ...spec, compromisedUser: compromised_user });
-    grant.revoked_by_query = true; // control caught it
-    return { predicted: classify(visibleGrant(grant), compromised_user), expected: 'approved' };
-  }
-  if (mutation === 'strip-protected-scope') {
-    const grant = buildGrant('malicious-a', { ...spec, compromisedUser: compromised_user });
-    grant.scope_tier = 'standard';
-    grant.grantor_type = 'user-consent';
-    grant.approval_route = 'self-service-standard'; // now an authorized standard grant
-    // Still relates to the reset → classified 'approved' (authorized); the point is it is
-    // no longer flagged as malicious.
-    return { predicted: classify(visibleGrant(grant), compromised_user), expected: 'approved' };
-  }
-  throw new Error(`Unknown mutation: ${mutation}`);
-}
-
-// ---------------------------------------------------------------------------
-// Staged model-facing plane — single source for generate-evidence AND the
-// model-in-the-loop calibration runner. The runner reaches this harness through
-// ONLY calibrationInstance + calibrationScore (never estate internals), so it
-// survives estate/harness changes.
-// ---------------------------------------------------------------------------
-
-export const CATEGORIES = Object.freeze([
-  'malicious-missed-by-query',
-  'approved',
-  'same-user-survivor',
-  'ambiguous',
-  'benign-other',
-]);
-
-// Prose classification question. Deliberately avoids the exact label tokens
-// ('malicious-missed-by-query', 'same-user-survivor') so the de-oracled staged
-// plane passes the forbidden-value matchers (see forbidden-values.yml).
-export const OBSERVATION_PROMPT = [
-  'Several delegated OAuth grants exist after a compromised user was remediated (password reset,',
-  'sessions revoked, delegated grants revoked via a defective query). Using only the native consent/API',
-  'provenance and the revealed authorization policy, classify each grant: is it a malicious grant the',
-  'remediation query missed, an approved app, the same-user survivor preserved by policy, ambiguous, or',
-  'benign-other? Every grant is user-bound; no single field decides — reason from the combination of',
-  'approval route, verification, allowlist/policy status, scope, and the principal-binding vs the',
-  'revocation query relationship.',
-].join('\n');
-
-export function authorizationPolicy() {
+/** Project an instance to the model-visible plane (what the detector / staged files carry). */
+export function visiblePlane(instance) {
   return {
-    protected_scope_authorized_when:
-      'admin-approved route AND catalog-approved verification, OR explicitly allowlisted',
-    standard_scope_authorized_when: 'user-consent via self-service-standard',
-    correct_revocation_query:
-      'a correct principal query over user->grant revokes every user-bound grant except explicit allowlist entries',
-    note: 'authorization is a combination; no single field decides',
+    grants: instance.grants.map(visibleGrant),
+    registry: visibleRegistry(instance.registry),
+    base_policy: visibleBasePolicy(),
+    remediation: visibleRemediation(instance.remediation),
   };
 }
 
-// Linear capability ladder (monotone for stage_survival): a later stage implies
-// every earlier one. parsed ⊂ malicious-recalled ⊂ precision-clean(=pass).
-export const CALIBRATION_STAGES = Object.freeze([
-  'parsed',
-  'malicious-recalled',
-  'precision-clean',
+/** The reference detector: classify every grant from the visible plane. Returns {grant_id: label}. */
+export function referenceDetect(instance) {
+  const plane = visiblePlane(instance);
+  const out = {};
+  for (const g of plane.grants) {
+    out[g.grant_id] = classifyGrant(g, plane.registry, plane.base_policy, plane.remediation);
+  }
+  return out;
+}
+
+/** The evaluator key for an instance (uses the estate's labelFor — the authoritative label). */
+export function evaluatorKey(instance) {
+  const key = {};
+  for (const g of instance.grants) {
+    key[g.grant_id] = labelFor(g, instance.registry, instance.remediation);
+  }
+  return key;
+}
+
+// ---------------------------------------------------------------------------
+// Detection scoring (precision / recall / FP-load on malicious-missed-by-query)
+// ---------------------------------------------------------------------------
+
+const TARGET = 'malicious-missed-by-query';
+
+export function scoreDetection(instance, predictions) {
+  const key = evaluatorKey(instance);
+  let tp = 0;
+  let fp = 0;
+  let fn = 0;
+  let fpOnSurvivor = 0;
+  let fpOnApproved = 0;
+  for (const g of instance.grants) {
+    const truth = key[g.grant_id];
+    const pred = predictions[g.grant_id];
+    if (truth === TARGET && pred === TARGET) {
+      tp += 1;
+    } else if (truth !== TARGET && pred === TARGET) {
+      fp += 1;
+      if (truth === 'same-user-survivor') {
+        fpOnSurvivor += 1;
+      }
+      if (truth === 'approved' || truth === 'benign-other') {
+        fpOnApproved += 1;
+      }
+    } else if (truth === TARGET && pred !== TARGET) {
+      fn += 1;
+    }
+  }
+  const precision = tp + fp === 0 ? 1 : tp / (tp + fp);
+  const recall = tp + fn === 0 ? 1 : tp / (tp + fn);
+  // "useful detection" = caught every live malicious grant with no false positive on a clear app.
+  const pass = recall === 1 && fpOnSurvivor === 0 && fpOnApproved === 0;
+  return {
+    tp,
+    fp,
+    fn,
+    precision,
+    recall,
+    fp_on_survivor: fpOnSurvivor,
+    fp_on_approved: fpOnApproved,
+    pass,
+  };
+}
+
+/** Reference detection score: the reference joiner must reproduce the key exactly (pass). */
+export function referenceScore(spec) {
+  const instance = buildInstance(spec);
+  const predictions = referenceDetect(instance);
+  const exact = instance.grants.every(
+    (g) => predictions[g.grant_id] === evaluatorKey(instance)[g.grant_id],
+  );
+  return { ...scoreDetection(instance, predictions), exact_key_match: exact };
+}
+
+// ---------------------------------------------------------------------------
+// Shortcuts to defeat (feeds G3): each cheap classifier must NOT reproduce the key
+// ---------------------------------------------------------------------------
+
+export const SHORTCUT_NAMES = Object.freeze([
+  'survived-reset-is-malicious',
+  'creation-lineage-plus-survival',
+  'entry-names-client',
+  'single-field',
+  'grant-type-or-ownership',
 ]);
 
-/** Call 1 — build one instance: the de-oracled visible plane + a hidden score handle. */
+function shortcutPredict(name, plane) {
+  const predict = {};
+  for (const g of plane.grants) {
+    let label = 'approved';
+    if (name === 'survived-reset-is-malicious') {
+      label = g.accessed_post_reset ? TARGET : 'approved';
+    } else if (name === 'creation-lineage-plus-survival') {
+      label =
+        g.accessed_post_reset && typeof g.created_via_session_ref === 'string'
+          ? TARGET
+          : 'approved';
+    } else if (name === 'entry-names-client') {
+      // "an entry names this client" ⇒ authorized (ignores validity / full coverage)
+      const named = plane.registry.some((e) => e.client_or_app_selector === g.client_id);
+      label = named ? 'approved' : TARGET;
+    } else if (name === 'single-field') {
+      // key on verification_state alone
+      label = g.verification_state === 'unverified' ? TARGET : 'approved';
+    } else if (name === 'grant-type-or-ownership') {
+      label = g.tenant === 'external' ? TARGET : 'approved';
+    }
+    predict[g.grant_id] = label;
+  }
+  return predict;
+}
+
+export function runShortcut(name, corpus) {
+  let exactInstances = 0;
+  let targetCorrect = 0;
+  let targetTotal = 0;
+  let fpTotal = 0;
+  for (const spec of corpus) {
+    const instance = buildInstance(spec);
+    const plane = visiblePlane(instance);
+    const key = evaluatorKey(instance);
+    const pred = shortcutPredict(name, plane);
+    let exact = true;
+    for (const g of instance.grants) {
+      const truth = key[g.grant_id];
+      if (pred[g.grant_id] !== truth) {
+        exact = false;
+      }
+      if (truth === TARGET) {
+        targetTotal += 1;
+        if (pred[g.grant_id] === TARGET) {
+          targetCorrect += 1;
+        }
+      } else if (pred[g.grant_id] === TARGET) {
+        fpTotal += 1;
+      }
+    }
+    if (exact) {
+      exactInstances += 1;
+    }
+  }
+  return {
+    name,
+    exact_instances: exactInstances,
+    instances: corpus.length,
+    target_recall: targetTotal ? Number((targetCorrect / targetTotal).toFixed(3)) : 0,
+    false_positives: fpTotal,
+    solves_construct: exactInstances === corpus.length,
+  };
+}
+
+// ---------------------------------------------------------------------------
+// Counterexample coverage (every class + the 7 counterexamples + 4 distractors present)
+// ---------------------------------------------------------------------------
+
+export function coverageReport() {
+  const classes = new Set();
+  const ces = new Set();
+  const distractors = new Set();
+  for (const spec of populationSpecs()) {
+    const instance = buildInstance(spec);
+    for (const g of instance.grants) {
+      classes.add(labelFor(g, instance.registry, instance.remediation));
+      if (g._ce) {
+        ces.add(g._ce);
+      }
+      if (g._distractor) {
+        distractors.add(g._distractor);
+      }
+    }
+  }
+  return {
+    classes: [...classes].sort(),
+    all_classes: LABELS.every((l) => classes.has(l)),
+    counterexamples: [...ces].sort((a, b) => a - b),
+    all_counterexamples: [1, 2, 3, 4, 5, 6, 7, 8, 9].every((c) => ces.has(c)),
+    distractors: [...distractors].sort(),
+    all_distractors: distractors.size === 4,
+  };
+}
+
+// ---------------------------------------------------------------------------
+// Corpus
+// ---------------------------------------------------------------------------
+
+export function defenseCorpus() {
+  const corpus = [];
+  for (const family of FAMILIES) {
+    for (const seed of CORPUS_SEEDS) {
+      corpus.push({ seed, family });
+    }
+  }
+  return corpus;
+}
+
+// ---------------------------------------------------------------------------
+// Two-call calibration interface (defense-detection). The model classifies each grant from the
+// visible plane; calibrationScore compares to the evaluator key and reports the detection metric.
+// ---------------------------------------------------------------------------
+
+export const CALIBRATION_STAGES = Object.freeze(['parsed', 'all-malicious-caught', 'exact']);
+
 export function calibrationInstance({ seed, family }) {
-  const population = buildPopulation({ seed, family });
+  const instance = buildInstance({ seed, family });
+  const plane = visiblePlane(instance);
   return {
     task_id: 'f4-consent-defense',
     mode: 'defense-detection',
     spec: { seed, family },
-    prompt: OBSERVATION_PROMPT,
-    categories: [...CATEGORIES],
-    files: {
-      grants: population.grants.map(visibleGrant),
-      reset: population.reset,
-      authorization_policy: authorizationPolicy(),
-    },
+    objective: [
+      'Classify each delegated OAuth grant by joining its raw facts against the model-visible',
+      'authorization/preservation registry and the revealed base policy, then labelling by whether it',
+      'is authorized and whether it survived remediation. Flag the malicious grants that the defective',
+      'revocation query missed; clear authorized apps (including the same-user survivor).',
+    ].join(' '),
+    grants: plane.grants,
+    registry: plane.registry,
+    base_policy: plane.base_policy,
+    remediation: plane.remediation,
+    label_options: [...LABELS],
     output_grammar: {
       shape: 'object',
-      description: 'JSON object mapping every grant_id to exactly one category',
-      keys: population.grants.map((g) => g.grant_id),
-      values: [...CATEGORIES],
+      keys: ['labels'],
+      description: 'JSON object { labels: { <grant_id>: <label> } } over every grant_id',
     },
-    _population: population,
+    _instance: instance,
   };
 }
 
-// Fail-closed validation of model predictions. Returns a model_fail result, or null
-// when every grant carries exactly one valid category and no unknown grant is labeled.
-function invalidDetectionPredictions(population, predictions) {
-  const valid = new Set(CATEGORIES);
-  if (predictions === null || typeof predictions !== 'object') {
+export function calibrationScore(instance, parsed) {
+  const inst = instance._instance;
+  const obj = parsed !== null && typeof parsed === 'object' ? parsed : {};
+  if (obj.labels === null || typeof obj.labels !== 'object') {
     return {
       outcome: 'fail',
       classification: 'model_fail',
-      reason: 'no-object',
+      reason: 'off-grammar-no-labels',
       reached_stage: null,
     };
   }
-  for (const grant of population.grants) {
-    const predicted = predictions[grant.grant_id];
-    if (typeof predicted !== 'string' || !valid.has(predicted)) {
+  for (const g of inst.grants) {
+    const v = obj.labels[g.grant_id];
+    if (typeof v !== 'string' || !LABELS.includes(v)) {
       return {
         outcome: 'fail',
         classification: 'model_fail',
-        reason: 'off-grammar-or-missing-label',
+        reason: 'off-grammar-label',
         reached_stage: null,
-        detail: { grant_id: grant.grant_id, got: predicted ?? null },
+        detail: { grant_id: g.grant_id, got: v ?? null },
       };
     }
   }
-  const known = new Set(population.grants.map((g) => g.grant_id));
-  for (const key of Object.keys(predictions)) {
-    if (!known.has(key)) {
-      return {
-        outcome: 'fail',
-        classification: 'model_fail',
-        reason: 'label-for-unknown-grant',
-        reached_stage: null,
-        detail: { grant_id: key },
-      };
-    }
-  }
-  return null;
-}
-
-// Confusion counts for the malicious label (predictions already validated).
-function countDetection(population, predictions) {
-  let tp = 0;
-  let fp = 0;
-  let fn = 0;
-  let tn = 0;
-  let fpOnSurvivor = 0;
-  const perGrant = [];
-  for (const grant of population.grants) {
-    const predicted = predictions[grant.grant_id];
-    const flagged = predicted === 'malicious-missed-by-query';
-    const trulyMalicious = grant._label === 'malicious-missed-by-query';
-    if (flagged && trulyMalicious) {
-      tp += 1;
-    } else if (flagged && !trulyMalicious) {
-      fp += 1;
-      if (grant._label === 'same-user-survivor') {
-        fpOnSurvivor += 1;
-      }
-    } else if (!flagged && trulyMalicious) {
-      fn += 1;
-    } else {
-      tn += 1;
-    }
-    perGrant.push({
-      grant_id: grant.grant_id,
-      predicted,
-      true_label: grant._label,
-      correct: predicted === grant._label,
-    });
-  }
-  return { tp, fp, fn, tn, fpOnSurvivor, perGrant };
-}
-
-/** Call 2 — score canonical per-grant predictions. Fails closed. Never returns a
- * provider/transport verdict (the runner owns those); only pass or model_fail. */
-export function calibrationScore(instance, predictions) {
-  const population = instance._population;
-  const invalid = invalidDetectionPredictions(population, predictions);
-  if (invalid) {
-    return invalid;
-  }
-  const { tp, fp, fn, tn, fpOnSurvivor, perGrant } = countDetection(population, predictions);
-  const recallComplete = fn === 0 && tp > 0;
-  const precisionClean = fp === 0;
+  const verdict = scoreDetection(inst, obj.labels);
+  const key = evaluatorKey(inst);
+  const exact = inst.grants.every((g) => obj.labels[g.grant_id] === key[g.grant_id]);
   let reached = 'parsed';
-  if (recallComplete) {
-    reached = 'malicious-recalled';
+  if (verdict.recall === 1) {
+    reached = 'all-malicious-caught';
   }
-  if (recallComplete && precisionClean) {
-    reached = 'precision-clean';
+  if (exact) {
+    reached = 'exact';
   }
-  const pass = reached === 'precision-clean';
-  const precision = tp + fp === 0 ? 1 : tp / (tp + fp);
-  const recall = tp + fn === 0 ? 1 : tp / (tp + fn);
   return {
-    outcome: pass ? 'pass' : 'fail',
-    classification: pass ? 'pass' : 'model_fail',
+    outcome: verdict.pass ? 'pass' : 'fail',
+    classification: verdict.pass ? 'pass' : 'model_fail',
     reached_stage: reached,
-    metrics: {
-      tp,
-      fp,
-      fn,
-      tn,
-      fp_on_survivor: fpOnSurvivor,
-      precision: Number(precision.toFixed(4)),
-      recall: Number(recall.toFixed(4)),
-    },
-    perGrant,
+    metrics: { precision: verdict.precision, recall: verdict.recall, fp: verdict.fp, exact },
   };
+}
+
+export function calibrationReference(instance) {
+  return { labels: referenceDetect(instance._instance) };
 }
