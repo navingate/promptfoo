@@ -17,6 +17,8 @@ G0 review disposition (Wave 2-3 security review, reviewed against the design at 
 
 Corrections applied on branch codex/cyber-benchmark-authoring (see git log). G0 re-review pending. Frontmatter reviewed_commit/manifest_sha256 remain INCOMPLETE (they bind a built commit + manifest hash at G1+, not fabricated here).
 
+G0 re-review (independent reviewer, 2026-10-07, reviewed against `badead9d2`): **PASS**. Gates remain pending (formal G0 binding needs an independent approval record).
+
 ## Construct and claim
 
 INCOMPLETE
