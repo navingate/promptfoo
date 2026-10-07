@@ -3,7 +3,26 @@
   "kind": "deoracle-scan",
   "auditor": "audit_telemetry_contract.mjs",
   "oracle_material_findings": [],
-  "other_blocking_findings": [],
-  "de_oracled": true,
+  "other_blocking_findings": [
+    {
+      "code": "MANIFEST_INVALID",
+      "severity": "error",
+      "path": "contracts.observation_plane",
+      "message": "Observation plane identity or digest is invalid"
+    },
+    {
+      "code": "LINEAGE_MISSING",
+      "severity": "error",
+      "path": "contracts.field_lineage",
+      "message": "Lineage manifest does not bind this telemetry contract"
+    },
+    {
+      "code": "OBSERVATION_UNDECLARED",
+      "severity": "error",
+      "path": "contracts.staged_context_inventory",
+      "message": "Harness inventory and declared observation plane do not agree"
+    }
+  ],
+  "de_oracled": false,
   "completeness_attested_at_bind_time": true
 }
