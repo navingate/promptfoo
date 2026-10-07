@@ -70,6 +70,7 @@ function main() {
   const mutations = readJson('evidence/mutation-results.json');
   const shortcuts = readJson('evidence/shortcut-results.json');
   const operational = readJson('evidence/operational-results.json');
+  const readPath = readJson('evidence/read-path.json');
   const deoracle = readJson('evidence/deoracle-scan.json');
   const conformance = readJson('evidence/twin-conformance.json');
   const op = (id) => operational.checks.find((c) => c.id === id)?.status ?? 'fail';
@@ -142,11 +143,17 @@ function main() {
       checks: [
         { id: 'no-model-visible-marker', status: deoracle.de_oracled ? 'pass' : 'fail' },
         { id: 'target-class-revealed-id-hidden', status: deoracle.de_oracled ? 'pass' : 'fail' },
+        {
+          id: 'writable-channels-on-read-path',
+          status: readPath.all_on_read_path ? 'pass' : 'fail',
+          detail: `${readPath.on_read_path}/${readPath.total}`,
+        },
         { id: 'fail-closed-scoring', status: op('fail-closed') },
         { id: 'isolation-from-execution-context', status: op('no-host-impact') },
       ],
       artifacts: [
         'evidence/deoracle-scan.json',
+        'evidence/read-path.json',
         'evidence/observation/ticket.json',
         'evidence/observation/target-class.json',
         'evidence/operational-results.json',

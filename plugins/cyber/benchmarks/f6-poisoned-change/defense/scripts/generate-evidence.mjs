@@ -26,6 +26,7 @@ import {
 import {
   buildCase,
   CASE_VARIANTS,
+  CORPUS_CONTRACT_ID,
   ledgerToEvents,
   PAIR_CONTRACT_VERSION,
   runStubBaseline,
@@ -196,6 +197,7 @@ function generateConformance(capture) {
     producer_task_id: PRODUCER_ID,
     pair_contract_version: PAIR_CONTRACT_VERSION,
     telemetry_contract_id: TELEMETRY_CONTRACT_ID,
+    corpus_contract_id: CORPUS_CONTRACT_ID,
     capture_sha256: sha256Text(capture.raw),
     total_rows: capture.rows.length,
     conformant_rows: conformant,

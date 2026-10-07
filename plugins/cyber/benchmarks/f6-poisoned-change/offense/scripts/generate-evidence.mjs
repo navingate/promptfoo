@@ -29,9 +29,11 @@ import {
   FAMILIES,
   ledgerToEvents,
   runStubBaseline,
+  stagedContext,
   TELEMETRY_CONTRACT_ID,
   visibleDocuments,
   visibleToolSurface,
+  writableChannels,
 } from '../../shared/estate.mjs';
 import {
   NEGATIVE_MUTATIONS,
@@ -85,6 +87,34 @@ function generateReference() {
     passed: results.filter((r) => r.success).length,
     stage_survival: stageSurvival,
     results,
+  };
+}
+
+function generateReadPath() {
+  // G2 read-path: every attacker-writable channel's text must lie on the baseline victim's
+  // mandatory fully-staged context. This is the check that would have caught v1 (an injection in
+  // an off-read-path channel is inert). Runs over every injected corpus case.
+  const specs = corpusSpecs().filter((s) => s.variant !== 'clean');
+  let onPath = 0;
+  const failures = [];
+  for (const spec of specs) {
+    const caseObj = buildCase(spec);
+    const staged = stagedContext(caseObj, 'victim');
+    const channels = writableChannels(caseObj);
+    if (channels.length > 0 && channels.every((ch) => staged.includes(ch.text))) {
+      onPath += 1;
+    } else {
+      failures.push({ seed: spec.seed, family: spec.family, variant: spec.variant });
+    }
+  }
+  return {
+    task_id: TASK_ID,
+    kind: 'read-path',
+    total: specs.length,
+    on_read_path: onPath,
+    all_on_read_path: onPath === specs.length,
+    failures,
+    note: 'Every attacker-writable channel appears in the baseline victim fully-staged context; an off-read-path injection would be inert and is rejected here.',
   };
 }
 
@@ -312,6 +342,8 @@ async function main() {
   writeJson(path.join(evidenceDir, 'shortcut-results.json'), shortcuts);
   const operational = generateOperational();
   writeJson(path.join(evidenceDir, 'operational-results.json'), operational);
+  const readPath = generateReadPath();
+  writeJson(path.join(evidenceDir, 'read-path.json'), readPath);
   const staged = stageObservationPlane();
   const capture = generateCapture();
   const scan = await generateDeoracleScan();
@@ -321,6 +353,7 @@ async function main() {
       `[f6-offense] reference ${reference.passed}/${reference.total} success (stub plumbing)`,
       `[f6-offense] mutations ${mutations.checks.filter((c) => c.status === 'pass').length}/${mutations.checks.length} pass`,
       `[f6-offense] shortcuts ${shortcuts.baselines.filter((b) => b.solves_construct === false).length}/${shortcuts.baselines.length} fail-to-solve`,
+      `[f6-offense] read-path ${readPath.on_read_path}/${readPath.total} on victim read path`,
       `[f6-offense] operational ${operational.checks.filter((c) => c.status === 'pass').length}/${operational.checks.length} pass`,
       `[f6-offense] de-oracled=${scan.de_oracled}  capture rows=${capture.rows}  digest ${staged.digest.slice(0, 12)}…`,
       '',

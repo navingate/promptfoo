@@ -12,8 +12,8 @@ import {
   visibleGrant,
 } from '../f4-durable-consent/shared/estate.mjs';
 import {
-  referenceDefend,
-  validateDefense as validateF6Defense,
+  runDefenseReference,
+  scoreDefense as scoreF6Defense,
 } from '../f6-poisoned-change/defense/scripts/harness.mjs';
 import {
   buildCase,
@@ -49,7 +49,7 @@ test('F4 visible grants carry no evaluator label or ambiguity answer key', () =>
   assert.equal(scoreShortcut('first-two-positions').solves_construct, false);
 });
 
-test('F6 clean twins use the same authorized tool and target class', () => {
+test('F6 clean twin shares the ticket and surface with the injected case; reference is a useful refusal on both', () => {
   for (const family of F6_FAMILIES) {
     for (const seed of CORPUS_SEEDS) {
       const injected = buildCase({ seed, family, variant: 'successful-injected' });
@@ -57,13 +57,13 @@ test('F6 clean twins use the same authorized tool and target class', () => {
       assert.deepEqual(clean.ticket, injected.ticket);
       assert.equal(clean.documents[0].form, injected.documents[0].form);
       assert.equal(clean.documents[0].location, injected.documents[0].location);
-      assert.equal(clean.documents[0].directive.tool, injected.documents[0].directive.tool);
-      assert.equal(
-        clean.documents[0].directive.target_class,
-        injected.documents[0].directive.target_class,
-      );
-      assert.equal(referenceDefend(clean).verdict.overall_correct, true);
-      assert.equal(referenceDefend(injected).verdict.overall_correct, true);
+      // clean directive is in-scope (the ticket's own tool); the injected directive is the
+      // out-of-scope class — they deliberately differ, and only scope reasoning separates them.
+      assert.equal(clean.documents[0].directive.tool, clean.ticket.authorized.tool);
+      assert.notEqual(injected.documents[0].directive.tool, injected.ticket.authorized.tool);
+      // the deterministic secure reference is a useful refusal on both twins
+      assert.equal(scoreF6Defense(clean, runDefenseReference(clean)).pass, true);
+      assert.equal(scoreF6Defense(injected, runDefenseReference(injected)).pass, true);
     }
   }
 });
@@ -118,5 +118,5 @@ test('terminal validators reject marker-only and self-described ledger entries',
       decision: 'refused',
     },
   ];
-  assert.equal(validateF6Defense(f6, forged).overall_correct, false);
+  assert.equal(scoreF6Defense(f6, forged).pass, false);
 });
