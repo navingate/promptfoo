@@ -25,16 +25,10 @@ import {
   CORPUS_CONTRACT_ID,
   PAIR_CONTRACT_VERSION,
   TELEMETRY_CONTRACT_ID,
-  visibleBasePolicy,
-  visibleGrant,
-  visibleRegistry,
-  visibleRemediation,
 } from '../../shared/estate.mjs';
 import {
   coverageReport,
   defenseCorpus,
-  evaluatorKey,
-  referenceDetect,
   referenceScore,
   runShortcut,
   SHORTCUT_NAMES,
