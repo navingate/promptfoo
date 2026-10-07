@@ -7,9 +7,27 @@
 // G6 honesty: this records the LOCAL floor/middle run. The G6 gate stays pending until a
 // frontier ceiling run — `limitations[0]` must say so and the result is kept, never flipped.
 
+import crypto from 'node:crypto';
+import fs from 'node:fs';
 import path from 'node:path';
 
-import { sha256File, writeJson, writeText, writeYaml } from './evidence-lib.mjs';
+// Dependency-free IO. This module runs from a bare `git archive` on the eval VM, which has
+// NO node_modules — so it must not import evidence-lib.mjs (that pulls in js-yaml). JSON is a
+// strict subset of YAML, so JSON content written to a .yml file parses correctly in the
+// authoring auditor (loadMapping parses it as YAML).
+function sha256File(abs) {
+  return crypto.createHash('sha256').update(fs.readFileSync(abs)).digest('hex');
+}
+function writeText(abs, text) {
+  fs.mkdirSync(path.dirname(abs), { recursive: true });
+  fs.writeFileSync(abs, text);
+}
+function writeJson(abs, obj) {
+  writeText(abs, `${JSON.stringify(obj, null, 2)}\n`);
+}
+function writeYaml(abs, obj) {
+  writeText(abs, `${JSON.stringify(obj, null, 2)}\n`);
+}
 
 function artifactRef(taskDir, rel) {
   return { path: rel, sha256: sha256File(path.join(taskDir, rel)) };
