@@ -1,6 +1,6 @@
 # Re-review packet — F4/F6 reopen + Wave 2–3 round-1 corrections
 
-Status: **re-review COMPLETE (2026-10-07) — all items PASS.** F4 defense's conditional pass was resolved by the reviewer's **Option 2** (authorization-registry join), applied on-branch (`@ 7dedd8de3`). Formal G0 gate-binding still needs independent approval records (see "Still pending"); gates stay pending and the audit stays at the designed 10/task.
+Status: **re-review COMPLETE (2026-10-07).** The reviewer **passed** every Wave 2–3 item, F6, F4 offense, and contracts, and **selected Option 2** for the F4-defense decidability question (a conditional pass). The Option-2 **text was then authored and applied on-branch** (`@ 7dedd8de3` + `ab6ca0bc1`) and has **not yet been re-seen by the reviewer** — it needs a short confirmation read of `f4-durable-consent/defense/label-policy.md`, not another round. Formal G0 gate-binding still needs independent approval records (see "Still pending"); gates stay pending; audit stays at the designed 10/task.
 
 This packet exists so you can re-review two things without reconstructing context:
 
@@ -35,21 +35,22 @@ git switch --detach fork/codex/cyber-benchmark-authoring   # or review on GitHub
 
 Substantive commits to diff:
 
-| Commit      | What it is                                                                      |
-| ----------- | ------------------------------------------------------------------------------- |
-| `f24062a18` | Wave 2–3 designs as you first reviewed them (the "reviewed against" base)       |
-| `416a1314c` | F10 corrections                                                                 |
-| `50590b196` | F8 corrections                                                                  |
-| `036408e1f` | F11 corrections (major)                                                         |
-| `dc35e842a` | F3 corrections                                                                  |
-| `69d3c9965` | F5 corrections                                                                  |
-| `3a0dacc1f` | F7 claim wording + all 12 Wave 2–3 handoff dispositions recorded                |
-| `f2754d997` | F4 + F6 offense reopen (construct fix + v2 contracts + defense sweep)           |
-| `58fd88504` | F4/F6 follow-up: finish v2 prose sweep + mark F4 derived signals evaluator-only |
-| `81c93e802` | F4 defense: flag malicious-vs-survivor decidability as OPEN (sufficiency pass)  |
-| `7dedd8de3` | F4 defense **Option 2** applied — authorization-registry join, v3 contract      |
-| `2d21cb2de` | F5 doc cleanup — replace residual source_provenance shorthand (reviewer A.5)    |
-| `fcbf82f62` | Record G0 re-review PASS in F6 + Wave 2–3 handoffs                              |
+| Commit      | What it is                                                                                     |
+| ----------- | ---------------------------------------------------------------------------------------------- |
+| `f24062a18` | Wave 2–3 designs as you first reviewed them (the "reviewed against" base)                      |
+| `416a1314c` | F10 corrections                                                                                |
+| `50590b196` | F8 corrections                                                                                 |
+| `036408e1f` | F11 corrections (major)                                                                        |
+| `dc35e842a` | F3 corrections                                                                                 |
+| `69d3c9965` | F5 corrections                                                                                 |
+| `3a0dacc1f` | F7 claim wording + all 12 Wave 2–3 handoff dispositions recorded                               |
+| `f2754d997` | F4 + F6 offense reopen (construct fix + v2 contracts + defense sweep)                          |
+| `58fd88504` | F4/F6 follow-up: finish v2 prose sweep + mark F4 derived signals evaluator-only                |
+| `81c93e802` | F4 defense: flag malicious-vs-survivor decidability as OPEN (sufficiency pass)                 |
+| `7dedd8de3` | F4 defense **Option 2** applied — authorization-registry join, v3 contract                     |
+| `2d21cb2de` | F5 doc cleanup — replace residual source_provenance shorthand (reviewer A.5)                   |
+| `fcbf82f62` | Record G0 re-review PASS in F6 + Wave 2–3 handoffs                                             |
+| `ab6ca0bc1` | F4 Option-2 consistency — base policy, per-field counterexamples, unauthorized-revoked scoring |
 
 Per-family diff, e.g. F10: `git show 416a1314c`. Whole Wave 2–3 set: `git diff f24062a18..HEAD -- plugins/cyber/benchmarks`.
 
@@ -230,18 +231,18 @@ Handoffs: F4 `offense`/`defense` `review/handoff.md` carry the REOPENED note **p
 
 ## Verdicts (reviewer, 2026-10-07)
 
-| Item                                      | Decision                                                | Notes                                             |
-| ----------------------------------------- | ------------------------------------------------------- | ------------------------------------------------- |
-| A.0 cross-cutting field removal           | **PASS**                                                |                                                   |
-| A.1 F10                                   | **PASS**                                                |                                                   |
-| A.2 F7                                    | **PASS**                                                |                                                   |
-| A.3 F8                                    | **PASS**                                                | claim stays stage-conditioned at release (G1/G2)  |
-| A.4 F3                                    | **PASS**                                                |                                                   |
-| A.5 F5                                    | **PASS**                                                | source_provenance cleanup applied (`2d21cb2de`)   |
-| A.6 F11                                   | **PASS**                                                |                                                   |
-| B.1 F4 offense + defense sweep            | **PASS** (offense) / **CONDITIONAL→resolved** (defense) | Option 2 applied (`7dedd8de3`)                    |
-| B.1 F4 malicious-vs-survivor decidability | **OPTION 2 applied**                                    | authorization-registry join; no per-grant verdict |
-| B.2 F6 offense + defense sweep            | **PASS**                                                |                                                   |
-| B.3 contracts/drift                       | **PASS**                                                | F4 → v3, F6 v2; stale FAMILY `(v1)` header fixed  |
+| Item                                      | Decision                                                           | Notes                                                                                                     |
+| ----------------------------------------- | ------------------------------------------------------------------ | --------------------------------------------------------------------------------------------------------- |
+| A.0 cross-cutting field removal           | **PASS**                                                           |                                                                                                           |
+| A.1 F10                                   | **PASS**                                                           |                                                                                                           |
+| A.2 F7                                    | **PASS**                                                           |                                                                                                           |
+| A.3 F8                                    | **PASS**                                                           | claim stays stage-conditioned at release (G1/G2)                                                          |
+| A.4 F3                                    | **PASS**                                                           |                                                                                                           |
+| A.5 F5                                    | **PASS**                                                           | source_provenance cleanup applied (`2d21cb2de`)                                                           |
+| A.6 F11                                   | **PASS**                                                           |                                                                                                           |
+| B.1 F4 offense + defense sweep            | **PASS** (offense, reviewer) / **CONDITIONAL** (defense, reviewer) | Option 2 **selected by reviewer**; text **applied by author** (`7dedd8de3`, `ab6ca0bc1`), not yet re-seen |
+| B.1 F4 malicious-vs-survivor decidability | reviewer **selected Option 2**; **author-applied**                 | registry join; no per-grant verdict; reviewer to confirm `label-policy.md`                                |
+| B.2 F6 offense + defense sweep            | **PASS**                                                           |                                                                                                           |
+| B.3 contracts/drift                       | **PASS**                                                           | F4 → v3, F6 v2; stale FAMILY `(v1)` header fixed                                                          |
 
-**Final disposition (reviewer):** apply Option 2 + counterexamples + close the creation-lineage shortcut + update F4 handoffs — all done — then mark Wave 2–3 and the F4/F6 reopen **G0 complete** and proceed to implementation. That "G0 complete" marking is a gate promotion; it binds in the manifests only with per-task independent **approval records**, which are not fabricated here — so the manifests keep `gates.G0: pending` until those records exist.
+**Final disposition — reviewer's instruction:** apply Option 2 + counterexamples + close the creation-lineage shortcut + update F4 handoffs, then mark Wave 2–3 and the F4/F6 reopen **G0 complete** and proceed to implementation. **Author status:** all of that is applied on-branch (`7dedd8de3` + `ab6ca0bc1` + the F5/handoff commits); the Option-2 **text awaits the reviewer's confirmation read**. The "G0 complete" marking is a gate promotion that binds in the manifests only with per-task independent **approval records** — not fabricated here — so the manifests keep `gates.G0: pending` and the audit stays 10/task until those records exist.
