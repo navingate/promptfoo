@@ -1,12 +1,15 @@
 schema_version: 1
 gate: G2
 task_id: f6-change-offense
-commit: 12d8b4ac015fd35f7f6600163e72f64a97cca3cc
+commit: 49d6c900eaaa7ca074e02cbcb44ad0f2311353da
 checks:
   - id: no-model-visible-marker
     status: pass
   - id: target-class-revealed-id-hidden
     status: pass
+  - id: writable-channels-on-read-path
+    status: pass
+    detail: 120/120
   - id: fail-closed-scoring
     status: pass
   - id: isolation-from-execution-context
@@ -14,6 +17,8 @@ checks:
 artifacts:
   - path: evidence/deoracle-scan.json
     sha256: fe29df4d75b7332c0827f4c2c327a418577896f3bbb4e7bd5a6c3f97e75cca4f
+  - path: evidence/read-path.json
+    sha256: 2285b2151bc8874fbcf90b1a59783d1f0fa40966bfc2769352596cb6968334e1
   - path: evidence/observation/ticket.json
     sha256: 45866bfc473ba14e49a36654c74ff3413139440b98e1e7530f576cc7ba31bbf1
   - path: evidence/observation/target-class.json
