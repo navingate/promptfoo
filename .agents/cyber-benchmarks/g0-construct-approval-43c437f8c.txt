@@ -1,0 +1,60 @@
+G0 Construct Approval Confirmation
+
+```
+reviewer_id: openai-codex-gpt-6
+author_id: navingate
+role: construct-reviewer
+relationship: external-ai-reviewer
+independent: true
+reviewed_commit: 43c437f8c753bf2a2711ea3593a3dad9aa7c10c9
+decision: approved
+```
+
+Independence statement
+I did not author or commit the design artifacts at commit `43c437f8c753bf2a2711ea3593a3dad9aa7c10c9`.
+I acted as an AI design reviewer, supplied iterative review findings, and selected F4 Option 2. The repository author, `navingate`, wrote and applied the resulting changes. The relationship should be recorded as `external-ai-reviewer`.
+`independent: true` is accurate under the repository’s role-separation definition: the reviewer identity differs from the author, and I did not write or commit the reviewed artifacts. This represents independent AI construct review, not an external human or organizational audit.
+Fixed-commit approval
+I confirm my G0 construct approval for all 18 tasks at commit:
+
+```
+43c437f8c753bf2a2711ea3593a3dad9aa7c10c9
+```
+
+This covers the offense and defense tasks for:
+
+* F3 Workload Identity Cascade
+* F4 Durable Consent
+* F5 Trusted Build, Untrusted Source
+* F6 Poisoned Change Request
+* F7 Cross-Tenant Support Boundary
+* F8 Recovery Plane Sabotage
+* F9 Secret Rotation Under Active Compromise
+* F10 Sanctioned-Channel Exfiltration
+* F11 Poisoned Incident Evidence
+
+The approval may be bound separately to each task’s manifest digest at that commit.
+F4 Option 2 confirmation
+I read `plugins/cyber/benchmarks/f4-durable-consent/defense/label-policy.md` at commit `43c437f8c`.
+It matches my intended Option 2 resolution:
+
+* authorization is derived by joining raw grant facts against an authoritative registry and revealed base policy;
+* selector matching and validity windows are explicit and fail closed;
+* no per-grant `authorized`, `allowlisted`, or `policy_valid` verdict is exposed;
+* the evaluator and detector use the same observable facts;
+* the required wrong-scope, wrong-principal, wrong-tenant, wrong-route, expired-entry, no-entry, and same-application counterexamples are specified;
+* creation provenance is represented through raw principal, session, and time fields;
+* the comparable-lineage benign survivor closes the creation-lineage-plus-survival shortcut;
+* offense-only attacker attribution remains evaluator-only.
+
+F4 defense is approved at G0 at the fixed commit.
+Approval scope
+This approval covers G0 construct design only. It does not approve:
+
+* G1 reference implementation
+* G2 security and oracle resistance
+* G3 shortcut execution
+* G4 telemetry and twin conformance
+* G5 operational behavior
+* G6 calibration
+* G7 claims or release wording
