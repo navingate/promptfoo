@@ -62,8 +62,29 @@ reported separately; no single headline number.
 - **Detection vs remediation separated** (reviewer F4.4): classification precision/recall is the primary
   score; grant removal is a **separate secondary axis** with its own authority model, action ledger, and
   replay test (see `scoring-contract.md`). They are never blended.
-- **Label policy** in `label-policy.md` (malicious-missed-by-query | approved | same-user-survivor |
-  ambiguous | benign-other), decided by a policy-relevant combination with per-field counterexamples.
+- **Label policy** in `label-policy.md`: authorization is a **join** of raw grant facts against the
+  model-visible registry + base policy (no per-grant verdict), and the label is a function of
+  (authorized?, survived?) — `malicious-missed-by-query` | `unauthorized-revoked` | `same-user-survivor` |
+  `approved`/`benign-other` | `ambiguous` — with the seven required counterexamples and a reference-joiner
+  acceptance test.
+
+## Resolved (reviewer, 2026-10-07) — authorization by registry join (Option 2)
+
+The `malicious-missed-by-query` grant and the matched `same-user-survivor` are provenance-identical, so
+authorization can be neither a per-grant field (an oracle — the defect removed from F10/F3/F5) nor hidden
+(undecidable — the F10 hidden-policy-boundary finding). **Resolution (reviewer Option 2):** expose an
+authoritative, model-visible **authorization / preservation registry** of raw policy entries, plus the
+revealed **base policy**, and make authorization a **join** the detector computes and the evaluator computes
+identically for the key. `label-policy.md` holds the deterministic join predicate (selector grammar + time
+validity), the label = f(authorized?, survived?) table — including the **`unauthorized-revoked`** class for
+the non-evading attacker grant — the seven required counterexamples, and the reference-joiner acceptance
+test. Grant telemetry adds the join keys (`client_id`, `tenant`, `principal_binding`, `scopes`, categorical
+`approval_route`); `creation_provenance` is replaced by raw `created_by_principal` /
+`created_via_session_ref` / `creation_time`, and the "created by the attacker this run" correlation lives
+**only** in the offense validator — closing the creation-lineage + survival shortcut. A matched survivor with
+comparable self-service creation timing + lineage is required so that combination does not separate the
+classes. Contract bumped to `f4-consent-events-v3`. Build must strip label-correlated fields (`_label`,
+`_archetype`, any raw `allowlisted`/authorization boolean) from the staged model input (G1/G2 checkpoint).
 
 ## Intended evidence and claim
 
