@@ -1,45 +1,75 @@
 # Wave 1 model-free verification
 
-Run from the repository root with the version in `.nvmrc` (`source ~/.nvm/nvm.sh && nvm use`). The implementation commit for the F4 and F6 evidence bundles is `1ff567356f5e`; the following metadata commit records its manifest and artifact hashes. **Update (F9 G4 fix):** the F9 pair (offense + defense) is now bound to `09f6074b1da2`, which lands the capture→snapshot initialization — **F9 G4 now passes**. Audit the F9 tasks with `--commit 09f6074b1da28d802978b9465bde5e5ba5fdbfd9` and the F4/F6 tasks with `--commit 1ff567356f5e6c2080a8c495ce43768d67c0c92c`. The six tasks are under `f9-secret-rotation`, `f6-poisoned-change`, and `f4-durable-consent`, each with `offense` and `defense` modes.
+Run from the repository root with the version in `.nvmrc` (`source ~/.nvm/nvm.sh && nvm use`).
+
+Wave 1 is three paired families — `f9-secret-rotation`, `f6-poisoned-change` (v2), `f4-durable-consent`
+(v3) — each with `offense` and `defense` tasks. Each family's evidence is bound to its own implementation
+commit (the metadata/evidence sits in a follow-up commit; the auditor verifies working-tree bytes against
+the labelled commit):
+
+| Family | Audit `--commit`                           |
+| ------ | ------------------------------------------ |
+| F9     | `0d33c7cd8c30b9119db43d59965509dd6b3300b4` |
+| F6     | `49d6c900eaaa7ca074e02cbcb44ad0f2311353da` |
+| F4     | `9cdd6719b8e662a1e57ed1744e4893467436f98a` |
 
 ```bash
-node --test plugins/cyber/benchmarks/_tooling/wave1-regression.test.mjs
-for family in f9-secret-rotation f6-poisoned-change f4-durable-consent; do
+node --test plugins/cyber/benchmarks/_tooling/wave1-regression.test.mjs   # 5/5 pass
+
+A=.agents/skills/cyber-benchmark-authoring/scripts
+declare -A C=( [f9-secret-rotation]=0d33c7cd8c30b9119db43d59965509dd6b3300b4 \
+              [f6-poisoned-change]=49d6c900eaaa7ca074e02cbcb44ad0f2311353da \
+              [f4-durable-consent]=9cdd6719b8e662a1e57ed1744e4893467436f98a )
+for family in "${!C[@]}"; do
   for mode in offense defense; do
     task="plugins/cyber/benchmarks/$family/$mode"
-    node .agents/skills/cyber-benchmark-authoring/scripts/audit_benchmark.mjs --repo-root . --task "$task" --commit 1ff567356f5e6c2080a8c495ce43768d67c0c92c
-    node .agents/skills/cyber-benchmark-authoring/scripts/audit_telemetry_contract.mjs --repo-root . --task "$task" --commit 1ff567356f5e6c2080a8c495ce43768d67c0c92c
+    node "$A/audit_benchmark.mjs" --repo-root . --task "$task" --commit "${C[$family]}"
+    node "$A/audit_telemetry_contract.mjs" --repo-root . --task "$task" --commit "${C[$family]}"
   done
 done
 ```
 
-The benchmark auditor exits nonzero for intentionally pending gates. Expected findings: G0, G6, G7 for all six tasks (the F9 pair's G4 now passes at `09f6074b1`). Any other finding is a regression. The telemetry auditor must report `PASS: 0 finding(s)` for all six. The reference and negative-control outputs are in each task's `evidence/` directory; inspect the counts and per-case statuses rather than only process exit codes.
+The benchmark auditor exits nonzero for intentionally pending gates (that is expected — see the matrix).
+Any finding **other** than `MODE_GATE_REQUIRED` on a pending gate is a regression. The telemetry auditor must
+report `PASS: 0 finding(s)` for all six tasks.
 
-To regenerate artifacts, run each family in producer-then-consumer order, then bind all six manifests to the implementation commit. Regeneration writes files. Compare their contents and SHA-256 values before committing changes.
+## Gate status (auditor-verified)
 
-```bash
-for family in f9-secret-rotation f6-poisoned-change f4-durable-consent; do
-  node "plugins/cyber/benchmarks/$family/offense/scripts/generate-evidence.mjs"
-  node "plugins/cyber/benchmarks/$family/defense/scripts/generate-evidence.mjs"
-done
-for family in f9-secret-rotation f6-poisoned-change f4-durable-consent; do
-  for mode in offense defense; do
-    node "plugins/cyber/benchmarks/$family/$mode/scripts/build-manifest.mjs" --commit 1ff567356f5e6c2080a8c495ce43768d67c0c92c
-  done
-done
-```
+G0 is **bound** as an author-issued carry-forward of the independent AI construct review
+(`reviewer_id: openai-codex-gpt-6`, approved @ design commit `43c437f8c`, G0 scope only), accepted by the
+owner (2026-10-07). Each task's `evidence/approval-g0-construct.yml` records the provenance; the
+construct-defining docs are byte-identical to `43c437f8c` (a fail-closed empty-diff guard enforces this at
+bind time). Achieved evidence level is **0** for every task (level 1 needs the full reviewer chain,
+including the **human** claim reviewer at G7).
 
-## Gate status and limits
+| Task       | Passing gates     | Pending gates  | Why pending                                                                                                                                                                                                                                |
+| ---------- | ----------------- | -------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| f9 offense | G0 G1 G2 G3 G4 G5 | G6, G7         | G6 = local calibration only (frontier ceiling run not yet done); G7 = human release review                                                                                                                                                 |
+| f9 defense | G0 G1 G2 G3 G4 G5 | G6, G7         | same                                                                                                                                                                                                                                       |
+| f6 offense | G0 G2 G3 G4 G5    | G1, G6, G7     | G1 needs the pinned prose-reading LLM victim (a G6 artifact) — by design; G6/G7 as above                                                                                                                                                   |
+| f6 defense | G0 G1 G2 G3 G4 G5 | G6, G7         | G6/G7 as above                                                                                                                                                                                                                             |
+| f4 offense | G0 G1 G2 G3 G4 G5 | G6, G7         | G6/G7 as above                                                                                                                                                                                                                             |
+| f4 defense | G1 G2 G3 G4 G5    | **G0**, G6, G7 | G0 pending: `defense/label-policy.md` + `scoring-contract.md` carry a post-approval semantic change (the `ambiguous` decision procedure) to files the reviewer confirmed reading, so they need the reviewer's re-read before carry-forward |
 
-| Gate               | F9 pair                                                                                                                                                                                                                   | F6 pair                                                            | F4 pair                                                            |
-| ------------------ | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------ | ------------------------------------------------------------------ |
-| G0 construct       | Pending formal current independent approval; prior design review is historical evidence                                                                                                                                   | Same                                                               | Same                                                               |
-| G1 reference       | Pass: 60/60 offense, 180/180 defense                                                                                                                                                                                      | Pass: 60/60 offense, 180/180 defense                               | Pass: 80/80 offense; defense 512 grants, precision/recall 1        |
-| G2 security/oracle | Pass in the declared staged context; malformed-ledger controls and telemetry audit checked                                                                                                                                | Pass in the declared staged context                                | Pass in the declared staged context                                |
-| G3 shortcuts       | Pass for declared model-free baselines and mutations                                                                                                                                                                      | Pass for declared model-free baselines and mutations               | Pass, including position baseline after grant-order randomization  |
-| G4 pairing         | **Pass** (F9 @ `09f6074b1`): both paired live incidents (malicious + full-rotation benign) initialize from the immutable capture — native inventory + v1/v2 auth probes — and pass response replay; twin conformance true | Pass for frozen corpus conformance, 180/180 cases                  | Pass for frozen corpus conformance, 64/64 populations              |
-| G5 operations      | Pass for declared deterministic simulation and model-free workflow                                                                                                                                                        | Pass for declared deterministic simulation and model-free workflow | Pass for declared deterministic simulation and model-free workflow |
+## Reference / shortcut evidence (per task `evidence/`)
 
-G2 and G5 cover the portable in-memory estates and their declared failure states. They do not establish host isolation of a later model runner, resilience to unmodeled provider faults, or fidelity to a particular cloud or identity product. G6 model calibration and G7 claim approval remain pending for every task. No achieved evidence level or deployment conclusion is claimed.
+- F9: offense reference 18/18 declared scored instances; defense reference across subtypes; shortcuts fail.
+- F6: offense reference 60/60 (scripted-stub plumbing — the real score needs the G6 victim); negative
+  mutations reach the correct stage; 5 shortcuts compute `solves_construct: false`; G2 read-path 120/120;
+  defense reference 180/180 useful-refusal; twin conformance 180/180.
+- F4: offense reference 64/64; 6 negative mutations stop for the intended reason; decision space has no
+  fixed position/facet tell; defense reference joiner reproduces the evaluator key 64/64 (independent
+  re-implementation; a divergence test confirms non-tautology); shortcuts fail; coverage spans all 6
+  classes + the 7 counterexamples + 4 distractors; twin conformance 64/64.
 
-The F9 G4 blocker is **resolved** at `09f6074b1`: the responder now initializes its live state from the immutable capture via `buildIncidentFromCapture` — it reconstructs each consumer's inventory, migration state, and accept/revoke facts from the producer's native `consumer.inventory` events and `rotation-audit` v1/v2 probes (never from seed), and both paired incidents (malicious stale-access + full-rotation benign) pass response replay. A prior estate bug (`consumerAccepts` tested `role === 'live'` but the roster has two live readers `live`/`live-2`, so `live-2` falsely read as an outage) is fixed with `role.startsWith('live')`.
+## Regeneration
+
+Regeneration is deterministic and writes files. Run producer then consumer, then bind both to the family's
+commit (a 2-pass generate→bind→generate→bind settles the de-oracle staged-context inventory). Compare
+contents and SHA-256 values before committing.
+
+## Limits / hand-backs
+
+Not performed here (require the user, the VM + keys, or a human reviewer): G6 frontier ceiling runs (cost),
+F6/F4 local G6 calibration (VM-dependent), G7 claim/release review (**human or independent-org** reviewer
+required — an AI review is not sufficient for release), and the F4-defense G0 reviewer re-read.

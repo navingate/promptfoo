@@ -1,22 +1,32 @@
-# Wave 1 cyber benchmarks — build handoff (G5 → G6/G7)
+# Wave 1 cyber benchmarks — build handoff (G0 bound → G6/G7)
 
-Wave 1 (F9, F6, F4; six scored tasks) is built to the **G5 boundary** on branch
-`codex/cyber-wave1-build` (PR to `codex/cyber-benchmark-authoring`). Every task's
-`audit_benchmark` returns exactly two findings — `MODE_GATE_REQUIRED` on **G6** and
-**G7** — and `audit_telemetry_contract` returns **PASS**. That is the intended
-unreleasable, pre-calibration state; G0–G5 pass with commit-bound evidence and
-`achieved_evidence_level: null`.
+Wave 1 (F9, F6 v2, F4 v3; six scored tasks) is built on branch `codex/cyber-wave1-build`
+(PR #10 → `codex/cyber-benchmark-authoring`). **G0 is now bound** as an author-issued
+carry-forward of the independent AI construct review (`openai-codex-gpt-6` @ design commit
+`43c437f8c`), accepted by the owner (2026-10-07); construct docs are byte-identical to
+`43c437f8c` under a fail-closed empty-diff guard. `audit_telemetry_contract` returns **PASS**
+for all six; `achieved_evidence_level: 0` (level 1 needs the full reviewer chain incl the human
+claim reviewer at G7). See `WAVE1-VERIFY.md` for the exact per-family audit commands + the full
+gate matrix, and `.agents/cyber-benchmarks/review-policy.md` for the G0/G7 reviewer rules.
 
-## Status
+## Status (auditor-verified; audit each family at its own commit)
 
-| Task                | Mode               | Bound commit | G0–G5 | G6      | G7      |
-| ------------------- | ------------------ | ------------ | ----- | ------- | ------- |
-| f9-rotation-offense | offense-capability | `90dc74e6`   | pass  | pending | pending |
-| f9-rotation-defense | incident-response  | `90dc74e6`   | pass  | pending | pending |
-| f6-change-offense   | offense-capability | `4e436df6`   | pass  | pending | pending |
-| f6-change-defense   | tool-conduct       | `4e436df6`   | pass  | pending | pending |
-| f4-consent-offense  | offense-capability | `d1197123`   | pass  | pending | pending |
-| f4-consent-defense  | defense-detection  | `d1197123`   | pass  | pending | pending |
+| Task                | Mode               | Bound commit | Passing  | Pending        |
+| ------------------- | ------------------ | ------------ | -------- | -------------- |
+| f9-rotation-offense | offense-capability | `0d33c7cd`   | G0–G5    | G6, G7         |
+| f9-rotation-defense | incident-response  | `0d33c7cd`   | G0–G5    | G6, G7         |
+| f6-change-offense   | offense-capability | `49d6c900`   | G0,G2–G5 | **G1**, G6, G7 |
+| f6-change-defense   | tool-conduct       | `49d6c900`   | G0–G5    | G6, G7         |
+| f4-consent-offense  | offense-capability | `9cdd6719`   | G0–G5    | G6, G7         |
+| f4-consent-defense  | defense-detection  | `9cdd6719`   | G1–G5    | **G0**, G6, G7 |
+
+Two gates are pending by design, not by omission:
+
+- **f6-change-offense G1** needs the pinned prose-reading LLM victim, which is a G6 artifact (the
+  model-free scripted stub is plumbing only and cannot back an offense score).
+- **f4-consent-defense G0** is pending because `defense/label-policy.md` + `scoring-contract.md`
+  carry a post-approval semantic change (the `ambiguous` decision procedure) to files the reviewer
+  confirmed reading — it needs the reviewer's re-read before carry-forward (flagged by F2 Chain).
 
 Per-task detail, reproduction commands, and expert-challenge notes are in each task's
 `<task>/review/handoff.md`.
