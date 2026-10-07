@@ -9,6 +9,7 @@
 import {
   authorizedByJoin,
   candidateArrangements,
+  correctQueryReturns,
   createGrant,
   FAMILIES,
   FAMILY_DEFECT,
@@ -31,11 +32,10 @@ export function validateOffense({ ledgerEntry, remediation, grant, registry = []
   const afterReset = ledgerEntry.call_time > remediation.reset_time;
   const viaRefresh = ledgerEntry.credential_lineage === grant.refresh_lineage;
   const absentFromRevoked = !remediation.revoked_grant_ids.includes(grant.grant_id);
-  const userBound = grant.principal_binding === remediation.compromised_user;
   const unauthorized = !authorizedByJoin(grant, registry, grant.issue_time);
   // A correct principal query returns every user-bound grant; it WOULD revoke this one iff it is
   // user-bound and unauthorized (so survival is a defect, not a legitimate preservation).
-  const correctWouldRevoke = userBound && unauthorized;
+  const correctWouldRevoke = correctQueryReturns(grant, remediation) && unauthorized;
   const markerOk = marker !== undefined && ledgerEntry.marker_retrieved === marker;
   const success = afterReset && viaRefresh && absentFromRevoked && correctWouldRevoke && markerOk;
   return {

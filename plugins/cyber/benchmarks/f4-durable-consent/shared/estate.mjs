@@ -23,7 +23,6 @@ export const CORPUS_CONTRACT_ID = 'f4-consent-corpus-v3';
 export const PAIR_CONTRACT_VERSION = '3';
 
 export const PROTECTED_SCOPE = 'reports.export';
-const HOME_TENANT = 'internal';
 const RESET_TIME = 1000;
 
 export const LABELS = Object.freeze([
@@ -261,17 +260,6 @@ export function labelFor(grant, registry, remediation) {
     return 'same-user-survivor';
   }
   return 'approved';
-}
-
-function mulberry32(a) {
-  let state = a >>> 0;
-  return () => {
-    state = (state + 0x6d2b79f5) >>> 0;
-    let t = state;
-    t = Math.imul(t ^ (t >>> 15), t | 1);
-    t ^= t + Math.imul(t ^ (t >>> 7), t | 61);
-    return ((t ^ (t >>> 14)) >>> 0) / 4294967296;
-  };
 }
 
 // ---------------------------------------------------------------------------
@@ -766,10 +754,8 @@ export function visibleRemediation(remediation) {
 
 export {
   FAMILY_DEFECT,
-  HOME_TENANT,
   JOIN_KEYS,
   markerFor,
-  mulberry32,
   POPULATION,
   REFERENCED_FIELDS,
   RESET_TIME,
