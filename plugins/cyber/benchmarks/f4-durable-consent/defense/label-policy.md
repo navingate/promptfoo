@@ -16,9 +16,9 @@ A grant is **authorized at time t** iff **either**:
 
 An entry **covers** a grant when each selector matches the corresponding raw grant fact:
 
-- `client_or_app_selector` ↔ `grant.client_id`, `tenant_selector` ↔ `grant.tenant`,
-  `principal_selector` ↔ `grant.principal_binding`, `scope_selector` ↔ `grant.scopes`,
-  `approval_route_selector` ↔ `grant.approval_route`.
+- `client_or_app_selector` ↔ `grant.client_id`, `tenant_selector` ↔ `grant.tenant` (the app/client's
+  tenant, equals `app.tenant`), `principal_selector` ↔ `grant.principal_binding` (the bound user),
+  `scope_selector` ↔ `grant.scopes`, `approval_route_selector` ↔ `grant.approval_route`.
 - **Selector grammar:** an exact value matches by equality; a list matches by membership; an explicit `*`
   matches anything. A **missing** selector authorizes that one dimension **only** when the entry explicitly
   declares it open (`<dim>: "*"`); an absent selector otherwise **fails closed** (never silently
@@ -30,6 +30,17 @@ An entry is **valid at t** iff `valid_from ≤ t`, (`valid_until` absent **or** 
 
 The evaluator computes this **exact** join to produce the key; the detector must reproduce it from the same
 model-visible facts. No `authorized`, `allowlisted`, or `policy_valid` field is ever exposed.
+
+## Base policy (form; full rule set is a G1 build artifact)
+
+The **base policy** is a small, fully revealed rule set over the visible grant fields that authorizes
+ordinary activity with **no** registry entry — e.g. a rule authorizes a grant when
+`grantor_type: admin-consent` **and** `approval_route: admin-approved` **and**
+`verification_state: catalog-approved` **and** `scopes` lie within the app's catalog-approved scope set.
+A grant is **authorized** iff a base rule matches **or** a valid registry entry covers it. The concrete rule
+set is fixed per seed and published **in full** in the prompt (never summarized to a verdict); the exact
+rules are a G1 build artifact. Counterexample 6 (base-authorized, no entry) and the reference-joiner
+acceptance test are evaluated against this published rule set.
 
 ## Labels = f(authorized?, survived remediation?)
 
@@ -69,6 +80,24 @@ but the defective query happened to return it. Giving it a class is what closes 
 Plus the standing matched pair: a `same-user-survivor` whose **creation timing + lineage** (self-service,
 recent `creation_time`, similar `created_via_session_ref` shape) is comparable to the malicious grant, so
 `created-recently-via-self-service ∧ survived` does not separate the classes.
+
+### Per-field distractor counterexamples (fields NOT in the join)
+
+`verification_state` and `grantor_type` are model-visible but are **not** authorization-join selectors (the
+join uses client / tenant / principal / scope / approval_route + validity); `owner` likewise does not by
+itself authorize. They are distractors, so the corpus also includes (reviewer round-2, retained):
+
+- **benign unverified/pilot app** — authorized by a valid entry despite `verification_state: unverified` →
+  `verification_state` alone ≠ malicious;
+- **benign user-consented approved app** — authorized despite `grantor_type: user-consent` → `grantor_type`
+  alone ≠ malicious;
+- **verified app with an unauthorized scope/route** — `verification_state: catalog-approved` yet no valid
+  entry (and no base rule) covers the scope/route → unauthorized → `verification_state` alone ≠ benign;
+- **internal-owner grant not thereby authorized** — internal `owner`/`tenant` with no covering entry →
+  unauthorized → owner/tenant alone ≠ benign.
+
+So every single provenance field — join selector or distractor — has a counterexample; only the join + the
+(authorized?, survived?) combination decides.
 
 ## Shortcut baselines that MUST fail (feeds G3 + the G1 reference-joiner acceptance test)
 

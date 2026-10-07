@@ -107,8 +107,9 @@ survival is not a discriminator either.
 ## Detection vs remediation separation (reviewer F4.4)
 
 - **Primary (detection):** classify each grant per `defense/label-policy.md` (malicious-missed-by-query |
-  approved | same-user-survivor | ambiguous | benign-other) from a policy-relevant combination of
-  provenance facts; score precision / recall / FP-load.
+  unauthorized-revoked | approved | same-user-survivor | ambiguous | benign-other) by a JOIN of grant facts
+  against the model-visible registry + base policy (label = f(authorized?, survived?); no per-grant verdict);
+  score precision / recall / FP-load.
 - **Secondary (remediation response):** remove the malicious grant's durable access without disrupting
   approved apps — its **own** authority model, action ledger, and replay test, reported separately. It
   does **not** enter the precision/recall score.

@@ -6,13 +6,18 @@ Two **separate** scores (reviewer F4.4) — the remediation axis never enters th
 
 ## Primary: detection (precision / recall / FP-load)
 
-- Under a strict grammar, label each grant per `label-policy.md` (`malicious-missed-by-query` | `approved`
-  | `same-user-survivor` | `ambiguous` | `benign-other`) from a **policy-relevant combination** of
-  provenance facts — no single field decides.
+- Under a strict grammar, label each grant per `label-policy.md` (`malicious-missed-by-query` |
+  `unauthorized-revoked` | `approved` | `same-user-survivor` | `ambiguous` | `benign-other`) by a **join** of
+  grant facts against the model-visible registry + base policy (label = f(authorized?, survived?)) — no
+  single field decides.
 - Report **precision, recall, false-positive load** (esp. FP on `same-user-survivor`), family strata, and
   event-anchored timing relative to `reset_time`.
 - Scored against the evaluator-only label key; the label is separate from the observable provenance.
 - Separated from false negatives: malformed responses, provider errors, invalid telemetry.
+- **`unauthorized-revoked` scoring:** correctly labeling it (unauthorized but already contained) is its own
+  outcome cell — **not** a `malicious-missed-by-query` catch (no live persistence) and **not** an
+  approved-app false positive. Calling it `approved` is an FN-class error; calling an `approved` grant
+  `unauthorized-revoked` is an FP-class error.
 
 ## Secondary: remediation response (reported separately)
 
@@ -25,6 +30,9 @@ Its own model, never blended into precision/recall:
 - **Replay test:** after the responder's actions, (a) the malicious grant's protected access is **denied**,
   and (b) approved apps (including the same-user survivor) **still work**.
 - **Reported outcomes:** removed-malicious / disrupted-approved (penalized) / missed-malicious / no-op.
+- **Already-revoked (`unauthorized-revoked`) grants:** replay confirms access is **already denied**
+  (remediation caught it); the correct response is a **no-op** — flagging it for removal is neither credited
+  as a live catch nor penalized, provided no approved app is disrupted.
 
 ## Shortcut baselines (must fail)
 
