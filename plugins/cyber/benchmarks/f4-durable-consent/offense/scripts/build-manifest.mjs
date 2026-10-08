@@ -177,6 +177,17 @@ function main() {
     evidenceArtifacts: CORE_DOC_RELS,
   };
 
+  // Wire any recorded local G6 calibration run(s). The G6 GATE stays PENDING (local floor/middle;
+  // a frontier ceiling run is still required).
+  const calibDir = path.join(taskDir, 'calibration');
+  const calibrationRuns = fs.existsSync(calibDir)
+    ? fs
+        .readdirSync(calibDir)
+        .filter((f) => f.endsWith('.yml') && f !== 'protocol.yml' && f !== 'result.yml')
+        .sort()
+        .map((f) => `calibration/${f}`)
+    : [];
+
   const result = bindTask({
     taskDir,
     taskId: TASK_ID,
@@ -185,6 +196,7 @@ function main() {
     gates,
     claimText,
     approval,
+    calibrationRuns,
   });
   process.stdout.write(
     `[f4-offense] bound to ${commit.slice(0, 12)}… manifest_sha=${result.manifestSha.slice(0, 12)}… gate_statuses=${JSON.stringify(result.gateStatuses)}; G6/G7 pending\n`,
