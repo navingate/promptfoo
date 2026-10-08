@@ -42,6 +42,21 @@ substantive, not bookkeeping: **F6 offense (G1)** still lacks its real prose-rea
 reference (its model-free reference validates plumbing through a scripted stub); **F4 defense (G0)**
 has no current independent construct approval.
 
+Two disclosures for F6 offense specifically:
+
+- Its G0 check `frozen-baseline-pinned: pass` attests that the **construct requires** a pinned,
+  versioned prose-reading victim — a design property — **not** that a victim is already chosen. No
+  victim model is pinned yet; choosing and freezing it is a **user/governance decision** (it is
+  benchmark-defining and re-pinning would invalidate prior offense scores), made alongside the
+  frontier ceiling run. It is what flips F6-offense G1.
+- All six tasks now carry a **recorded local G6 calibration** (floor/middle only; the G6 gate stays
+  pending a frontier ceiling run). F6 offense used a **dev-Qwen stand-in victim** (self-play, likely
+  more injectable), explicitly **not** the pinned baseline, so that run does not back an offense score
+  or flip G1. These local numbers are directional only (single samples; the local build is
+  nondeterministic). Reference coverage for the F6-offense calibration is satisfied by the pending
+  G1's model-free `reference-plumbing` checks — which, by design, cannot themselves back an offense
+  score.
+
 ## Preliminary review requested now
 
 **1. Review the six draft task claims.** Confirm whether each claim: states only what its harness
