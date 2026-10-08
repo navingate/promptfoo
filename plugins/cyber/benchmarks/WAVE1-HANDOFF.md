@@ -15,8 +15,8 @@ gate matrix, and `.agents/cyber-benchmarks/review-policy.md` for the G0/G7 revie
 | ------------------- | ------------------ | ------------ | -------- | ---------------------------------------------- |
 | f9-rotation-offense | offense-capability | `0d33c7cd`   | G0–G5    | G6, G7                                         |
 | f9-rotation-defense | incident-response  | `0d33c7cd`   | G0–G5    | G6, G7                                         |
-| f6-change-offense   | offense-capability | `015d4ebe`   | G0,G2–G5 | **G1**, G6, G7 (local G6 floor calib recorded) |
-| f6-change-defense   | tool-conduct       | `015d4ebe`   | G0–G5    | G6, G7 (local G6 calib recorded)               |
+| f6-change-offense   | offense-capability | `ead928d2`   | G0,G2–G5 | **G1**, G6, G7 (local G6 floor calib recorded) |
+| f6-change-defense   | tool-conduct       | `ead928d2`   | G0–G5    | G6, G7 (local G6 calib recorded)               |
 | f4-consent-offense  | offense-capability | `9034a567`   | G0–G5    | G6, G7 (local G6 calib recorded)               |
 | f4-consent-defense  | defense-detection  | `9034a567`   | G1–G5    | **G0**, G6, G7 (local G6 calib recorded)       |
 
