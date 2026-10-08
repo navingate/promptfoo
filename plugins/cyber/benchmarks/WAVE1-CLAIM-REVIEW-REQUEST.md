@@ -27,28 +27,33 @@ Branch `codex/cyber-wave1-build`, PR #10. Per-family audit commands + the gate m
 
 ## Current gate status
 
-| Task       | Passing   | Pending        |
-| ---------- | --------- | -------------- |
-| F9 offense | G0–G5     | G6, G7         |
-| F9 defense | G0–G5     | G6, G7         |
-| F6 offense | G0, G2–G5 | **G1**, G6, G7 |
-| F6 defense | G0–G5     | G6, G7         |
-| F4 offense | G0–G5     | G6, G7         |
-| F4 defense | G1–G5     | **G0**, G6, G7 |
+| Task       | Passing | Pending                |
+| ---------- | ------- | ---------------------- |
+| F9 offense | G0–G5   | G6, G7                 |
+| F9 defense | G0–G5   | G6, G7                 |
+| F6 offense | G2–G5   | **G0**, **G1**, G6, G7 |
+| F6 defense | G0–G5   | G6, G7                 |
+| F4 offense | G0–G5   | G6, G7                 |
+| F4 defense | G1–G5   | **G0**, G6, G7         |
 
 Each manifest's `achieved_evidence_level` remains **unset (`null`)** until the required gate chain
-and calibration evidence are complete (the auditor's computed level is 0). Two pending marks are
+and calibration evidence are complete (the auditor's computed level is 0). Three pending marks are
 substantive, not bookkeeping: **F6 offense (G1)** still lacks its real prose-reading victim
-reference (its model-free reference validates plumbing through a scripted stub); **F4 defense (G0)**
-has no current independent construct approval.
+reference (its model-free reference validates plumbing through a scripted stub); **F6 offense (G0)**
+is newly pending after the 2026-10-09 PR #10 base-merge pulled two design-branch enforcement notes
+into its construct docs (`validator-contract.md` @`1bd69d47` + `attack-chain.md` @`3e147f229`), so the
+byte-identical carry-forward proof to `43c437f8c` no longer holds and it awaits a one-line reviewer
+re-attestation that both notes are enforcement / construct-equivalent (not semantic) — **item 5 below**;
+and **F4 defense (G0)** has no current independent construct approval.
 
 Two disclosures for F6 offense specifically:
 
-- Its G0 check `frozen-baseline-pinned: pass` attests that the **construct requires** a pinned,
+- Its G0 **construct** check `frozen-baseline-pinned` attests that the **construct requires** a pinned,
   versioned prose-reading victim — a design property — **not** that a victim is already chosen. No
   victim model is pinned yet; choosing and freezing it is a **user/governance decision** (it is
   benchmark-defining and re-pinning would invalidate prior offense scores), made alongside the
-  frontier ceiling run. It is what flips F6-offense G1.
+  frontier ceiling run. It is what flips F6-offense G1. (The G0 **gate** itself is now pending — see the
+  carry-forward note above and item 5 — because the base-merge changed its construct docs.)
 - All six tasks now carry a **recorded local G6 calibration** (floor/middle only; the G6 gate stays
   pending a frontier ceiling run). F6 offense used a **dev-Qwen stand-in victim** (self-play, likely
   more injectable), explicitly **not** the pinned baseline, so that run does not back an offense score
@@ -85,12 +90,24 @@ review before release.
 > `shortcut-audit.md`, `FAMILY.md`) but **not** `offense/attack-chain.md`, which is listed as a G0
 > artifact yet excluded from the closure (it carries a post-approval gate-mechanics clarification and
 > the clean-twin enforcement note). A future _semantic_ change to `attack-chain.md` would therefore
-> not be caught by the carry-forward guard — please review that file directly. (The clean-twin fix
-> itself is enforcement of the already-approved construct, not a construct change, so the F6-offense
-> carry-forward remains valid.)
+> not be caught by the carry-forward guard — please review that file directly. **Update (2026-10-09):**
+> after the PR #10 base-merge, `validator-contract.md` (in the closure) and `attack-chain.md` (outside it)
+> now carry F2 Chain's two enforcement notes, so the F6-offense carry-forward is **no longer valid as-is
+> and G0 is held pending** your re-attestation (item 5) — it does not auto-carry.
 
 **4. Review F9 breadth.** Confirm the F9 claims are limited to the tested simulated dependency
 topologies and case matrix.
+
+**5. Re-attest F6-offense G0 after the base-merge.** The 2026-10-09 merge pulled two design-branch
+enforcement notes into F6-offense's construct docs: `validator-contract.md` @`1bd69d47` (the G1
+floor-probe / pinned-victim methodology) and `attack-chain.md` @`3e147f229` (the clean-twin / seed-53
+invariant that fixed an unwinnable instance). Both are intended as **enforcement of the already-approved
+construct, not semantic changes**. The build side regenerated the g0 digests and holds G0 `pending`
+(`approval:null`); it cannot self-issue the judgment. Decide one of: **(a)** the AI construct reviewer
+issues a one-line re-attestation that both notes are construct-equivalent (same shape as item 2's
+F4-defense re-read), which re-enables the carry-forward; or **(b)** the owner accepts the two notes as
+construct-equivalent in chat, recorded as a dated owner-issued acceptance. Until then F6-offense G0 stays
+pending.
 
 ## Draft task claims (not yet approved)
 

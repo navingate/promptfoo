@@ -39,7 +39,12 @@ G0 is **bound** as an author-issued carry-forward of the independent AI construc
 (`reviewer_id: openai-codex-gpt-6`, approved @ design commit `43c437f8c`, G0 scope only), accepted by the
 owner (2026-10-07). Each task's `evidence/approval-g0-construct.yml` records the provenance; the
 construct-defining docs are byte-identical to `43c437f8c` (a fail-closed empty-diff guard enforces this at
-bind time). Each manifest's `achieved_evidence_level` is **unset (`null`)**; the auditor's _computed_
+bind time). **Exception (2026-10-09, after the PR #10 base-merge): F6-offense G0 is now PENDING.** The merge
+brought F2 Chain's enforcement notes into F6-offense `validator-contract.md` (@`1bd69d47`) + `attack-chain.md`
+(@`3e147f229`), so the byte-identical proof to `43c437f8c` no longer holds; F6-offense's approval is held
+`null` (its `approval-g0-construct.yml` is removed) pending a one-line reviewer re-attestation that both
+notes are enforcement / construct-equivalent, not semantic. No other task's G0 is affected. Each manifest's
+`achieved_evidence_level` is **unset (`null`)**; the auditor's _computed_
 evidence level is **0** and stays there until the full reviewer chain + calibration are complete (level 1
 needs all reviewer roles, including the **human** claim reviewer at G7). All six tasks (F9, F4, F6) now
 have a recorded local G6 calibration (`calibration/`) on the local Qwen model. The G6 gate stays pending
@@ -47,14 +52,14 @@ for all six, awaiting a frontier ceiling run. F6 offense is a **floor / plumbing
 is a dev-Qwen stand-in, not the pinned baseline), so it does not flip F6-offense G1, which stays pending
 the pinned victim (F2 Chain ruling 2026-10-08, `f6 offense/validator-contract.md @ 1bd69d47`).
 
-| Task       | Passing gates     | Pending gates  | Why pending                                                                                                                                                                                                                                |
-| ---------- | ----------------- | -------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
-| f9 offense | G0 G1 G2 G3 G4 G5 | G6, G7         | G6 = local calibration only (frontier ceiling run not yet done); G7 = human release review                                                                                                                                                 |
-| f9 defense | G0 G1 G2 G3 G4 G5 | G6, G7         | same                                                                                                                                                                                                                                       |
-| f6 offense | G0 G2 G3 G4 G5    | G1, G6, G7     | G1 needs the pinned prose-reading LLM victim (a G6 artifact) — by design; G6/G7 as above                                                                                                                                                   |
-| f6 defense | G0 G1 G2 G3 G4 G5 | G6, G7         | G6/G7 as above                                                                                                                                                                                                                             |
-| f4 offense | G0 G1 G2 G3 G4 G5 | G6, G7         | G6/G7 as above                                                                                                                                                                                                                             |
-| f4 defense | G1 G2 G3 G4 G5    | **G0**, G6, G7 | G0 pending: `defense/label-policy.md` + `scoring-contract.md` carry a post-approval semantic change (the `ambiguous` decision procedure) to files the reviewer confirmed reading, so they need the reviewer's re-read before carry-forward |
+| Task       | Passing gates     | Pending gates      | Why pending                                                                                                                                                                                                                                |
+| ---------- | ----------------- | ------------------ | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| f9 offense | G0 G1 G2 G3 G4 G5 | G6, G7             | G6 = local calibration only (frontier ceiling run not yet done); G7 = human release review                                                                                                                                                 |
+| f9 defense | G0 G1 G2 G3 G4 G5 | G6, G7             | same                                                                                                                                                                                                                                       |
+| f6 offense | G2 G3 G4 G5       | **G0**, G1, G6, G7 | **G0** pending post-merge: validator-contract.md + attack-chain.md now carry F2 Chain's enforcement notes → reviewer re-attestation needed; G1 needs the pinned prose-reading LLM victim (a G6 artifact) — by design; G6/G7 as above       |
+| f6 defense | G0 G1 G2 G3 G4 G5 | G6, G7             | G6/G7 as above                                                                                                                                                                                                                             |
+| f4 offense | G0 G1 G2 G3 G4 G5 | G6, G7             | G6/G7 as above                                                                                                                                                                                                                             |
+| f4 defense | G1 G2 G3 G4 G5    | **G0**, G6, G7     | G0 pending: `defense/label-policy.md` + `scoring-contract.md` carry a post-approval semantic change (the `ambiguous` decision procedure) to files the reviewer confirmed reading, so they need the reviewer's re-read before carry-forward |
 
 ## Reference / shortcut evidence (per task `evidence/`)
 
