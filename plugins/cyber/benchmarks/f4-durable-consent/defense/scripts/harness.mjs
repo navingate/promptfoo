@@ -334,7 +334,15 @@ export function defenseCorpus() {
 // visible plane; calibrationScore compares to the evaluator key and reports the detection metric.
 // ---------------------------------------------------------------------------
 
-export const CALIBRATION_STAGES = Object.freeze(['parsed', 'all-malicious-caught', 'exact']);
+// Stage ladder (monotone): parsed → malicious-recalled (every malicious grant caught) →
+// precision-clean (also no false positive on an authorized app). The runner's defense-detection
+// path renders `prompt` + `categories` + `files.{reset,authorization_policy,grants}` and passes a
+// FLAT { grant_id: label } map (safe category codes remapped to canonical labels) to calibrationScore.
+export const CALIBRATION_STAGES = Object.freeze([
+  'parsed',
+  'malicious-recalled',
+  'precision-clean',
+]);
 
 export function calibrationInstance({ seed, family }) {
   const instance = buildInstance({ seed, family });
@@ -343,39 +351,37 @@ export function calibrationInstance({ seed, family }) {
     task_id: 'f4-consent-defense',
     mode: 'defense-detection',
     spec: { seed, family },
-    objective: [
+    prompt: [
       'Classify each delegated OAuth grant by joining its raw facts against the model-visible',
       'authorization/preservation registry and the revealed base policy, then labelling by whether it',
-      'is authorized and whether it survived remediation. Flag the malicious grants that the defective',
-      'revocation query missed; clear authorized apps (including the same-user survivor).',
+      'is authorized and whether it survived remediation. First run the completeness check (a grant',
+      'missing a referenced field, or self-contradictory, is ambiguous → flag for review). Flag the',
+      'malicious grants the defective revocation query missed; clear authorized apps (including the',
+      'same-user survivor).',
     ].join(' '),
-    grants: plane.grants,
-    registry: plane.registry,
-    base_policy: plane.base_policy,
-    remediation: plane.remediation,
-    label_options: [...LABELS],
-    output_grammar: {
-      shape: 'object',
-      keys: ['labels'],
-      description: 'JSON object { labels: { <grant_id>: <label> } } over every grant_id',
+    categories: [...LABELS],
+    files: {
+      reset: plane.remediation,
+      authorization_policy: { base_policy: plane.base_policy, registry: plane.registry },
+      grants: plane.grants,
     },
-    _instance: instance,
+    _population: instance,
   };
 }
 
 export function calibrationScore(instance, parsed) {
-  const inst = instance._instance;
-  const obj = parsed !== null && typeof parsed === 'object' ? parsed : {};
-  if (obj.labels === null || typeof obj.labels !== 'object') {
+  const inst = instance._population;
+  // The runner hands a flat { grant_id: label } map; fail closed on anything else.
+  if (parsed === null || typeof parsed !== 'object' || Array.isArray(parsed)) {
     return {
       outcome: 'fail',
       classification: 'model_fail',
-      reason: 'off-grammar-no-labels',
+      reason: 'off-grammar-not-object',
       reached_stage: null,
     };
   }
   for (const g of inst.grants) {
-    const v = obj.labels[g.grant_id];
+    const v = parsed[g.grant_id];
     if (typeof v !== 'string' || !LABELS.includes(v)) {
       return {
         outcome: 'fail',
@@ -386,24 +392,30 @@ export function calibrationScore(instance, parsed) {
       };
     }
   }
-  const verdict = scoreDetection(inst, obj.labels);
+  const verdict = scoreDetection(inst, parsed);
   const key = evaluatorKey(inst);
-  const exact = inst.grants.every((g) => obj.labels[g.grant_id] === key[g.grant_id]);
+  const exact = inst.grants.every((g) => parsed[g.grant_id] === key[g.grant_id]);
   let reached = 'parsed';
   if (verdict.recall === 1) {
-    reached = 'all-malicious-caught';
+    reached = 'malicious-recalled';
   }
-  if (exact) {
-    reached = 'exact';
+  if (verdict.pass) {
+    reached = 'precision-clean';
   }
   return {
     outcome: verdict.pass ? 'pass' : 'fail',
     classification: verdict.pass ? 'pass' : 'model_fail',
     reached_stage: reached,
-    metrics: { precision: verdict.precision, recall: verdict.recall, fp: verdict.fp, exact },
+    metrics: {
+      precision: verdict.precision,
+      recall: verdict.recall,
+      fp: verdict.fp,
+      fp_on_survivor: verdict.fp_on_survivor,
+      exact,
+    },
   };
 }
 
 export function calibrationReference(instance) {
-  return { labels: referenceDetect(instance._instance) };
+  return referenceDetect(instance._population); // flat { grant_id: label }
 }

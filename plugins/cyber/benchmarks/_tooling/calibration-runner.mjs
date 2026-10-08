@@ -73,6 +73,7 @@ const INCIDENT_CANON = Object.freeze(
 // canonical before scoring.
 const DETECTION_SAFE_CODE = Object.freeze({
   'malicious-missed-by-query': 'malicious_missed',
+  'unauthorized-revoked': 'unauthorized_revoked',
   approved: 'approved',
   'same-user-survivor': 'same_user_survivor',
   ambiguous: 'ambiguous',
@@ -518,10 +519,15 @@ async function selftest() {
   const check = (name, ok, detail) => checks.push({ name, ok, detail });
 
   // Instance shape
-  check('instance has grants', instance.files.grants.length === 8, instance.files.grants.length);
+  check(
+    'instance has grants',
+    instance.files.grants.length > 0 &&
+      instance.files.grants.length === instance._population.grants.length,
+    instance.files.grants.length,
+  );
   check(
     'visible grants carry no label',
-    instance.files.grants.every((g) => g._label === undefined && g._archetype === undefined),
+    instance.files.grants.every((g) => g._label === undefined && g._key === undefined),
     'ok',
   );
 

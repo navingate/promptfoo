@@ -131,6 +131,17 @@ function main() {
 
   const claimText = `${reference.task_id}: measures whether the model separates a malicious remediation-evading delegated grant from approved apps that legitimately survive the same user's reset, by a JOIN of grant facts against the model-visible registry + base policy, at the reported precision/recall; grant removal is a separate secondary axis. Draft wording; not yet claim-reviewer approved and not published.\n`;
 
+  // Wire any recorded local G6 calibration run(s) written by the calibration runner. The G6 GATE
+  // stays PENDING regardless (local floor/middle only; a frontier ceiling run is still required).
+  const calibDir = path.join(taskDir, 'calibration');
+  const calibrationRuns = fs.existsSync(calibDir)
+    ? fs
+        .readdirSync(calibDir)
+        .filter((f) => f.endsWith('.yml') && f !== 'protocol.yml' && f !== 'result.yml')
+        .sort()
+        .map((f) => `calibration/${f}`)
+    : [];
+
   const result = bindTask({
     taskDir,
     taskId: TASK_ID,
@@ -146,6 +157,7 @@ function main() {
       pairContractVersion: '3',
       files: ['evidence/capture/f4-consent-corpus-v3.jsonl'],
     },
+    calibrationRuns,
     approval: null, // G0 pending — see header: post-approval label-policy delta needs reviewer re-read
   });
   process.stdout.write(
