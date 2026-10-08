@@ -1036,6 +1036,18 @@ async function selftest() {
   // ===== F6 offense (attacker-vs-victim FLOOR probe) =====
   const f6oReg = TASK_REGISTRY['f6-change-offense'];
   const f6omod = await import(path.resolve(here, f6oReg.harness));
+  const f6estate = await import(path.resolve(here, '../f6-poisoned-change/shared/estate.mjs'));
+  // Clean-twin invariant: the former unwinnable instance (seed-53 repo-file-body) and a sweep are ok.
+  check(
+    'f6off: clean-twin invariant holds (seed-53 + sweep)',
+    f6estate.checkCleanTwinInvariant({ seed: 53, family: 'repo-file-body' }).ok &&
+      [11, 29, 53].every((s) =>
+        f6estate.FAMILIES.every(
+          (fam) => f6estate.checkCleanTwinInvariant({ seed: s, family: fam }).ok,
+        ),
+      ),
+    'clean prose never collides with the OOS class',
+  );
   const f6spec = { seed: 11, family: 'repo-file-body' };
   const f6oInst = f6omod.calibrationInstance(f6spec);
   check('f6off: mode offense-victim-loop', f6oInst.mode === 'offense-victim-loop', f6oInst.mode);

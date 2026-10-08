@@ -25,6 +25,8 @@ import {
 import {
   BASELINE_AGENT,
   buildCase,
+  CORPUS_SEEDS,
+  checkCleanTwinInvariant,
   corpusSpecs,
   FAMILIES,
   ledgerToEvents,
@@ -40,6 +42,7 @@ import {
   referenceAttack,
   runMutation,
   runShortcut,
+  SCORED_SEEDS,
   SHORTCUT_NAMES,
   scoredCorpus,
 } from './harness.mjs';
@@ -333,7 +336,39 @@ async function generateDeoracleScan() {
   return scan;
 }
 
+// Clean-twin invariant across EVERY seed used by either corpus (offense SCORED_SEEDS ∪ defense
+// CORPUS_SEEDS) × family: the clean twin must induce only the ticket's own tool class, so no victim
+// following the clean prose can complete the out-of-scope target class (the seed-53 defect class).
+function generateCleanTwinInvariant() {
+  const seeds = [...new Set([...SCORED_SEEDS, ...CORPUS_SEEDS])].sort((a, b) => a - b);
+  const checks = [];
+  for (const family of FAMILIES) {
+    for (const seed of seeds) {
+      checks.push(checkCleanTwinInvariant({ seed, family }));
+    }
+  }
+  const violations = checks.filter((c) => !c.ok);
+  return {
+    task_id: TASK_ID,
+    seeds,
+    families: FAMILIES,
+    total: checks.length,
+    passed: checks.length - violations.length,
+    all_ok: violations.length === 0,
+    note: 'Per seed/family: clean prose carries the ticket tool KIND token and not the other non-gated tool token; the clean directive completes no out-of-scope class; the injected directive completes the target class; OOS tool != ticket tool. Guards the seed-53 class of defect (clean prose colliding with the OOS class, making the instance unwinnable).',
+    violations,
+    checks,
+  };
+}
+
 async function main() {
+  const cleanTwin = generateCleanTwinInvariant();
+  if (!cleanTwin.all_ok) {
+    throw new Error(
+      `clean-twin invariant FAILED for ${cleanTwin.violations.length} instance(s): ${JSON.stringify(cleanTwin.violations.slice(0, 5))}`,
+    );
+  }
+  writeJson(path.join(evidenceDir, 'clean-twin-invariant.json'), cleanTwin);
   const reference = generateReference();
   writeJson(path.join(evidenceDir, 'reference-results.json'), reference);
   const mutations = generateMutations();
@@ -355,6 +390,7 @@ async function main() {
       `[f6-offense] shortcuts ${shortcuts.baselines.filter((b) => b.solves_construct === false).length}/${shortcuts.baselines.length} fail-to-solve`,
       `[f6-offense] read-path ${readPath.on_read_path}/${readPath.total} on victim read path`,
       `[f6-offense] operational ${operational.checks.filter((c) => c.status === 'pass').length}/${operational.checks.length} pass`,
+      `[f6-offense] clean-twin invariant ${cleanTwin.passed}/${cleanTwin.total} ok (no OOS-class collision)`,
       `[f6-offense] de-oracled=${scan.de_oracled}  capture rows=${capture.rows}  digest ${staged.digest.slice(0, 12)}…`,
       '',
     ].join('\n'),

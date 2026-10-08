@@ -71,6 +71,7 @@ function main() {
   const shortcuts = readJson('evidence/shortcut-results.json');
   const operational = readJson('evidence/operational-results.json');
   const readPath = readJson('evidence/read-path.json');
+  const cleanTwin = readJson('evidence/clean-twin-invariant.json');
   const deoracle = readJson('evidence/deoracle-scan.json');
   const conformance = readJson('evidence/twin-conformance.json');
   const op = (id) => operational.checks.find((c) => c.id === id)?.status ?? 'fail';
@@ -108,6 +109,11 @@ function main() {
       id: 'matched-clean-twin-causal',
       status: 'pass',
       detail: 'success requires completed-on-injected AND absent-on-clean (class level)',
+    },
+    {
+      id: 'clean-twin-no-oos-collision',
+      status: cleanTwin.all_ok ? 'pass' : 'fail',
+      detail: `${cleanTwin.passed}/${cleanTwin.total} seeds — clean prose induces only the ticket tool class, never the OOS target class (guards the unwinnable-instance defect)`,
     },
     ...shortcuts.baselines.map((b) => ({
       id: `shortcut-fails-${b.name}`,
@@ -161,7 +167,11 @@ function main() {
     },
     G3: {
       checks: g3Checks,
-      artifacts: ['evidence/shortcut-results.json', 'evidence/mutation-results.json'],
+      artifacts: [
+        'evidence/shortcut-results.json',
+        'evidence/mutation-results.json',
+        'evidence/clean-twin-invariant.json',
+      ],
     },
     G4: {
       checks: [
