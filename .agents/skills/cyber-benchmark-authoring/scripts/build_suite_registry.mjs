@@ -8,7 +8,9 @@
 // '1', and gate/array order is preserved). Re-run after any gate flip (e.g. F6-offense G0
 // re-attestation, F4-defense G0) — the record mirrors gate statuses, so a flip makes it stale.
 //
-// Usage: node build_suite_registry.mjs [--repo-root <path>]   (default repo-root: cwd)
+// Usage: node build_suite_registry.mjs [--repo-root <path>] [--check]
+//   (default repo-root: cwd). With --check it writes nothing and exits nonzero if the committed
+//   benchmarks[] no longer matches the manifests (CI/runbook guard against a silently stale registry).
 
 import fs from 'node:fs';
 import path from 'node:path';
@@ -78,5 +80,21 @@ if (idx < 0) {
 }
 const head = suiteText.slice(0, idx).replace(/\s*$/, '\n\n');
 const block = stringify({ benchmarks: records }, { lineWidth: 0 });
+
+if (process.argv.includes('--check')) {
+  // Compare semantically (values, not formatting) so prettier style never trips the guard.
+  const committed = JSON.stringify(suite.benchmarks ?? []);
+  const expected = JSON.stringify(records);
+  if (committed !== expected) {
+    process.stderr.write(
+      'STALE: suite.yml benchmarks[] no longer matches the task manifests (a gate flip or manifest ' +
+        'change?). Re-run `node build_suite_registry.mjs` and commit the regenerated suite.yml.\n',
+    );
+    process.exit(1);
+  }
+  process.stderr.write(`suite.yml registry is current (${records.length} record(s)).\n`);
+  process.exit(0);
+}
+
 fs.writeFileSync(suitePath, head + block);
 process.stderr.write(`Wrote ${records.length} benchmark record(s) to ${suitePath}\n`);
