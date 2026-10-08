@@ -110,9 +110,16 @@ export function bindTask(config) {
 
   for (const gate of Object.keys(gates)) {
     const allChecksPass = gates[gate].checks.every((check) => check.status === 'pass');
+    // Always reference the gate's evidence file — it is written for every gate (below), and a
+    // PENDING gate's partial evidence must stay auditable: the auditor's gate-matrix only emits
+    // MODE_GATE_REQUIRED for a pending gate (it never inspects the evidence list), while
+    // validateReferenceCoverage reads gates.G1.evidence to confirm the calibrated seeds/families
+    // appear as PASSING reference checks. Emptying it on a legitimately-pending gate (e.g. F6
+    // offense G1, which needs the pinned victim) would wrongly fail reference coverage for a
+    // recorded floor-probe calibration whose per-seed plumbing checks do pass.
     manifest.gates[gate] = {
       status: allChecksPass ? 'pass' : 'pending',
-      evidence: allChecksPass ? [`evidence/${gate.toLowerCase()}.yml`] : [],
+      evidence: [`evidence/${gate.toLowerCase()}.yml`],
       waiver: null,
     };
   }
