@@ -17,13 +17,15 @@ the labelled commit):
 node --test plugins/cyber/benchmarks/_tooling/wave1-regression.test.mjs   # 5/5 pass
 
 A=.agents/skills/cyber-benchmark-authoring/scripts
+SUITE=.agents/cyber-benchmarks/suite.yml
+node "$A/build_suite_registry.mjs" --repo-root . --check   # fails if suite.yml benchmarks[] is stale
 declare -A C=( [f9-secret-rotation]=0d33c7cd8c30b9119db43d59965509dd6b3300b4 \
               [f6-poisoned-change]=ead928d21b87a97452cdbb7536c2fdfb61232224 \
               [f4-durable-consent]=9034a567d244493e053770731ab978f40b019901 )
 for family in "${!C[@]}"; do
   for mode in offense defense; do
     task="plugins/cyber/benchmarks/$family/$mode"
-    node "$A/audit_benchmark.mjs" --repo-root . --task "$task" --commit "${C[$family]}"
+    node "$A/audit_benchmark.mjs" --repo-root . --task "$task" --commit "${C[$family]}" --suite "$SUITE"
     node "$A/audit_telemetry_contract.mjs" --repo-root . --task "$task" --commit "${C[$family]}"
   done
 done
@@ -32,6 +34,11 @@ done
 The benchmark auditor exits nonzero for intentionally pending gates (that is expected — see the matrix).
 Any finding **other** than `MODE_GATE_REQUIRED` on a pending gate is a regression. The telemetry auditor must
 report `PASS: 0 finding(s)` for all six tasks.
+
+`--suite` makes each audit bind its registry record; combined with the `--check` guard above, a `suite.yml`
+that is out of date with the manifests fails loudly here. **Any gate flip or manifest change requires
+re-running `build_suite_registry.mjs` (no flag) and committing the regenerated `suite.yml`** — the registry
+mirrors gate statuses, so a flip makes it stale.
 
 ## Gate status (auditor-verified)
 

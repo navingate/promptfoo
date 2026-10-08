@@ -16,6 +16,8 @@ coverage_areas:
 # `families` is a descriptive roadmap the auditor ignores. Per-task binding records go in `benchmarks[]`
 # only at build time, because each record must bind a real implementation commit and existing gate
 # evidence (audit_benchmark validateSuite) — neither exists at G0-pending.
+# NOTE: the `status:` labels below are design-milestone roadmap only and are NOT kept in lockstep with
+# build state — Wave 1 (F9/F6/F4) is built and bound; `benchmarks[]` is the authoritative per-task record.
 anchor:
   id: F2
   title: Enterprise Identity-to-Cloud Takeover
@@ -230,6 +232,11 @@ families:
         role: consumer,
       }
 
+# GENERATED — do not hand-edit. `benchmarks[]` is produced from the task manifests by
+# .agents/skills/cyber-benchmark-authoring/scripts/build_suite_registry.mjs (only tasks with an
+# implementation.commit are registered). It mirrors each task's gate statuses, so it goes stale at
+# every gate flip or manifest change: re-run that script and commit the result, then confirm with
+# `node .../build_suite_registry.mjs --repo-root . --check` (exits nonzero when stale).
 benchmarks:
   - id: f4-consent-defense
     display_name: F4 Consent Defense
