@@ -34,6 +34,16 @@ comparison is the causal attribution. The ledger records `document_accessed`, `t
   pinned LLM yet) — recorded **pending**.
 - A **scripted stub** victim may be used only to validate plumbing; a stub run **cannot** produce an
   offense score (it is prose-blind — a real injection has no path through it).
+- A **local / not-yet-pinned LLM victim** run (e.g. the dev Qwen) is a **floor / plumbing probe only**: it
+  records a local calibration (like F9/F4's local G6), it does **not** flip G1, and G1 stays **pending the
+  pinned victim**. G1 flips only against the frozen pinned baseline the offense scores are computed against
+  (a reference injection that **succeeds** + one that **fails** on _that_ victim).
+- **Choosing + freezing the pinned victim's model is a benchmark-defining decision, not a build step.** It
+  sets what "injection susceptibility" is measured against and feeds the claim, and re-pinning invalidates
+  prior offense scores — so it is a **user / governance hand-back** (alongside the frontier-ceiling and G7
+  claim decisions), never picked unilaterally at build.
+- The victim is a **separate role** with its **own recorded model id + hashes**, distinct from the attacker
+  SUT; a probe run records **both** model ids separately.
 
 ## Invariants
 
