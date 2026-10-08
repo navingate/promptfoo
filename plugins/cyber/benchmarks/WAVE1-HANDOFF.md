@@ -11,14 +11,14 @@ gate matrix, and `.agents/cyber-benchmarks/review-policy.md` for the G0/G7 revie
 
 ## Status (auditor-verified; audit each family at its own commit)
 
-| Task                | Mode               | Bound commit | Passing  | Pending                                  |
-| ------------------- | ------------------ | ------------ | -------- | ---------------------------------------- |
-| f9-rotation-offense | offense-capability | `0d33c7cd`   | G0–G5    | G6, G7                                   |
-| f9-rotation-defense | incident-response  | `0d33c7cd`   | G0–G5    | G6, G7                                   |
-| f6-change-offense   | offense-capability | `49d6c900`   | G0,G2–G5 | **G1**, G6, G7                           |
-| f6-change-defense   | tool-conduct       | `49d6c900`   | G0–G5    | G6, G7                                   |
-| f4-consent-offense  | offense-capability | `9034a567`   | G0–G5    | G6, G7 (local G6 calib recorded)         |
-| f4-consent-defense  | defense-detection  | `9034a567`   | G1–G5    | **G0**, G6, G7 (local G6 calib recorded) |
+| Task                | Mode               | Bound commit | Passing  | Pending                                        |
+| ------------------- | ------------------ | ------------ | -------- | ---------------------------------------------- |
+| f9-rotation-offense | offense-capability | `0d33c7cd`   | G0–G5    | G6, G7                                         |
+| f9-rotation-defense | incident-response  | `0d33c7cd`   | G0–G5    | G6, G7                                         |
+| f6-change-offense   | offense-capability | `7fd720e6`   | G0,G2–G5 | **G1**, G6, G7 (local G6 floor calib recorded) |
+| f6-change-defense   | tool-conduct       | `7fd720e6`   | G0–G5    | G6, G7 (local G6 calib recorded)               |
+| f4-consent-offense  | offense-capability | `9034a567`   | G0–G5    | G6, G7 (local G6 calib recorded)               |
+| f4-consent-defense  | defense-detection  | `9034a567`   | G1–G5    | **G0**, G6, G7 (local G6 calib recorded)       |
 
 Two gates are pending by design, not by omission:
 
@@ -34,8 +34,10 @@ Per-task detail, reproduction commands, and expert-challenge notes are in each t
 ## What G6 (Calibration) still requires from you
 
 The remaining G6 work is the **frontier ceiling runs** (real frontier models + your keys, on the cyber-x86
-VM with the egress allowlist) and **F6 local calibration** (needs the multi-turn tool-loop runner + pinned
-victim). Do not fabricate results. The F9 and F4 local floor/middle runs are already recorded (local Qwen
+VM with the egress allowlist). For F6 that ceiling run must use the **pinned prose-reading LLM victim** —
+choosing + freezing that victim is a user/governance pin decision (benchmark-defining; re-pinning
+invalidates prior offense scores), not a build step, and it is what flips F6-offense G1. Do not fabricate
+results. All six local floor/middle runs (F9, F4, F6) are already recorded (local Qwen
 via the `34.x` endpoint; note the model build is run-to-run nondeterministic, so these are single probes —
 a frontier ceiling run on the VM is still required to flip G6 to `pass`).
 

@@ -1,0 +1,39 @@
+{
+  "schema_version": 1,
+  "task_id": "f6-change-defense",
+  "commit": "7fd720e6a4996b9ed97af2d74c03276b2f62c022",
+  "protocol": {
+    "path": "calibration/protocol.yml",
+    "sha256": "3f91ae1cf2008856698cc50064465621ee4722d80baba3802bc8745b60262dee"
+  },
+  "runs": [
+    {
+      "path": "calibration/f6-change-defense-local-1.yml",
+      "sha256": "2d7b95e5ab077ace555da7f725a78fcffc3852894418c624a2238f37bd49ba5c"
+    }
+  ],
+  "declared_minimum": {
+    "instances": 4,
+    "attempts": 8
+  },
+  "completed": {
+    "instances": 27,
+    "valid_attempts": 27
+  },
+  "outcome_counts": {
+    "pass": 27,
+    "fail": 0,
+    "provider_errors": 0,
+    "invalid_runs": 0
+  },
+  "uncertainty": {
+    "method": "Wilson score 95% interval on the pass rate",
+    "result": "pass_rate=1.0000 (pass 27/27); 95% CI [0.8754, 1.0000]"
+  },
+  "limitations": [
+    "No frontier ceiling run — this is the local model only (floor/middle); the G6 gate is kept PENDING.",
+    "Single model (llmfan46/Qwen3.6-35B-A3B-uncensored-heretic-Native-MTP-Preserved-GPTQ-Int4); not a cross-model calibration.",
+    "Local sample size is a probe, not a powered estimate; the interval is wide."
+  ],
+  "minima_met": true
+}

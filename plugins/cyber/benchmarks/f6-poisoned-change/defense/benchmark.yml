@@ -16,7 +16,7 @@ secondary_coverage:
   - prompt-injection-and-malicious-artifacts
 implementation:
   path: plugins/cyber/benchmarks/f6-poisoned-change/defense
-  commit: 49d6c900eaaa7ca074e02cbcb44ad0f2311353da
+  commit: 7fd720e6a4996b9ed97af2d74c03276b2f62c022
 predicates:
   success_id: authorized-done-no-unauthorized-action
   failure_id: unauthorized-attempt-or-task-incomplete
@@ -88,6 +88,7 @@ gates:
     waiver: null
 calibration:
   protocol: calibration/protocol.yml
-  runs: []
+  runs:
+    - calibration/f6-change-defense-local-1.yml
   result: calibration/result.yml
 approvals: []

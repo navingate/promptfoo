@@ -10,7 +10,7 @@ the labelled commit):
 | Family | Audit `--commit`                           |
 | ------ | ------------------------------------------ |
 | F9     | `0d33c7cd8c30b9119db43d59965509dd6b3300b4` |
-| F6     | `49d6c900eaaa7ca074e02cbcb44ad0f2311353da` |
+| F6     | `7fd720e6a4996b9ed97af2d74c03276b2f62c022` |
 | F4     | `9034a567d244493e053770731ab978f40b019901` |
 
 ```bash
@@ -18,7 +18,7 @@ node --test plugins/cyber/benchmarks/_tooling/wave1-regression.test.mjs   # 5/5 
 
 A=.agents/skills/cyber-benchmark-authoring/scripts
 declare -A C=( [f9-secret-rotation]=0d33c7cd8c30b9119db43d59965509dd6b3300b4 \
-              [f6-poisoned-change]=49d6c900eaaa7ca074e02cbcb44ad0f2311353da \
+              [f6-poisoned-change]=7fd720e6a4996b9ed97af2d74c03276b2f62c022 \
               [f4-durable-consent]=9034a567d244493e053770731ab978f40b019901 )
 for family in "${!C[@]}"; do
   for mode in offense defense; do
@@ -41,9 +41,11 @@ owner (2026-10-07). Each task's `evidence/approval-g0-construct.yml` records the
 construct-defining docs are byte-identical to `43c437f8c` (a fail-closed empty-diff guard enforces this at
 bind time). Each manifest's `achieved_evidence_level` is **unset (`null`)**; the auditor's _computed_
 evidence level is **0** and stays there until the full reviewer chain + calibration are complete (level 1
-needs all reviewer roles, including the **human** claim reviewer at G7). F9 (both tasks) and F4 (both
-tasks) additionally have a recorded local G6 calibration (`calibration/`) on the local Qwen model; F6 has
-none yet. The G6 gate stays pending for all six, awaiting a frontier ceiling run.
+needs all reviewer roles, including the **human** claim reviewer at G7). All six tasks (F9, F4, F6) now
+have a recorded local G6 calibration (`calibration/`) on the local Qwen model. The G6 gate stays pending
+for all six, awaiting a frontier ceiling run. F6 offense is a **floor / plumbing probe only** (the victim
+is a dev-Qwen stand-in, not the pinned baseline), so it does not flip F6-offense G1, which stays pending
+the pinned victim (F2 Chain ruling 2026-10-08, `f6 offense/validator-contract.md @ 1bd69d47`).
 
 | Task       | Passing gates     | Pending gates  | Why pending                                                                                                                                                                                                                                |
 | ---------- | ----------------- | -------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
@@ -59,7 +61,10 @@ none yet. The G6 gate stays pending for all six, awaiting a frontier ceiling run
 - F9: offense reference 18/18 declared scored instances; defense reference across subtypes; shortcuts fail.
 - F6: offense reference 60/60 (scripted-stub plumbing — the real score needs the G6 victim); negative
   mutations reach the correct stage; 5 shortcuts compute `solves_construct: false`; G2 read-path 120/120;
-  defense reference 180/180 useful-refusal; twin conformance 180/180.
+  defense reference 180/180 useful-refusal; twin conformance 180/180. Local G6 floor probe (dev-Qwen,
+  self-play, 2026-10-08): offense 8/9 completed an out-of-scope action (1 fails causal separation — the
+  victim also acted out-of-scope on the clean twin); defense 27/27 useful-refusal (a ceiling for this
+  model+hardened-prompt — directional only). Both bound at `7fd720e6…`; G6 gate stays pending the ceiling.
 - F4: offense reference 64/64; 6 negative mutations stop for the intended reason; decision space has no
   fixed position/facet tell; defense reference joiner reproduces the evaluator key 64/64 (independent
   re-implementation; a divergence test confirms non-tautology); shortcuts fail; coverage spans all 6
@@ -73,8 +78,9 @@ contents and SHA-256 values before committing.
 
 ## Limits / hand-backs
 
-Not performed here (require the user, frontier keys, or a human reviewer): G6 frontier ceiling runs (cost),
-F6 local G6 calibration (needs the multi-turn tool-loop runner + pinned victim, not yet built), G7
-claim/release review (**human or independent-org** reviewer required — an AI review is not sufficient for
-release), and the F4-defense G0 reviewer re-read. F9 and F4 local G6 calibration **were** recorded here
+Not performed here (require the user, frontier keys, or a human reviewer): G6 frontier ceiling runs (cost)
+— including the F6 pinned-victim reference that flips F6-offense G1, a user/governance pin decision, not a
+build step; G7 claim/release review (**human or independent-org** reviewer required — an AI review is not
+sufficient for release); and the F4-defense G0 reviewer re-read. All six local G6 calibrations (F9, F4, F6)
+**were** recorded here
 (local Qwen floor/middle via the `34.x` endpoint; see each task's `calibration/`).

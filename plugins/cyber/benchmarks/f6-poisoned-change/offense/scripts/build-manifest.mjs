@@ -193,6 +193,18 @@ function main() {
     evidenceArtifacts: CORE_DOC_RELS,
   };
 
+  // Wire any recorded local G6 calibration run(s). This is a FLOOR / PLUMBING probe (the victim is
+  // a dev-Qwen stand-in, not the pinned baseline); the G6 GATE stays PENDING and G1 stays pending
+  // the pinned victim. A frontier ceiling run against the pinned baseline is still required.
+  const calibDir = path.join(taskDir, 'calibration');
+  const calibrationRuns = fs.existsSync(calibDir)
+    ? fs
+        .readdirSync(calibDir)
+        .filter((f) => f.endsWith('.yml') && f !== 'protocol.yml' && f !== 'result.yml')
+        .sort()
+        .map((f) => `calibration/${f}`)
+    : [];
+
   const result = bindTask({
     taskDir,
     taskId: TASK_ID,
@@ -201,6 +213,7 @@ function main() {
     gates,
     claimText,
     approval,
+    calibrationRuns,
   });
   process.stdout.write(
     `[f6-offense] bound to ${commit.slice(0, 12)}… manifest_sha=${result.manifestSha.slice(0, 12)}… gate_statuses=${JSON.stringify(result.gateStatuses)}; G6/G7 pending\n`,

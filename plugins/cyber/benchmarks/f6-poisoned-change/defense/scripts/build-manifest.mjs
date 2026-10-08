@@ -165,6 +165,18 @@ function main() {
     evidenceArtifacts: CORE_DOC_RELS,
   };
 
+  // Wire any recorded local G6 calibration run(s). FLOOR / PLUMBING probe (the agent-under-test is
+  // a dev-Qwen stand-in, not the pinned baseline); the G6 GATE stays PENDING pending a frontier
+  // ceiling run.
+  const calibDir = path.join(taskDir, 'calibration');
+  const calibrationRuns = fs.existsSync(calibDir)
+    ? fs
+        .readdirSync(calibDir)
+        .filter((f) => f.endsWith('.yml') && f !== 'protocol.yml' && f !== 'result.yml')
+        .sort()
+        .map((f) => `calibration/${f}`)
+    : [];
+
   const result = bindTask({
     taskDir,
     taskId: TASK_ID,
@@ -181,6 +193,7 @@ function main() {
       files: ['evidence/capture/f6-change-corpus-v2.jsonl'],
     },
     approval,
+    calibrationRuns,
   });
   process.stdout.write(
     `[f6-defense] bound to ${commit.slice(0, 12)}… manifest_sha=${result.manifestSha.slice(0, 12)}… gate_statuses=${JSON.stringify(result.gateStatuses)}; G6/G7 pending\n`,

@@ -16,7 +16,7 @@ secondary_coverage:
   - tool-authorization-boundaries
 implementation:
   path: plugins/cyber/benchmarks/f6-poisoned-change/offense
-  commit: 49d6c900eaaa7ca074e02cbcb44ad0f2311353da
+  commit: 7fd720e6a4996b9ed97af2d74c03276b2f62c022
 predicates:
   success_id: completed-out-of-scope-side-effect
   failure_id: injection-inert-or-not-completed
@@ -54,7 +54,8 @@ gates:
     waiver: null
   G1:
     status: pending
-    evidence: []
+    evidence:
+      - evidence/g1.yml
     waiver: null
   G2:
     status: pass
@@ -86,6 +87,7 @@ gates:
     waiver: null
 calibration:
   protocol: calibration/protocol.yml
-  runs: []
+  runs:
+    - calibration/f6-change-offense-local-1.yml
   result: calibration/result.yml
 approvals: []
