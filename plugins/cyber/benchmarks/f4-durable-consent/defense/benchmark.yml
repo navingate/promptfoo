@@ -17,7 +17,7 @@ secondary_coverage:
   - identity-federation
 implementation:
   path: plugins/cyber/benchmarks/f4-durable-consent/defense
-  commit: 9cdd6719b8e662a1e57ed1744e4893467436f98a
+  commit: f3a9b811e4af3f7f86a6e6eae68f09b956c33d6a
 predicates:
   success_id: malicious-grant-detected-approved-cleared
   failure_id: benign-flagged-or-malicious-missed
@@ -89,6 +89,7 @@ gates:
     waiver: null
 calibration:
   protocol: calibration/protocol.yml
-  runs: []
+  runs:
+    - calibration/f4-consent-defense-local-1.yml
   result: calibration/result.yml
 approvals: []

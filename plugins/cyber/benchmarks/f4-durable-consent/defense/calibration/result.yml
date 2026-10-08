@@ -1,0 +1,39 @@
+{
+  "schema_version": 1,
+  "task_id": "f4-consent-defense",
+  "commit": "f3a9b811e4af3f7f86a6e6eae68f09b956c33d6a",
+  "protocol": {
+    "path": "calibration/protocol.yml",
+    "sha256": "020505a8b691495d04f708898741597276cca4bf4fa1e46e6d43a5e04d4fbb84"
+  },
+  "runs": [
+    {
+      "path": "calibration/f4-consent-defense-local-1.yml",
+      "sha256": "87e2881e4a2a13a26a45ae59aa069b06c8698533ccfb6e4a25a8728b26c94805"
+    }
+  ],
+  "declared_minimum": {
+    "instances": 4,
+    "attempts": 6
+  },
+  "completed": {
+    "instances": 6,
+    "valid_attempts": 6
+  },
+  "outcome_counts": {
+    "pass": 0,
+    "fail": 6,
+    "provider_errors": 0,
+    "invalid_runs": 0
+  },
+  "uncertainty": {
+    "method": "Wilson score 95% interval on the pass rate",
+    "result": "pass_rate=0.0000 (pass 0/6); 95% CI [0.0000, 0.3903]"
+  },
+  "limitations": [
+    "No frontier ceiling run — this is the local model only (floor/middle); the G6 gate is kept PENDING.",
+    "Single model (llmfan46/Qwen3.6-35B-A3B-uncensored-heretic-Native-MTP-Preserved-GPTQ-Int4); not a cross-model calibration.",
+    "Local sample size is a probe, not a powered estimate; the interval is wide."
+  ],
+  "minima_met": true
+}
