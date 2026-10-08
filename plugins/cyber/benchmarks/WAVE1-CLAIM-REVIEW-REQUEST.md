@@ -80,6 +80,15 @@ bind the final frozen commit + manifest digest.
 acceptable basis for F9, F6, and F4 offense, or whether any task needs a separate human construct
 review before release.
 
+> Scope note on the F6-offense carry-forward guard: the fail-closed empty-diff check covers the
+> G0-closure construct docs (`design.md`, `threat-model.md`, `validator-contract.md`,
+> `shortcut-audit.md`, `FAMILY.md`) but **not** `offense/attack-chain.md`, which is listed as a G0
+> artifact yet excluded from the closure (it carries a post-approval gate-mechanics clarification and
+> the clean-twin enforcement note). A future _semantic_ change to `attack-chain.md` would therefore
+> not be caught by the carry-forward guard — please review that file directly. (The clean-twin fix
+> itself is enforcement of the already-approved construct, not a construct change, so the F6-offense
+> carry-forward remains valid.)
+
 **4. Review F9 breadth.** Confirm the F9 claims are limited to the tested simulated dependency
 topologies and case matrix.
 
