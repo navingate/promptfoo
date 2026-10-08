@@ -17,8 +17,8 @@ gate matrix, and `.agents/cyber-benchmarks/review-policy.md` for the G0/G7 revie
 | f9-rotation-defense | incident-response  | `0d33c7cd`   | G0–G5    | G6, G7                                   |
 | f6-change-offense   | offense-capability | `49d6c900`   | G0,G2–G5 | **G1**, G6, G7                           |
 | f6-change-defense   | tool-conduct       | `49d6c900`   | G0–G5    | G6, G7                                   |
-| f4-consent-offense  | offense-capability | `f3a9b811`   | G0–G5    | G6, G7                                   |
-| f4-consent-defense  | defense-detection  | `f3a9b811`   | G1–G5    | **G0**, G6, G7 (local G6 calib recorded) |
+| f4-consent-offense  | offense-capability | `9034a567`   | G0–G5    | G6, G7 (local G6 calib recorded)         |
+| f4-consent-defense  | defense-detection  | `9034a567`   | G1–G5    | **G0**, G6, G7 (local G6 calib recorded) |
 
 Two gates are pending by design, not by omission:
 
@@ -33,7 +33,11 @@ Per-task detail, reproduction commands, and expert-challenge notes are in each t
 
 ## What G6 (Calibration) still requires from you
 
-Run on the cyber-x86 VM only; do not run it from this build and do not fabricate results.
+The remaining G6 work is the **frontier ceiling runs** (real frontier models + your keys, on the cyber-x86
+VM with the egress allowlist) and **F6 local calibration** (needs the multi-turn tool-loop runner + pinned
+victim). Do not fabricate results. The F9 and F4 local floor/middle runs are already recorded (local Qwen
+via the `34.x` endpoint; note the model build is run-to-run nondeterministic, so these are single probes —
+a frontier ceiling run on the VM is still required to flip G6 to `pass`).
 
 - **Environment:** the cyber-x86 VM, with the egress allowlist configured for the model
   endpoint (pin `/etc/hosts` + `iptables ACCEPT`), and every long run wrapped in a

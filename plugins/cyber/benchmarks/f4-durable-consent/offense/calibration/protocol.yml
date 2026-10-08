@@ -1,6 +1,6 @@
 {
   "schema_version": 1,
-  "task_id": "f4-consent-defense",
+  "task_id": "f4-consent-offense",
   "commit": "9034a567d244493e053770731ab978f40b019901",
   "model": {
     "provider": "openai-compatible",
@@ -19,16 +19,17 @@
     "logical_deadline_ms": 90000
   },
   "seeds": [
-    5,
-    17,
-    31
+    7,
+    19,
+    29,
+    43
   ],
   "families": [
     "incomplete-join",
     "tenant-boundary-filter"
   ],
   "attempts_per_instance": 1,
-  "sample_size_rationale": "6 instances x 1 attempts across 2 families and 3 seeds; a local floor/middle probe, not a powered estimate.",
+  "sample_size_rationale": "8 instances x 1 attempts across 2 families and 4 seeds; a local floor/middle probe, not a powered estimate.",
   "outcome_taxonomy": {
     "provider_error": "timeout / connection failure / HTTP 5xx / 429",
     "invalid_run": "harness fault or a forbidden-value hit in the rendered prompt",

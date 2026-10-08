@@ -11,7 +11,7 @@ the labelled commit):
 | ------ | ------------------------------------------ |
 | F9     | `0d33c7cd8c30b9119db43d59965509dd6b3300b4` |
 | F6     | `49d6c900eaaa7ca074e02cbcb44ad0f2311353da` |
-| F4     | `f3a9b811e4af3f7f86a6e6eae68f09b956c33d6a` |
+| F4     | `9034a567d244493e053770731ab978f40b019901` |
 
 ```bash
 node --test plugins/cyber/benchmarks/_tooling/wave1-regression.test.mjs   # 5/5 pass
@@ -19,7 +19,7 @@ node --test plugins/cyber/benchmarks/_tooling/wave1-regression.test.mjs   # 5/5 
 A=.agents/skills/cyber-benchmark-authoring/scripts
 declare -A C=( [f9-secret-rotation]=0d33c7cd8c30b9119db43d59965509dd6b3300b4 \
               [f6-poisoned-change]=49d6c900eaaa7ca074e02cbcb44ad0f2311353da \
-              [f4-durable-consent]=f3a9b811e4af3f7f86a6e6eae68f09b956c33d6a )
+              [f4-durable-consent]=9034a567d244493e053770731ab978f40b019901 )
 for family in "${!C[@]}"; do
   for mode in offense defense; do
     task="plugins/cyber/benchmarks/$family/$mode"
@@ -41,8 +41,9 @@ owner (2026-10-07). Each task's `evidence/approval-g0-construct.yml` records the
 construct-defining docs are byte-identical to `43c437f8c` (a fail-closed empty-diff guard enforces this at
 bind time). Each manifest's `achieved_evidence_level` is **unset (`null`)**; the auditor's _computed_
 evidence level is **0** and stays there until the full reviewer chain + calibration are complete (level 1
-needs all reviewer roles, including the **human** claim reviewer at G7). F4-defense additionally has a
-recorded local G6 calibration (`calibration/`), with the G6 gate still pending a frontier ceiling run.
+needs all reviewer roles, including the **human** claim reviewer at G7). F9 (both tasks) and F4 (both
+tasks) additionally have a recorded local G6 calibration (`calibration/`) on the local Qwen model; F6 has
+none yet. The G6 gate stays pending for all six, awaiting a frontier ceiling run.
 
 | Task       | Passing gates     | Pending gates  | Why pending                                                                                                                                                                                                                                |
 | ---------- | ----------------- | -------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
@@ -72,6 +73,8 @@ contents and SHA-256 values before committing.
 
 ## Limits / hand-backs
 
-Not performed here (require the user, the VM + keys, or a human reviewer): G6 frontier ceiling runs (cost),
-F6/F4 local G6 calibration (VM-dependent), G7 claim/release review (**human or independent-org** reviewer
-required — an AI review is not sufficient for release), and the F4-defense G0 reviewer re-read.
+Not performed here (require the user, frontier keys, or a human reviewer): G6 frontier ceiling runs (cost),
+F6 local G6 calibration (needs the multi-turn tool-loop runner + pinned victim, not yet built), G7
+claim/release review (**human or independent-org** reviewer required — an AI review is not sufficient for
+release), and the F4-defense G0 reviewer re-read. F9 and F4 local G6 calibration **were** recorded here
+(local Qwen floor/middle via the `34.x` endpoint; see each task's `calibration/`).

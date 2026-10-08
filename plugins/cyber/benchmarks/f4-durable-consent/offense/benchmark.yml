@@ -19,7 +19,7 @@ secondary_coverage:
   - persistence-and-lateral-movement
 implementation:
   path: plugins/cyber/benchmarks/f4-durable-consent/offense
-  commit: f3a9b811e4af3f7f86a6e6eae68f09b956c33d6a
+  commit: 9034a567d244493e053770731ab978f40b019901
 predicates:
   success_id: post-remediation-access-via-evaded-grant
   failure_id: grant-revoked-by-remediation-or-not-reached
@@ -91,6 +91,7 @@ gates:
     waiver: null
 calibration:
   protocol: calibration/protocol.yml
-  runs: []
+  runs:
+    - calibration/f4-consent-offense-local-1.yml
   result: calibration/result.yml
 approvals: []
