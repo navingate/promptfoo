@@ -14,17 +14,17 @@
   ],
   "attempts_per_instance": 1,
   "model": {
-    "role_model": "two-role: attacker SUT + victim stand-in (separate ids)",
+    "role_model": "two-role: attacker SUT + PINNED victim baseline (separate ids)",
     "attacker_sut": {
       "provider": "openai-compatible",
-      "id": "llmfan46/Qwen3.6-35B-A3B-uncensored-heretic-Native-MTP-Preserved-GPTQ-Int4",
+      "id": "palmfuture/Qwen3.6-35B-A3B-GPTQ-Int4",
       "endpoint": "http://34.21.191.234:8000/v1"
     },
-    "victim_stand_in": {
+    "victim_pinned_baseline": {
       "provider": "openai-compatible",
-      "id": "llmfan46/Qwen3.6-35B-A3B-uncensored-heretic-Native-MTP-Preserved-GPTQ-Int4",
+      "id": "palmfuture/Qwen3.6-35B-A3B-GPTQ-Int4",
       "endpoint": "http://34.21.191.234:8000/v1",
-      "role": "stand-in-not-pinned-baseline",
+      "role": "pinned-baseline",
       "system_prompt_sha256": "dee3634d81e0e15f328ae7323c9de953769abe837d18d01e528790849ad994a7",
       "tool_surface_sha256": "3a3c25b70e760a756ca1528cd261fb6942e11d9d46eea493ad7f642d1eb98575"
     }

@@ -4,17 +4,17 @@
   "commit": "ead928d21b87a97452cdbb7536c2fdfb61232224",
   "run_id": "f6-change-offense-local-1",
   "model": {
-    "role_model": "two-role: attacker SUT + victim stand-in (separate ids)",
+    "role_model": "two-role: attacker SUT + PINNED victim baseline (separate ids)",
     "attacker_sut": {
       "provider": "openai-compatible",
-      "id": "llmfan46/Qwen3.6-35B-A3B-uncensored-heretic-Native-MTP-Preserved-GPTQ-Int4",
+      "id": "palmfuture/Qwen3.6-35B-A3B-GPTQ-Int4",
       "endpoint": "http://34.21.191.234:8000/v1"
     },
-    "victim_stand_in": {
+    "victim_pinned_baseline": {
       "provider": "openai-compatible",
-      "id": "llmfan46/Qwen3.6-35B-A3B-uncensored-heretic-Native-MTP-Preserved-GPTQ-Int4",
+      "id": "palmfuture/Qwen3.6-35B-A3B-GPTQ-Int4",
       "endpoint": "http://34.21.191.234:8000/v1",
-      "role": "stand-in-not-pinned-baseline",
+      "role": "pinned-baseline",
       "system_prompt_sha256": "dee3634d81e0e15f328ae7323c9de953769abe837d18d01e528790849ad994a7",
       "tool_surface_sha256": "3a3c25b70e760a756ca1528cd261fb6942e11d9d46eea493ad7f642d1eb98575"
     }
@@ -72,19 +72,19 @@
   "artifacts": {
     "config": {
       "path": "calibration/f6-change-offense-local-1-config.json",
-      "sha256": "1dc116fa6f1f8d8d98baa68112e9e995ebd62d0ebe2ef023f8fa2e61988719cb"
+      "sha256": "1a5c5cc84ce73109da66e9fa4c1e2dc2218e66cfb29a282b3df3570554e7be23"
     },
     "prompt": {
       "path": "calibration/f6-change-offense-local-1-prompt.txt",
-      "sha256": "253751e96d123767237d2bb93499ee92ca474f56efadbd2bcff7352216cfb647"
+      "sha256": "4cf78e2a9d403a968b95ef9d7c2017e149b7cb40425d64ea5cb3f8916da01baa"
     },
     "raw_output": {
       "path": "calibration/f6-change-offense-local-1-raw.jsonl",
-      "sha256": "b58c43cdd81b1ea251dd613fd58ea7f154add9f588201246cd0d004ae6cc1fbe"
+      "sha256": "706eeeb1451286bc803d2b1a6fa4a33d78becf6057e37e73d05c9e12041735da"
     },
     "summarized_output": {
       "path": "calibration/f6-change-offense-local-1-summary.jsonl",
-      "sha256": "a7414491573579a6b1d25bf37eff48e13af6ae9de7c62bfde04e92803bbccf68"
+      "sha256": "0f71d48d0fd3076b9eba491c0e9aa1006aa06884688cdd324fa6033c11e1875a"
     }
   }
 }

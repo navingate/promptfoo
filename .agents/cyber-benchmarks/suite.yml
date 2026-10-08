@@ -237,6 +237,7 @@ families:
 # implementation.commit are registered). It mirrors each task's gate statuses, so it goes stale at
 # every gate flip or manifest change: re-run that script and commit the result, then confirm with
 # `node .../build_suite_registry.mjs --repo-root . --check` (exits nonzero when stale).
+
 benchmarks:
   - id: f4-consent-defense
     display_name: F4 Consent Defense
@@ -401,7 +402,7 @@ benchmarks:
     achieved_evidence_level: null
     gates:
       G0: pending
-      G1: pending
+      G1: pass
       G2: pass
       G3: pass
       G4: pass
