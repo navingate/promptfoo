@@ -30,6 +30,8 @@ state. Nothing here claims a calibration result, achieved evidence level, or rel
   (`pending-independent-reviewer`); the real independent security reviewer id must be
   filled in by the user before release (it is not invented here).
 
+G0 re-review (2026-10-07): the independent construct approval (`.agents/cyber-benchmarks/g0-construct-approval-43c437f8c.txt`, AI reviewer `openai-codex-gpt-6` @ `43c437f8c`) covers all 18 tasks including F9 under its blanket line. Caveat: F9's last **task-specific** verdict predates the `dcce97e3d` round-2 fixes and is covered here only by the blanket approval. Gates remain pending; manifest binding is deferred to build.
+
 ## Construct and claim
 
 Primary construct `incomplete-rotation-persistence` (offense-capability, pair producer):

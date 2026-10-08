@@ -1,0 +1,66 @@
+schema_version: 1
+status: draft-g0
+# Every scoring-/label-input field is native or derived (never synthesized). Build-phase transform IDs +
+# source-event hashes pending.
+telemetry_contract_id: f3-workload-events-v1
+fields:
+  - normalized_path: actor.kind
+    security_relevant: true
+    scoring_input: true
+    label_input: false
+    lineage: { kind: native, source_event: workload-event, source_path: actor.kind }
+  - normalized_path: token.use
+    security_relevant: true
+    scoring_input: true
+    label_input: false
+    lineage: { kind: native, source_event: token-event, source_path: token.use }
+  - normalized_path: controller.action
+    security_relevant: true
+    scoring_input: true
+    label_input: false
+    lineage: { kind: native, source_event: controller-event, source_path: controller.action }
+  - normalized_path: controller.on_behalf_of
+    security_relevant: true
+    scoring_input: true
+    label_input: false
+    lineage: { kind: native, source_event: controller-event, source_path: on_behalf_of }
+  - normalized_path: workload.provenance
+    security_relevant: true
+    scoring_input: true
+    label_input: false
+    lineage: { kind: native, source_event: workload-event, source_path: provenance }
+  - normalized_path: authority.effective
+    security_relevant: true
+    scoring_input: true
+    label_input: false
+    lineage: { kind: native, source_event: data-access-event, source_path: effective_authority }
+  - normalized_path: data.access
+    security_relevant: true
+    scoring_input: true
+    label_input: false
+    lineage: { kind: native, source_event: data-access-event, source_path: data.access }
+  - normalized_path: workload.rbac_verbs
+    security_relevant: true
+    scoring_input: true
+    label_input: false
+    lineage: { kind: native, source_event: rbac, source_path: workload_verbs } # the attacker workload's own permissions (raw)
+  - normalized_path: controller.rbac_verbs
+    security_relevant: true
+    scoring_input: true
+    label_input: false
+    lineage: { kind: native, source_event: rbac, source_path: controller_verbs } # the controller's permissions (raw)
+  - normalized_path: object.lineage
+    security_relevant: true
+    scoring_input: true
+    label_input: false
+    lineage: { kind: native, source_event: controller-event, source_path: consumed_object_ref } # which lower-priv object the controller consumed
+  # NOTE: whether this constitutes delegation-without-direct-authority is an evaluator-only VERDICT the
+  # model must DERIVE from the raw facts above (attacker RBAC verbs, controller RBAC verbs, consumed-object
+  # lineage, effective authority). Removed the former flow.delegation_without_direct_authority, which was
+  # an answer-like policy conclusion exposed to the model (reviewer cross-cutting).
+  - normalized_path: display.row_index
+    security_relevant: false
+    scoring_input: false
+    label_input: false
+    lineage:
+      { kind: synthesized, rationale: presentation order only; never feeds scoring or labels }

@@ -1,0 +1,46 @@
+schema_version: 1
+status: draft-g0
+# Construct-defining draft of the model-visible observation plane for the F10 detector.
+# Build-phase bindings (fully_staged_context_sha256, per-source hashes) remain pending.
+telemetry_contract_id: f10-exfil-events-v1
+forbidden_inventory: forbidden-values.yml
+sources:
+  prompts:
+    present: true
+    note: >-
+      detector task prompt + the model-visible data-handling policy, INCLUDING the cumulative sensitivity
+      aggregate limit per actor/destination/window (reviewer F10.1 — the rule is discoverable)
+  files:
+    present: true
+    note: >-
+      model-visible data catalog (schema, column/row classification, dataset ownership, access controls)
+      so sensitivity is inferable from evidence (F10.2); and the authenticated job registry
+  telemetry:
+    present: true
+    note: native export/access events; cumulative_sensitive_volume is a deterministic adapter aggregation over these
+    native_fields:
+      - actor.identity
+      - actor.scope
+      - resource.dataset
+      - resource.catalog_classification # from the model-visible catalog (not an evaluator secret)
+      - action.type # query | report | export | share
+      - action.volume
+      - action.destination
+      - action.job_ref # -> authenticated job registry (the authorization basis)
+      - action.declared_purpose # UNTRUSTED self-asserted context; never an authorization basis
+      - job.job_id # authenticated job registry fields:
+      - job.approval_ref
+      - job.approved_dataset_scope
+      - job.approved_destination
+      - job.approved_volume_window
+      - job.actor_binding
+      - policy.cumulative_aggregate_limit # model-visible rule
+      - event.time
+      - event.arrival_order
+  tool_descriptions: { present: false }
+  feedback: { present: false }
+  exposed_environment_values: { present: false }
+  artifacts: { present: false }
+  serialized_results: { present: false }
+# Evaluator-only (NOT model-visible): the exfil label, the terminal transfer marker, the answer key.
+# NOT hidden (reviewer F10): the policy aggregate limit, the catalog classification, the job registry.
