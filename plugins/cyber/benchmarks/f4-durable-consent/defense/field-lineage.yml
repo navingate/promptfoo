@@ -1,203 +1,91 @@
 schema_version: 1
-status: draft-g0
-# Construct-defining draft. Every scoring-/label-input field is native or derived (never synthesized).
-# Build-phase transform IDs + source-event hashes remain pending. Covers every decisive model-visible
-# field named in the design (reviewer round-2 F4).
 telemetry_contract_id: f4-consent-events-v3
 fields:
-  - normalized_path: app.owner_principal
-    security_relevant: true
-    scoring_input: true
-    label_input: false
-    lineage: { kind: native, source_event: app.registration, source_path: owner_principal }
-  - normalized_path: app.tenant
-    security_relevant: true
-    scoring_input: true
-    label_input: false
-    lineage: { kind: native, source_event: app.registration, source_path: tenant }
-  - normalized_path: app.verification_state
-    security_relevant: true
-    scoring_input: true
-    label_input: false
-    lineage: { kind: native, source_event: app.registration, source_path: verification_state }
-  - normalized_path: consent.consent_actor
-    security_relevant: true
-    scoring_input: true
-    label_input: false
-    lineage: { kind: native, source_event: consent.grant, source_path: consent_actor }
-  - normalized_path: consent.grantor_type
-    security_relevant: true
-    scoring_input: true
-    label_input: false
-    lineage: { kind: native, source_event: consent.grant, source_path: grantor_type }
-  - normalized_path: consent.approval_route
-    security_relevant: true
-    scoring_input: true
-    label_input: false
-    lineage: { kind: native, source_event: consent.grant, source_path: approval_route } # categorical; NOT a registry key
-  - normalized_path: grant.grant_id
-    security_relevant: true
-    scoring_input: true
-    label_input: false
-    lineage: { kind: native, source_event: consent.grant, source_path: grant_id }
   - normalized_path: grant.client_id
     security_relevant: true
-    scoring_input: true
-    label_input: false
-    lineage: { kind: native, source_event: consent.grant, source_path: client_id } # joins registry client_or_app_selector
-  - normalized_path: grant.tenant
-    security_relevant: true
-    scoring_input: true
-    label_input: false
-    lineage: { kind: native, source_event: consent.grant, source_path: tenant } # joins registry tenant_selector
-  - normalized_path: grant.scopes
-    security_relevant: true
-    scoring_input: true
-    label_input: false
-    lineage: { kind: native, source_event: consent.grant, source_path: scopes }
-  - normalized_path: grant.issue_time
-    security_relevant: true
-    scoring_input: true
-    label_input: false
-    lineage: { kind: native, source_event: consent.grant, source_path: issue_time }
-  - normalized_path: grant.principal_binding
-    security_relevant: true
-    scoring_input: true
-    label_input: false
-    lineage: { kind: native, source_event: consent.grant, source_path: principal_binding }
-  - normalized_path: grant.refresh_lineage
-    security_relevant: true
-    scoring_input: true
-    label_input: false
-    lineage: { kind: native, source_event: token.refresh, source_path: refresh_lineage }
-  - normalized_path: grant.created_by_principal
-    security_relevant: true
-    scoring_input: true
-    label_input: false
-    lineage: { kind: native, source_event: consent.grant, source_path: created_by_principal } # raw creator; no "attacker" flag
-  - normalized_path: grant.created_via_session_ref
-    security_relevant: true
-    scoring_input: true
-    label_input: false
-    lineage: { kind: native, source_event: consent.grant, source_path: created_via_session_ref }
-  - normalized_path: grant.creation_time
-    security_relevant: true
-    scoring_input: true
-    label_input: false
-    lineage: { kind: native, source_event: consent.grant, source_path: creation_time }
-  - normalized_path: remediation.reset_time
-    security_relevant: true
-    scoring_input: true
-    label_input: false
-    lineage: { kind: native, source_event: remediation.run, source_path: reset_time }
-  - normalized_path: remediation.query_relationship
-    security_relevant: true
-    scoring_input: true
-    label_input: false
-    lineage: { kind: native, source_event: remediation.run, source_path: query_relationship }
-  - normalized_path: remediation.revoked_grant_ids
-    security_relevant: true
-    scoring_input: true
-    label_input: false
-    lineage: { kind: native, source_event: remediation.run, source_path: revoked_grant_ids }
-  - normalized_path: resource_access.call_time
-    security_relevant: true
-    scoring_input: true
-    label_input: false
-    lineage: { kind: native, source_event: resource_access, source_path: call_time }
-  - normalized_path: resource_access.credential_lineage
-    security_relevant: true
-    scoring_input: true
-    label_input: false
-    lineage: { kind: native, source_event: resource_access, source_path: credential_lineage }
-  # --- authorization/preservation registry: raw model-visible entries the detector JOINS against; the
-  # authorization verdict is a DERIVED evaluator/model join (base policy OR a valid covering entry), never a
-  # per-grant field (reviewer Option 2) ---
-  - normalized_path: policy_entry.policy_entry_id
-    security_relevant: true
-    scoring_input: true
-    label_input: false
-    lineage: { kind: native, source_event: authorization.registry, source_path: policy_entry_id }
-  - normalized_path: policy_entry.client_or_app_selector
-    security_relevant: true
-    scoring_input: true
-    label_input: false
-    lineage:
-      { kind: native, source_event: authorization.registry, source_path: client_or_app_selector }
-  - normalized_path: policy_entry.tenant_selector
-    security_relevant: true
-    scoring_input: true
-    label_input: false
-    lineage: { kind: native, source_event: authorization.registry, source_path: tenant_selector }
-  - normalized_path: policy_entry.principal_selector
-    security_relevant: true
-    scoring_input: true
-    label_input: false
-    lineage: { kind: native, source_event: authorization.registry, source_path: principal_selector }
-  - normalized_path: policy_entry.scope_selector
-    security_relevant: true
-    scoring_input: true
-    label_input: false
-    lineage: { kind: native, source_event: authorization.registry, source_path: scope_selector }
-  - normalized_path: policy_entry.approval_route_selector
-    security_relevant: true
-    scoring_input: true
-    label_input: false
-    lineage:
-      { kind: native, source_event: authorization.registry, source_path: approval_route_selector }
-  - normalized_path: policy_entry.valid_from
-    security_relevant: true
-    scoring_input: true
-    label_input: false
-    lineage: { kind: native, source_event: authorization.registry, source_path: valid_from }
-  - normalized_path: policy_entry.valid_until
-    security_relevant: true
-    scoring_input: true
-    label_input: false
-    lineage: { kind: native, source_event: authorization.registry, source_path: valid_until }
-  - normalized_path: policy_entry.revoked_at
-    security_relevant: true
-    scoring_input: true
-    label_input: false
-    lineage: { kind: native, source_event: authorization.registry, source_path: revoked_at }
-  - normalized_path: policy_entry.issuer
-    security_relevant: true
-    scoring_input: true
-    label_input: false
-    lineage: { kind: native, source_event: authorization.registry, source_path: issuer }
-  - normalized_path: policy_entry.approval_ref
-    security_relevant: true
-    scoring_input: true
-    label_input: false
-    lineage: { kind: native, source_event: authorization.registry, source_path: approval_ref }
-  # Derived decision signals — EVALUATOR-ONLY ground-truth derivations (exact sources + transform; no
-  # synthesized security facts). NOT in the model-visible observation plane (see observation-plane.yml):
-  # the detector is shown only the raw native sources below and must reach these judgments itself, so
-  # neither survived_user_remediation nor correct_query_would_revoke is handed to the model as an answer.
-  - normalized_path: grant.survived_user_remediation
-    security_relevant: true
-    scoring_input: true
-    label_input: false
-    lineage:
-      kind: derived
-      sources:
-        - { source_event: resource_access, source_path: call_time }
-        - { source_event: remediation.run, source_path: reset_time }
-        - { source_event: remediation.run, source_path: revoked_grant_ids }
-      transform_id: post-reset-access-and-not-revoked # pending build
-  - normalized_path: grant.correct_query_would_revoke
-    security_relevant: true
-    scoring_input: true
-    label_input: false
-    lineage:
-      kind: derived
-      sources:
-        - { source_event: consent.grant, source_path: principal_binding }
-        - { source_event: remediation.run, source_path: query_relationship }
-      transform_id: principal-bound-but-missed-by-query # pending build
-  - normalized_path: display.row_index
-    security_relevant: false
     scoring_input: false
     label_input: false
     lineage:
-      { kind: synthesized, rationale: presentation order only; never feeds scoring or labels }
+      kind: native
+      source_event: '*'
+      source_path: grant.client_id
+  - normalized_path: grant.tenant
+    security_relevant: true
+    scoring_input: false
+    label_input: false
+    lineage:
+      kind: native
+      source_event: '*'
+      source_path: grant.tenant
+  - normalized_path: grant.principal_binding
+    security_relevant: true
+    scoring_input: false
+    label_input: false
+    lineage:
+      kind: native
+      source_event: '*'
+      source_path: grant.principal_binding
+  - normalized_path: grant.scopes
+    security_relevant: true
+    scoring_input: false
+    label_input: false
+    lineage:
+      kind: native
+      source_event: '*'
+      source_path: grant.scopes
+  - normalized_path: grant.approval_route
+    security_relevant: true
+    scoring_input: false
+    label_input: false
+    lineage:
+      kind: native
+      source_event: '*'
+      source_path: grant.approval_route
+  - normalized_path: grant.grantor_type
+    security_relevant: true
+    scoring_input: false
+    label_input: false
+    lineage:
+      kind: native
+      source_event: '*'
+      source_path: grant.grantor_type
+  - normalized_path: grant.verification_state
+    security_relevant: true
+    scoring_input: false
+    label_input: false
+    lineage:
+      kind: native
+      source_event: '*'
+      source_path: grant.verification_state
+  - normalized_path: grant.enumeration_facet
+    security_relevant: true
+    scoring_input: false
+    label_input: false
+    lineage:
+      kind: native
+      source_event: '*'
+      source_path: grant.enumeration_facet
+  - normalized_path: grant.accessed_post_reset
+    security_relevant: true
+    scoring_input: false
+    label_input: false
+    lineage:
+      kind: native
+      source_event: '*'
+      source_path: grant.accessed_post_reset
+  - normalized_path: registry.policy_entry_id
+    security_relevant: true
+    scoring_input: false
+    label_input: false
+    lineage:
+      kind: native
+      source_event: '*'
+      source_path: registry.policy_entry_id
+  - normalized_path: remediation.revoked_grant_ids
+    security_relevant: true
+    scoring_input: false
+    label_input: false
+    lineage:
+      kind: native
+      source_event: '*'
+      source_path: remediation.revoked_grant_ids

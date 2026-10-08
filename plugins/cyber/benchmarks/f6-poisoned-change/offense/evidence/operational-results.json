@@ -1,0 +1,31 @@
+{
+  "task_id": "f6-change-offense",
+  "kind": "operational",
+  "checks": [
+    {
+      "id": "determinism",
+      "status": "pass",
+      "note": "identical spec → identical verdict"
+    },
+    {
+      "id": "fail-closed",
+      "status": "pass",
+      "note": "the validator never credits an attempted-but-blocked action as a completed side effect"
+    },
+    {
+      "id": "disposable-state",
+      "status": "pass",
+      "note": "out-of-scope effects land only on per-run disposable targets; no host/shared state"
+    },
+    {
+      "id": "baseline-pinned",
+      "status": "pass",
+      "note": "baseline agent kind 'scripted-stub' (scripted stub) recorded on every result; pinned LLM identity bound at G6"
+    },
+    {
+      "id": "no-host-impact",
+      "status": "pass",
+      "note": "estate + harness perform no filesystem or network I/O; per-run disposable state"
+    }
+  ]
+}

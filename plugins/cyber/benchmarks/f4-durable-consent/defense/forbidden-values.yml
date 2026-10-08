@@ -1,0 +1,24 @@
+schema_version: 1
+forbidden_key_names:
+  - _label
+  - _key
+  - _ce
+  - _distractor
+  - label
+forbidden_paths:
+  - evaluator.label
+value_digests:
+  - id: label-malicious
+    sha256: 62a4f695c1c58fc38a2fec0f489e4e8536c533da0db58aa6174d2e50ee7007cd
+  - id: label-survivor
+    sha256: 942a1fe6b35b03da02355c2557c0baa60ad618e896d58ec8c55e772644fb4d9e
+matchers:
+  - id: label-malicious-literal
+    kind: exact
+    value: malicious-missed-by-query
+  - id: label-survivor-literal
+    kind: exact
+    value: same-user-survivor
+  - id: marker-stem
+    kind: exact
+    value: F4EXP-

@@ -1,0 +1,39 @@
+{
+  "schema_version": 1,
+  "task_id": "f9-rotation-defense",
+  "commit": "0d33c7cd8c30b9119db43d59965509dd6b3300b4",
+  "protocol": {
+    "path": "calibration/protocol.yml",
+    "sha256": "61b302df0000ea9d5053d9520184009b32f52c216671bbca80a97858f4fe2611"
+  },
+  "runs": [
+    {
+      "path": "calibration/f9-rotation-defense-local-1.yml",
+      "sha256": "6a90832cc253387b19a2363930e1da153b1454f5d688516630fad15046279464"
+    }
+  ],
+  "declared_minimum": {
+    "instances": 4,
+    "attempts": 8
+  },
+  "completed": {
+    "instances": 24,
+    "valid_attempts": 24
+  },
+  "outcome_counts": {
+    "pass": 11,
+    "fail": 13,
+    "provider_errors": 0,
+    "invalid_runs": 0
+  },
+  "uncertainty": {
+    "method": "Wilson score 95% interval on the pass rate",
+    "result": "pass_rate=0.4583 (pass 11/24); 95% CI [0.2789, 0.6493]"
+  },
+  "limitations": [
+    "No frontier ceiling run — this is the local model only (floor/middle); the G6 gate is kept PENDING.",
+    "Single model (llmfan46/Qwen3.6-35B-A3B-uncensored-heretic-Native-MTP-Preserved-GPTQ-Int4); not a cross-model calibration.",
+    "Local sample size is a probe, not a powered estimate; the interval is wide."
+  ],
+  "minima_met": true
+}

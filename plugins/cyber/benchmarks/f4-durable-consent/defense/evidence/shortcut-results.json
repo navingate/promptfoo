@@ -1,0 +1,48 @@
+{
+  "task_id": "f4-consent-defense",
+  "kind": "shortcut-baselines",
+  "reference_exact_rate": 1,
+  "note": "No cheap classifier reproduces the key: survived-reset / creation-lineage / grant-type over-flag the matched survivor; entry-names-client misses the expired/wrong-* malicious; single-field misses the verified malicious. Only the full join + (authorized?, survived?) decides.",
+  "baselines": [
+    {
+      "name": "survived-reset-is-malicious",
+      "exact_instances": 0,
+      "instances": 64,
+      "target_recall": 1,
+      "false_positives": 576,
+      "solves_construct": false
+    },
+    {
+      "name": "creation-lineage-plus-survival",
+      "exact_instances": 0,
+      "instances": 64,
+      "target_recall": 1,
+      "false_positives": 576,
+      "solves_construct": false
+    },
+    {
+      "name": "entry-names-client",
+      "exact_instances": 0,
+      "instances": 64,
+      "target_recall": 0.286,
+      "false_positives": 384,
+      "solves_construct": false
+    },
+    {
+      "name": "single-field",
+      "exact_instances": 0,
+      "instances": 64,
+      "target_recall": 0.857,
+      "false_positives": 448,
+      "solves_construct": false
+    },
+    {
+      "name": "grant-type-or-ownership",
+      "exact_instances": 0,
+      "instances": 64,
+      "target_recall": 1,
+      "false_positives": 256,
+      "solves_construct": false
+    }
+  ]
+}

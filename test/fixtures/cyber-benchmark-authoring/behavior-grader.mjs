@@ -12,7 +12,9 @@ function parseJsonVariable(value, fallback) {
   }
 }
 
-export function gradeBehavior(output, context) {
+// Exported only as the default (promptfoo loads `file://…/behavior-grader.mjs` by its default
+// export); `measureBehavior` calls it directly. A second named export would duplicate the default.
+function gradeBehavior(output, context) {
   let result;
   try {
     result = JSON.parse(output);
@@ -22,7 +24,9 @@ export function gradeBehavior(output, context) {
 
   const vars = context?.vars ?? {};
   const activationExpected = vars.activationExpected === true || vars.activationExpected === 'true';
-  const expectedMode = ['none', 'null'].includes(vars.expectedMode) ? null : (vars.expectedMode ?? null);
+  const expectedMode = ['none', 'null'].includes(vars.expectedMode)
+    ? null
+    : (vars.expectedMode ?? null);
   const expectedReferences = parseJsonVariable(vars.expectedReferences, []);
   const criteria = parseJsonVariable(vars.criteria, []);
   const failures = [];

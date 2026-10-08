@@ -1,0 +1,19 @@
+schema_version: 1
+forbidden_key_names:
+  - subtype
+  - correct_response
+  - focus_consumer
+  - requires_rotation
+  - incident_subtype
+  - evaluator
+forbidden_paths:
+  - evaluator.subtype
+  - evaluator.correct_response
+  - evaluator.focus_consumer
+value_digests:
+  - id: true-subtype-label
+    sha256: 92aa5a8611c1bf8b4cf11d3845744957938d0440d7a1004e9ccd0c67552b0f1a
+matchers:
+  - id: true-subtype-literal
+    kind: exact
+    value: malicious-stale-access

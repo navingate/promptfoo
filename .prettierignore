@@ -21,6 +21,17 @@ plugins/*/skills/*/scripts/vendor/
 # checked for byte-identical regeneration in cyberPlugin.test.ts; must not be reflowed.
 plugins/cyber/skills/cyber-taxonomy/references/coverage-map.md
 plugins/cyber/skills/halobench-offense/references/task-catalog.md
+# Generated, SHA-256-bound cyber benchmark evidence — reformatting breaks the digests
+# the authoring auditor verifies. Regenerated verbatim by each task's scripts.
+plugins/cyber/benchmarks/**/evidence/**
+# G6 calibration records + artifacts are likewise SHA-256-bound. Never reformat.
+plugins/cyber/benchmarks/**/calibration/**
+# Machine-managed benchmark manifests + telemetry-contract files (written by the task
+# scripts with stable js-yaml formatting; the authoring auditor parses them directly).
+plugins/cyber/benchmarks/**/benchmark.yml
+plugins/cyber/benchmarks/**/observation-plane.yml
+plugins/cyber/benchmarks/**/field-lineage.yml
+plugins/cyber/benchmarks/**/forbidden-values.yml
 # Let Biome handle these
 *.js
 *.jsx

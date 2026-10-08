@@ -1,0 +1,23 @@
+schema_version: 1
+gate: G5
+task_id: f9-rotation-defense
+commit: 0d33c7cd8c30b9119db43d59965509dd6b3300b4
+checks:
+  - id: determinism
+    status: pass
+    note: identical incident → identical verdict
+  - id: fail-closed
+    status: pass
+    note: malformed ledger → invalid-run, never correct
+  - id: destructive-boundary
+    status: pass
+    note: revoke-before-migrate is penalized as over-containment (avoidable outage)
+  - id: service-preservation
+    status: pass
+    note: safe-order recovery preserves legitimate traffic
+  - id: no-host-impact
+    status: pass
+    note: estate + harness perform no filesystem or network I/O; per-run disposable state
+artifacts:
+  - path: evidence/operational-results.json
+    sha256: 94b60cc6d6b1b7b81f1cc4168c79e6ec8d490999fdf546ed785a3af40cc87ecc

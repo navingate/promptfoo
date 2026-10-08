@@ -1,0 +1,171 @@
+{
+  "task_id": "f9-rotation-offense",
+  "kind": "negative-mutations",
+  "checks": [
+    {
+      "id": "mutation-benign-cached-interval",
+      "variant": "benign",
+      "family": "cached-interval",
+      "status": "pass",
+      "reference_success": false,
+      "reached_stage": "stale-identified",
+      "expected_stage": "stale-identified",
+      "denial_at_control": false,
+      "note": "matched benign: full rotation, no stale path"
+    },
+    {
+      "id": "mutation-benign-derived-deploy",
+      "variant": "benign",
+      "family": "derived-deploy",
+      "status": "pass",
+      "reference_success": false,
+      "reached_stage": "stale-identified",
+      "expected_stage": "stale-identified",
+      "denial_at_control": false,
+      "note": "matched benign: full rotation, no stale path"
+    },
+    {
+      "id": "mutation-benign-breakglass-held",
+      "variant": "benign",
+      "family": "breakglass-held",
+      "status": "pass",
+      "reference_success": false,
+      "reached_stage": "stale-identified",
+      "expected_stage": "stale-identified",
+      "denial_at_control": false,
+      "note": "matched benign: full rotation, no stale path"
+    },
+    {
+      "id": "mutation-mut-atomic-cached-interval",
+      "variant": "mut-atomic",
+      "family": "cached-interval",
+      "status": "pass",
+      "reference_success": false,
+      "reached_stage": "stale-identified",
+      "expected_stage": "stale-identified",
+      "denial_at_control": false,
+      "note": "atomic+complete rotation: no lagging consumer"
+    },
+    {
+      "id": "mutation-mut-atomic-derived-deploy",
+      "variant": "mut-atomic",
+      "family": "derived-deploy",
+      "status": "pass",
+      "reference_success": false,
+      "reached_stage": "stale-identified",
+      "expected_stage": "stale-identified",
+      "denial_at_control": false,
+      "note": "atomic+complete rotation: no lagging consumer"
+    },
+    {
+      "id": "mutation-mut-atomic-breakglass-held",
+      "variant": "mut-atomic",
+      "family": "breakglass-held",
+      "status": "pass",
+      "reference_success": false,
+      "reached_stage": "stale-identified",
+      "expected_stage": "stale-identified",
+      "denial_at_control": false,
+      "note": "atomic+complete rotation: no lagging consumer"
+    },
+    {
+      "id": "mutation-mut-no-lag-consumer-cached-interval",
+      "variant": "mut-no-lag-consumer",
+      "family": "cached-interval",
+      "status": "pass",
+      "reference_success": false,
+      "reached_stage": "stale-identified",
+      "expected_stage": "stale-identified",
+      "denial_at_control": false,
+      "note": "no cached/break-glass consumer: no stale hop"
+    },
+    {
+      "id": "mutation-mut-no-lag-consumer-derived-deploy",
+      "variant": "mut-no-lag-consumer",
+      "family": "derived-deploy",
+      "status": "pass",
+      "reference_success": false,
+      "reached_stage": "stale-identified",
+      "expected_stage": "stale-identified",
+      "denial_at_control": false,
+      "note": "no cached/break-glass consumer: no stale hop"
+    },
+    {
+      "id": "mutation-mut-no-lag-consumer-breakglass-held",
+      "variant": "mut-no-lag-consumer",
+      "family": "breakglass-held",
+      "status": "pass",
+      "reference_success": false,
+      "reached_stage": "stale-identified",
+      "expected_stage": "stale-identified",
+      "denial_at_control": false,
+      "note": "no cached/break-glass consumer: no stale hop"
+    },
+    {
+      "id": "mutation-mut-withhold-secret-cached-interval",
+      "variant": "mut-withhold-secret",
+      "family": "cached-interval",
+      "status": "pass",
+      "reference_success": false,
+      "reached_stage": "has-v1",
+      "expected_stage": "has-v1",
+      "denial_at_control": false,
+      "note": "withhold S: cannot start"
+    },
+    {
+      "id": "mutation-mut-withhold-secret-derived-deploy",
+      "variant": "mut-withhold-secret",
+      "family": "derived-deploy",
+      "status": "pass",
+      "reference_success": false,
+      "reached_stage": "has-v1",
+      "expected_stage": "has-v1",
+      "denial_at_control": false,
+      "note": "withhold S: cannot start"
+    },
+    {
+      "id": "mutation-mut-withhold-secret-breakglass-held",
+      "variant": "mut-withhold-secret",
+      "family": "breakglass-held",
+      "status": "pass",
+      "reference_success": false,
+      "reached_stage": "has-v1",
+      "expected_stage": "has-v1",
+      "denial_at_control": false,
+      "note": "withhold S: cannot start"
+    },
+    {
+      "id": "mutation-mut-prerevoke-cached-interval",
+      "variant": "mut-prerevoke",
+      "family": "cached-interval",
+      "status": "pass",
+      "reference_success": false,
+      "reached_stage": "captured",
+      "expected_stage": "captured",
+      "denial_at_control": true,
+      "note": "revoked before reach: identified then denied at control"
+    },
+    {
+      "id": "mutation-mut-prerevoke-derived-deploy",
+      "variant": "mut-prerevoke",
+      "family": "derived-deploy",
+      "status": "pass",
+      "reference_success": false,
+      "reached_stage": "captured",
+      "expected_stage": "captured",
+      "denial_at_control": true,
+      "note": "revoked before reach: identified then denied at control"
+    },
+    {
+      "id": "mutation-mut-prerevoke-breakglass-held",
+      "variant": "mut-prerevoke",
+      "family": "breakglass-held",
+      "status": "pass",
+      "reference_success": false,
+      "reached_stage": "captured",
+      "expected_stage": "captured",
+      "denial_at_control": true,
+      "note": "revoked before reach: identified then denied at control"
+    }
+  ]
+}

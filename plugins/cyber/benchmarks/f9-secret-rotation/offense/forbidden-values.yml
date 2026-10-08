@@ -1,0 +1,23 @@
+schema_version: 1
+forbidden_key_names:
+  - marker
+  - retrieved_marker
+  - accepts_v1_post
+  - leaking_consumer_id
+  - safe_order
+  - incident_subtype
+  - _acceptsV1Post
+  - _lineageLatest
+  - _migrated
+  - _revoked
+forbidden_paths:
+  - evaluator.marker
+  - evaluator.leaking_consumer_id
+  - evaluator.accepts_v1_post
+value_digests:
+  - id: terminal-marker
+    sha256: 0682ddee751297cdbc7933a89fb731c2461d145625d6a0c47c8cd7e735d96804
+matchers:
+  - id: terminal-marker-literal
+    kind: exact
+    value: F9MARK-2e959f2340fe49ba8cab3b2c

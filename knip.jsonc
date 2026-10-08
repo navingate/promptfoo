@@ -10,6 +10,10 @@
       "entry": [
         "scripts/**/*.{js,cjs,mjs,ts}",
         "plugins/**/scripts/**/*.{js,cjs,mjs,ts}",
+        // Cyber-benchmark calibration tooling + regression test under _tooling/ are invoked
+        // directly by `node` (the CLI calibration runner; `node --test`), not statically imported,
+        // so they are roots, not dead code. calibration-record.mjs is reached via the runner.
+        "plugins/**/_tooling/**/*.{js,cjs,mjs,ts}",
         "src/redteam/plugins/policy/evals/**/*.{js,cjs,mjs,ts}",
         // Referenced by path string in src/app/vite.shared.ts browserModuleReplacements.
         "src/logger.browser.ts",

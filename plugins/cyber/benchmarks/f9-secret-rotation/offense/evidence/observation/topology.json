@@ -1,0 +1,35 @@
+{
+  "secret_id": "S",
+  "consumers": [
+    {
+      "id": "svc-golf",
+      "declared_refresh_cadence": "interval",
+      "depends_on": "S"
+    },
+    {
+      "id": "svc-echo",
+      "declared_refresh_cadence": "held",
+      "depends_on": "S"
+    },
+    {
+      "id": "svc-foxtrot",
+      "declared_refresh_cadence": "deploy-gated",
+      "depends_on": "S"
+    },
+    {
+      "id": "svc-alpha",
+      "declared_refresh_cadence": "per-call",
+      "depends_on": "S"
+    },
+    {
+      "id": "svc-delta",
+      "declared_refresh_cadence": "per-call",
+      "depends_on": "S"
+    },
+    {
+      "id": "svc-bravo",
+      "declared_refresh_cadence": "deploy-gated",
+      "depends_on": "S"
+    }
+  ]
+}

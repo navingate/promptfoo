@@ -1,0 +1,115 @@
+schema_version: 1
+telemetry_contract_id: f9-rotation-events-v1
+fields:
+  - normalized_path: id
+    security_relevant: false
+    scoring_input: false
+    label_input: false
+    lineage:
+      kind: native
+      source_event: '*'
+      source_path: id
+  - normalized_path: flow_id
+    security_relevant: false
+    scoring_input: false
+    label_input: false
+    lineage:
+      kind: native
+      source_event: '*'
+      source_path: flow_id
+  - normalized_path: type
+    security_relevant: true
+    scoring_input: false
+    label_input: false
+    lineage:
+      kind: native
+      source_event: '*'
+      source_path: type
+  - normalized_path: sequence
+    security_relevant: true
+    scoring_input: false
+    label_input: false
+    lineage:
+      kind: native
+      source_event: '*'
+      source_path: sequence
+  - normalized_path: arrival_order
+    security_relevant: true
+    scoring_input: false
+    label_input: false
+    lineage:
+      kind: native
+      source_event: '*'
+      source_path: arrival_order
+  - normalized_path: event_time
+    security_relevant: true
+    scoring_input: false
+    label_input: false
+    lineage:
+      kind: native
+      source_event: '*'
+      source_path: event_time
+  - normalized_path: actor
+    security_relevant: true
+    scoring_input: false
+    label_input: false
+    lineage:
+      kind: native
+      source_event: '*'
+      source_path: actor
+  - normalized_path: resource
+    security_relevant: true
+    scoring_input: false
+    label_input: false
+    lineage:
+      kind: native
+      source_event: '*'
+      source_path: resource
+  - normalized_path: kind
+    security_relevant: true
+    scoring_input: false
+    label_input: false
+    lineage:
+      kind: native
+      source_event: consumer.inventory
+      source_path: kind
+  - normalized_path: declared_refresh_cadence
+    security_relevant: true
+    scoring_input: false
+    label_input: false
+    lineage:
+      kind: native
+      source_event: consumer.inventory
+      source_path: declared_refresh_cadence
+  - normalized_path: credential_lineage.key_version
+    security_relevant: true
+    scoring_input: false
+    label_input: false
+    lineage:
+      kind: native
+      source_event: secret.read|consumer.migration|cache.refresh|credential.lineage
+      source_path: credential_lineage.key_version
+  - normalized_path: credential_lineage.derivation_anchor
+    security_relevant: false
+    scoring_input: false
+    label_input: false
+    lineage:
+      kind: native
+      source_event: '*'
+      source_path: credential_lineage.derivation_anchor
+  - normalized_path: status
+    security_relevant: true
+    scoring_input: false
+    label_input: false
+    lineage:
+      kind: native
+      source_event: consumer.migration
+      source_path: status
+  - normalized_path: causes
+    security_relevant: true
+    scoring_input: false
+    label_input: false
+    lineage:
+      kind: native
+      source_event: '*'
+      source_path: causes

@@ -1,0 +1,6 @@
+Classify each delegated OAuth grant in the consent plane. Authorization is a JOIN of the raw
+grant facts against the model-visible authorization/preservation registry and the revealed base
+policy (no per-grant verdict). First run the completeness check (a grant missing a referenced
+field, or self-contradictory, is ambiguous → flag for review). Then decide authorized vs not by
+the join, then label by whether it survived remediation. Flag the malicious grants the defective
+revocation query missed; clear authorized apps, including the same-user survivor.

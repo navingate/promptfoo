@@ -1,0 +1,19 @@
+schema_version: 1
+gate: G4
+task_id: f4-consent-defense
+commit: 9034a567d244493e053770731ab978f40b019901
+checks:
+  - id: telemetry-schema-valid
+    status: pass
+  - id: observable-facts-only-no-label
+    status: pass
+  - id: scored-against-producer-frozen-corpus
+    status: pass
+    detail: 64/64
+artifacts:
+  - path: evidence/capture/f4-consent-corpus-v3.jsonl
+    sha256: b205213c560fb9c7c51f51b8fb5bbe470602b1fdbe6d519e87e5db352f6d8469
+  - path: evidence/twin-conformance.json
+    sha256: 3005f340ac58f9c4e4bfe469ee9b11bc32e67138ba7531a5eda556554ac3e6ab
+  - path: evidence/deoracle-scan.json
+    sha256: bff7beb11d97a32daa8f5164cfe35cd3d0524d89ad65f03f819e474c44108b5d

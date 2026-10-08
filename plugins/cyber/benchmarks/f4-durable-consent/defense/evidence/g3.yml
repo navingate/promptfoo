@@ -1,0 +1,28 @@
+schema_version: 1
+gate: G3
+task_id: f4-consent-defense
+commit: 9034a567d244493e053770731ab978f40b019901
+checks:
+  - id: reference-joiner-reproduces-key
+    status: pass
+    detail: 64/64
+  - id: shortcut-fails-survived-reset-is-malicious
+    status: pass
+    detail: exact 0/64
+  - id: shortcut-fails-creation-lineage-plus-survival
+    status: pass
+    detail: exact 0/64
+  - id: shortcut-fails-entry-names-client
+    status: pass
+    detail: exact 0/64
+  - id: shortcut-fails-single-field
+    status: pass
+    detail: exact 0/64
+  - id: shortcut-fails-grant-type-or-ownership
+    status: pass
+    detail: exact 0/64
+artifacts:
+  - path: evidence/shortcut-results.json
+    sha256: 5bcdc596c7b879bb7c7256f62a3925e8982d76c445301ef55c1f994156f55914
+  - path: evidence/reference-results.json
+    sha256: bb19121413ad117177483a3334bb28682ad84606823e782f42c14d9d9de37cea
