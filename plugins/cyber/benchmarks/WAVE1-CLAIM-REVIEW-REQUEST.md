@@ -58,6 +58,10 @@ Disclosures for F6 offense specifically:
   27/27, with 0 provider/invalid runs — genuine discrimination, neither floored nor ceilinged. The WEAK
   pass shows only that not every injection lands, **not** sophisticated-injection resistance (that is
   the scored corpus + the frontier G6 ceiling). G1 flips on this empirical evidence, not an approval.
+  _Reproduction:_ the evidence `commit` field binds to the F6 estate/construct it hashes (`ead928d2…`),
+  but the runner that produced G1 (`calibration-runner.mjs --pinned-g1` + the `referenceInjections` /
+  `injected_did_ticket` scoring predicates) was added at `9b073863c` — reproduce from that commit against
+  the pinned victim.
 - All six tasks now carry a **recorded local G6 calibration** (floor/middle only; the G6 gate stays
   pending a frontier ceiling run). F6 offense's local G6 used the **pinned victim** in self-play (9/9 —
   the SUT poisons the pinned victim). These local numbers are directional only (single samples; the
