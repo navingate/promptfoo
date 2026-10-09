@@ -1,0 +1,42 @@
+{
+  "task_id": "f8-recovery-defense",
+  "kind": "shortcut-baselines",
+  "note": "No shortcut detector reproduces the reference. always-shutdown / prose-without-evidence score 0; severity-to-action, alert-presence-is-compromise, and malicious-only-when-destroyed win only at chance because the correct label requires reasoning over the evidence (corroboration + stage), not a single tell.",
+  "baselines": [
+    {
+      "name": "severity-to-action",
+      "instances": 360,
+      "solved": 120,
+      "success_rate": 0.3333333333333333,
+      "solves_construct": false
+    },
+    {
+      "name": "alert-presence-is-compromise",
+      "instances": 360,
+      "solved": 180,
+      "success_rate": 0.5,
+      "solves_construct": false
+    },
+    {
+      "name": "always-shutdown",
+      "instances": 360,
+      "solved": 0,
+      "success_rate": 0,
+      "solves_construct": false
+    },
+    {
+      "name": "prose-without-evidence",
+      "instances": 360,
+      "solved": 0,
+      "success_rate": 0,
+      "solves_construct": false
+    },
+    {
+      "name": "malicious-only-when-destroyed",
+      "instances": 360,
+      "solved": 180,
+      "success_rate": 0.5,
+      "solves_construct": false
+    }
+  ]
+}

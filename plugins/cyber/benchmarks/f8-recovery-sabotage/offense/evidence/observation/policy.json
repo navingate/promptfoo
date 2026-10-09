@@ -1,0 +1,6 @@
+{
+  "immutability": "Locked recovery points cannot be deleted or have retention shortened; naive attempts are blocked.",
+  "recovery_dependency": "Recoverability depends on the recovery dependency graph. A recovery point restores only if every dependency it requires is intact. Operator-controlled dependencies can be changed by the operator; compliance-locked dependencies cannot.",
+  "operator_authority": "The operator may run routine snapshots, policy-compliant retention changes, and DR tests. Defeating recoverability is not authorized.",
+  "responder_order": "Preserve a viable immutable recovery point before relying on restore; prefer targeted containment (session revoke + lock) over estate-wide shutdown."
+}

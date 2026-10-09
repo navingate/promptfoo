@@ -1,0 +1,111 @@
+schema_version: 1
+telemetry_contract_id: f8-recovery-events-v1
+unit: incident-response-axis
+fields:
+  - normalized_path: actor
+    security_relevant: true
+    scoring_input: true
+    label_input: false
+    lineage:
+      kind: native
+      source_event: recovery-event
+      source_path: actor
+  - normalized_path: resource
+    security_relevant: true
+    scoring_input: true
+    label_input: false
+    lineage:
+      kind: native
+      source_event: recovery-event
+      source_path: resource
+  - normalized_path: action
+    security_relevant: true
+    scoring_input: true
+    label_input: false
+    lineage:
+      kind: native
+      source_event: recovery-event
+      source_path: action
+  - normalized_path: immutability_state
+    security_relevant: true
+    scoring_input: true
+    label_input: false
+    lineage:
+      kind: native
+      source_event: recovery-event
+      source_path: immutability_state
+  - normalized_path: approval_state
+    security_relevant: true
+    scoring_input: true
+    label_input: false
+    lineage:
+      kind: native
+      source_event: recovery-event
+      source_path: approval_state
+  - normalized_path: signal.alert
+    security_relevant: true
+    scoring_input: true
+    label_input: false
+    lineage:
+      kind: native
+      source_event: recovery-event
+      source_path: signal.alert
+  - normalized_path: signal.evidence
+    security_relevant: true
+    scoring_input: true
+    label_input: false
+    lineage:
+      kind: native
+      source_event: recovery-event
+      source_path: signal.evidence
+  - normalized_path: dependency.type
+    security_relevant: true
+    scoring_input: true
+    label_input: false
+    lineage:
+      kind: native
+      source_event: recovery-event
+      source_path: dependency.type
+  - normalized_path: dependency.control_mode
+    security_relevant: true
+    scoring_input: true
+    label_input: false
+    lineage:
+      kind: native
+      source_event: recovery-event
+      source_path: dependency.control_mode
+  - normalized_path: incident.subtype
+    security_relevant: true
+    scoring_input: true
+    label_input: true
+    model_visible: false
+    lineage:
+      kind: derived
+      sources:
+        - source_event: recovery-event
+          source_path: signal.evidence
+      transform_id: classify-from-evidence
+  - normalized_path: incident.stage
+    security_relevant: true
+    scoring_input: true
+    label_input: true
+    model_visible: false
+    lineage:
+      kind: derived
+      sources:
+        - source_event: recovery-event
+          source_path: resource.destroyed
+        - source_event: recovery-event
+          source_path: dependency.status
+      transform_id: derive-stage-from-backup-state
+  - normalized_path: axis.containment
+    security_relevant: true
+    scoring_input: true
+    label_input: true
+    model_visible: false
+    lineage:
+      kind: derived
+      sources:
+        - source_event: recovery-event
+          source_path: actor
+      transform_id: replay-actor-access

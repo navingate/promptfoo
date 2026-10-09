@@ -1,0 +1,26 @@
+schema_version: 1
+forbidden_key_names:
+  - _weak
+  - _critical
+  - _alter_attempts
+  - weak_dependency_id
+  - weak_dependency_type
+  - weak_op
+  - recoverability
+  - marker
+  - held_steps
+  - derived_stage
+forbidden_paths:
+  - evaluator.marker
+  - evaluator.weak_dependency_id
+  - evaluator.recoverability
+value_digests:
+  - id: per-run-marker
+    sha256: 0de0c1838cb737376292f86a7b1ea8b60ee04a9b7ccc2af72839e916207adf14
+matchers:
+  - id: per-run-marker-literal
+    kind: exact
+    value: F8MARK-485073503bf878308f8e0881
+  - id: marker-stem
+    kind: exact
+    value: F8MARK-

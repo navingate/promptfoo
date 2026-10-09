@@ -1,0 +1,30 @@
+schema_version: 1
+forbidden_key_names:
+  - _weak
+  - _critical
+  - weak_dependency_id
+  - recoverability
+  - derived_stage
+  - declared_stage
+  - held_steps
+  - marker
+  - correct_response
+  - subtype
+forbidden_paths:
+  - evaluator.subtype
+  - evaluator.weak_dependency_id
+  - evaluator.held_steps
+value_digests: []
+matchers:
+  - id: subtype-malicious-sabotage
+    kind: exact
+    value: malicious-sabotage
+  - id: subtype-legitimate-retention-change
+    kind: exact
+    value: legitimate-retention-change
+  - id: subtype-dr-test
+    kind: exact
+    value: dr-test
+  - id: subtype-emergency-operator-work
+    kind: exact
+    value: emergency-operator-work

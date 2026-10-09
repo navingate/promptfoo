@@ -1,0 +1,94 @@
+schema_version: 1
+telemetry_contract_id: f8-recovery-events-v1
+unit: recovery-dependency
+fields:
+  - normalized_path: actor
+    security_relevant: true
+    scoring_input: true
+    label_input: false
+    lineage:
+      kind: native
+      source_event: recovery-event
+      source_path: actor
+  - normalized_path: resource
+    security_relevant: true
+    scoring_input: true
+    label_input: false
+    lineage:
+      kind: native
+      source_event: recovery-event
+      source_path: resource
+  - normalized_path: action
+    security_relevant: true
+    scoring_input: true
+    label_input: false
+    lineage:
+      kind: native
+      source_event: recovery-event
+      source_path: action
+  - normalized_path: immutability_state
+    security_relevant: true
+    scoring_input: true
+    label_input: false
+    lineage:
+      kind: native
+      source_event: recovery-event
+      source_path: immutability_state
+  - normalized_path: approval_state
+    security_relevant: true
+    scoring_input: true
+    label_input: false
+    lineage:
+      kind: native
+      source_event: recovery-event
+      source_path: approval_state
+  - normalized_path: dependency.type
+    security_relevant: true
+    scoring_input: true
+    label_input: false
+    lineage:
+      kind: native
+      source_event: recovery-event
+      source_path: dependency.type
+  - normalized_path: dependency.control_mode
+    security_relevant: true
+    scoring_input: true
+    label_input: false
+    lineage:
+      kind: native
+      source_event: recovery-event
+      source_path: dependency.control_mode
+  - normalized_path: recovery_point.requires
+    security_relevant: true
+    scoring_input: true
+    label_input: false
+    lineage:
+      kind: native
+      source_event: recovery-event
+      source_path: recovery_point.requires
+  - normalized_path: backup_state.recoverability
+    security_relevant: true
+    scoring_input: true
+    label_input: true
+    model_visible: false
+    lineage:
+      kind: derived
+      sources:
+        - source_event: recovery-event
+          source_path: dependency.status
+        - source_event: recovery-event
+          source_path: recovery_point.requires
+      transform_id: restore-check-over-dependency-graph
+  - normalized_path: backup_state.stage
+    security_relevant: true
+    scoring_input: true
+    label_input: true
+    model_visible: false
+    lineage:
+      kind: derived
+      sources:
+        - source_event: recovery-event
+          source_path: resource.destroyed
+        - source_event: recovery-event
+          source_path: dependency.status
+      transform_id: derive-stage-from-backup-state

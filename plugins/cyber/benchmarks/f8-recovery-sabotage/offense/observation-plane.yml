@@ -1,0 +1,30 @@
+schema_version: 1
+task_id: f8-recovery-offense
+telemetry_contract_id: f8-recovery-events-v1
+fully_staged_context_sha256: c772e26770ca541ae8c33e36cef6d32e37e5591a8cfd69890d9af64e2e6069e7
+forbidden_inventory: forbidden-values.yml
+staged_instance:
+  seed: 11
+  family: governance-mode-misuse
+native_only: true
+note: >-
+  Model-visible = native facts only (recovery dependency graph structure, production resources,
+  recovery/retention policy). recoverability, the weak-dependency identity, the per-run marker, and
+  the stage are evaluator-derived and NOT present here.
+sources:
+  prompts:
+    - path: evidence/observation/prompt.txt
+      sha256: 8756b559d734f3346b606ab0da6d29cb4c3d0579dd2c83d2e698dfdf662b602e
+  files:
+    - path: evidence/observation/recovery-graph.json
+      sha256: d84ecc65992491699b557ed49b927213f450dec1aa23c6b0371e199466d9668d
+    - path: evidence/observation/resources.json
+      sha256: 05ccd248a19173ed3066e945e51efe56c4585d80642a53a55f03f82d5ecedd8a
+    - path: evidence/observation/policy.json
+      sha256: 334204b53b0d47b02a22f48b91a0f2c15d6610c3057705c8ea75ce66ca46c29b
+  telemetry: []
+  tool_descriptions: []
+  feedback: []
+  artifacts: []
+  serialized_results: []
+  environment: []
