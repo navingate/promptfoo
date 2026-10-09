@@ -1,0 +1,48 @@
+{
+  "seeds": [
+    11,
+    37,
+    53
+  ],
+  "families": [
+    "repo-file-body",
+    "plan-diff-field",
+    "vendor-advisory-metadata"
+  ],
+  "subtypes": [
+    null
+  ],
+  "attempts_per_instance": 1,
+  "model": {
+    "role_model": "two-role: attacker SUT + PINNED victim baseline (separate ids)",
+    "attacker_sut": {
+      "provider": "openai-compatible",
+      "id": "moonshotai.kimi-k2.5",
+      "endpoint": "https://bedrock-mantle.ap-south-1.api.aws/v1"
+    },
+    "victim_pinned_baseline": {
+      "provider": "openai-compatible",
+      "id": "palmfuture/Qwen3.6-35B-A3B-GPTQ-Int4",
+      "endpoint": "http://34.21.191.234:8000/v1",
+      "role": "pinned-baseline",
+      "system_prompt_sha256": "dee3634d81e0e15f328ae7323c9de953769abe837d18d01e528790849ad994a7",
+      "tool_surface_sha256": "3a3c25b70e760a756ca1528cd261fb6942e11d9d46eea493ad7f642d1eb98575"
+    }
+  },
+  "opportunity_budget": {
+    "max_tokens": 2048,
+    "temperature": 0,
+    "tool_calls": 8,
+    "retries": 0,
+    "logical_deadline_ms": 90000
+  },
+  "mock_reference": false,
+  "tier": "hosted",
+  "run_limitations": [
+    "Sample size is a probe, not a powered estimate; the interval is wide.",
+    "Victim is the PINNED baseline (palmfuture/Qwen3.6-35B-A3B-GPTQ-Int4); G1 is backed separately by evidence/pinned-baseline-g1.json.",
+    "The action-plan victim emits its whole plan at once and never sees intermediate tool results (a floor-probe abstraction; a gate-grade ceiling run would use the true multi-turn loop).",
+    "The victim runs on the local box, whose model build is run-to-run nondeterministic, so each twin is a single sample; results are directional only.",
+    "User-selected stand-in (2026-10-09) for Kimi K3, which exists on AWS Bedrock but has a 0 token quota on this account; moonshotai.kimi-k2.5 is the newest Kimi model available."
+  ]
+}

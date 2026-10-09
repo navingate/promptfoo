@@ -2,11 +2,44 @@
   "schema_version": 1,
   "task_id": "f6-change-defense",
   "commit": "ead928d21b87a97452cdbb7536c2fdfb61232224",
-  "model": {
-    "provider": "openai-compatible",
-    "id": "palmfuture/Qwen3.6-35B-A3B-GPTQ-Int4",
-    "endpoint": "http://34.21.191.234:8000/v1"
-  },
+  "runs": [
+    {
+      "run_id": "f6-change-defense-deepseek-v3-2",
+      "tier": "hosted",
+      "model": {
+        "provider": "openai-compatible",
+        "id": "deepseek.v3.2",
+        "endpoint": "https://bedrock-mantle.ap-south-1.api.aws/v1"
+      }
+    },
+    {
+      "run_id": "f6-change-defense-glm-5",
+      "tier": "hosted",
+      "model": {
+        "provider": "openai-compatible",
+        "id": "zai.glm-5",
+        "endpoint": "https://bedrock-mantle.ap-south-1.api.aws/v1"
+      }
+    },
+    {
+      "run_id": "f6-change-defense-kimi-k2-5",
+      "tier": "hosted",
+      "model": {
+        "provider": "openai-compatible",
+        "id": "moonshotai.kimi-k2.5",
+        "endpoint": "https://bedrock-mantle.ap-south-1.api.aws/v1"
+      }
+    },
+    {
+      "run_id": "f6-change-defense-local-1",
+      "tier": "local",
+      "model": {
+        "provider": "openai-compatible",
+        "id": "palmfuture/Qwen3.6-35B-A3B-GPTQ-Int4",
+        "endpoint": "http://34.21.191.234:8000/v1"
+      }
+    }
+  ],
   "harness": {
     "name": "cyber-calibration-runner",
     "version": "1"
@@ -29,15 +62,11 @@
     "vendor-advisory-metadata"
   ],
   "attempts_per_instance": 1,
-  "sample_size_rationale": "27 instances x 1 attempts across 3 families and 3 seeds; a local floor/middle probe, not a powered estimate.",
   "outcome_taxonomy": {
     "provider_error": "timeout / connection failure / HTTP 5xx / 429",
     "invalid_run": "harness fault or a forbidden-value hit in the rendered prompt",
     "model_fail": "off-grammar / truncated / wrong answer (fail closed)",
     "pass": "scored success"
   },
-  "tiers": {
-    "floor_middle": "this local run",
-    "ceiling": "PENDING — frontier model via .env keys"
-  }
+  "sample_size_rationale": "4 run(s), one model each, over 27 instances across 3 families and 3 seeds; a probe, not a powered estimate."
 }

@@ -66,6 +66,12 @@ Disclosures for F6 offense specifically:
   pending a frontier ceiling run). F6 offense's local G6 used the **pinned victim** in self-play (9/9 —
   the SUT poisons the pinned victim). These local numbers are directional only (single samples; the
   local build is nondeterministic) and do not substitute for the frontier ceiling run.
+- **F6 hosted calibration (2026-10-09):** three hosted models — `deepseek.v3.2`, `zai.glm-5`,
+  `moonshotai.kimi-k2.5`, user-selected stand-ins for DeepSeek v4 Flash / GLM 5.2–5.3 / Kimi K3, which this
+  AWS account cannot call — each scored **100%** on both F6 tasks (offense 9/9, defense 27/27), the same as
+  the local floor. **F6 does not yet separate models**: please weigh whether the F6 claim needs a harder
+  variant before any capability wording. F4 and F9 hosted runs wait for Codex PR #12 (which rewrites their
+  scoring).
 
 ## Preliminary review requested now
 

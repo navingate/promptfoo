@@ -4,9 +4,21 @@
   "commit": "ead928d21b87a97452cdbb7536c2fdfb61232224",
   "protocol": {
     "path": "calibration/protocol.yml",
-    "sha256": "0bea48d66f0fed1abb89c809c834bc4ce81f0b8be44d69d6fe9283fd7109ac59"
+    "sha256": "43e8456d9677d77ffaaf92952ac1c11aae776062ca770cb09f0edbd44e7c50a5"
   },
   "runs": [
+    {
+      "path": "calibration/f6-change-defense-deepseek-v3-2.yml",
+      "sha256": "7a4f58958764e4f6bbc3638d3af608b0a936ef619d217b1244df48a2e8f870d2"
+    },
+    {
+      "path": "calibration/f6-change-defense-glm-5.yml",
+      "sha256": "e6275a1b913bf5d58d36c8e545ef0887ea866350495b51025f2addd97e597f08"
+    },
+    {
+      "path": "calibration/f6-change-defense-kimi-k2-5.yml",
+      "sha256": "57da2e15c2524ff380ae6ee701745c189c506517d379a4ecb5b5a94d9cc73193"
+    },
     {
       "path": "calibration/f6-change-defense-local-1.yml",
       "sha256": "0b889412c293c820259eb01f5072cf84b0b8aad4c76d5b8e8f5f8a1d760bf24d"
@@ -14,26 +26,30 @@
   ],
   "declared_minimum": {
     "instances": 4,
-    "attempts": 8
+    "attempts": 32
   },
   "completed": {
     "instances": 27,
-    "valid_attempts": 27
+    "valid_attempts": 108
   },
   "outcome_counts": {
-    "pass": 27,
+    "pass": 108,
     "fail": 0,
     "provider_errors": 0,
     "invalid_runs": 0
   },
   "uncertainty": {
-    "method": "Wilson score 95% interval on the pass rate",
-    "result": "pass_rate=1.0000 (pass 27/27); 95% CI [0.8754, 1.0000]"
+    "method": "Wilson score 95% interval on the pass rate, per run (one model per run; not pooled)",
+    "result": "f6-change-defense-deepseek-v3-2 (deepseek.v3.2): pass_rate=1.0000 (pass 27/27); 95% CI [0.8754, 1.0000]; f6-change-defense-glm-5 (zai.glm-5): pass_rate=1.0000 (pass 27/27); 95% CI [0.8754, 1.0000]; f6-change-defense-kimi-k2-5 (moonshotai.kimi-k2.5): pass_rate=1.0000 (pass 27/27); 95% CI [0.8754, 1.0000]; f6-change-defense-local-1 (palmfuture/Qwen3.6-35B-A3B-GPTQ-Int4): pass_rate=1.0000 (pass 27/27); 95% CI [0.8754, 1.0000]"
   },
   "limitations": [
-    "No frontier ceiling run — this is the local model only (floor/middle); the G6 gate is kept PENDING.",
-    "Single model (palmfuture/Qwen3.6-35B-A3B-GPTQ-Int4); not a cross-model calibration.",
-    "Local sample size is a probe, not a powered estimate; the interval is wide."
+    "Hosted run(s) recorded (deepseek.v3.2, zai.glm-5, moonshotai.kimi-k2.5); the recorder never flips G6 — the gate is kept PENDING until a reviewed ceiling decision.",
+    "Cross-model: f6-change-defense-deepseek-v3-2 = deepseek.v3.2 [hosted]; f6-change-defense-glm-5 = zai.glm-5 [hosted]; f6-change-defense-kimi-k2-5 = moonshotai.kimi-k2.5 [hosted]; f6-change-defense-local-1 = palmfuture/Qwen3.6-35B-A3B-GPTQ-Int4 [local]. Pass rates are per run, never pooled.",
+    "Sample size is a probe, not a powered estimate; the interval is wide.",
+    "User-selected stand-in (2026-10-09) for DeepSeek v4 Flash, which was not found in any AWS Bedrock region this account can reach; deepseek.v3.2 is the newest DeepSeek model available.",
+    "User-selected stand-in (2026-10-09) for GLM 5.2 / GLM 5.3: GLM 5.3 exists on AWS Bedrock but is not enabled for this account, and GLM 5.2 was not found; zai.glm-5 is the newest GLM model available.",
+    "User-selected stand-in (2026-10-09) for Kimi K3, which exists on AWS Bedrock but has a 0 token quota on this account; moonshotai.kimi-k2.5 is the newest Kimi model available.",
+    "f6-change-defense-local-1 (palmfuture/Qwen3.6-35B-A3B-GPTQ-Int4): local floor/middle probe; single samples, directional only."
   ],
   "minima_met": true
 }
