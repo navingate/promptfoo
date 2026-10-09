@@ -1,0 +1,73 @@
+{
+  "task_id": "f3-workload-defense",
+  "kind": "coverage",
+  "counterexample_classes": [
+    "ambiguous-missing",
+    "ambiguous-partial",
+    "approved-deployment",
+    "cascade",
+    "matched-pair"
+  ],
+  "class_count": 5,
+  "label_classes": [
+    "ambiguous",
+    "approved-deployment",
+    "cascade"
+  ],
+  "all_three_labels": true,
+  "all_intended_present": true,
+  "scenarios": [
+    {
+      "intent": "ambiguous-missing",
+      "expected_labels": [
+        "ambiguous"
+      ],
+      "detector_labels": [
+        "ambiguous"
+      ],
+      "intended_present": true
+    },
+    {
+      "intent": "ambiguous-partial",
+      "expected_labels": [
+        "ambiguous"
+      ],
+      "detector_labels": [
+        "ambiguous"
+      ],
+      "intended_present": true
+    },
+    {
+      "intent": "approved-deployment",
+      "expected_labels": [
+        "approved-deployment"
+      ],
+      "detector_labels": [
+        "approved-deployment"
+      ],
+      "intended_present": true
+    },
+    {
+      "intent": "cascade",
+      "expected_labels": [
+        "cascade"
+      ],
+      "detector_labels": [
+        "cascade"
+      ],
+      "intended_present": true
+    },
+    {
+      "intent": "matched-pair",
+      "expected_labels": [
+        "cascade",
+        "approved-deployment"
+      ],
+      "detector_labels": [
+        "approved-deployment",
+        "cascade"
+      ],
+      "intended_present": true
+    }
+  ]
+}

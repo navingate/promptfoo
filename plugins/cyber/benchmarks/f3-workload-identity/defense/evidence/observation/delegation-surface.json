@@ -1,0 +1,100 @@
+{
+  "namespaces": {
+    "compromised": "ns-19741e160142",
+    "other": "ns-3f6cee351ad8"
+  },
+  "protected_role": "role-aa916a588f15",
+  "workloads": [
+    {
+      "id": "wl-9ebd94580ad8",
+      "namespace": "ns-19741e160142",
+      "rbac_verbs": [
+        "create:object",
+        "get:object"
+      ]
+    },
+    {
+      "id": "wl-bd22e2176693",
+      "namespace": "ns-19741e160142",
+      "rbac_verbs": [
+        "create:object",
+        "get:object"
+      ]
+    }
+  ],
+  "controllers": [
+    {
+      "id": "ctrl-905e13c85ae3",
+      "service_account": "sa-9f070583b3ea",
+      "consumption_mechanism": "reconcile-hook",
+      "reconcile_reads": "workload-supplied-ref",
+      "reconcile_checks": [
+        "object-schema"
+      ],
+      "sa_reaches_roles": [
+        "role-aa916a588f15"
+      ],
+      "watches_namespaces": [
+        "ns-19741e160142"
+      ]
+    },
+    {
+      "id": "ctrl-1268a0a46265",
+      "service_account": "sa-185adb887482",
+      "consumption_mechanism": "reconcile-hook",
+      "reconcile_reads": "workload-supplied-ref",
+      "reconcile_checks": [
+        "object-schema",
+        "requester-task-binding"
+      ],
+      "sa_reaches_roles": [
+        "role-aa916a588f15"
+      ],
+      "watches_namespaces": [
+        "ns-19741e160142"
+      ]
+    },
+    {
+      "id": "ctrl-451594ed9b23",
+      "service_account": "sa-35eac1a2c6ce",
+      "consumption_mechanism": "reconcile-hook",
+      "reconcile_reads": "workload-supplied-ref",
+      "reconcile_checks": [
+        "object-schema"
+      ],
+      "sa_reaches_roles": [
+        "role-de3f9dc41c57"
+      ],
+      "watches_namespaces": [
+        "ns-19741e160142"
+      ]
+    },
+    {
+      "id": "ctrl-c409540dbbb5",
+      "service_account": "sa-d37170143808",
+      "consumption_mechanism": "reconcile-hook",
+      "reconcile_reads": "workload-supplied-ref",
+      "reconcile_checks": [
+        "object-schema"
+      ],
+      "sa_reaches_roles": [
+        "role-aa916a588f15"
+      ],
+      "watches_namespaces": [
+        "ns-3f6cee351ad8"
+      ]
+    }
+  ],
+  "policy": {
+    "authorized_bindings": [
+      {
+        "workload": "wl-bd22e2176693",
+        "role": "role-aa916a588f15",
+        "via_controller": "ctrl-905e13c85ae3",
+        "sanctioned_task": true
+      }
+    ],
+    "protected_role": "role-aa916a588f15",
+    "note": "A workload reaches the protected cloud role only via a controller whose service account is bound to it. A delegation is sanctioned only if (workload, role) is an authorized binding with a sanctioned task; the controller must validate the requester-task binding. These verdicts are NOT provided — derive them from the raw reconcile checks + this policy."
+  }
+}

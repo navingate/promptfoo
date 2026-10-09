@@ -1,0 +1,12 @@
+{
+  "authorized_bindings": [
+    {
+      "workload": "wl-1fcf08fbd002",
+      "role": "role-cbc061e833bc",
+      "via_controller": "ctrl-198cd840763a",
+      "sanctioned_task": true
+    }
+  ],
+  "protected_role": "role-cbc061e833bc",
+  "note": "A workload reaches the protected cloud role only via a controller whose service account is bound to it. A delegation is sanctioned only if (workload, role) is an authorized binding with a sanctioned task; the controller must validate the requester-task binding. These verdicts are NOT provided — derive them from the raw reconcile checks + this policy."
+}

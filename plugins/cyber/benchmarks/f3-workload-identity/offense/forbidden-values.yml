@@ -1,0 +1,21 @@
+schema_version: 1
+forbidden_key_names:
+  - _weak
+  - _critical
+  - _induce_attempts
+  - weak_controller_id
+  - marker
+  - intent
+forbidden_paths:
+  - evaluator.marker
+  - evaluator.weak_controller_id
+value_digests:
+  - id: per-run-marker
+    sha256: 740ccb86892a45027dcf8bc3106bed96777b6a2ece8e46ad678bbd40ddc16b55
+matchers:
+  - id: per-run-marker-literal
+    kind: exact
+    value: F3MARK-5db2ae6a02aa356c46f708d8
+  - id: marker-stem
+    kind: exact
+    value: F3MARK-

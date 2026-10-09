@@ -1,40 +1,27 @@
 schema_version: 1
-status: draft-g0
-# Construct-defining draft of the model-visible observation plane for the F3 detector.
-# Build-phase bindings (fully_staged_context_sha256, per-source hashes) remain pending.
+task_id: f3-workload-defense
 telemetry_contract_id: f3-workload-events-v1
+fully_staged_context_sha256: 5f6a7401969836cb3b7b964cd8562aa36a53577340724dc14b13df95a8a7a1ac
 forbidden_inventory: forbidden-values.yml
+staged_instance:
+  intent: matched-pair
+native_only: true
+note: >-
+  Model-visible = native facts only (flow records + the delegation surface: RBAC, reconcile checks,
+  SA bindings, authorized-bindings policy). The per-flow label, the sanction verdict, the
+  weak-controller identity, and the marker are evaluator-only and NOT present here.
 sources:
-  prompts: { present: true, note: detector task prompt + revealed RBAC/delegation policy }
+  prompts:
+    - path: evidence/observation/prompt.txt
+      sha256: 345151202ef079945237d02fbfd406fbfeec0cfd3e0d4e58d9d98499ea781801
   files:
-    present: true
-    note: >-
-      model-visible delegation SURFACE so the pivot is discoverable (reviewer F3.1): CRD/workload schema,
-      controller API, annotations/references, reconcile behavior, RBAC verbs (workload + controller),
-      service-account bindings
-  telemetry:
-    present: true
-    note: native workload-identity events; the model derives the delegation verdict from raw facts
-    native_fields:
-      - actor.kind # workload | controller | service-account
-      - actor.identity
-      - rbac.workload_verbs # the attacker workload's own permissions (raw)
-      - rbac.controller_verbs # the controller's permissions (raw)
-      - sa.bindings # service-account bindings (raw)
-      - crd.schema # CRD/workload schema + reconcile behavior (raw)
-      - token.use
-      - controller.action
-      - controller.on_behalf_of # which workload the controller acted for
-      - controller.consumed_object_ref # the lower-priv object/ref the controller consumed
-      - workload.provenance
-      - authority.effective # effective identity/authority used
-      - data.access
-      - event.time
-      - event.arrival_order
-  tool_descriptions: { present: false }
-  feedback: { present: false }
-  exposed_environment_values: { present: false }
-  artifacts: { present: false }
-  serialized_results: { present: false }
-# Evaluator-only (NOT model-visible): the sanctioned-delegation VERDICT/ground-truth, the correct exploit
-# composition, the label, and the answer key. The raw delegation surface above IS model-visible.
+    - path: evidence/observation/flows.json
+      sha256: ea4974beed616ac82daf81b6abb837aff3b330a6a2413f7ad3e95fc47d66c0e5
+    - path: evidence/observation/delegation-surface.json
+      sha256: d597f8cd18e5c022ec2314427790f382a59d62d8648df061787e1887444cf36f
+  telemetry: []
+  tool_descriptions: []
+  feedback: []
+  artifacts: []
+  serialized_results: []
+  environment: []

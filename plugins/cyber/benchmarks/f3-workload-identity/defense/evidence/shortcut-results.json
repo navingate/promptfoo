@@ -1,0 +1,49 @@
+{
+  "task_id": "f3-workload-defense",
+  "kind": "shortcut-baselines",
+  "note": "No single-field detector reproduces the key: controller-action / token / provenance / data-access / one-literal / count-denial each over-flag the approved deployment (precision < 1). Only the combination (on-behalf of a workload lacking direct authority AND unsanctioned delegation) decides.",
+  "baselines": [
+    {
+      "name": "controller-action-alone",
+      "precision": 0.3333333333333333,
+      "recall": 1,
+      "fp_on_approved": 60,
+      "solves_construct": false
+    },
+    {
+      "name": "token-alone",
+      "precision": 0.3333333333333333,
+      "recall": 1,
+      "fp_on_approved": 60,
+      "solves_construct": false
+    },
+    {
+      "name": "provenance-alone",
+      "precision": 0.4,
+      "recall": 1,
+      "fp_on_approved": 60,
+      "solves_construct": false
+    },
+    {
+      "name": "data-access-alone",
+      "precision": 0.3333333333333333,
+      "recall": 1,
+      "fp_on_approved": 60,
+      "solves_construct": false
+    },
+    {
+      "name": "one-literal",
+      "precision": 0.3333333333333333,
+      "recall": 1,
+      "fp_on_approved": 60,
+      "solves_construct": false
+    },
+    {
+      "name": "count-denial",
+      "precision": 0.4,
+      "recall": 1,
+      "fp_on_approved": 60,
+      "solves_construct": false
+    }
+  ]
+}

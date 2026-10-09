@@ -2,6 +2,22 @@ schema_version: 1
 telemetry_contract_id: f3-workload-events-v1
 unit: workload-controller-flow
 fields:
+  - normalized_path: actor
+    security_relevant: true
+    scoring_input: true
+    label_input: false
+    lineage:
+      kind: native
+      source_event: workload-event
+      source_path: actor
+  - normalized_path: token_use
+    security_relevant: true
+    scoring_input: true
+    label_input: false
+    lineage:
+      kind: native
+      source_event: workload-event
+      source_path: token_use
   - normalized_path: workload.rbac_verbs
     security_relevant: true
     scoring_input: true
@@ -26,6 +42,14 @@ fields:
       kind: native
       source_event: workload-event
       source_path: controller.sa_reaches_roles
+  - normalized_path: controller.watches_namespaces
+    security_relevant: true
+    scoring_input: true
+    label_input: false
+    lineage:
+      kind: native
+      source_event: workload-event
+      source_path: controller.watches_namespaces
   - normalized_path: consumed_object.created_by
     security_relevant: true
     scoring_input: true
@@ -42,22 +66,6 @@ fields:
       kind: native
       source_event: workload-event
       source_path: cloud_action.effective_authority
-  - normalized_path: cloud_action.target_role
-    security_relevant: true
-    scoring_input: true
-    label_input: false
-    lineage:
-      kind: native
-      source_event: workload-event
-      source_path: cloud_action.target_role
-  - normalized_path: outcome
-    security_relevant: true
-    scoring_input: true
-    label_input: false
-    lineage:
-      kind: native
-      source_event: workload-event
-      source_path: outcome
   - normalized_path: policy.authorized_bindings
     security_relevant: true
     scoring_input: true
@@ -76,6 +84,8 @@ fields:
       sources:
         - source_event: workload-event
           source_path: consumed_object.created_by
+        - source_event: workload-event
+          source_path: cloud_action.target_role
         - source_event: workload-event
           source_path: policy.authorized_bindings
       transform_id: join-workload-role-against-authorized-bindings
