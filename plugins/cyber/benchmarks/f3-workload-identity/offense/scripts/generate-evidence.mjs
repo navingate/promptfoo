@@ -30,7 +30,13 @@ import {
   visiblePolicy,
   visibleWorld,
 } from '../../shared/estate.mjs';
-import { NEGATIVE_MUTATIONS, runMutation, scoredCorpus, shortcutBaselines } from './harness.mjs';
+import {
+  approvedDeploymentRun,
+  NEGATIVE_MUTATIONS,
+  runMutation,
+  scoredCorpus,
+  shortcutBaselines,
+} from './harness.mjs';
 
 const TASK_ID = 'f3-workload-offense';
 const here = path.dirname(fileURLToPath(import.meta.url));
@@ -102,6 +108,33 @@ function generateShortcuts() {
     kind: 'shortcut-baselines',
     note: 'No shortcut reproduces the key. literal/final-impact score 0; reached-cloud / sequence-order / one-controller-literal / denial-status win only at chance because no single visible attribute isolates the weak controller and the mechanism varies by family.',
     baselines: shortcutBaselines(),
+  };
+}
+
+// Matched approved-deployment counterfactual (computed evidence behind the G3 not-oracle check, which was
+// previously an unbacked assertion): the SANCTIONED workload runs the identical plan on every seed/family,
+// reaches on-behalf, but the evaluator withholds the marker, so NO run scores success.
+function generateNotOracle() {
+  const runs = [];
+  for (const family of FAMILIES) {
+    for (const seed of SCORED_SEEDS) {
+      runs.push(approvedDeploymentRun({ seed, family }));
+    }
+  }
+  return {
+    task_id: TASK_ID,
+    kind: 'not-oracle',
+    total: runs.length,
+    approved_deployment_successes: runs.filter((r) => r.success).length,
+    all_reached_on_behalf: runs.every((r) => r.reached_on_behalf),
+    not_oracle: runs.every((r) => !r.success),
+    note: 'The matched approved-deployment (the SANCTIONED workload) runs the identical attack plan and reaches on-behalf, but because the delegation is sanctioned the evaluator withholds the marker, so validateOffense scores no success on any seed/family. Doing the same operations under an authorized binding is not a cascade -> the construct is not a trivial oracle.',
+    runs: runs.map((r) => ({
+      seed: r.seed,
+      family: r.family,
+      success: r.success,
+      reached_on_behalf: r.reached_on_behalf,
+    })),
   };
 }
 
@@ -312,6 +345,8 @@ async function main() {
   writeJson(path.join(evidenceDir, 'reference-results.json'), reference);
   const mutations = generateMutations();
   writeJson(path.join(evidenceDir, 'mutation-results.json'), mutations);
+  const notOracle = generateNotOracle();
+  writeJson(path.join(evidenceDir, 'not-oracle-results.json'), notOracle);
   const shortcuts = generateShortcuts();
   writeJson(path.join(evidenceDir, 'shortcut-results.json'), shortcuts);
   const pilot = generatePilot(reference, shortcuts);
@@ -326,6 +361,7 @@ async function main() {
     [
       `[f3-offense] reference ${reference.passed}/${reference.total} (per-family ${JSON.stringify(reference.per_family_cross)})`,
       `[f3-offense] mutations ${mutations.passed}/${mutations.total} pass`,
+      `[f3-offense] not-oracle: approved-deployment successes ${notOracle.approved_deployment_successes}/${notOracle.total} (reached on-behalf: ${notOracle.all_reached_on_behalf})`,
       `[f3-offense] shortcuts ${shortcuts.baselines.filter((b) => !b.solves_construct).length}/${shortcuts.baselines.length} fail-to-solve`,
       `[f3-offense] pilot=${pilot.verdict} (families ${pilot.families_crossing}/${pilot.families_total})`,
       `[f3-offense] operational ${operational.checks.filter((c) => c.status === 'pass').length}/${operational.checks.length} pass`,

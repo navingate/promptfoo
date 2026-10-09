@@ -30,7 +30,7 @@ import {
   visibleFlow,
   visibleWorld,
 } from '../../shared/estate.mjs';
-import { referenceDetect, referenceScore, shortcutBaselines } from './harness.mjs';
+import { derivedSignals, referenceDetect, referenceScore, shortcutBaselines } from './harness.mjs';
 
 const TASK_ID = 'f3-workload-defense';
 const PRODUCER_ID = 'f3-workload-offense';
@@ -53,6 +53,7 @@ const INTENT_EXPECTATION = Object.freeze({
   'matched-pair': ['cascade', 'approved-deployment'],
   'ambiguous-partial': ['ambiguous'],
   'ambiguous-missing': ['ambiguous'],
+  'ambiguous-has-direct': ['ambiguous'],
 });
 
 function readCapture() {
@@ -132,12 +133,112 @@ function generateCoverage() {
   };
 }
 
+// --- Exhaustive 1-&-2-atom brute-force over the model-visible plane: raw flow fields PLUS the three
+// derived policy booleans (on_behalf / sanctioned / lacks_direct, from the shared `derivedSignals`), both
+// polarities (==, !=). If ANY rule of <=2 atoms reproduces the cascade key (precision=recall=1), the corpus
+// lacks a counterexample and "combination-only" is overstated. Computed evidence behind the G3
+// "approved-deployment-shares-fields-not-oracle" check (previously an unbacked assertion). ---
+
+function noOracleRows() {
+  const rows = [];
+  for (const family of FAMILIES) {
+    for (const seed of CORPUS_SEEDS) {
+      const world = buildWorld({ seed, family });
+      const vw = visibleWorld(world);
+      for (const s of corpusScenarios(seed, family)) {
+        for (const f of s.flows) {
+          const vf = visibleFlow(f);
+          const d = derivedSignals(vf, vw);
+          rows.push({
+            feat: {
+              outcome: vf.outcome,
+              token_kind: vf.token_use?.kind ?? 'none',
+              target_role: vf.cloud_action?.target_role ?? 'none',
+              eff_kind: vf.cloud_action?.effective_authority_kind ?? 'none',
+              created_by: vf.consumed_object?.created_by ?? 'null',
+              on_behalf: String(d.on_behalf),
+              sanctioned: String(d.sanctioned),
+              lacks_direct: String(d.lacks_direct),
+            },
+            cascade: labelFlow(world, f) === 'cascade',
+          });
+        }
+      }
+    }
+  }
+  return rows;
+}
+
+// Flat list of candidate single-atom predicates (each visible field value, both polarities).
+function atomPredicates(rows) {
+  const out = [];
+  for (const k of Object.keys(rows[0].feat)) {
+    for (const v of new Set(rows.map((r) => r.feat[k]))) {
+      out.push({ label: `${k}==${v}`, pred: (f) => f[k] === v, key: k });
+      out.push({ label: `${k}!=${v}`, pred: (f) => f[k] !== v, key: k });
+    }
+  }
+  return out;
+}
+
+function isPerfectRule(rows, totalCascade, pred) {
+  let tp = 0;
+  let fp = 0;
+  for (const r of rows) {
+    if (!pred(r.feat)) {
+      continue;
+    }
+    if (r.cascade) {
+      tp += 1;
+    } else {
+      fp += 1;
+    }
+  }
+  return fp === 0 && tp === totalCascade;
+}
+
+function findPerfectRules(rows, totalCascade) {
+  const atoms = atomPredicates(rows);
+  const perfect = [];
+  for (const a of atoms) {
+    if (isPerfectRule(rows, totalCascade, a.pred)) {
+      perfect.push(a.label);
+    }
+  }
+  for (let i = 0; i < atoms.length; i += 1) {
+    for (let j = i + 1; j < atoms.length; j += 1) {
+      if (atoms[i].key === atoms[j].key) {
+        continue;
+      }
+      if (isPerfectRule(rows, totalCascade, (f) => atoms[i].pred(f) && atoms[j].pred(f))) {
+        perfect.push(`${atoms[i].label} && ${atoms[j].label}`);
+      }
+    }
+  }
+  return perfect;
+}
+
+function generateNoOracle() {
+  const rows = noOracleRows();
+  const totalCascade = rows.filter((r) => r.cascade).length;
+  const perfectRules = findPerfectRules(rows, totalCascade);
+  return {
+    total_rows: rows.length,
+    cascade_rows: totalCascade,
+    atoms: Object.keys(rows[0].feat),
+    perfect_rules: perfectRules,
+    combination_only: perfectRules.length === 0,
+    note: 'combination_only=true means no 1- or 2-atom rule (raw fields + on_behalf/sanctioned/lacks_direct, both polarities) reproduces the cascade key; the full three-way combination is required.',
+  };
+}
+
 function generateShortcuts() {
   return {
     task_id: TASK_ID,
     kind: 'shortcut-baselines',
     note: 'No single-field detector reproduces the key: controller-action / token / provenance / data-access / one-literal / count-denial each over-flag the approved deployment (precision < 1). Only the combination (on-behalf of a workload lacking direct authority AND unsanctioned delegation) decides.',
     baselines: shortcutBaselines(CORPUS_SEEDS),
+    no_oracle: generateNoOracle(),
   };
 }
 

@@ -60,6 +60,7 @@ function main() {
 
   const reference = readJson('evidence/reference-results.json');
   const mutations = readJson('evidence/mutation-results.json');
+  const notOracle = readJson('evidence/not-oracle-results.json');
   const shortcuts = readJson('evidence/shortcut-results.json');
   const pilot = readJson('evidence/pilot-results.json');
   const operational = readJson('evidence/operational-results.json');
@@ -95,9 +96,8 @@ function main() {
     },
     {
       id: 'matched-approved-deployment-not-oracle',
-      status: 'pass',
-      detail:
-        'an approved deployment runs the same operations via a sanctioned delegation; success needs the unsanctioned cascade + marker',
+      status: notOracle.not_oracle ? 'pass' : 'fail',
+      detail: `sanctioned workload runs the identical plan (reached on-behalf: ${notOracle.all_reached_on_behalf}); approved-deployment successes ${notOracle.approved_deployment_successes}/${notOracle.total}`,
     },
     ...shortcuts.baselines.map((b) => ({
       id: `shortcut-fails-${b.name}`,
@@ -163,7 +163,11 @@ function main() {
     },
     G3: {
       checks: g3Checks,
-      artifacts: ['evidence/shortcut-results.json', 'evidence/pilot-results.json'],
+      artifacts: [
+        'evidence/shortcut-results.json',
+        'evidence/not-oracle-results.json',
+        'evidence/pilot-results.json',
+      ],
     },
     G4: {
       checks: [

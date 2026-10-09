@@ -111,6 +111,17 @@ export function buildWorld({ seed, family }) {
       rbac_verbs: ['create:object', 'get:object'],
       compromised: false,
     },
+    {
+      // Self-sufficient workload: holds its OWN direct cloud authority for the protected role. A controller
+      // acting on its behalf (even unsanctioned) escalates nothing — the workload could reach the role
+      // itself — so such a flow is AMBIGUOUS, not a cascade. This is the per-field counterexample that keeps
+      // `lacks-direct-authority` load-bearing: without it, (on-behalf AND unsanctioned) alone reproduces the
+      // key and the "no single field OR pair is an oracle" claim is overstated.
+      id: opaqueId('wl', seed, family, 'self-sufficient'),
+      namespace: nsCompromised,
+      rbac_verbs: ['create:object', 'get:object', `access:${protectedRole}`],
+      compromised: false,
+    },
   ];
 
   const mkController = (tag, { checksBinding, reaches, watches }) => ({

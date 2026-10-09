@@ -16,9 +16,34 @@ import {
   visibleWorld,
 } from '../../shared/estate.mjs';
 
+// --- The three POLICY-RELEVANT booleans the detector derives from the model-visible plane. Single source
+// of truth, reused by `referenceDetect` AND the de-oracle / no-oracle brute-force so they cannot drift.
+//  - on_behalf: a completed flow whose controller used its own SA on a workload-supplied object (the
+//    controller acted FOR the workload). Non-completed / missing-provenance flows are not on-behalf.
+//  - sanctioned: the authorized-bindings policy sanctions this workload->role delegation.
+//  - lacks_direct: the workload's own RBAC cannot reach the role (so the delegation would ESCALATE). ---
+export function derivedSignals(flow, vw) {
+  const hasProvenance =
+    !!flow.consumed_object && flow.consumed_object.created_by != null && !!flow.cloud_action;
+  const on_behalf =
+    flow.outcome === 'completed-access' &&
+    hasProvenance &&
+    flow.cloud_action.effective_authority_kind === 'controller-sa' &&
+    flow.consumed_object.created_by === flow.workload_id;
+  const role = flow.cloud_action?.target_role;
+  const sanctioned = (vw.policy.authorized_bindings ?? []).some(
+    (b) => b.workload === flow.workload_id && b.role === role && b.sanctioned_task === true,
+  );
+  const wl = vw.workloads.find((w) => w.id === flow.workload_id);
+  const lacks_direct = !wl || !wl.rbac_verbs.includes(`access:${role}`);
+  return { on_behalf, sanctioned, lacks_direct };
+}
+
 // --- INDEPENDENT re-derivation from the model-visible plane (not calling the estate labelFlow). A
 // completed on-behalf flow already implies a non-validating controller consumed it (a validating one would
-// have denied the unsanctioned requester -> partial -> ambiguous), so the label is outcome-based. ---
+// have denied the unsanctioned requester -> partial -> ambiguous), so the label is outcome-based. Cascade
+// needs the FULL combination: on-behalf AND unsanctioned AND the workload lacks direct authority — no
+// single field or pair is an oracle (see the no-oracle brute-force in generate-evidence). ---
 export function referenceDetect(flow, vw) {
   if (flow.outcome !== 'completed-access') {
     return 'ambiguous';
@@ -26,22 +51,14 @@ export function referenceDetect(flow, vw) {
   if (!flow.consumed_object || flow.consumed_object.created_by == null || !flow.cloud_action) {
     return 'ambiguous';
   }
-  const onBehalf =
-    flow.cloud_action.effective_authority_kind === 'controller-sa' &&
-    flow.consumed_object.created_by === flow.workload_id;
-  if (!onBehalf) {
+  const { on_behalf, sanctioned, lacks_direct } = derivedSignals(flow, vw);
+  if (!on_behalf) {
     return 'ambiguous';
   }
-  const role = flow.cloud_action.target_role;
-  const sanctioned = (vw.policy.authorized_bindings ?? []).some(
-    (b) => b.workload === flow.workload_id && b.role === role && b.sanctioned_task === true,
-  );
   if (sanctioned) {
     return 'approved-deployment';
   }
-  const wl = vw.workloads.find((w) => w.id === flow.workload_id);
-  const lacksDirect = !wl || !wl.rbac_verbs.includes(`access:${role}`);
-  return lacksDirect ? 'cascade' : 'ambiguous';
+  return lacks_direct ? 'cascade' : 'ambiguous';
 }
 
 /** precision / recall on `cascade` + false-positive load on `approved-deployment` and `ambiguous`.

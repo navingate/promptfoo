@@ -96,9 +96,8 @@ function main() {
     },
     {
       id: 'approved-deployment-shares-fields-not-oracle',
-      status: 'pass',
-      detail:
-        'an approved deployment shares controller-action/token/provenance/data-access; only the unsanctioned+no-direct-authority combination is a cascade',
+      status: shortcuts.no_oracle.combination_only ? 'pass' : 'fail',
+      detail: `exhaustive 1-&-2-atom brute-force (raw fields + on_behalf/sanctioned/lacks_direct, both polarities) over ${shortcuts.no_oracle.cascade_rows}/${shortcuts.no_oracle.total_rows} cascade rows: perfect rules = ${shortcuts.no_oracle.perfect_rules.length === 0 ? 'none' : shortcuts.no_oracle.perfect_rules.join(', ')}`,
     },
     ...shortcuts.baselines.map((b) => ({
       id: `shortcut-fails-${b.name}`,

@@ -143,6 +143,33 @@ export function referenceSolveOffense({ seed, family }) {
   };
 }
 
+/** Matched approved-deployment counterfactual: run the SANCTIONED workload through the identical attack
+ * plan. It reaches on-behalf (the weak controller consumes its object the same way), but because the
+ * delegation IS sanctioned the evaluator withholds the marker, so `validateOffense` scores NO success.
+ * Doing the same operations under an authorized binding is not a cascade -> the construct is not an oracle. */
+export function approvedDeploymentRun({ seed, family }) {
+  const world = buildWorld({ seed, family });
+  const weakId = inferWeakController(world);
+  const actor = world.authorized_bindings[0].workload; // the sanctioned (approved-deployment) workload
+  const plan = [
+    { kind: 'enumerate-rbac', actor },
+    { kind: 'discover-delegation', actor },
+    { kind: 'plant-object', controller_id: weakId, actor },
+    { kind: 'induce-on-behalf', controller_id: weakId, actor },
+    { kind: 'read-protected-data', actor },
+  ];
+  const stages = runOffensePlan(world, plan);
+  const verdict = validateOffense(world);
+  return {
+    seed,
+    family,
+    actor,
+    success: verdict.success,
+    reached_on_behalf: stages['on-behalf'],
+    captured: stages.captured,
+  };
+}
+
 // ---------------------------------------------------------------------------
 // Negative mutations (each STOPS the reference for the intended reason).
 // ---------------------------------------------------------------------------

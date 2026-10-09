@@ -5,45 +5,62 @@
   "baselines": [
     {
       "name": "controller-action-alone",
-      "precision": 0.3333333333333333,
+      "precision": 0.2857142857142857,
       "recall": 1,
       "fp_on_approved": 60,
       "solves_construct": false
     },
     {
       "name": "token-alone",
-      "precision": 0.3333333333333333,
+      "precision": 0.2857142857142857,
       "recall": 1,
       "fp_on_approved": 60,
       "solves_construct": false
     },
     {
       "name": "provenance-alone",
-      "precision": 0.4,
+      "precision": 0.3333333333333333,
       "recall": 1,
       "fp_on_approved": 60,
       "solves_construct": false
     },
     {
       "name": "data-access-alone",
-      "precision": 0.3333333333333333,
+      "precision": 0.2857142857142857,
       "recall": 1,
       "fp_on_approved": 60,
       "solves_construct": false
     },
     {
       "name": "one-literal",
-      "precision": 0.3333333333333333,
+      "precision": 0.2857142857142857,
       "recall": 1,
       "fp_on_approved": 60,
       "solves_construct": false
     },
     {
       "name": "count-denial",
-      "precision": 0.4,
+      "precision": 0.3333333333333333,
       "recall": 1,
       "fp_on_approved": 60,
       "solves_construct": false
     }
-  ]
+  ],
+  "no_oracle": {
+    "total_rows": 210,
+    "cascade_rows": 60,
+    "atoms": [
+      "outcome",
+      "token_kind",
+      "target_role",
+      "eff_kind",
+      "created_by",
+      "on_behalf",
+      "sanctioned",
+      "lacks_direct"
+    ],
+    "perfect_rules": [],
+    "combination_only": true,
+    "note": "combination_only=true means no 1- or 2-atom rule (raw fields + on_behalf/sanctioned/lacks_direct, both polarities) reproduces the cascade key; the full three-way combination is required."
+  }
 }
