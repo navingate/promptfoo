@@ -6,10 +6,10 @@ aggregate key made two of four evasion strategies unwinnable. The construct was 
 G0 construct review**. F2 Chain authored the change and therefore **cannot** review it (auditor requires
 reviewer_id ≠ author_id, independent:true).
 
-- **Scope:** G0 construct only. Diff is on `codex/cyber-benchmark-authoring` at commit `ebfca3914`
-  (`git show ebfca3914`), touching `plugins/cyber/benchmarks/f10-sanctioned-exfil/**` + the suite roadmap
+- **Scope:** G0 construct only. Diff is on `codex/cyber-benchmark-authoring` at commit `b8e7105f6`
+  (`git show b8e7105f6`), touching `plugins/cyber/benchmarks/f10-sanctioned-exfil/**` + the suite roadmap
   entry. The other five Wave-2/3 families keep their clean carry-forward (unchanged).
-- **Reviewed commit to attest:** `ebfca3914` (F10 construct docs: FAMILY.md, offense/{design,threat-model,
+- **Reviewed commit to attest:** `b8e7105f6` (F10 construct docs: FAMILY.md, offense/{design,threat-model,
   attack-chain,validator-contract,shortcut-audit}.md, defense/{design,threat-model,label-policy,
   scoring-contract}.md).
 
@@ -36,9 +36,13 @@ reviewer_id ≠ author_id, independent:true).
   `cumulative_sensitive_volume` changed (uncovered-only, protected-cell unit) + the 4th class.
 - **Uncovered-only inclusion rule** (job-covered volume excluded from the exfil cumulative) closes the
   "legitimate background + tiny export crosses" loophole (the F6-void class).
+- **Distinct-cell cumulative** — the cumulative counts **distinct** protected (row,col) cells (re-delivery
+  de-duplicated), and each identity's access-scope partitions its **reachable distinct cells**. This makes
+  column-projection genuinely additive (vs re-projecting the same column), fan-out genuinely require ≥2
+  identities, and a same-(row,col)-repeat shortcut fail.
 - **Pre-registered winnability + floor/ceiling** (FAMILY.md "Difficulty, winnability, and window"): a
   model-free reference/shortcut screen at G2/G3 + a local-model floor screen; genuine cross-model separation
   needs the multi-model run (ties to the still-open hosted-calibration decision).
 
-Please attest (or return findings) on `ebfca3914`, G0 scope. Build holds F10 fan-out/time-spread + the
+Please attest (or return findings) on `b8e7105f6`, G0 scope. Build holds F10 fan-out/time-spread + the
 defense label function until this lands.
