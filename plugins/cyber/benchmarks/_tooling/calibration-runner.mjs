@@ -22,6 +22,8 @@
 //       --seeds 5,17 --families incomplete-join --attempts 1 --smoke
 //   (env) CYBER_MODEL, and one of CYBER_SUT_ENDPOINT|OPENAI_BASE_URL
 //         plus one of CYBER_API_KEY|OPENAI_API_KEY (Azure hosts are refused; there is no Azure fallback)
+//   --record <taskDir> --commit <C0> --run-id <id> [--tier local|hosted] [--limitation "<text>"]...
+//         records one model's run; several runs (one model each) share one protocol + result.
 
 import crypto from 'node:crypto';
 import fs from 'node:fs';
@@ -162,6 +164,17 @@ function parseArgs(argv) {
         break;
       case '--run-id':
         args.runId = next();
+        break;
+      case '--tier':
+        // `local` (default: the local box, floor/middle) or `hosted` (a hosted provider's model).
+        args.tier = next();
+        if (!['local', 'hosted'].includes(args.tier)) {
+          throw new Error(`--tier must be local or hosted, got ${args.tier}`);
+        }
+        break;
+      case '--limitation':
+        // Repeatable: a run-specific limitation recorded with this run (e.g. why its model was chosen).
+        args.limitations = [...(args.limitations ?? []), next()];
         break;
       case '--mock-reference':
         args.mockReference = true;
@@ -1357,22 +1370,8 @@ async function smoke(args) {
 
 // ---------------------------------------------------------------------------
 // Record — run a calibration and write auditor-shaped G6 evidence into <taskDir>/calibration/.
+// The per-run confidence interval is computed by calibration-record.mjs.
 // ---------------------------------------------------------------------------
-
-function wilson95(pass, n) {
-  if (n === 0) {
-    return { low: 0, high: 0 };
-  }
-  const p = pass / n;
-  const z = 1.96;
-  const denom = 1 + (z * z) / n;
-  const centre = p + (z * z) / (2 * n);
-  const margin = z * Math.sqrt((p * (1 - p) + (z * z) / (4 * n)) / n);
-  return {
-    low: Math.max(0, (centre - margin) / denom),
-    high: Math.min(1, (centre + margin) / denom),
-  };
-}
 
 function enumerateInstances(task, seeds, families, subtypes) {
   const instances = [];
@@ -1541,8 +1540,6 @@ async function record(args) {
     instances: args.declaredMinInstances ?? Math.min(4, instanceIds.length),
     attempts: args.declaredMinAttempts ?? Math.min(8, instanceIds.length * attemptsPer),
   };
-  const passRate = tally.completed === 0 ? 0 : tally.pass / tally.completed;
-  const ci = wilson95(tally.pass, tally.completed);
   const paths = writeCalibrationEvidence({
     taskDir: args.record,
     taskId: args.task,
@@ -1570,28 +1567,22 @@ async function record(args) {
     },
     protocolMeta: {
       attempts_per_instance: attemptsPer,
-      sample_size_rationale: `${instanceIds.length} instances x ${attemptsPer} attempts across ${families.length} families and ${seeds.length} seeds; a local floor/middle probe, not a powered estimate.`,
       outcome_taxonomy: {
         provider_error: 'timeout / connection failure / HTTP 5xx / 429',
         invalid_run: 'harness fault or a forbidden-value hit in the rendered prompt',
         model_fail: 'off-grammar / truncated / wrong answer (fail closed)',
         pass: 'scored success',
       },
-      tiers: { floor_middle: 'this local run', ceiling: 'PENDING — frontier model via .env keys' },
     },
-    uncertainty: {
-      method: 'Wilson score 95% interval on the pass rate',
-      result: `pass_rate=${passRate.toFixed(4)} (pass ${tally.pass}/${tally.completed}); 95% CI [${ci.low.toFixed(4)}, ${ci.high.toFixed(4)}]`,
-    },
+    tier: args.tier ?? 'local',
+    // This run's own limitations; the writer adds the cross-run ones (G6 status, model list).
     limitations: [
-      'No frontier ceiling run — this is the local model only (floor/middle); the G6 gate is kept PENDING.',
-      `Single model (${endpoint.model}); not a cross-model calibration.`,
-      'Local sample size is a probe, not a powered estimate; the interval is wide.',
+      'Sample size is a probe, not a powered estimate; the interval is wide.',
       ...(isVictimLoop && victimIsPinned
         ? [
-            `Victim is the PINNED baseline (${victimEndpoint.model}); this is a LOCAL floor/middle calibration against it — the G6 gate stays PENDING a frontier ceiling run of the attacker SUT. G1 is backed separately by evidence/pinned-baseline-g1.json.`,
+            `Victim is the PINNED baseline (${victimEndpoint.model}); G1 is backed separately by evidence/pinned-baseline-g1.json.`,
             'The action-plan victim emits its whole plan at once and never sees intermediate tool results (a floor-probe abstraction; a gate-grade ceiling run would use the true multi-turn loop).',
-            'The local model build is run-to-run nondeterministic, so each twin is a single sample; results are directional only.',
+            'The victim runs on the local box, whose model build is run-to-run nondeterministic, so each twin is a single sample; results are directional only.',
           ]
         : []),
       ...(isVictimLoop && !victimIsPinned
@@ -1601,9 +1592,15 @@ async function record(args) {
             'The local model build is run-to-run nondeterministic, so each twin is a single sample; results are directional only.',
           ]
         : []),
+      ...(args.limitations ?? []),
     ],
   });
   process.stdout.write(`\n[record] ${args.task} tally ${JSON.stringify(tally)}\n`);
+  if (paths.skipped.length > 0) {
+    process.stdout.write(
+      `[record] left out run records bound to another commit: ${paths.skipped.join(', ')}\n`,
+    );
+  }
   process.stdout.write(
     `[record] wrote ${JSON.stringify(paths)} (run_id=${runId}, commit=${args.commit.slice(0, 12)})\n`,
   );
