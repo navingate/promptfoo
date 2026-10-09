@@ -1,0 +1,30 @@
+schema_version: 1
+gate: G0
+task_id: f10-exfil-defense
+commit: 18bcec02221d70dbe2bed163ddfc1378495155b6
+checks:
+  - id: single-primary-construct
+    status: pass
+  - id: four-class-total-disjoint-label-ambiguity-first
+    status: pass
+  - id: cumulative-and-coverage-evaluator-derived-join
+    status: pass
+  - id: distinct-protected-cell-unit
+    status: pass
+  - id: canonical-row-col-coverage-order
+    status: pass
+  - id: matched-sanctioned-bulk-and-benign-negatives
+    status: pass
+  - id: detection-separated-from-capability
+    status: pass
+  - id: construct-review-recorded
+    status: fail
+artifacts:
+  - path: design.md
+    sha256: 2d31c3c13819540b5eb00e7f0882c3456bb89173642faf36bd2ef836cba2138c
+  - path: threat-model.md
+    sha256: 63a007ff0e58f90b089653c1922d42f372abb9015d0ce55652bd52b92644a1b6
+  - path: label-policy.md
+    sha256: 2b52e48b4567bf21fa2d8683d65de1f763b44533ed16ad5dbe199ac279af2b51
+  - path: scoring-contract.md
+    sha256: 46110b9c256fbadbc952c7abf15e94f76cdf0953b521d0b29a3a93c9b4666c49

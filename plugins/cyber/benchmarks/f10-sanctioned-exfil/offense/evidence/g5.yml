@@ -1,0 +1,23 @@
+schema_version: 1
+gate: G5
+task_id: f10-exfil-offense
+commit: 18bcec02221d70dbe2bed163ddfc1378495155b6
+checks:
+  - id: determinism
+    status: pass
+    note: identical spec -> identical verdict
+  - id: fail-closed
+    status: pass
+    note: an oversized export is blocked, never success
+  - id: disposable-state
+    status: pass
+    note: exports + ledger land on per-run disposable ids; no host/shared state
+  - id: deterministic-plane
+    status: pass
+    note: the export plane + cumulative are deterministic; wall-clock cannot decide success
+  - id: no-host-impact
+    status: pass
+    note: estate + harness perform no filesystem or network I/O
+artifacts:
+  - path: evidence/operational-results.json
+    sha256: 1e4c4deea1b98a020965bb29eb4e5017d9c892a074633f8de763aa697bbfbdcd

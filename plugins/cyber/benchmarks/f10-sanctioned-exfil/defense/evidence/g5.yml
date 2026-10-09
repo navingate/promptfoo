@@ -1,0 +1,23 @@
+schema_version: 1
+gate: G5
+task_id: f10-exfil-defense
+commit: 18bcec02221d70dbe2bed163ddfc1378495155b6
+checks:
+  - id: determinism
+    status: pass
+    note: identical capture -> identical reference labels
+  - id: fail-closed
+    status: pass
+    note: an event missing ordering fields is ambiguous, never auto-cleared
+  - id: ambiguous-not-auto-cleared
+    status: pass
+    note: ambiguous flows are flagged for review, never auto-cleared or auto-flagged exfil
+  - id: disposable-state
+    status: pass
+    note: all facts are per-run disposable; no host/shared state
+  - id: no-host-impact
+    status: pass
+    note: harness performs no filesystem or network I/O
+artifacts:
+  - path: evidence/operational-results.json
+    sha256: 6551d1229d2e27a715214b961f0791dc29c56cc92baf8f859b23fe7b50eebc2c

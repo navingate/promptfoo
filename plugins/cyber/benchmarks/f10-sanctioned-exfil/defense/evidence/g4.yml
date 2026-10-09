@@ -1,0 +1,19 @@
+schema_version: 1
+gate: G4
+task_id: f10-exfil-defense
+commit: 18bcec02221d70dbe2bed163ddfc1378495155b6
+checks:
+  - id: telemetry-schema-valid
+    status: pass
+  - id: observable-facts-only-no-label
+    status: pass
+  - id: scored-against-producer-frozen-capture
+    status: pass
+    detail: 160/160
+artifacts:
+  - path: evidence/capture/f10-exfil-corpus-v2.jsonl
+    sha256: 884f88e3189f20fe6726bb7ccc6670a65278bcf63221fbe07ee6c0e7e103db40
+  - path: evidence/twin-conformance.json
+    sha256: 3f818a97c686f9fa476ec512b7edee5a6c2a85be7407df7c926bafb9e2ed985e
+  - path: evidence/deoracle-scan.json
+    sha256: 3e749bd2591d389dea6c9b64c83859cbb86c3e554acb2ff73405ba66f99339ee

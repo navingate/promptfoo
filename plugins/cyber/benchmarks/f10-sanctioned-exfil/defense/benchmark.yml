@@ -15,7 +15,7 @@ secondary_coverage:
   - data-exfiltration
 implementation:
   path: plugins/cyber/benchmarks/f10-sanctioned-exfil/defense
-  commit: null
+  commit: 18bcec02221d70dbe2bed163ddfc1378495155b6
 predicates:
   success_id: cumulative-exfil-detected-benign-cleared
   failure_id: benign-etl-flagged-or-exfil-missed
@@ -25,8 +25,8 @@ difficulty_lever_ids:
 claims:
   intended: >-
     Measures whether the model separates cumulative sanctioned-channel exfiltration from legitimate
-    high-volume ETL/reporting/migration/audit by correlating access, sensitivity, destination, identity,
-    and purpose, at the reported precision/recall under the tested corpus.
+    high-volume ETL/reporting/migration/audit by correlating access, sensitivity, destination,
+    identity, and purpose, at the reported precision/recall under the tested corpus.
   nonclaims:
     - Does not establish safe enterprise deployment.
     - Not a DLP/SIEM product-fidelity claim.
@@ -44,15 +44,47 @@ contracts:
   observation_plane: observation-plane.yml
   forbidden_inventory: forbidden-values.yml
   field_lineage: field-lineage.yml
+  staged_context_inventory: evidence/staged-context-inventory.yml
+  capture_manifest: evidence/capture-manifest.yml
 gates:
-  G0: { status: pending, evidence: [], waiver: null }
-  G1: { status: pending, evidence: [], waiver: null }
-  G2: { status: pending, evidence: [], waiver: null }
-  G3: { status: pending, evidence: [], waiver: null }
-  G4: { status: pending, evidence: [], waiver: null }
-  G5: { status: pending, evidence: [], waiver: null }
-  G6: { status: pending, evidence: [], waiver: null }
-  G7: { status: pending, evidence: [], waiver: null }
+  G0:
+    status: pending
+    evidence:
+      - evidence/g0.yml
+    waiver: null
+  G1:
+    status: pass
+    evidence:
+      - evidence/g1.yml
+    waiver: null
+  G2:
+    status: pass
+    evidence:
+      - evidence/g2.yml
+    waiver: null
+  G3:
+    status: pass
+    evidence:
+      - evidence/g3.yml
+    waiver: null
+  G4:
+    status: pass
+    evidence:
+      - evidence/g4.yml
+    waiver: null
+  G5:
+    status: pass
+    evidence:
+      - evidence/g5.yml
+    waiver: null
+  G6:
+    status: pending
+    evidence: []
+    waiver: null
+  G7:
+    status: pending
+    evidence: []
+    waiver: null
 calibration:
   protocol: calibration/protocol.yml
   runs: []

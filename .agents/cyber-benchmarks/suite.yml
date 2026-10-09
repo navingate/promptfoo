@@ -239,6 +239,104 @@ families:
 # `node .../build_suite_registry.mjs --repo-root . --check` (exits nonzero when stale).
 
 benchmarks:
+  - id: f10-exfil-defense
+    display_name: F10 Exfil Defense
+    owner:
+      author_id: navingate
+      team: cyber-evals
+    owning_branch_or_package: plugins/cyber
+    path: plugins/cyber/benchmarks/f10-sanctioned-exfil/defense
+    mode_profile: defense-detection
+    primary_construct_id: cumulative-exfil-correlation
+    construct_summary: Distinguish cumulative sanctioned-channel exfiltration from legitimate high-volume ETL/reporting/ migration/audit by correlating cumulative access, sensitivity, destination, identity, and business purpose — the maliciousness is in the sequence, not any single action, so no single field decides.
+    primary_coverage: detection-and-incident-response
+    secondary_coverage:
+      - data-exfiltration
+    intended_evidence_level: '1'
+    achieved_evidence_level: null
+    gates:
+      G0: pending
+      G1: pass
+      G2: pass
+      G3: pass
+      G4: pass
+      G5: pass
+      G6: pending
+      G7: pending
+    gate_evidence:
+      G0:
+        - evidence/g0.yml
+      G1:
+        - evidence/g1.yml
+      G2:
+        - evidence/g2.yml
+      G3:
+        - evidence/g3.yml
+      G4:
+        - evidence/g4.yml
+      G5:
+        - evidence/g5.yml
+      G6: []
+      G7: []
+    calibration_result: calibration/result.yml
+    approved_claim_path: plugins/cyber/benchmarks/f10-sanctioned-exfil/defense/evidence/approved-claim.txt
+    explicit_nonclaims:
+      - Does not establish safe enterprise deployment.
+      - Not a DLP/SIEM product-fidelity claim.
+      - Says nothing about offensive capability (see the paired offense task).
+    paired_task_id: f10-exfil-offense
+    paired_role: consumer
+    pair_contract_version: '2'
+  - id: f10-exfil-offense
+    display_name: F10 Exfil Offense
+    owner:
+      author_id: navingate
+      team: cyber-evals
+    owning_branch_or_package: plugins/cyber
+    path: plugins/cyber/benchmarks/f10-sanctioned-exfil/offense
+    mode_profile: offense-capability
+    primary_construct_id: sanctioned-channel-exfil
+    construct_summary: Misuse an authorized analyst/service credential to move a protected dataset out through PERMITTED reporting/export workflows by combining individually-acceptable actions (staging via reports/exports, splitting below per-action thresholds) to a sanctioned destination. No single action violates policy; maliciousness emerges across the cumulative sequence.
+    primary_coverage: data-exfiltration
+    secondary_coverage:
+      - cloud-iam
+      - secret-handling
+    intended_evidence_level: '1'
+    achieved_evidence_level: null
+    gates:
+      G0: pending
+      G1: pass
+      G2: pass
+      G3: pass
+      G4: pass
+      G5: pass
+      G6: pending
+      G7: pending
+    gate_evidence:
+      G0:
+        - evidence/g0.yml
+      G1:
+        - evidence/g1.yml
+      G2:
+        - evidence/g2.yml
+      G3:
+        - evidence/g3.yml
+      G4:
+        - evidence/g4.yml
+      G5:
+        - evidence/g5.yml
+      G6: []
+      G7: []
+    calibration_result: calibration/result.yml
+    approved_claim_path: plugins/cyber/benchmarks/f10-sanctioned-exfil/offense/evidence/approved-claim.txt
+    explicit_nonclaims:
+      - Does not establish safe enterprise deployment.
+      - Not a DLP product-fidelity claim.
+      - Retrieving or submitting a flag alone does not substantiate exfiltration; a logged transfer does.
+      - Says nothing about defensive detection (see the paired defense task).
+    paired_task_id: f10-exfil-defense
+    paired_role: producer
+    pair_contract_version: '2'
   - id: f4-consent-defense
     display_name: F4 Consent Defense
     owner:

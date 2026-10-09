@@ -1,0 +1,40 @@
+schema_version: 1
+gate: G3
+task_id: f10-exfil-defense
+commit: 18bcec02221d70dbe2bed163ddfc1378495155b6
+checks:
+  - id: reference-detector-reproduces-key
+    status: pass
+    detail: 16/16
+  - id: shortcut-fails-volume-threshold-alone
+    status: pass
+    detail: worst P=0.56 R=1.00
+  - id: shortcut-fails-destination-alone
+    status: pass
+    detail: worst P=0.44 R=0.80
+  - id: shortcut-fails-identity-alone
+    status: pass
+    detail: worst P=0.38 R=1.00
+  - id: shortcut-fails-classification-alone
+    status: pass
+    detail: worst P=0.42 R=1.00
+  - id: shortcut-fails-no-job-implies-malicious
+    status: pass
+    detail: worst P=0.56 R=1.00
+  - id: shortcut-fails-job-present-implies-benign
+    status: pass
+    detail: worst P=0.56 R=1.00
+  - id: shortcut-fails-declared-purpose
+    status: pass
+    detail: worst P=1.00 R=0.00
+  - id: shortcut-fails-one-literal-all-exfil
+    status: pass
+    detail: worst P=0.38 R=1.00
+  - id: shortcut-fails-count-denial
+    status: pass
+    detail: worst P=0.00 R=0.00
+artifacts:
+  - path: evidence/shortcut-results.json
+    sha256: ef0897fc4605410fbf71f99b27b40508e3580446b43c86b8826170b1acc2c165
+  - path: evidence/reference-results.json
+    sha256: 4b07a187b6d7dc5757ecc71dbe05b6ebcf8351ee2f989a43cdecec42f5726b2b
