@@ -21,14 +21,12 @@ import {
   writeText,
   writeYaml,
 } from '../../../_tooling/evidence-lib.mjs';
-import { buildCorpus, COUNTEREXAMPLE_TAGS, corpusScenarios } from '../../shared/corpus.mjs';
+import { buildCorpus, COUNTEREXAMPLE_TAGS } from '../../shared/corpus.mjs';
 import {
   CORPUS_SEEDS,
   FAMILIES,
   instanceWorld,
-  labelCapture,
   markerFor,
-  policyFor,
   TELEMETRY_CONTRACT_ID,
   visibleCatalog,
   visibleDestinations,
@@ -332,50 +330,10 @@ function generateCapture() {
   return { rows: rows.length };
 }
 
-function generateTwinConformance() {
-  // The capture is conformant iff (a) each frozen native row faithfully freezes its scenario's events
-  // (the only difference is the stripped evaluator-derived delivered cell set), and (b) the shared
-  // consumer label formula assigns every scenario flow exactly one of the 4 classes. The defense twin
-  // additionally cross-checks the independent detector re-derivation against this evaluator key.
-  const CLASSES = ['cumulative-exfil', 'sanctioned-bulk', 'ambiguous', 'benign'];
-  let totalFlows = 0;
-  let conformantFlows = 0;
-  let frozenRows = 0;
-  let faithfulRows = 0;
-  for (const seed of CORPUS_SEEDS) {
-    const scenarios = corpusScenarios(seed);
-    const frozen = buildCorpus(seed);
-    const policy = policyFor(seed);
-    for (let i = 0; i < scenarios.length; i += 1) {
-      const s = scenarios[i];
-      const native = s.events.map(({ _delivered, ...rest }) => rest);
-      frozenRows += 1;
-      if (
-        frozen[i].scenario_id === s.scenario_id &&
-        JSON.stringify(frozen[i].events) === JSON.stringify(native)
-      ) {
-        faithfulRows += 1;
-      }
-      for (const f of labelCapture(s.events, s.jobs, policy)) {
-        totalFlows += 1;
-        if (CLASSES.includes(f.label)) {
-          conformantFlows += 1;
-        }
-      }
-    }
-  }
-  const doc = {
-    task_id: TASK_ID,
-    kind: 'twin-conformance',
-    total_flows: totalFlows,
-    conformant_flows: conformantFlows,
-    frozen_rows: frozenRows,
-    faithfully_frozen_rows: faithfulRows,
-    corpus_conformant: conformantFlows === totalFlows && faithfulRows === frozenRows,
-  };
-  writeJson(path.join(evidenceDir, 'twin-conformance.json'), doc);
-  return doc;
-}
+// NOTE: twin-conformance is written by the DEFENSE (consumer) generate-evidence, to both the defense
+// and this offense evidence dir — a single authoritative cross-check that the consumer re-derives the
+// evaluator key from this producer's frozen native capture. The producer does not self-assert it
+// (mirrors F4). The offense build-manifest reads that defense-written twin-conformance.json.
 
 async function generateDeoracleScan() {
   const result = await auditTelemetry(
@@ -413,7 +371,6 @@ async function main() {
   writeJson(path.join(evidenceDir, 'operational-results.json'), operational);
   const staged = stageObservationPlane();
   const capture = generateCapture();
-  const conformance = generateTwinConformance();
   const scan = await generateDeoracleScan();
 
   process.stdout.write(
@@ -423,7 +380,7 @@ async function main() {
       `[f10-offense] shortcuts ${shortcuts.baselines.filter((b) => b.solves_construct === false).length}/${shortcuts.baselines.length} fail-to-solve`,
       `[f10-offense] pilot=${pilot.verdict} (strategies ${pilot.strategies_crossing}/${pilot.strategies_total}, shortcuts_all_fail=${pilot.shortcuts_all_fail})`,
       `[f10-offense] operational ${operational.checks.filter((c) => c.status === 'pass').length}/${operational.checks.length} pass`,
-      `[f10-offense] capture rows=${capture.rows}  twin-conformant=${conformance.corpus_conformant}  de-oracled=${scan.de_oracled}  digest ${staged.digest.slice(0, 12)}…`,
+      `[f10-offense] capture rows=${capture.rows}  de-oracled=${scan.de_oracled}  digest ${staged.digest.slice(0, 12)}… (twin-conformance written by defense)`,
       '',
     ].join('\n'),
   );
