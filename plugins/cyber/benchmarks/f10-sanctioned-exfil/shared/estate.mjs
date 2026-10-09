@@ -75,6 +75,9 @@ export function markerFor(seed, family) {
   return `F10EXP-${sha256Hex(`f10|${seed}|${family}|marker`).slice(0, 20)}`;
 }
 export function windowIndex(eventTime) {
+  if (!Number.isFinite(eventTime)) {
+    return 0; // a missing/invalid event_time is treated as window 0 (the flow is flagged ambiguous elsewhere)
+  }
   return Math.max(0, Math.min(NUM_WINDOWS - 1, Math.floor(eventTime / W_SIZE)));
 }
 

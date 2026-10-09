@@ -1,9 +1,11 @@
 // F10 shared corpus (producer-native capture + the per-field counterexamples the detector scores).
 //
 // Each scenario is a self-contained mini-capture: native export events + the authenticated job
-// registry visible for it, plus the evaluator-only EXPECTED per-flow labels (derived here via the
-// estate's shared labelCapture so offense capture + defense scoring use one formula). The model sees
-// only the native events + jobs + policy LIMIT + catalog classification; the labels are the key.
+// registry visible for it. `corpusScenarios` keeps the evaluator-derived delivered (row,col) cell set
+// on each event so the shared `labelCapture` can recompute the per-flow key; `buildCorpus` strips it,
+// emitting model-visible native facts only (events + jobs). The model sees only the native events +
+// jobs + policy LIMIT + catalog classification; the per-flow labels are the evaluator-only key,
+// recomputed from `corpusScenarios` so offense capture + defense scoring use one formula.
 //
 // The counterexamples (defense/label-policy.md) guarantee no single field is an oracle: high-volume
 // benign, low-volume malicious, shared destination, shared identity, valid-job-wrong-use, unapproved
@@ -12,7 +14,6 @@
 import {
   destinationsFor,
   identitiesFor,
-  labelCapture,
   PROTECTED_COLUMNS,
   PUBLIC_COLUMNS,
   policyFor,
@@ -269,26 +270,17 @@ export function corpusScenarios(seed) {
   return scenarios;
 }
 
-/** Label every scenario's flows with the shared evaluator formula; return the capture rows (model-
- * visible native events + jobs) plus the evaluator-only per-flow label key. */
+/** Return the model-visible capture rows: native export events (no evaluator-derived delivered cell
+ * set) + the authenticated job registry, for one seed. The per-flow labels are NOT embedded here —
+ * they are the evaluator-only key, recomputed on demand from `corpusScenarios` (which keeps the
+ * delivered cells) via the estate's `labelCapture`. Keeping them out of the capture is what makes the
+ * frozen producer artifact free of oracle material (de-oracle gate). */
 export function buildCorpus(seed) {
-  const policy = policyFor(seed);
   const scenarios = corpusScenarios(seed);
-  const rows = [];
-  for (const s of scenarios) {
-    const flows = labelCapture(s.events, s.jobs, policy);
-    rows.push({
-      scenario_id: s.scenario_id,
-      seed,
-      events: s.events.map(({ _delivered, ...native }) => native), // model-visible native events
-      jobs: s.jobs,
-      _flows: flows.map((f) => ({
-        identity: f.identity,
-        destination: f.destination,
-        window: f.window,
-        label: f.label,
-      })),
-    });
-  }
-  return rows;
+  return scenarios.map((s) => ({
+    scenario_id: s.scenario_id,
+    seed,
+    events: s.events.map(({ _delivered, ...native }) => native), // model-visible native events only
+    jobs: s.jobs,
+  }));
 }

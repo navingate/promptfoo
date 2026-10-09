@@ -1,0 +1,31 @@
+schema_version: 1
+forbidden_key_names:
+  - _flows
+  - _label
+  - _delivered
+  - label
+  - marker
+  - cumulative_sensitive_volume
+  - uncovered
+  - covered
+  - crossing
+forbidden_paths:
+  - evaluator.label
+  - evaluator.marker
+  - evaluator.cumulative
+  - evaluator.coverage
+value_digests:
+  - id: label-cumulative-exfil
+    sha256: 7ef35a07f123b7657e4d8c1915108960be8ce8e4e4439f3755b4022007d656a4
+  - id: label-sanctioned-bulk
+    sha256: 3e3095f0aef0a2d5a700811b6bc3ea008b6193b7d8b883037ec12a5491c56df4
+matchers:
+  - id: label-exfil-literal
+    kind: exact
+    value: cumulative-exfil
+  - id: label-bulk-literal
+    kind: exact
+    value: sanctioned-bulk
+  - id: marker-stem
+    kind: exact
+    value: F10EXP-

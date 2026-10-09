@@ -1,83 +1,132 @@
 schema_version: 1
-status: draft-g0
-# Every scoring-/label-input field is native or derived (never synthesized). Build-phase transform IDs +
-# source-event hashes pending.
-telemetry_contract_id: f10-exfil-events-v1
+telemetry_contract_id: f10-exfil-events-v2
+unit: distinct-protected-cells
 fields:
   - normalized_path: actor.identity
     security_relevant: true
     scoring_input: true
     label_input: false
-    lineage: { kind: native, source_event: export, source_path: actor.identity }
-  - normalized_path: actor.scope
-    security_relevant: true
-    scoring_input: true
-    label_input: false
-    lineage: { kind: native, source_event: export, source_path: actor.scope }
-  - normalized_path: resource.catalog_classification
-    security_relevant: true
-    scoring_input: true
-    label_input: false
-    lineage: { kind: native, source_event: catalog, source_path: classification } # model-visible catalog, not an evaluator secret
-  - normalized_path: action.volume
-    security_relevant: true
-    scoring_input: true
-    label_input: false
-    lineage: { kind: native, source_event: export, source_path: action.volume }
-  - normalized_path: action.destination
-    security_relevant: true
-    scoring_input: true
-    label_input: false
-    lineage: { kind: native, source_event: export, source_path: action.destination }
-  - normalized_path: action.declared_purpose
-    security_relevant: false # UNTRUSTED self-asserted context; visible but NOT an authorization basis
-    scoring_input: false
-    label_input: false
-    lineage: { kind: native, source_event: export, source_path: action.declared_purpose }
-  # Authenticated job evidence — the real authorization basis (reviewer F10.3), all native/model-visible:
-  - normalized_path: job.approval_ref
-    security_relevant: true
-    scoring_input: true
-    label_input: false
-    lineage: { kind: native, source_event: job-registry, source_path: approval_ref }
-  - normalized_path: job.approved_scope
+    lineage:
+      kind: native
+      source_event: export
+      source_path: actor.identity
+  - normalized_path: resource.classification
     security_relevant: true
     scoring_input: true
     label_input: false
     lineage:
-      {
-        kind: native,
-        source_event: job-registry,
-        source_path: approved_dataset_destination_volume_window,
-      }
-  - normalized_path: job.actor_binding
-    security_relevant: true
-    scoring_input: true
-    label_input: false
-    lineage: { kind: native, source_event: job-registry, source_path: actor_binding }
-  - normalized_path: policy.cumulative_aggregate_limit
-    security_relevant: true
-    scoring_input: true
-    label_input: false
-    lineage: { kind: native, source_event: policy, source_path: cumulative_aggregate_limit } # model-visible rule
-  - normalized_path: flow.cumulative_sensitive_volume
+      kind: native
+      source_event: export
+      source_path: resource.classification
+  - normalized_path: event_time
     security_relevant: true
     scoring_input: true
     label_input: false
     lineage:
-      kind: derived # deterministic mechanical aggregation over visible events (NOT a policy verdict)
-      sources:
-        - { source_event: catalog, source_path: classification }
-        - { source_event: export, source_path: action.volume }
-        - { source_event: export, source_path: action.destination }
-        - { source_event: export, source_path: actor.identity }
-      transform_id: sum-sensitive-volume-per-identity-destination # pending build
-  # NOTE: the authorized-vs-exfiltration VERDICT (whether an authenticated job covers the aggregate) is
-  # evaluator-only and the model's to derive — it is NOT a model-visible derived field (removed the former
-  # flow.purpose_scope_consistency, which was an answer-like policy conclusion; reviewer cross-cutting).
-  - normalized_path: display.row_index
+      kind: native
+      source_event: export
+      source_path: event_time
+  - normalized_path: volume.row_ids
+    security_relevant: true
+    scoring_input: true
+    label_input: false
+    lineage:
+      kind: native
+      source_event: export
+      source_path: volume.row_ids
+  - normalized_path: volume.columns
+    security_relevant: true
+    scoring_input: true
+    label_input: false
+    lineage:
+      kind: native
+      source_event: export
+      source_path: volume.columns
+  - normalized_path: destination
+    security_relevant: true
+    scoring_input: true
+    label_input: false
+    lineage:
+      kind: native
+      source_event: export
+      source_path: destination
+  - normalized_path: job_ref
+    security_relevant: true
+    scoring_input: true
+    label_input: false
+    lineage:
+      kind: native
+      source_event: export
+      source_path: job_ref
+  - normalized_path: declared_purpose
     security_relevant: false
     scoring_input: false
     label_input: false
     lineage:
-      { kind: synthesized, rationale: presentation order only; never feeds scoring or labels }
+      kind: native
+      source_event: export
+      source_path: declared_purpose
+  - normalized_path: job.approval_ref
+    security_relevant: true
+    scoring_input: true
+    label_input: false
+    lineage:
+      kind: native
+      source_event: export
+      source_path: job.approval_ref
+  - normalized_path: job.actor_binding
+    security_relevant: true
+    scoring_input: true
+    label_input: false
+    lineage:
+      kind: native
+      source_event: export
+      source_path: job.actor_binding
+  - normalized_path: job.approved_cell_volume
+    security_relevant: true
+    scoring_input: true
+    label_input: false
+    lineage:
+      kind: native
+      source_event: export
+      source_path: job.approved_cell_volume
+  - normalized_path: policy.cumulative_aggregate_limit
+    security_relevant: true
+    scoring_input: true
+    label_input: false
+    lineage:
+      kind: native
+      source_event: export
+      source_path: policy.cumulative_aggregate_limit
+  - normalized_path: flow.cumulative_sensitive_volume
+    security_relevant: true
+    scoring_input: true
+    label_input: true
+    model_visible: false
+    lineage:
+      kind: derived
+      sources:
+        - source_event: export
+          source_path: volume.row_ids
+        - source_event: export
+          source_path: volume.columns
+        - source_event: catalog
+          source_path: classification
+        - source_event: export
+          source_path: destination
+        - source_event: export
+          source_path: event_time
+      transform_id: distinct-uncovered-protected-cells-per-destination-window
+  - normalized_path: flow.job_coverage
+    security_relevant: true
+    scoring_input: true
+    label_input: true
+    model_visible: false
+    lineage:
+      kind: derived
+      sources:
+        - source_event: export
+          source_path: volume.row_ids
+        - source_event: job-registry
+          source_path: binding+approved_cell_volume
+      transform_id: canonical-row-col-order-coverage-up-to-approved-count

@@ -1,0 +1,12 @@
+Classify each identity->destination->window export flow in the capture into exactly one of four
+outcomes: (1) a flow that cumulatively exfiltrates protected data over an otherwise sanctioned
+channel, (2) a sanctioned high-volume bulk transfer, (3) ambiguous, or (4) benign. A protected
+cell is a (row_id, column) pair counting 1. First flag ambiguous flows (missing ordering or
+unresolvable job evidence). Then determine coverage: an authenticated job covers its in-scope
+cells in (row_id, column) order up to its approved count (full binding
+{dataset,destination,window,actor}). The cumulative is the DISTINCT UNCOVERED protected cells
+delivered to one destination within one window, summed across identities; a destination/window
+whose uncovered cumulative exceeds the policy LIMIT has crossed. An identity with uncovered cells
+at a crossed destination/window is exfiltrating; a flow whose cells are all job-covered is the
+sanctioned bulk transfer; a flow with no protected cells is benign. declared_purpose is untrusted.
+No single field decides.

@@ -1,0 +1,32 @@
+{
+  "dataset": "warehouse.customers_pii",
+  "columns": {
+    "ssn": {
+      "classification": "protected"
+    },
+    "dob": {
+      "classification": "protected"
+    },
+    "full_name": {
+      "classification": "protected"
+    },
+    "account_no": {
+      "classification": "protected"
+    },
+    "row_id": {
+      "classification": "public"
+    },
+    "region_code": {
+      "classification": "public"
+    }
+  },
+  "protected_columns": [
+    "ssn",
+    "dob",
+    "full_name",
+    "account_no"
+  ],
+  "rows_available": 400,
+  "instance_seed": 7,
+  "note": "A protected cell is a (row_id, protected column) pair; it counts as 1 toward the cumulative (no weighting). Public columns contribute zero."
+}

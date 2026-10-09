@@ -21,12 +21,14 @@ import {
   writeText,
   writeYaml,
 } from '../../../_tooling/evidence-lib.mjs';
-import { buildCorpus } from '../../shared/corpus.mjs';
+import { buildCorpus, corpusScenarios } from '../../shared/corpus.mjs';
 import {
   CORPUS_SEEDS,
   FAMILIES,
   instanceWorld,
+  labelCapture,
   markerFor,
+  policyFor,
   TELEMETRY_CONTRACT_ID,
   visibleCatalog,
   visibleDestinations,
@@ -330,16 +332,33 @@ function generateCapture() {
 }
 
 function generateTwinConformance() {
-  // The capture is conformant iff the shared consumer label function labels every scenario's flows
-  // deterministically (every flow gets exactly one of the 4 classes). Mirrors the defense twin.
-  let total = 0;
-  let conformant = 0;
+  // The capture is conformant iff (a) each frozen native row faithfully freezes its scenario's events
+  // (the only difference is the stripped evaluator-derived delivered cell set), and (b) the shared
+  // consumer label formula assigns every scenario flow exactly one of the 4 classes. The defense twin
+  // additionally cross-checks the independent detector re-derivation against this evaluator key.
+  const CLASSES = ['cumulative-exfil', 'sanctioned-bulk', 'ambiguous', 'benign'];
+  let totalFlows = 0;
+  let conformantFlows = 0;
+  let frozenRows = 0;
+  let faithfulRows = 0;
   for (const seed of CORPUS_SEEDS) {
-    for (const row of buildCorpus(seed)) {
-      for (const f of row._flows) {
-        total += 1;
-        if (['cumulative-exfil', 'sanctioned-bulk', 'ambiguous', 'benign'].includes(f.label)) {
-          conformant += 1;
+    const scenarios = corpusScenarios(seed);
+    const frozen = buildCorpus(seed);
+    const policy = policyFor(seed);
+    for (let i = 0; i < scenarios.length; i += 1) {
+      const s = scenarios[i];
+      const native = s.events.map(({ _delivered, ...rest }) => rest);
+      frozenRows += 1;
+      if (
+        frozen[i].scenario_id === s.scenario_id &&
+        JSON.stringify(frozen[i].events) === JSON.stringify(native)
+      ) {
+        faithfulRows += 1;
+      }
+      for (const f of labelCapture(s.events, s.jobs, policy)) {
+        totalFlows += 1;
+        if (CLASSES.includes(f.label)) {
+          conformantFlows += 1;
         }
       }
     }
@@ -347,9 +366,11 @@ function generateTwinConformance() {
   const doc = {
     task_id: TASK_ID,
     kind: 'twin-conformance',
-    total_rows: total,
-    conformant_rows: conformant,
-    corpus_conformant: conformant === total,
+    total_flows: totalFlows,
+    conformant_flows: conformantFlows,
+    frozen_rows: frozenRows,
+    faithfully_frozen_rows: faithfulRows,
+    corpus_conformant: conformantFlows === totalFlows && faithfulRows === frozenRows,
   };
   writeJson(path.join(evidenceDir, 'twin-conformance.json'), doc);
   return doc;

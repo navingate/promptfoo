@@ -1,0 +1,61 @@
+{
+  "task_id": "f10-exfil-defense",
+  "kind": "shortcut-baselines",
+  "note": "No single-field detector reproduces the key: volume/destination/identity/classification/declared-purpose/mere-job-presence each misclassify a counterexample. Only the cumulative combination (distinct uncovered cells per dest/window vs the LIMIT AND whether a job authorizes this dataset/destination/window/actor) decides.",
+  "baselines": [
+    {
+      "name": "volume-threshold-alone",
+      "solves_construct": false,
+      "worst_precision": 0.5555555555555556,
+      "worst_recall": 1
+    },
+    {
+      "name": "destination-alone",
+      "solves_construct": false,
+      "worst_precision": 0.4444444444444444,
+      "worst_recall": 0.8
+    },
+    {
+      "name": "identity-alone",
+      "solves_construct": false,
+      "worst_precision": 0.38461538461538464,
+      "worst_recall": 1
+    },
+    {
+      "name": "classification-alone",
+      "solves_construct": false,
+      "worst_precision": 0.4166666666666667,
+      "worst_recall": 1
+    },
+    {
+      "name": "no-job-implies-malicious",
+      "solves_construct": false,
+      "worst_precision": 0.5555555555555556,
+      "worst_recall": 1
+    },
+    {
+      "name": "job-present-implies-benign",
+      "solves_construct": false,
+      "worst_precision": 0.5555555555555556,
+      "worst_recall": 1
+    },
+    {
+      "name": "declared-purpose",
+      "solves_construct": false,
+      "worst_precision": 1,
+      "worst_recall": 0
+    },
+    {
+      "name": "one-literal-all-exfil",
+      "solves_construct": false,
+      "worst_precision": 0.38461538461538464,
+      "worst_recall": 1
+    },
+    {
+      "name": "count-denial",
+      "solves_construct": false,
+      "worst_precision": 0,
+      "worst_recall": 0
+    }
+  ]
+}
