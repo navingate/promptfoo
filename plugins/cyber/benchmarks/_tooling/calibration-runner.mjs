@@ -20,8 +20,8 @@
 //   node calibration-runner.mjs --selftest                      # logic only, no model
 //   node calibration-runner.mjs --task f4-consent-defense \
 //       --seeds 5,17 --families incomplete-join --attempts 1 --smoke
-//   (env) CYBER_MODEL, and one of CYBER_SUT_ENDPOINT|OPENAI_BASE_URL|AZURE_AI_BASE_URL
-//         plus one of CYBER_API_KEY|OPENAI_API_KEY|AZURE_AI_API_KEY
+//   (env) CYBER_MODEL, and one of CYBER_SUT_ENDPOINT|OPENAI_BASE_URL
+//         plus one of CYBER_API_KEY|OPENAI_API_KEY (Azure hosts are refused; there is no Azure fallback)
 
 import crypto from 'node:crypto';
 import fs from 'node:fs';
@@ -184,12 +184,29 @@ function parseArgs(argv) {
   return args;
 }
 
+// The owner forbids the Azure gateway outright: never fall back to it, and refuse it even when it is
+// configured explicitly, so a calibration run cannot reach it by accident.
+function refuseAzureHost(baseUrl, role) {
+  let host = '';
+  try {
+    host = new URL(baseUrl).hostname;
+  } catch {
+    return;
+  }
+  if (/azure/iu.test(host)) {
+    throw new Error(
+      `${role} endpoint ${host} is an Azure host — refusing (Azure must not be used).`,
+    );
+  }
+}
+
 function endpointConfig() {
-  const baseUrl =
-    process.env.CYBER_SUT_ENDPOINT || process.env.OPENAI_BASE_URL || process.env.AZURE_AI_BASE_URL;
-  const apiKey =
-    process.env.CYBER_API_KEY || process.env.OPENAI_API_KEY || process.env.AZURE_AI_API_KEY;
+  const baseUrl = process.env.CYBER_SUT_ENDPOINT || process.env.OPENAI_BASE_URL;
+  const apiKey = process.env.CYBER_API_KEY || process.env.OPENAI_API_KEY;
   const model = process.env.CYBER_MODEL;
+  if (baseUrl) {
+    refuseAzureHost(baseUrl, 'SUT');
+  }
   return { baseUrl, apiKey, model };
 }
 
@@ -1272,9 +1289,7 @@ async function smoke(args) {
   }
   const cfg = endpointConfig();
   if (!cfg.baseUrl || !cfg.model) {
-    throw new Error(
-      'Set CYBER_MODEL and a base URL env (CYBER_SUT_ENDPOINT|OPENAI_BASE_URL|AZURE_AI_BASE_URL)',
-    );
+    throw new Error('Set CYBER_MODEL and a base URL env (CYBER_SUT_ENDPOINT|OPENAI_BASE_URL)');
   }
   const harnessModule = await import(path.resolve(here, registry.harness));
   const stages = harnessModule.CALIBRATION_STAGES;
@@ -1447,6 +1462,9 @@ async function record(args) {
         model: process.env.CYBER_VICTIM_MODEL || endpoint.model,
       }
     : endpoint;
+  if (isVictimLoop && victimEndpoint.baseUrl) {
+    refuseAzureHost(victimEndpoint.baseUrl, 'Victim');
+  }
   const runCfg = {
     baseUrl: endpoint.baseUrl,
     apiKey: endpoint.apiKey,
