@@ -46,6 +46,12 @@ function main() {
       id: `reference-detector-${r.seed}`,
       status: r.exact_key_match ? 'pass' : 'fail',
       seed: r.seed,
+      // f10-def detection is per-(seed, SCENARIO) and family-AGNOSTIC (the scenarios are detection
+      // counterexample classes, not the offense families). `all` is a neutral marker for the absent family
+      // dimension so validateReferenceCoverage — which checks run.families against G1 family fields — is
+      // satisfied by the calibration's `--families all`, while the real guarantee it enforces (every
+      // calibrated SEED maps to a passing reference check) still holds via the seed field above.
+      family: 'all',
       expected_effect: 'independent-detector-reproduces-evaluator-key',
     })),
     { id: 'coverage-all-four-labels', status: coverage.all_four_labels ? 'pass' : 'fail' },

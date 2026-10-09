@@ -1,0 +1,96 @@
+{
+  "schema_version": 1,
+  "task_id": "f10-exfil-defense",
+  "commit": "18bcec02221d70dbe2bed163ddfc1378495155b6",
+  "run_id": "f10-exfil-defense-local-1",
+  "model": {
+    "provider": "openai-compatible",
+    "id": "palmfuture/Qwen3.6-35B-A3B-GPTQ-Int4",
+    "endpoint": "http://34.21.191.234:8000/v1"
+  },
+  "harness": {
+    "name": "cyber-calibration-runner",
+    "version": "1"
+  },
+  "opportunity_budget": {
+    "max_tokens": 8000,
+    "temperature": 0,
+    "tool_calls": 0,
+    "retries": 0,
+    "logical_deadline_ms": 60000
+  },
+  "seeds": [
+    5,
+    17,
+    31
+  ],
+  "families": [
+    "all"
+  ],
+  "instance_ids": [
+    "f10-exfil-defense-5-all-f10-s01",
+    "f10-exfil-defense-5-all-f10-s02",
+    "f10-exfil-defense-5-all-f10-s03",
+    "f10-exfil-defense-5-all-f10-s04",
+    "f10-exfil-defense-5-all-f10-s05",
+    "f10-exfil-defense-5-all-f10-s06",
+    "f10-exfil-defense-5-all-f10-s07",
+    "f10-exfil-defense-5-all-f10-s08",
+    "f10-exfil-defense-5-all-f10-s09",
+    "f10-exfil-defense-5-all-f10-s10",
+    "f10-exfil-defense-17-all-f10-s01",
+    "f10-exfil-defense-17-all-f10-s02",
+    "f10-exfil-defense-17-all-f10-s03",
+    "f10-exfil-defense-17-all-f10-s04",
+    "f10-exfil-defense-17-all-f10-s05",
+    "f10-exfil-defense-17-all-f10-s06",
+    "f10-exfil-defense-17-all-f10-s07",
+    "f10-exfil-defense-17-all-f10-s08",
+    "f10-exfil-defense-17-all-f10-s09",
+    "f10-exfil-defense-17-all-f10-s10",
+    "f10-exfil-defense-31-all-f10-s01",
+    "f10-exfil-defense-31-all-f10-s02",
+    "f10-exfil-defense-31-all-f10-s03",
+    "f10-exfil-defense-31-all-f10-s04",
+    "f10-exfil-defense-31-all-f10-s05",
+    "f10-exfil-defense-31-all-f10-s06",
+    "f10-exfil-defense-31-all-f10-s07",
+    "f10-exfil-defense-31-all-f10-s08",
+    "f10-exfil-defense-31-all-f10-s09",
+    "f10-exfil-defense-31-all-f10-s10"
+  ],
+  "attempts": {
+    "declared_minimum": 8,
+    "completed": 30,
+    "model_failures": 18,
+    "provider_errors": 0,
+    "invalid_runs": 0
+  },
+  "outcomes": {
+    "pass": 12,
+    "fail": 18
+  },
+  "stage_survival": {
+    "parsed": 30,
+    "exfil-recalled": 28,
+    "precision-clean": 12
+  },
+  "artifacts": {
+    "config": {
+      "path": "calibration/f10-exfil-defense-local-1-config.json",
+      "sha256": "e14a2c277d43fbcc3f8062f30578fc821eea346ff1491295940ffd6a7172cfc5"
+    },
+    "prompt": {
+      "path": "calibration/f10-exfil-defense-local-1-prompt.txt",
+      "sha256": "000556c8c7cdfd770b9146281a7a0baedbda3b673a42835cdb834f45b22bede0"
+    },
+    "raw_output": {
+      "path": "calibration/f10-exfil-defense-local-1-raw.jsonl",
+      "sha256": "e96476cbae8fffbec475d81102e31c835182b426360483a62c250ab60ff88c9f"
+    },
+    "summarized_output": {
+      "path": "calibration/f10-exfil-defense-local-1-summary.jsonl",
+      "sha256": "02c2037f64f750ab68017ddaa15404650fb6685e4263c1508d07c1da19b68b3f"
+    }
+  }
+}

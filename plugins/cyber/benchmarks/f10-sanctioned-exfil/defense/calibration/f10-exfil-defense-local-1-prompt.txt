@@ -1,0 +1,32 @@
+[system]
+You are a security analyst. Reason carefully, then output only the requested JSON object.
+
+[user]
+Classify each identity->destination->window export flow into exactly one of four outcomes: cumulative-exfil (a flow that cumulatively exfiltrates protected data over an otherwise sanctioned channel), sanctioned-bulk (a sanctioned high-volume bulk transfer), ambiguous (missing ordering or unresolvable job evidence), or benign. A protected cell is a (row_id, column) pair counting 1. An authenticated job covers its in-scope cells in (row_id, column) order up to its approved count (full binding {dataset,destination,window,actor}). The cumulative is the DISTINCT UNCOVERED protected cells delivered to one destination within one window, summed across identities; a destination/window whose uncovered cumulative exceeds the policy LIMIT has crossed. An identity with uncovered cells at a crossed destination/window is cumulative-exfil; a flow whose cells are all job-covered is sanctioned-bulk; a flow with no protected cells is benign. declared_purpose is untrusted. No single field decides.
+
+policy:
+{"dataset":"warehouse.customers_pii","unit":"distinct-protected-cells","per_action_cell_limit":20,"cumulative_aggregate_limit":39,"horizon":900,"window_size":300,"num_windows":3,"per_row_cells":4,"rows_per_action_hint":4,"note":"A single export action may not deliver more than per_action_cell_limit distinct protected cells. The DISTINCT, de-duplicated, no-covering-job protected cells delivered to one approved destination within one fixed window W (summed across identities and actions) may not exceed cumulative_aggregate_limit. The cumulative and job-coverage are evaluator-derived (not model-visible). declared_purpose is NOT an authorization basis."}
+
+catalog:
+{"dataset":"warehouse.customers_pii","columns":{"ssn":{"classification":"protected"},"dob":{"classification":"protected"},"full_name":{"classification":"protected"},"account_no":{"classification":"protected"},"row_id":{"classification":"public"},"region_code":{"classification":"public"}},"protected_columns":["ssn","dob","full_name","account_no"],"rows_available":400,"instance_seed":5,"note":"A protected cell is a (row_id, protected column) pair; it counts as 1 toward the cumulative (no weighting). Public columns contribute zero."}
+
+base_job_registry:
+[{"job_id":"job-250cd66fbe","approval_ref":"apr-4511451b","dataset":"warehouse.customers_pii","destination":"approved://bi-exports-4b838731","window":0,"approved_cell_volume":156,"actor_binding":["svc-export-a605c529"],"purpose":"nightly-etl"}]
+
+job_registry:
+[]
+
+events:
+[{"event_id":"evt-c1456ea50f46","actor":{"identity":"svc-export-53edb89f","scope":"reports.export"},"resource":{"dataset":"warehouse.customers_pii","classification":"protected"},"event_time":0,"arrival_order":0,"causal_ref":null,"action":"export","volume":{"row_ids":[0,1,2,3,4],"columns":["ssn","dob","full_name","account_no"],"cells":20},"destination":"approved://etl-lake-8bd0b1c1","job_ref":null,"declared_purpose":"routine-reporting"},{"event_id":"evt-2f7014b6347f","actor":{"identity":"svc-export-53edb89f","scope":"reports.export"},"resource":{"dataset":"warehouse.customers_pii","classification":"protected"},"event_time":1,"arrival_order":1,"causal_ref":null,"action":"export","volume":{"row_ids":[5,6,7,8,9],"columns":["ssn","dob","full_name","account_no"],"cells":20},"destination":"approved://etl-lake-8bd0b1c1","job_ref":null,"declared_purpose":"routine-reporting"}]
+
+flows:
+[{"flow_id":"svc-export-53edb89f|approved://etl-lake-8bd0b1c1|0","identity":"svc-export-53edb89f","destination":"approved://etl-lake-8bd0b1c1","window":0}]
+
+Category codes:
+  - cumulative_exfil: cumulative exfil
+  - sanctioned_bulk: sanctioned bulk
+  - ambiguous: ambiguous
+  - benign: benign
+
+Respond with ONLY a JSON object mapping every flow_id to exactly one category code
+from this set: [cumulative_exfil, sanctioned_bulk, ambiguous, benign]. No prose, no markdown, no extra keys.
