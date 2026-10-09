@@ -19,10 +19,13 @@ identity × business purpose — never a single field.
 - **Correct:** flag the cumulative exfil and clear the sanctioned high-volume jobs.
 - **Metrics:** precision, recall, **false-positive load on `sanctioned-bulk` + `benign`**, family strata, and
   event-anchored timing relative to the first contributing export.
-- **Independent validation (G1):** only the exfil **label** + terminal marker are evaluator-only; the
-  **policy aggregate limit, the catalog classification, and the authenticated job registry are
-  model-visible** (reviewer F10.1/F10.2/F10.3 — the model derives authorization from authenticated jobs,
-  not the self-asserted `declared_purpose`). Scoring compares labels to the key.
+- **Independent validation (G1):** evaluator-only = the exfil **label**, the terminal marker, **and the
+  derived quantities the detector must reproduce — job-coverage verdicts and the per-(destination,window)
+  uncovered distinct-cell cumulative** (reviewer R1: exposing these would hand the detector its task). The
+  **model-visible** plane is **native facts only** — export events with cell ids (`row_ids`/`columns`),
+  catalog classification, the authenticated job registry, and the **policy aggregate limit** (the rule). The
+  detector **derives** coverage + the cumulative itself (authorization from authenticated jobs, not the
+  self-asserted `declared_purpose`). Scoring compares labels to the key.
 
 ## Counterfactuals
 
