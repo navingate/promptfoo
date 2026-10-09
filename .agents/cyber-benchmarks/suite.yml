@@ -248,11 +248,11 @@ benchmarks:
     path: plugins/cyber/benchmarks/f4-durable-consent/defense
     mode_profile: defense-detection
     primary_construct_id: malicious-grant-vs-approved-app
-    construct_summary: Distinguish the malicious remediation-evading delegated grant from approved apps with similar scopes and volume that legitimately survive the same user's reset, reasoning from native authorization-provenance facts (owner/tenant, consent actor, approval route, catalog/verification state, association lineage). Grant removal is a separate secondary response axis with its own authority model and replay test.
+    construct_summary: Distinguish the malicious remediation-evading delegated grant from approved apps with similar scopes and volume that legitimately survive the same user's reset, reasoning from native authorization-provenance facts (owner/tenant, consent actor, approval route, catalog/verification state, association lineage). This task scores detection only; remediation belongs in a separate incident-response task.
     primary_coverage: detection-and-incident-response
     secondary_coverage:
       - identity-federation
-    intended_evidence_level: '1'
+    intended_evidence_level: "1"
     achieved_evidence_level: null
     gates:
       G0: pending
@@ -264,7 +264,8 @@ benchmarks:
       G6: pending
       G7: pending
     gate_evidence:
-      G0: []
+      G0:
+        - evidence/g0.yml
       G1:
         - evidence/g1.yml
       G2:
@@ -282,11 +283,11 @@ benchmarks:
     explicit_nonclaims:
       - Does not establish safe enterprise deployment.
       - Not a SOC/SIEM product-fidelity claim.
-      - Detection precision/recall is not blurred with the remediation response axis.
+      - Does not measure grant-removal or incident-response behavior.
       - Says nothing about offensive persistence (see the paired offense task).
     paired_task_id: f4-consent-offense
     paired_role: consumer
-    pair_contract_version: '3'
+    pair_contract_version: "3"
   - id: f4-consent-offense
     display_name: F4 Consent Offense
     owner:
@@ -301,7 +302,7 @@ benchmarks:
     secondary_coverage:
       - cloud-iam
       - persistence-and-lateral-movement
-    intended_evidence_level: '1'
+    intended_evidence_level: "1"
     achieved_evidence_level: null
     gates:
       G0: pass
@@ -336,7 +337,7 @@ benchmarks:
       - Says nothing about defensive detection (see the paired defense task).
     paired_task_id: f4-consent-defense
     paired_role: producer
-    pair_contract_version: '3'
+    pair_contract_version: "3"
   - id: f6-change-defense
     display_name: F6 Change Defense
     owner:
@@ -350,7 +351,7 @@ benchmarks:
     primary_coverage: tool-authorization-boundaries
     secondary_coverage:
       - prompt-injection-and-malicious-artifacts
-    intended_evidence_level: '1'
+    intended_evidence_level: "1"
     achieved_evidence_level: null
     gates:
       G0: pass
@@ -384,7 +385,7 @@ benchmarks:
       - Says nothing about offensive injection-crafting (see the paired offense task).
     paired_task_id: f6-change-offense
     paired_role: consumer
-    pair_contract_version: '2'
+    pair_contract_version: "2"
   - id: f6-change-offense
     display_name: F6 Change Offense
     owner:
@@ -398,7 +399,7 @@ benchmarks:
     primary_coverage: prompt-injection-and-malicious-artifacts
     secondary_coverage:
       - tool-authorization-boundaries
-    intended_evidence_level: '1'
+    intended_evidence_level: "1"
     achieved_evidence_level: null
     gates:
       G0: pending
@@ -432,7 +433,7 @@ benchmarks:
       - Says nothing about the defender's conduct (see the paired defense task).
     paired_task_id: f6-change-defense
     paired_role: producer
-    pair_contract_version: '2'
+    pair_contract_version: "2"
   - id: f9-rotation-defense
     display_name: F9 Rotation Defense
     owner:
@@ -447,7 +448,7 @@ benchmarks:
     secondary_coverage:
       - secret-handling
       - credential-discovery-and-misuse
-    intended_evidence_level: '1'
+    intended_evidence_level: "1"
     achieved_evidence_level: null
     gates:
       G0: pass
@@ -481,7 +482,7 @@ benchmarks:
       - Says nothing about offensive capability (see the paired offense task).
     paired_task_id: f9-rotation-offense
     paired_role: consumer
-    pair_contract_version: '1'
+    pair_contract_version: "1"
   - id: f9-rotation-offense
     display_name: F9 Rotation Offense
     owner:
@@ -496,7 +497,7 @@ benchmarks:
     secondary_coverage:
       - persistence-and-lateral-movement
       - secret-handling
-    intended_evidence_level: '1'
+    intended_evidence_level: "1"
     achieved_evidence_level: null
     gates:
       G0: pass
@@ -530,4 +531,4 @@ benchmarks:
       - Says nothing about defensive rotation/response (see the paired defense task).
     paired_task_id: f9-rotation-defense
     paired_role: producer
-    pair_contract_version: '1'
+    pair_contract_version: "1"

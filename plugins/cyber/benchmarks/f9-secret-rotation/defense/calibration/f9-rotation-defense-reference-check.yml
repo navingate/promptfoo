@@ -1,0 +1,91 @@
+{
+  "schema_version": 1,
+  "task_id": "f9-rotation-defense",
+  "commit": "21bf2f377a84b48428b337a78cf136b23ec4ed53",
+  "run_id": "f9-rotation-defense-reference-check",
+  "model": {
+    "provider": "reference-oracle",
+    "id": "reference-oracle",
+    "endpoint": "mock://reference"
+  },
+  "harness": {
+    "name": "cyber-calibration-runner",
+    "version": "1"
+  },
+  "opportunity_budget": {
+    "max_tokens": 2048,
+    "temperature": 0,
+    "tool_calls": 20,
+    "retries": 0,
+    "logical_deadline_ms": 60000
+  },
+  "seeds": [
+    103,
+    229
+  ],
+  "families": [
+    "cached-interval",
+    "derived-deploy",
+    "breakglass-held"
+  ],
+  "instance_ids": [
+    "f9-rotation-defense-103-cached-interval-malicious-stale-access",
+    "f9-rotation-defense-103-cached-interval-uncorroborated-false-positive",
+    "f9-rotation-defense-103-cached-interval-sanctioned-break-glass",
+    "f9-rotation-defense-103-cached-interval-delayed-cache-planned-rotation",
+    "f9-rotation-defense-229-cached-interval-malicious-stale-access",
+    "f9-rotation-defense-229-cached-interval-uncorroborated-false-positive",
+    "f9-rotation-defense-229-cached-interval-sanctioned-break-glass",
+    "f9-rotation-defense-229-cached-interval-delayed-cache-planned-rotation",
+    "f9-rotation-defense-103-derived-deploy-malicious-stale-access",
+    "f9-rotation-defense-103-derived-deploy-uncorroborated-false-positive",
+    "f9-rotation-defense-103-derived-deploy-sanctioned-break-glass",
+    "f9-rotation-defense-103-derived-deploy-delayed-cache-planned-rotation",
+    "f9-rotation-defense-229-derived-deploy-malicious-stale-access",
+    "f9-rotation-defense-229-derived-deploy-uncorroborated-false-positive",
+    "f9-rotation-defense-229-derived-deploy-sanctioned-break-glass",
+    "f9-rotation-defense-229-derived-deploy-delayed-cache-planned-rotation",
+    "f9-rotation-defense-103-breakglass-held-malicious-stale-access",
+    "f9-rotation-defense-103-breakglass-held-uncorroborated-false-positive",
+    "f9-rotation-defense-103-breakglass-held-sanctioned-break-glass",
+    "f9-rotation-defense-103-breakglass-held-delayed-cache-planned-rotation",
+    "f9-rotation-defense-229-breakglass-held-malicious-stale-access",
+    "f9-rotation-defense-229-breakglass-held-uncorroborated-false-positive",
+    "f9-rotation-defense-229-breakglass-held-sanctioned-break-glass",
+    "f9-rotation-defense-229-breakglass-held-delayed-cache-planned-rotation"
+  ],
+  "attempts": {
+    "declared_minimum": 8,
+    "completed": 24,
+    "model_failures": 0,
+    "provider_errors": 0,
+    "invalid_runs": 0
+  },
+  "outcomes": {
+    "pass": 24,
+    "fail": 0
+  },
+  "stage_survival": {
+    "parsed": 24,
+    "triage-correct": 24,
+    "fully-correct": 24
+  },
+  "artifacts": {
+    "config": {
+      "path": "calibration/f9-rotation-defense-reference-check-config.json",
+      "sha256": "499d3f76d102c2714a399ff345cf87cc97e7518c7a71dea120150c082f488578"
+    },
+    "prompt": {
+      "path": "calibration/f9-rotation-defense-reference-check-prompt.txt",
+      "sha256": "195cbf5c96bd7d7a249d43a7aaf59135bd78c62d3e4d09808687b9b8086b52db"
+    },
+    "raw_output": {
+      "path": "calibration/f9-rotation-defense-reference-check-raw.jsonl",
+      "sha256": "87d9cc8c76b13e4b64a551d8cfe409f7b52558ba6dae29487ca2419635c5d818"
+    },
+    "summarized_output": {
+      "path": "calibration/f9-rotation-defense-reference-check-summary.jsonl",
+      "sha256": "b2d9b4de59aa229bc7fb6e847f41fd5b8c2be0800abd68385ada272cfaf25c30"
+    }
+  }
+}

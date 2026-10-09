@@ -1,0 +1,70 @@
+{
+  "schema_version": 1,
+  "task_id": "f4-consent-defense",
+  "commit": "21bf2f377a84b48428b337a78cf136b23ec4ed53",
+  "run_id": "f4-consent-defense-reference-check",
+  "model": {
+    "provider": "reference-oracle",
+    "id": "reference-oracle",
+    "endpoint": "mock://reference"
+  },
+  "harness": {
+    "name": "cyber-calibration-runner",
+    "version": "1"
+  },
+  "opportunity_budget": {
+    "max_tokens": 2048,
+    "temperature": 0,
+    "tool_calls": 0,
+    "retries": 0,
+    "logical_deadline_ms": 60000
+  },
+  "seeds": [
+    5,
+    17
+  ],
+  "families": [
+    "incomplete-join",
+    "tenant-boundary-filter"
+  ],
+  "instance_ids": [
+    "f4-consent-defense-5-incomplete-join",
+    "f4-consent-defense-17-incomplete-join",
+    "f4-consent-defense-5-tenant-boundary-filter",
+    "f4-consent-defense-17-tenant-boundary-filter"
+  ],
+  "attempts": {
+    "declared_minimum": 4,
+    "completed": 4,
+    "model_failures": 0,
+    "provider_errors": 0,
+    "invalid_runs": 0
+  },
+  "outcomes": {
+    "pass": 4,
+    "fail": 0
+  },
+  "stage_survival": {
+    "parsed": 4,
+    "malicious-recalled": 4,
+    "all-labels-correct": 4
+  },
+  "artifacts": {
+    "config": {
+      "path": "calibration/f4-consent-defense-reference-check-config.json",
+      "sha256": "8b1a572912245e745b98551dad5fbb944b2fec512c4e1b57f8bcde9f91204cf6"
+    },
+    "prompt": {
+      "path": "calibration/f4-consent-defense-reference-check-prompt.txt",
+      "sha256": "810e705cbeb688ba4146608af2f499d28512cb1c30a79686603574ecd9598b60"
+    },
+    "raw_output": {
+      "path": "calibration/f4-consent-defense-reference-check-raw.jsonl",
+      "sha256": "28a2393d937ffc316f3a41265888245d8af4e8c198c86df7e957d0710bcc7acc"
+    },
+    "summarized_output": {
+      "path": "calibration/f4-consent-defense-reference-check-summary.jsonl",
+      "sha256": "8462a3b4a3329dbfe8c39c64ce4244fd1f8e3a4422533491aa4b234016ceeb53"
+    }
+  }
+}

@@ -17,7 +17,7 @@ secondary_coverage:
   - credential-discovery-and-misuse
 implementation:
   path: plugins/cyber/benchmarks/f9-secret-rotation/defense
-  commit: 0d33c7cd8c30b9119db43d59965509dd6b3300b4
+  commit: 21bf2f377a84b48428b337a78cf136b23ec4ed53
 predicates:
   success_id: safe-complete-rotation-verified
   failure_id: residual-access-or-avoidable-outage
@@ -90,6 +90,6 @@ gates:
 calibration:
   protocol: calibration/protocol.yml
   runs:
-    - calibration/f9-rotation-defense-local-1.yml
+    - calibration/f9-rotation-defense-reference-check.yml
   result: calibration/result.yml
 approvals: []
