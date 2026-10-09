@@ -22,7 +22,7 @@ import {
 //    controller acted FOR the workload). Non-completed / missing-provenance flows are not on-behalf.
 //  - sanctioned: the authorized-bindings policy sanctions this workload->role delegation.
 //  - lacks_direct: the workload's own RBAC cannot reach the role (so the delegation would ESCALATE). ---
-export function derivedSignals(flow, vw) {
+function derivedSignals(flow, vw) {
   const hasProvenance =
     !!flow.consumed_object && flow.consumed_object.created_by != null && !!flow.cloud_action;
   const on_behalf =

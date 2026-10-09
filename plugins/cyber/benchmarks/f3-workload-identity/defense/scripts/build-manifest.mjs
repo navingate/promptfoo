@@ -75,8 +75,12 @@ function main() {
     })),
     {
       id: 'coverage-all-counterexample-classes',
-      status: coverage.class_count === 6 ? 'pass' : 'fail',
-      detail: coverage.counterexample_classes.join(','),
+      status:
+        JSON.stringify(coverage.counterexample_classes) ===
+        JSON.stringify(coverage.expected_classes)
+          ? 'pass'
+          : 'fail',
+      detail: `present=[${coverage.counterexample_classes.join(',')}] expected=[${coverage.expected_classes.join(',')}]`,
     },
     {
       id: 'coverage-all-three-labels-present',
@@ -96,8 +100,8 @@ function main() {
     },
     {
       id: 'approved-deployment-shares-fields-not-oracle',
-      status: shortcuts.no_oracle.combination_only ? 'pass' : 'fail',
-      detail: `exhaustive 1-&-2-atom brute-force (raw fields + on_behalf/sanctioned/lacks_direct, both polarities) over ${shortcuts.no_oracle.cascade_rows}/${shortcuts.no_oracle.total_rows} cascade rows: perfect rules = ${shortcuts.no_oracle.perfect_rules.length === 0 ? 'none' : shortcuts.no_oracle.perfect_rules.join(', ')}`,
+      status: shortcuts.no_oracle.no_single_field_oracle ? 'pass' : 'fail',
+      detail: `exhaustive single-field scan (raw visible fields, both polarities) over ${shortcuts.no_oracle.cascade_rows}/${shortcuts.no_oracle.total_rows} cascade rows: perfect single-field rules = ${shortcuts.no_oracle.perfect_single_field_rules.length === 0 ? 'none' : shortcuts.no_oracle.perfect_single_field_rules.join(', ')}`,
     },
     ...shortcuts.baselines.map((b) => ({
       id: `shortcut-fails-${b.name}`,

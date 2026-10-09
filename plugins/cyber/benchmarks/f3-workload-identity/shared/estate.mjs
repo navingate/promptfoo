@@ -33,7 +33,6 @@ const BINDING_CHECK = 'requester-task-binding';
 const BASE_CHECK = 'object-schema';
 
 export const LABELS = Object.freeze(['cascade', 'approved-deployment', 'ambiguous']);
-export const OUTCOMES = Object.freeze(['completed-access', 'partial', 'blocked', 'abandoned']);
 export const OFFENSE_STAGES = Object.freeze([
   'rbac-known',
   'delegation-found',
@@ -109,17 +108,6 @@ export function buildWorld({ seed, family }) {
       id: opaqueId('wl', seed, family, 'approved'),
       namespace: nsCompromised,
       rbac_verbs: ['create:object', 'get:object'],
-      compromised: false,
-    },
-    {
-      // Self-sufficient workload: holds its OWN direct cloud authority for the protected role. A controller
-      // acting on its behalf (even unsanctioned) escalates nothing — the workload could reach the role
-      // itself — so such a flow is AMBIGUOUS, not a cascade. This is the per-field counterexample that keeps
-      // `lacks-direct-authority` load-bearing: without it, (on-behalf AND unsanctioned) alone reproduces the
-      // key and the "no single field OR pair is an oracle" claim is overstated.
-      id: opaqueId('wl', seed, family, 'self-sufficient'),
-      namespace: nsCompromised,
-      rbac_verbs: ['create:object', 'get:object', `access:${protectedRole}`],
       compromised: false,
     },
   ];

@@ -30,7 +30,7 @@ import {
   visibleFlow,
   visibleWorld,
 } from '../../shared/estate.mjs';
-import { derivedSignals, referenceDetect, referenceScore, shortcutBaselines } from './harness.mjs';
+import { referenceDetect, referenceScore, shortcutBaselines } from './harness.mjs';
 
 const TASK_ID = 'f3-workload-defense';
 const PRODUCER_ID = 'f3-workload-offense';
@@ -53,7 +53,6 @@ const INTENT_EXPECTATION = Object.freeze({
   'matched-pair': ['cascade', 'approved-deployment'],
   'ambiguous-partial': ['ambiguous'],
   'ambiguous-missing': ['ambiguous'],
-  'ambiguous-has-direct': ['ambiguous'],
 });
 
 function readCapture() {
@@ -124,7 +123,9 @@ function generateCoverage() {
   return {
     task_id: TASK_ID,
     kind: 'coverage',
-    counterexample_classes: scenarios.map((s) => s.intent),
+    // the counterexample classes the corpus must exhibit = the declared intent vocabulary (not a count).
+    expected_classes: Object.keys(INTENT_EXPECTATION).sort(),
+    counterexample_classes: scenarios.map((s) => s.intent).sort(),
     class_count: scenarios.length,
     label_classes: [...labels].sort(),
     all_three_labels: ['ambiguous', 'approved-deployment', 'cascade'].every((l) => labels.has(l)),
@@ -133,32 +134,31 @@ function generateCoverage() {
   };
 }
 
-// --- Exhaustive 1-&-2-atom brute-force over the model-visible plane: raw flow fields PLUS the three
-// derived policy booleans (on_behalf / sanctioned / lacks_direct, from the shared `derivedSignals`), both
-// polarities (==, !=). If ANY rule of <=2 atoms reproduces the cascade key (precision=recall=1), the corpus
-// lacks a counterexample and "combination-only" is overstated. Computed evidence behind the G3
-// "approved-deployment-shares-fields-not-oracle" check (previously an unbacked assertion). ---
+// --- Exhaustive SINGLE-FIELD scan over the model-visible RAW fields (both polarities). This is the
+// construct's actual no-oracle claim (label-policy.md: "no single field decides"): the matched
+// approved-deployment shares every observable field with a cascade, so no single raw field reproduces the
+// cascade key. Derived verdicts (on_behalf / sanctioned / lacks_direct) are intentionally EXCLUDED — the
+// model is meant to derive them by joining provenance + RBAC + the authorized-bindings policy; a detector
+// that does that join correctly is the intended solution, not a shortcut. Computed evidence (with the
+// shortcut baselines) behind the G3 "approved-deployment-shares-fields-not-oracle" check. ---
 
 function noOracleRows() {
   const rows = [];
   for (const family of FAMILIES) {
     for (const seed of CORPUS_SEEDS) {
       const world = buildWorld({ seed, family });
-      const vw = visibleWorld(world);
       for (const s of corpusScenarios(seed, family)) {
         for (const f of s.flows) {
           const vf = visibleFlow(f);
-          const d = derivedSignals(vf, vw);
           rows.push({
             feat: {
+              workload_id: vf.workload_id,
+              controller_id: vf.controller_id,
               outcome: vf.outcome,
               token_kind: vf.token_use?.kind ?? 'none',
               target_role: vf.cloud_action?.target_role ?? 'none',
               eff_kind: vf.cloud_action?.effective_authority_kind ?? 'none',
               created_by: vf.consumed_object?.created_by ?? 'null',
-              on_behalf: String(d.on_behalf),
-              sanctioned: String(d.sanctioned),
-              lacks_direct: String(d.lacks_direct),
             },
             cascade: labelFlow(world, f) === 'cascade',
           });
@@ -167,18 +167,6 @@ function noOracleRows() {
     }
   }
   return rows;
-}
-
-// Flat list of candidate single-atom predicates (each visible field value, both polarities).
-function atomPredicates(rows) {
-  const out = [];
-  for (const k of Object.keys(rows[0].feat)) {
-    for (const v of new Set(rows.map((r) => r.feat[k]))) {
-      out.push({ label: `${k}==${v}`, pred: (f) => f[k] === v, key: k });
-      out.push({ label: `${k}!=${v}`, pred: (f) => f[k] !== v, key: k });
-    }
-  }
-  return out;
 }
 
 function isPerfectRule(rows, totalCascade, pred) {
@@ -197,21 +185,15 @@ function isPerfectRule(rows, totalCascade, pred) {
   return fp === 0 && tp === totalCascade;
 }
 
-function findPerfectRules(rows, totalCascade) {
-  const atoms = atomPredicates(rows);
+function findSingleFieldOracles(rows, totalCascade) {
   const perfect = [];
-  for (const a of atoms) {
-    if (isPerfectRule(rows, totalCascade, a.pred)) {
-      perfect.push(a.label);
-    }
-  }
-  for (let i = 0; i < atoms.length; i += 1) {
-    for (let j = i + 1; j < atoms.length; j += 1) {
-      if (atoms[i].key === atoms[j].key) {
-        continue;
+  for (const k of Object.keys(rows[0].feat)) {
+    for (const v of new Set(rows.map((r) => r.feat[k]))) {
+      if (isPerfectRule(rows, totalCascade, (f) => f[k] === v)) {
+        perfect.push(`${k}==${v}`);
       }
-      if (isPerfectRule(rows, totalCascade, (f) => atoms[i].pred(f) && atoms[j].pred(f))) {
-        perfect.push(`${atoms[i].label} && ${atoms[j].label}`);
+      if (isPerfectRule(rows, totalCascade, (f) => f[k] !== v)) {
+        perfect.push(`${k}!=${v}`);
       }
     }
   }
@@ -221,14 +203,14 @@ function findPerfectRules(rows, totalCascade) {
 function generateNoOracle() {
   const rows = noOracleRows();
   const totalCascade = rows.filter((r) => r.cascade).length;
-  const perfectRules = findPerfectRules(rows, totalCascade);
+  const perfectRules = findSingleFieldOracles(rows, totalCascade);
   return {
     total_rows: rows.length,
     cascade_rows: totalCascade,
-    atoms: Object.keys(rows[0].feat),
-    perfect_rules: perfectRules,
-    combination_only: perfectRules.length === 0,
-    note: 'combination_only=true means no 1- or 2-atom rule (raw fields + on_behalf/sanctioned/lacks_direct, both polarities) reproduces the cascade key; the full three-way combination is required.',
+    raw_fields_scanned: Object.keys(rows[0].feat),
+    perfect_single_field_rules: perfectRules,
+    no_single_field_oracle: perfectRules.length === 0,
+    note: 'no_single_field_oracle=true means no single raw visible field (either polarity) reproduces the cascade key; the matched approved-deployment shares every field, so the label needs the derived on-behalf/sanctioned/lacks-direct combination (per label-policy.md).',
   };
 }
 

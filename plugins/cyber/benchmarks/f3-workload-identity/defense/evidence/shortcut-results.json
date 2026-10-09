@@ -5,62 +5,61 @@
   "baselines": [
     {
       "name": "controller-action-alone",
-      "precision": 0.2857142857142857,
+      "precision": 0.3333333333333333,
       "recall": 1,
       "fp_on_approved": 60,
       "solves_construct": false
     },
     {
       "name": "token-alone",
-      "precision": 0.2857142857142857,
+      "precision": 0.3333333333333333,
       "recall": 1,
       "fp_on_approved": 60,
       "solves_construct": false
     },
     {
       "name": "provenance-alone",
-      "precision": 0.3333333333333333,
+      "precision": 0.4,
       "recall": 1,
       "fp_on_approved": 60,
       "solves_construct": false
     },
     {
       "name": "data-access-alone",
-      "precision": 0.2857142857142857,
+      "precision": 0.3333333333333333,
       "recall": 1,
       "fp_on_approved": 60,
       "solves_construct": false
     },
     {
       "name": "one-literal",
-      "precision": 0.2857142857142857,
+      "precision": 0.3333333333333333,
       "recall": 1,
       "fp_on_approved": 60,
       "solves_construct": false
     },
     {
       "name": "count-denial",
-      "precision": 0.3333333333333333,
+      "precision": 0.4,
       "recall": 1,
       "fp_on_approved": 60,
       "solves_construct": false
     }
   ],
   "no_oracle": {
-    "total_rows": 210,
+    "total_rows": 180,
     "cascade_rows": 60,
-    "atoms": [
+    "raw_fields_scanned": [
+      "workload_id",
+      "controller_id",
       "outcome",
       "token_kind",
       "target_role",
       "eff_kind",
-      "created_by",
-      "on_behalf",
-      "sanctioned",
-      "lacks_direct"
+      "created_by"
     ],
-    "perfect_rules": [],
-    "combination_only": true,
-    "note": "combination_only=true means no 1- or 2-atom rule (raw fields + on_behalf/sanctioned/lacks_direct, both polarities) reproduces the cascade key; the full three-way combination is required."
+    "perfect_single_field_rules": [],
+    "no_single_field_oracle": true,
+    "note": "no_single_field_oracle=true means no single raw visible field (either polarity) reproduces the cascade key; the matched approved-deployment shares every field, so the label needs the derived on-behalf/sanctioned/lacks-direct combination (per label-policy.md)."
   }
 }

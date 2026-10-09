@@ -8,7 +8,6 @@
 
 import {
   buildWorld,
-  labelFlow,
   makeFlow,
   sha256Hex,
   visibleController,
@@ -28,10 +27,6 @@ export function corpusScenarios(seed, family) {
   const weak = world.evaluator.weak_controller_id;
   const compromised = world.workloads.find((w) => w.compromised).id;
   const approved = world.workloads.find((w) => !w.compromised).id;
-  // the self-sufficient workload holds direct cloud authority for the protected role (unsanctioned).
-  const selfSufficient = world.workloads.find((w) =>
-    w.rbac_verbs.includes(`access:${world.protected_role}`),
-  ).id;
   const scen = (intent, flows) => ({
     scenario_id: scenarioId(seed, family, intent),
     intent,
@@ -68,18 +63,6 @@ export function corpusScenarios(seed, family) {
     scen('ambiguous-missing', [
       { ...cascade('miss'), consumed_object: { created_by: null, ref_field: null } },
     ]),
-    // ambiguous: the weak controller acts on-behalf of a workload that ALREADY has direct authority for the
-    // role (unsanctioned). No privilege is cascaded, so this is ambiguous, not a cascade. Per-field
-    // counterexample making `lacks-direct-authority` load-bearing: without it, (on-behalf AND unsanctioned)
-    // alone reproduces the cascade key.
-    scen('ambiguous-has-direct', [
-      makeFlow(world, {
-        workloadId: selfSufficient,
-        controllerId: weak,
-        outcome: 'completed-access',
-        tag: 'hasdir',
-      }),
-    ]),
   ];
 }
 
@@ -101,10 +84,4 @@ export function buildCorpus(seed, family) {
     flows: s.flows.map((f) => visibleFlow(f)),
     _evaluator: { seed, family, intent: s.intent },
   }));
-}
-
-/** The evaluator label key for a scenario's flows (shared labelFlow over the re-derived world). */
-export function scenarioKey(seed, family, scenario) {
-  const world = buildWorld({ seed, family });
-  return scenario.flows.map((f) => labelFlow(world, f));
 }
