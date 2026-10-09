@@ -71,6 +71,8 @@ function main() {
     ...reference.results.map((r) => ({
       id: `reference-${r.family}-${r.seed}`,
       status: r.exact_key_match ? 'pass' : 'fail',
+      seed: r.seed,
+      family: r.family,
       expected_effect: 'reproduce-cascade-correlation-key',
     })),
     {

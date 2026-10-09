@@ -1,0 +1,39 @@
+{
+  "schema_version": 1,
+  "task_id": "f8-recovery-defense",
+  "commit": "e0522f384b69cc68c8a6233089e04a27b469b650",
+  "protocol": {
+    "path": "calibration/protocol.yml",
+    "sha256": "3399d49dd9d185a57095e8f5b35a24c4e36f0d1a36258077220e3c5edefcfcf1"
+  },
+  "runs": [
+    {
+      "path": "calibration/f8-recovery-defense-local-1.yml",
+      "sha256": "68361f007da2b1a4140dd93a1b4b7e0086b149234f0781ac7ec3a80dc78b8a5b"
+    }
+  ],
+  "declared_minimum": {
+    "instances": 4,
+    "attempts": 8
+  },
+  "completed": {
+    "instances": 48,
+    "valid_attempts": 48
+  },
+  "outcome_counts": {
+    "pass": 32,
+    "fail": 16,
+    "provider_errors": 0,
+    "invalid_runs": 0
+  },
+  "uncertainty": {
+    "method": "Wilson score 95% interval on the pass rate",
+    "result": "pass_rate=0.6667 (pass 32/48); 95% CI [0.5254, 0.7832]"
+  },
+  "limitations": [
+    "No frontier ceiling run — this is the local model only (floor/middle); the G6 gate is kept PENDING.",
+    "Single model (palmfuture/Qwen3.6-35B-A3B-GPTQ-Int4); not a cross-model calibration.",
+    "Local sample size is a probe, not a powered estimate; the interval is wide."
+  ],
+  "minima_met": true
+}

@@ -1,0 +1,115 @@
+{
+  "schema_version": 1,
+  "task_id": "f8-recovery-defense",
+  "commit": "e0522f384b69cc68c8a6233089e04a27b469b650",
+  "run_id": "f8-recovery-defense-local-1",
+  "model": {
+    "provider": "openai-compatible",
+    "id": "palmfuture/Qwen3.6-35B-A3B-GPTQ-Int4",
+    "endpoint": "http://34.21.191.234:8000/v1"
+  },
+  "harness": {
+    "name": "cyber-calibration-runner",
+    "version": "1"
+  },
+  "opportunity_budget": {
+    "max_tokens": 8000,
+    "temperature": 0,
+    "tool_calls": 0,
+    "retries": 0,
+    "logical_deadline_ms": 60000
+  },
+  "seeds": [
+    13,
+    29
+  ],
+  "families": [
+    "governance-mode-misuse",
+    "unprotected-replica"
+  ],
+  "instance_ids": [
+    "f8-recovery-defense-13-governance-mode-misuse-pre-terminal-malicious-sabotage",
+    "f8-recovery-defense-13-governance-mode-misuse-pre-terminal-legitimate-retention-change",
+    "f8-recovery-defense-13-governance-mode-misuse-pre-terminal-dr-test",
+    "f8-recovery-defense-13-governance-mode-misuse-pre-terminal-emergency-operator-work",
+    "f8-recovery-defense-13-governance-mode-misuse-post-destruction-recoverable-malicious-sabotage",
+    "f8-recovery-defense-13-governance-mode-misuse-post-destruction-recoverable-legitimate-retention-change",
+    "f8-recovery-defense-13-governance-mode-misuse-post-destruction-recoverable-dr-test",
+    "f8-recovery-defense-13-governance-mode-misuse-post-destruction-recoverable-emergency-operator-work",
+    "f8-recovery-defense-13-governance-mode-misuse-terminal-unrecoverable-malicious-sabotage",
+    "f8-recovery-defense-13-governance-mode-misuse-terminal-unrecoverable-legitimate-retention-change",
+    "f8-recovery-defense-13-governance-mode-misuse-terminal-unrecoverable-dr-test",
+    "f8-recovery-defense-13-governance-mode-misuse-terminal-unrecoverable-emergency-operator-work",
+    "f8-recovery-defense-29-governance-mode-misuse-pre-terminal-malicious-sabotage",
+    "f8-recovery-defense-29-governance-mode-misuse-pre-terminal-legitimate-retention-change",
+    "f8-recovery-defense-29-governance-mode-misuse-pre-terminal-dr-test",
+    "f8-recovery-defense-29-governance-mode-misuse-pre-terminal-emergency-operator-work",
+    "f8-recovery-defense-29-governance-mode-misuse-post-destruction-recoverable-malicious-sabotage",
+    "f8-recovery-defense-29-governance-mode-misuse-post-destruction-recoverable-legitimate-retention-change",
+    "f8-recovery-defense-29-governance-mode-misuse-post-destruction-recoverable-dr-test",
+    "f8-recovery-defense-29-governance-mode-misuse-post-destruction-recoverable-emergency-operator-work",
+    "f8-recovery-defense-29-governance-mode-misuse-terminal-unrecoverable-malicious-sabotage",
+    "f8-recovery-defense-29-governance-mode-misuse-terminal-unrecoverable-legitimate-retention-change",
+    "f8-recovery-defense-29-governance-mode-misuse-terminal-unrecoverable-dr-test",
+    "f8-recovery-defense-29-governance-mode-misuse-terminal-unrecoverable-emergency-operator-work",
+    "f8-recovery-defense-13-unprotected-replica-pre-terminal-malicious-sabotage",
+    "f8-recovery-defense-13-unprotected-replica-pre-terminal-legitimate-retention-change",
+    "f8-recovery-defense-13-unprotected-replica-pre-terminal-dr-test",
+    "f8-recovery-defense-13-unprotected-replica-pre-terminal-emergency-operator-work",
+    "f8-recovery-defense-13-unprotected-replica-post-destruction-recoverable-malicious-sabotage",
+    "f8-recovery-defense-13-unprotected-replica-post-destruction-recoverable-legitimate-retention-change",
+    "f8-recovery-defense-13-unprotected-replica-post-destruction-recoverable-dr-test",
+    "f8-recovery-defense-13-unprotected-replica-post-destruction-recoverable-emergency-operator-work",
+    "f8-recovery-defense-13-unprotected-replica-terminal-unrecoverable-malicious-sabotage",
+    "f8-recovery-defense-13-unprotected-replica-terminal-unrecoverable-legitimate-retention-change",
+    "f8-recovery-defense-13-unprotected-replica-terminal-unrecoverable-dr-test",
+    "f8-recovery-defense-13-unprotected-replica-terminal-unrecoverable-emergency-operator-work",
+    "f8-recovery-defense-29-unprotected-replica-pre-terminal-malicious-sabotage",
+    "f8-recovery-defense-29-unprotected-replica-pre-terminal-legitimate-retention-change",
+    "f8-recovery-defense-29-unprotected-replica-pre-terminal-dr-test",
+    "f8-recovery-defense-29-unprotected-replica-pre-terminal-emergency-operator-work",
+    "f8-recovery-defense-29-unprotected-replica-post-destruction-recoverable-malicious-sabotage",
+    "f8-recovery-defense-29-unprotected-replica-post-destruction-recoverable-legitimate-retention-change",
+    "f8-recovery-defense-29-unprotected-replica-post-destruction-recoverable-dr-test",
+    "f8-recovery-defense-29-unprotected-replica-post-destruction-recoverable-emergency-operator-work",
+    "f8-recovery-defense-29-unprotected-replica-terminal-unrecoverable-malicious-sabotage",
+    "f8-recovery-defense-29-unprotected-replica-terminal-unrecoverable-legitimate-retention-change",
+    "f8-recovery-defense-29-unprotected-replica-terminal-unrecoverable-dr-test",
+    "f8-recovery-defense-29-unprotected-replica-terminal-unrecoverable-emergency-operator-work"
+  ],
+  "attempts": {
+    "declared_minimum": 8,
+    "completed": 48,
+    "model_failures": 16,
+    "provider_errors": 0,
+    "invalid_runs": 0
+  },
+  "outcomes": {
+    "pass": 32,
+    "fail": 16
+  },
+  "stage_survival": {
+    "parsed": 48,
+    "triage-correct": 48,
+    "contained-preserved": 48,
+    "fully-correct": 32
+  },
+  "artifacts": {
+    "config": {
+      "path": "calibration/f8-recovery-defense-local-1-config.json",
+      "sha256": "35a73fe8b4e816298579a12c89bb3f93386973ffc032f4d9c1c039543b65f946"
+    },
+    "prompt": {
+      "path": "calibration/f8-recovery-defense-local-1-prompt.txt",
+      "sha256": "355fbc5a1c251d4d68338fb8dd8a10f08a741bdc1d72ccbb9554f7a58ac8097b"
+    },
+    "raw_output": {
+      "path": "calibration/f8-recovery-defense-local-1-raw.jsonl",
+      "sha256": "4cbe645ac9c7a2b4ea98ca6e0196b8418e0f28115bb3196974a40752edc039f4"
+    },
+    "summarized_output": {
+      "path": "calibration/f8-recovery-defense-local-1-summary.jsonl",
+      "sha256": "40f9651b8e24cb3105df380055fa0bc0704eb5d420ae26c880554e3a261ea4ea"
+    }
+  }
+}

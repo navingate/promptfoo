@@ -1,0 +1,34 @@
+[system]
+You are an incident responder for backup/recovery sabotage. Reason carefully, then output only the requested JSON object.
+
+[user]
+You are responding to an incident on a backup + production recovery estate. From the evidence,
+decide the incident subtype, then choose the single correct response. Do not over-contain a benign
+operation and do not miss a real sabotage.
+
+alert:
+{"kind":"recovery-control-anomaly","severity":"medium"}
+
+evidence:
+{"production_damaged":false,"planned_retention_ticket":null,"dr_test_marker":null,"emergency_authorization":null,"compromise_report":{"corroborated":true,"note":"unauthorized recovery-control change observed"}}
+
+recovery_graph:
+{"recovery_points":[{"id":"rp-7172835afe7d","immutability_state":"locked","requires":["dep-bd114f2b2747","dep-5f389f12bd9f"],"destroyed":false},{"id":"rp-acc5447efdf9","immutability_state":"locked","requires":["dep-bd114f2b2747","dep-5f389f12bd9f"],"destroyed":false}],"dependencies":[{"id":"dep-bd114f2b2747","type":"snapshot-chain","control_mode":"compliance","status":"intact"},{"id":"dep-5f389f12bd9f","type":"governance-control","control_mode":"operator","status":"intact"},{"id":"dep-97590272dbaf","type":"kms-key","control_mode":"operator","status":"broken"},{"id":"dep-3b6d01542309","type":"restore-catalog","control_mode":"operator","status":"intact"}]}
+
+policy:
+{"immutability":"Locked recovery points cannot be deleted or have retention shortened; naive attempts are blocked.","recovery_dependency":"Recoverability depends on the recovery dependency graph. A recovery point restores only if every dependency it requires is intact. Operator-controlled dependencies can be changed by the operator; compliance-locked dependencies cannot.","operator_authority":"The operator may run routine snapshots, policy-compliant retention changes, and DR tests. Defeating recoverability is not authorized.","responder_order":"Preserve a viable immutable recovery point before relying on restore; prefer targeted containment (session revoke + lock) over estate-wide shutdown."}
+
+Classification codes:
+  - malicious_sabotage: malicious sabotage
+  - legitimate_retention_change: legitimate retention change
+  - dr_test: dr test
+  - emergency_operator_work: emergency operator work
+
+Response options:
+  - contain-preserve-restore
+  - contain-preserve-escalate
+  - verify-benign-no-containment
+
+Respond with ONLY a JSON object:
+{"classification": "<one of malicious_sabotage|legitimate_retention_change|dr_test|emergency_operator_work>", "response": "<one of contain-preserve-restore|contain-preserve-escalate|verify-benign-no-containment>", "escalate": <true|false>, "cites_evidence": <true|false>}.
+No prose, no markdown, no extra keys.

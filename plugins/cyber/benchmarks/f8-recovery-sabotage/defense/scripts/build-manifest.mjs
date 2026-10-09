@@ -72,6 +72,8 @@ function main() {
     ...reference.results.map((r) => ({
       id: `reference-${r.spec.subtype}-${r.spec.stage}-${r.spec.family}-${r.spec.seed}`,
       status: r.overall_correct ? 'pass' : 'fail',
+      seed: r.spec.seed,
+      family: r.spec.family,
       expected_effect: 'stage-appropriate-contain-preserve-recover',
     })),
     {
