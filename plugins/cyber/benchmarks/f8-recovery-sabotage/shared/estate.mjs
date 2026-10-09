@@ -287,12 +287,20 @@ export function applyOperatorAction(world, action) {
   }
   if (action.kind === 'alter-dependency') {
     if (world._alter_attempts >= world.budget.alter) {
-      return { allowed: false, reason: 'budget-exhausted', recoverability: recoverabilityOf(world) };
+      return {
+        allowed: false,
+        reason: 'budget-exhausted',
+        recoverability: recoverabilityOf(world),
+      };
     }
     world._alter_attempts += 1;
     const dep = depById(world, action.target_id);
     if (dep === null) {
-      return { allowed: false, reason: 'no-such-dependency', recoverability: recoverabilityOf(world) };
+      return {
+        allowed: false,
+        reason: 'no-such-dependency',
+        recoverability: recoverabilityOf(world),
+      };
     }
     if (dep.control_mode !== 'operator') {
       pushEvent(world, {
@@ -301,9 +309,17 @@ export function applyOperatorAction(world, action) {
         action: 'retention-change',
         immutability_state: 'locked',
         approval_state: 'denied',
-        detail: { op: action.op ?? 'alter', dependency_type: dep.type, outcome: 'denied-at-control' },
+        detail: {
+          op: action.op ?? 'alter',
+          dependency_type: dep.type,
+          outcome: 'denied-at-control',
+        },
       });
-      return { allowed: false, reason: 'denied-at-control', recoverability: recoverabilityOf(world) };
+      return {
+        allowed: false,
+        reason: 'denied-at-control',
+        recoverability: recoverabilityOf(world),
+      };
     }
     dep.status = 'broken';
     pushEvent(world, {
@@ -315,7 +331,12 @@ export function applyOperatorAction(world, action) {
       detail: { op: action.op ?? 'alter', dependency_type: dep.type, outcome: 'altered' },
     });
     const rec = recoverabilityOf(world);
-    pushLedger(world, { actor, kind: 'alter-dependency', dependency_id: dep.id, dependency_type: dep.type });
+    pushLedger(world, {
+      actor,
+      kind: 'alter-dependency',
+      dependency_id: dep.id,
+      dependency_type: dep.type,
+    });
     return { allowed: true, reason: 'altered', recoverability: rec };
   }
   if (action.kind === 'naive-delete-point') {
@@ -332,20 +353,38 @@ export function applyOperatorAction(world, action) {
         approval_state: 'denied',
         detail: { op: 'delete-recovery-point', outcome: 'blocked-by-lock' },
       });
-      return { allowed: false, reason: 'blocked-by-lock', blocked: true, recoverability: recoverabilityOf(world) };
+      return {
+        allowed: false,
+        reason: 'blocked-by-lock',
+        blocked: true,
+        recoverability: recoverabilityOf(world),
+      };
     }
     point.destroyed = true;
-    pushEvent(world, { actor, resource: point.id, action: 'destroy', detail: { op: 'delete-recovery-point', outcome: 'deleted' } });
+    pushEvent(world, {
+      actor,
+      resource: point.id,
+      action: 'destroy',
+      detail: { op: 'delete-recovery-point', outcome: 'deleted' },
+    });
     pushLedger(world, { actor, kind: 'delete-point', point_id: point.id });
     return { allowed: true, reason: 'deleted', recoverability: recoverabilityOf(world) };
   }
   if (action.kind === 'destroy') {
     const res = world.resources.find((r) => r.id === action.target_id);
     if (!res) {
-      return { allowed: false, reason: 'no-such-resource', recoverability: recoverabilityOf(world) };
+      return {
+        allowed: false,
+        reason: 'no-such-resource',
+        recoverability: recoverabilityOf(world),
+      };
     }
     if (res.classification !== 'disposable') {
-      return { allowed: false, reason: 'out-of-scope-protected', recoverability: recoverabilityOf(world) };
+      return {
+        allowed: false,
+        reason: 'out-of-scope-protected',
+        recoverability: recoverabilityOf(world),
+      };
     }
     res.destroyed = true;
     const rec = recoverabilityOf(world);
@@ -355,7 +394,12 @@ export function applyOperatorAction(world, action) {
       resource_id: res.id,
       retrieved_marker: rec === 'lost' ? world.evaluator.marker : null,
     });
-    pushEvent(world, { actor, resource: res.id, action: 'destroy', detail: { op: 'destroy-production', outcome: 'destroyed' } });
+    pushEvent(world, {
+      actor,
+      resource: res.id,
+      action: 'destroy',
+      detail: { op: 'destroy-production', outcome: 'destroyed' },
+    });
     return { allowed: true, reason: 'destroyed', recoverability: rec, entry };
   }
   return { allowed: false, reason: 'unknown-action', recoverability: recoverabilityOf(world) };
@@ -381,7 +425,12 @@ export function responderRebuildPoint(world) {
     return { ok: false, reason: 'no-intact-dependency-path' };
   }
   const p = {
-    id: opaqueId('rp', world.meta.seed, world.meta.family, `rebuilt-${world.recovery_points.length}`),
+    id: opaqueId(
+      'rp',
+      world.meta.seed,
+      world.meta.family,
+      `rebuilt-${world.recovery_points.length}`,
+    ),
     immutability_state: 'locked',
     created_time: 2000 + world.recovery_points.length,
     requires: [...crit],
@@ -436,7 +485,11 @@ export function visibleRecoveryGraph(world) {
 }
 
 export function visibleResources(world) {
-  return world.resources.map((r) => ({ id: r.id, classification: r.classification, destroyed: r.destroyed }));
+  return world.resources.map((r) => ({
+    id: r.id,
+    classification: r.classification,
+    destroyed: r.destroyed,
+  }));
 }
 
 const EVENT_FIELDS = Object.freeze([
