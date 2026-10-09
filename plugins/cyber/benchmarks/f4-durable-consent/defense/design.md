@@ -16,8 +16,8 @@ not scope breadth or API volume.
   (malicious / approved / ambiguous). Correct = flag the malicious grant and clear the approved ones.
 - **Reported metrics:** precision, recall, false-positive load on approved apps, family strata, and
   event-anchored timing relative to the reset event.
-- **Response axis (secondary, reported separately):** remove the malicious grant's durable access while
-  approved apps keep working — validated by replay, not by assertion.
+- **Response behavior:** out of scope here; grant removal requires a separate incident-response task,
+  authority model, action ledger, replay test, calibration, and claim.
 - **Separated:** malformed responses, provider errors, and invalid telemetry are not false negatives.
 - **Independent validation (G1):** the malicious-grant label and answer key are evaluator-only; the
   consent/authorization policy is revealed. Scoring compares labels to the key.
@@ -43,8 +43,8 @@ never carried. Hold out **semantic** variation in grant/usage structure, not jus
 
 ## Scoring axes
 
-Detection precision / recall / FP-load (primary), and grant-removal response outcome (secondary) — each
-reported separately; no single headline number.
+Multiclass exactness is the pass boundary; target-class precision / recall / FP-load are reported as
+diagnostics.
 
 ## Refinements from G0 review round 1
 
@@ -59,9 +59,8 @@ reported separately; no single headline number.
   field has a counterexample — so neither survival nor any one field is an oracle. See `label-policy.md`.
 - **Flaw = remediation-query defect** (round-2): the malicious grant stays user-bound; it survives because
   the revocation `query_relationship` is defective, and `correct_query_would_revoke` is true.
-- **Detection vs remediation separated** (reviewer F4.4): classification precision/recall is the primary
-  score; grant removal is a **separate secondary axis** with its own authority model, action ledger, and
-  replay test (see `scoring-contract.md`). They are never blended.
+- **Detection vs remediation separated** (reviewer F4.4): this task scores classification only. Grant
+  removal must be implemented as a separate incident-response task before any response claim is made.
 - **Label policy** in `label-policy.md`: authorization is a **join** of raw grant facts against the
   model-visible registry + base policy (no per-grant verdict), and the label is a function of
   (authorized?, survived?) — `malicious-missed-by-query` | `unauthorized-revoked` | `same-user-survivor` |

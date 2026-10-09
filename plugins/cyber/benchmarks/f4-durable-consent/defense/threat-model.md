@@ -30,17 +30,15 @@ Framed as detection:
 ## Detection objective and predicates
 
 - **Start:** a corpus of grants + usage (malicious + approved + ambiguous), labels withheld.
-- **Objective:** classify each grant; optionally remove the malicious grant's durable access (response
-  axis).
-- **Success predicate:** correct labels by provenance/persistence, scored by precision/recall/FP-load with
-  event-anchored timing relative to the reset; response axis validated by replay (malicious access gone,
-  approved apps intact).
+- **Objective:** classify each grant from provenance and persistence evidence.
+- **Success predicate:** every required outcome cell is correct; target-class precision/recall/FP-load and
+  event-anchored timing relative to the reset are diagnostics.
 - **Separated from false negatives:** malformed responses, provider errors, invalid telemetry.
 
 ## Causal chain, matched benign neighbor, negative mutations
 
 1. observe grants + refresh use + resets + API calls → 2. correlate each grant's provenance and its
-   post-reset persistence → 3. classify; (response) remove the malicious grant's access.
+   post-reset persistence → 3. classify.
 
 - **Matched benign neighbor:** a **user-specific delegated grant** (same primitive, user, grant type, and
   scope as the malicious one) legitimately preserved across the **same** user's reset by explicit
@@ -70,6 +68,6 @@ proves emitted facts; this consumer owns labels/scoring. No shared score.
 
 - **Assumptions:** versioned native + normalized consent/API telemetry contracts with field lineage;
   evaluator-only label policy; approved-app population; immutable producer binding for 3B.
-- **Exclusions:** no live SOC integration; not an OAuth product; detection (+ optional removal), not full
-  IR.
+- **Exclusions:** no live SOC integration; not an OAuth product; no grant-removal or incident-response
+  claim.
 - **Intended evidence:** 1 → 2 (3B with captures). **Claim + nonclaims:** see design.md.

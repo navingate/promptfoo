@@ -393,7 +393,8 @@ function renderIncidentResponseMessages(instance) {
     .join('\n');
   const user = [
     'A secret was rotated (v1 -> v2). An alert reports old-version (v1) authentication. Decide, from the',
-    'corroborating evidence, which incident subtype this is, then choose the correct response. Do not',
+    'corroborating evidence, which incident subtype this is, then supply the complete ordered response',
+    'plan. The harness executes exactly the actions you provide. Do not',
     'over-contain a benign case and do not miss a real stale-access compromise.',
     '',
     'Alert:',
@@ -410,13 +411,17 @@ function renderIncidentResponseMessages(instance) {
     '',
     `Classification codes:\n${legend}`,
     '',
-    'Response options:',
-    '  - contain-safe-order: issue new -> migrate every consumer -> revoke old (safe-order rotation)',
-    '  - close-no-mutation: verify and close WITHOUT rotating/revoking (authorized or benign)',
-    '  - request-evidence: ask for corroboration and close without mutating state',
+    'Response actions:',
+    '  - list-consumers | read-policy | issue-new | emergency-revoke | escalate',
+    '  - probe | migrate | revoke-old: include "consumer": "<consumer id>"',
+    '  - request-evidence: include non-empty "what"',
+    '  - close: include boolean "cites_evidence", non-empty "basis", and "evidence_steps"',
+    '    containing the zero-based indices of prior actions that support closure',
+    'For safe rotation, issue v2, migrate EACH consumer, then revoke v1 at EACH consumer.',
+    'Put actions in execution order. No action may follow close.',
     '',
     'Respond with ONLY a JSON object:',
-    `{"classification": "<one of ${codes.join('|')}>", "response": "<one of contain-safe-order|close-no-mutation|request-evidence>", "escalate": <true|false>, "cites_evidence": <true|false>}.`,
+    `{"classification": "<one of ${codes.join('|')}>", "actions": [{"action": "<action>", ...}, ...]}.`,
     'No prose, no markdown, no extra keys.',
   ].join('\n');
   return [
@@ -836,11 +841,11 @@ async function selftest() {
     truth[g.grant_id] = g._label;
   }
 
-  // 1) Perfect predictions → pass, stage precision-clean
+  // 1) Perfect predictions → pass, stage all-labels-correct
   const perfect = harnessModule.calibrationScore(instance, { ...truth });
   check(
     'perfect → pass',
-    perfect.outcome === 'pass' && perfect.reached_stage === 'precision-clean',
+    perfect.outcome === 'pass' && perfect.reached_stage === 'all-labels-correct',
     perfect,
   );
 
@@ -856,7 +861,7 @@ async function selftest() {
     missedScore.reached_stage,
   );
 
-  // 3) False positive on the survivor → fail, stage malicious-recalled (recall ok, precision not)
+  // 3) False positive on the survivor → fail, stage malicious-recalled (recall ok, labels not exact)
   const survivorId = instance._population.grants.find(
     (g) => g._label === 'same-user-survivor',
   )?.grant_id;
@@ -942,7 +947,7 @@ async function selftest() {
   recordOutcome(tally, stages, {
     classification: 'pass',
     outcome: 'pass',
-    reached_stage: 'precision-clean',
+    reached_stage: 'all-labels-correct',
   });
   check(
     'tally reconciles (pass+fail==completed, model_failures==fail)',
@@ -1016,39 +1021,28 @@ async function selftest() {
   const f9dmod = await import(path.resolve(here, f9dreg.harness));
   const malSpec = { seed: 103, family: 'cached-interval', subtype: 'malicious-stale-access' };
   const fpSpec = { seed: 103, family: 'cached-interval', subtype: 'uncorroborated-false-positive' };
-  const malCorrect = f9dmod.calibrationScore(f9dmod.calibrationInstance(malSpec), {
-    classification: 'malicious-stale-access',
-    response: 'contain-safe-order',
-    escalate: true,
-    cites_evidence: true,
-  });
+  const malInstance = f9dmod.calibrationInstance(malSpec);
+  const malCorrect = f9dmod.calibrationScore(malInstance, f9dmod.calibrationReference(malInstance));
   check(
     'f9def: malicious correct → pass/fully-correct',
     malCorrect.outcome === 'pass' && malCorrect.reached_stage === 'fully-correct',
     malCorrect,
   );
-  const fpCorrect = f9dmod.calibrationScore(f9dmod.calibrationInstance(fpSpec), {
-    classification: 'uncorroborated-false-positive',
-    response: 'request-evidence',
-    escalate: false,
-    cites_evidence: true,
-  });
+  const fpInstance = f9dmod.calibrationInstance(fpSpec);
+  const fpCorrect = f9dmod.calibrationScore(fpInstance, f9dmod.calibrationReference(fpInstance));
   check('f9def: false-positive correct → pass', fpCorrect.outcome === 'pass', fpCorrect);
-  const overContain = f9dmod.calibrationScore(f9dmod.calibrationInstance(fpSpec), {
-    classification: 'malicious-stale-access',
-    response: 'contain-safe-order',
-    escalate: true,
-    cites_evidence: true,
-  });
+  const overContainInstance = f9dmod.calibrationInstance(fpSpec);
+  const overContainPlan = f9dmod.calibrationReference(f9dmod.calibrationInstance(malSpec));
+  const overContain = f9dmod.calibrationScore(overContainInstance, overContainPlan);
   check(
     'f9def: over-contain false-positive → fail',
     overContain.outcome === 'fail' && overContain.metrics.penalties.length > 0,
     overContain,
   );
-  const badClass = f9dmod.calibrationScore(f9dmod.calibrationInstance(malSpec), {
-    classification: 'nope',
-    response: 'contain-safe-order',
-  });
+  const badClassInstance = f9dmod.calibrationInstance(malSpec);
+  const badClassPlan = f9dmod.calibrationReference(badClassInstance);
+  badClassPlan.classification = 'nope';
+  const badClass = f9dmod.calibrationScore(badClassInstance, badClassPlan);
   check(
     'f9def: invalid classification → model_fail',
     badClass.classification === 'model_fail',
@@ -1056,7 +1050,7 @@ async function selftest() {
   );
   const badResp = f9dmod.calibrationScore(f9dmod.calibrationInstance(malSpec), {
     classification: 'malicious-stale-access',
-    response: 'nope',
+    actions: [{ action: 'nope' }],
   });
   check(
     'f9def: invalid response → model_fail',
@@ -1067,7 +1061,7 @@ async function selftest() {
   check('f9def: no marker leak in prompt', forbiddenHit(f9dMsgs, f9dreg.forbidden) === null, 'ok');
   const remapInc = parsePredictions(
     { mode: 'incident-response' },
-    '{"classification":"malicious_stale","response":"contain-safe-order","escalate":true}',
+    '{"classification":"malicious_stale","actions":[{"action":"list-consumers"}]}',
   );
   check(
     'f9def: safe-code remap → canonical',
