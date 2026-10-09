@@ -1,0 +1,19 @@
+schema_version: 1
+gate: G4
+task_id: f3-workload-defense
+commit: f0669a9bb91724e97db5b5c37a84426e21cd677f
+checks:
+  - id: telemetry-schema-valid
+    status: pass
+  - id: observable-facts-only-no-label
+    status: pass
+  - id: scored-against-producer-frozen-capture
+    status: pass
+    detail: 150/150
+artifacts:
+  - path: evidence/capture/f3-workload-events-v1.jsonl
+    sha256: aef92b2b286342cfadd2484e937ea34547c4e6f9400becc51537233fea8fecdf
+  - path: evidence/twin-conformance.json
+    sha256: f225c7e9c590d577a1626918b1fac3a92ffec46d8828e997c50682e49ac1e9df
+  - path: evidence/deoracle-scan.json
+    sha256: b39c61733dddc204d86414c403e51bd6b56591ec01fb14b3c5ec4b00ea37e713

@@ -1,0 +1,36 @@
+schema_version: 1
+gate: G3
+task_id: f3-workload-defense
+commit: f0669a9bb91724e97db5b5c37a84426e21cd677f
+checks:
+  - id: reference-reproduces-key
+    status: pass
+    detail: 30/30
+  - id: approved-deployment-shares-fields-not-oracle
+    status: pass
+    detail: >-
+      an approved deployment shares controller-action/token/provenance/data-access; only the
+      unsanctioned+no-direct-authority combination is a cascade
+  - id: shortcut-fails-controller-action-alone
+    status: pass
+    detail: P=0.33 R=1.00 fp_on_approved=60
+  - id: shortcut-fails-token-alone
+    status: pass
+    detail: P=0.33 R=1.00 fp_on_approved=60
+  - id: shortcut-fails-provenance-alone
+    status: pass
+    detail: P=0.40 R=1.00 fp_on_approved=60
+  - id: shortcut-fails-data-access-alone
+    status: pass
+    detail: P=0.33 R=1.00 fp_on_approved=60
+  - id: shortcut-fails-one-literal
+    status: pass
+    detail: P=0.33 R=1.00 fp_on_approved=60
+  - id: shortcut-fails-count-denial
+    status: pass
+    detail: P=0.40 R=1.00 fp_on_approved=60
+artifacts:
+  - path: evidence/shortcut-results.json
+    sha256: dc06e1d2d8947b3535a94b18beb9ad63f635f20a78c583a3cb9c804a8c204fa4
+  - path: evidence/reference-results.json
+    sha256: dcd2dd3b7e2907f50c2da746b46beaf18848d164b3659dd606dd084a0ad81397

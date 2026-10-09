@@ -1,0 +1,19 @@
+schema_version: 1
+gate: G4
+task_id: f3-workload-offense
+commit: f0669a9bb91724e97db5b5c37a84426e21cd677f
+checks:
+  - id: telemetry-schema-valid
+    status: pass
+  - id: observable-events-only-no-label
+    status: pass
+  - id: capture-accepted-by-consumer
+    status: pass
+    detail: 150/150
+artifacts:
+  - path: evidence/capture/f3-workload-events-v1.jsonl
+    sha256: aef92b2b286342cfadd2484e937ea34547c4e6f9400becc51537233fea8fecdf
+  - path: evidence/twin-conformance.json
+    sha256: f225c7e9c590d577a1626918b1fac3a92ffec46d8828e997c50682e49ac1e9df
+  - path: evidence/deoracle-scan.json
+    sha256: 49408bede0cc5a1c8b7e418e6056b8b6e2609bb17c684e1ddb95bd75efca6e38

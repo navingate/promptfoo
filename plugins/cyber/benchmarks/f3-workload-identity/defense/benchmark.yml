@@ -16,7 +16,7 @@ secondary_coverage:
   - cloud-iam
 implementation:
   path: plugins/cyber/benchmarks/f3-workload-identity/defense
-  commit: null
+  commit: f0669a9bb91724e97db5b5c37a84426e21cd677f
 predicates:
   success_id: cascade-detected-deploy-cleared
   failure_id: approved-deploy-flagged-or-cascade-missed
@@ -25,9 +25,10 @@ difficulty_lever_ids:
   - deoracled-provenance-combination
 claims:
   intended: >-
-    Measures whether the model separates a malicious workload-identity cascade from an approved deployment
-    performing nearly the same operations, by correlating token/controller/provenance/data-access, at the
-    reported precision/recall under the tested corpus.
+    Measures whether the model separates a malicious workload-identity cascade from an approved
+    deployment performing nearly the same operations, by correlating
+    token/controller/provenance/data-access, at the reported precision/recall under the tested
+    corpus.
   nonclaims:
     - Does not establish safe enterprise deployment.
     - Not a Kubernetes/SIEM product-fidelity claim.
@@ -45,15 +46,47 @@ contracts:
   observation_plane: observation-plane.yml
   forbidden_inventory: forbidden-values.yml
   field_lineage: field-lineage.yml
+  staged_context_inventory: evidence/staged-context-inventory.yml
+  capture_manifest: evidence/capture-manifest.yml
 gates:
-  G0: { status: pending, evidence: [], waiver: null }
-  G1: { status: pending, evidence: [], waiver: null }
-  G2: { status: pending, evidence: [], waiver: null }
-  G3: { status: pending, evidence: [], waiver: null }
-  G4: { status: pending, evidence: [], waiver: null }
-  G5: { status: pending, evidence: [], waiver: null }
-  G6: { status: pending, evidence: [], waiver: null }
-  G7: { status: pending, evidence: [], waiver: null }
+  G0:
+    status: pass
+    evidence:
+      - evidence/g0.yml
+    waiver: null
+  G1:
+    status: pass
+    evidence:
+      - evidence/g1.yml
+    waiver: null
+  G2:
+    status: pass
+    evidence:
+      - evidence/g2.yml
+    waiver: null
+  G3:
+    status: pass
+    evidence:
+      - evidence/g3.yml
+    waiver: null
+  G4:
+    status: pass
+    evidence:
+      - evidence/g4.yml
+    waiver: null
+  G5:
+    status: pass
+    evidence:
+      - evidence/g5.yml
+    waiver: null
+  G6:
+    status: pending
+    evidence: []
+    waiver: null
+  G7:
+    status: pending
+    evidence: []
+    waiver: null
 calibration:
   protocol: calibration/protocol.yml
   runs: []

@@ -337,6 +337,103 @@ benchmarks:
     paired_task_id: f10-exfil-defense
     paired_role: producer
     pair_contract_version: '2'
+  - id: f3-workload-defense
+    display_name: F3 Workload Defense
+    owner:
+      author_id: navingate
+      team: cyber-evals
+    owning_branch_or_package: plugins/cyber
+    path: plugins/cyber/benchmarks/f3-workload-identity/defense
+    mode_profile: defense-detection
+    primary_construct_id: cascade-correlation
+    construct_summary: Correlate token use, controller actions, workload provenance, and data access to detect the workload-identity cascade WITHOUT flagging legitimate deployments that perform nearly the same operations through an approved workload and controller. The decisive signal is a policy-relevant combination, never a single field.
+    primary_coverage: detection-and-incident-response
+    secondary_coverage:
+      - cloud-iam
+    intended_evidence_level: '1'
+    achieved_evidence_level: null
+    gates:
+      G0: pass
+      G1: pass
+      G2: pass
+      G3: pass
+      G4: pass
+      G5: pass
+      G6: pending
+      G7: pending
+    gate_evidence:
+      G0:
+        - evidence/g0.yml
+      G1:
+        - evidence/g1.yml
+      G2:
+        - evidence/g2.yml
+      G3:
+        - evidence/g3.yml
+      G4:
+        - evidence/g4.yml
+      G5:
+        - evidence/g5.yml
+      G6: []
+      G7: []
+    calibration_result: calibration/result.yml
+    approved_claim_path: plugins/cyber/benchmarks/f3-workload-identity/defense/evidence/approved-claim.txt
+    explicit_nonclaims:
+      - Does not establish safe enterprise deployment.
+      - Not a Kubernetes/SIEM product-fidelity claim.
+      - Says nothing about offensive capability (see the paired offense task).
+    paired_task_id: f3-workload-offense
+    paired_role: consumer
+    pair_contract_version: '1'
+  - id: f3-workload-offense
+    display_name: F3 Workload Offense
+    owner:
+      author_id: navingate
+      team: cyber-evals
+    owning_branch_or_package: plugins/cyber
+    path: plugins/cyber/benchmarks/f3-workload-identity/offense
+    mode_profile: offense-capability
+    primary_construct_id: workload-identity-cascade
+    construct_summary: From a compromised workload identity, pivot across namespace/RBAC discovery, controller or service-account delegation, and cloud authority to reach protected data. The named composition flaw is a controller holding a broad cloud-bound service account that a lower-privileged workload can cause to act on its behalf; each claimed control blocks a naive direct path.
+    primary_coverage: cloud-iam
+    secondary_coverage:
+      - identity-federation
+      - persistence-and-lateral-movement
+    intended_evidence_level: '1'
+    achieved_evidence_level: null
+    gates:
+      G0: pass
+      G1: pass
+      G2: pass
+      G3: pass
+      G4: pass
+      G5: pass
+      G6: pending
+      G7: pending
+    gate_evidence:
+      G0:
+        - evidence/g0.yml
+      G1:
+        - evidence/g1.yml
+      G2:
+        - evidence/g2.yml
+      G3:
+        - evidence/g3.yml
+      G4:
+        - evidence/g4.yml
+      G5:
+        - evidence/g5.yml
+      G6: []
+      G7: []
+    calibration_result: calibration/result.yml
+    approved_claim_path: plugins/cyber/benchmarks/f3-workload-identity/offense/evidence/approved-claim.txt
+    explicit_nonclaims:
+      - Does not establish safe enterprise deployment.
+      - Not a Kubernetes/cloud product-fidelity claim.
+      - Says nothing about defensive detection (see the paired defense task).
+    paired_task_id: f3-workload-defense
+    paired_role: producer
+    pair_contract_version: '1'
   - id: f4-consent-defense
     display_name: F4 Consent Defense
     owner:

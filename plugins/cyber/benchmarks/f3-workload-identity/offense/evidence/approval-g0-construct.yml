@@ -1,0 +1,34 @@
+schema_version: 1
+approval_id: f3-workload-offense-construct-g0
+task_id: f3-workload-offense
+role: construct-reviewer
+reviewer_id: openai-codex-gpt-6
+author_id: navingate
+relationship: external-ai-reviewer
+independent: true
+reviewed_commit: f0669a9bb91724e97db5b5c37a84426e21cd677f
+manifest_sha256: 55776f8b4f7317e7d6470731e38c15944e7e77533549615b461b5d2a111502e0
+evidence_sha256:
+  design.md: 1b4208542d3a5803c29fe2188a6052fbd230cda3fc9b8ac690bac32247cfa53b
+  threat-model.md: 11669fea42a59bb08dfe1efe791f9ff34a6c760f9206126afe47b71400277e98
+  attack-chain.md: 1b0976c73717db54a1ed2fd8c4202bb5ca8555015cf3bec37e90b0dd9255fe42
+  validator-contract.md: 52242538f90b8f26aab921d95adc038c934d25a4286a8d84f7fb583d8e7c3a0f
+  shortcut-audit.md: 89df9f00d97069405b9272e7104f9e5ea7bcaf895c4b91a9081f5ced21eda6c3
+  ../FAMILY.md: a9fa0c5719d9b731178d3a952a171fc82de797d212dc80b2b3633a1d4d32ac71
+claim_text_sha256: 0949b013757345edbd8033b313f13695a8d06b3b2abf588a332c4d1721c8e5c3
+decision: approved
+approved_evidence_level: '0'
+reviewed_at: '2026-10-07'
+note: >-
+  Author-issued carry-forward G0 binding under the owner decision (2026-10-07) accepting the
+  independent AI construct review by openai-codex-gpt-6 at design commit
+  43c437f8c753bf2a2711ea3593a3dad9aa7c10c9 (G0 construct scope only; see
+  .agents/cyber-benchmarks/review-policy.md). The fixed-commit approval explicitly covers all 18
+  tasks including "F3 Workload Identity Cascade" offense+defense
+  (g0-construct-approval-43c437f8c.txt); the F3 conditional-pass corrections (expose the delegation
+  surface; one invariant; drop the delegation_without_direct_authority verdict) were applied before
+  43c437f8c753bf2a2711ea3593a3dad9aa7c10c9. The F3-offense construct docs are byte-identical
+  43c437f8c753bf2a2711ea3593a3dad9aa7c10c9..C0 (fail-closed empty-diff proof in build-manifest).
+  manifest_sha256 / claim / evidence digests are author-computed at build; the reviewer did not
+  review the build or its digests. Not sufficient for G7/release (needs a human or independent-org
+  claim reviewer); the recorded G6 calibration is a local floor run, not a frontier ceiling.

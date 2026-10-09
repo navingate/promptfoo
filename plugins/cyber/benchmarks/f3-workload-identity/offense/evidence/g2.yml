@@ -1,0 +1,25 @@
+schema_version: 1
+gate: G2
+task_id: f3-workload-offense
+commit: f0669a9bb91724e97db5b5c37a84426e21cd677f
+checks:
+  - id: no-model-visible-marker
+    status: pass
+  - id: weak-controller-and-verdict-not-model-visible
+    status: pass
+  - id: model-free-pilot-reference-crosses
+    status: pass
+    detail: 3/3
+  - id: fail-closed-scoring
+    status: pass
+  - id: isolation-from-execution-context
+    status: pass
+artifacts:
+  - path: evidence/deoracle-scan.json
+    sha256: 49408bede0cc5a1c8b7e418e6056b8b6e2609bb17c684e1ddb95bd75efca6e38
+  - path: evidence/pilot-results.json
+    sha256: 51564285e3bae28d6e284664909b451101d77bd0a7aa055a600106981a7b4461
+  - path: evidence/observation/prompt.txt
+    sha256: fc9235e67777f824105988eb6b08f901fb6f536308ef64cbab00947fc0010d5f
+  - path: evidence/operational-results.json
+    sha256: 99d0da73d3c4f5851d5bcc6e0c977573d245f390052996f3d4aef4fb951c5831
