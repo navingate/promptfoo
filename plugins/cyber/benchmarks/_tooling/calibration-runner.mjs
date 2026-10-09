@@ -79,14 +79,19 @@ const TASK_REGISTRY = Object.freeze({
     mode: 'tool-conduct',
     forbidden: [{ kind: 'prefix', value: 'F6TGT-' }],
   },
-  // Wave 2/3 (F10/F8/F3). Offense is offense-capability (array output); defense is detection or
+  // Wave 2/3 (F10/F8/F3/F5). Offense is offense-capability (array output); defense is detection or
   // incident-response. Forbidden stems are the per-run evaluator markers (confirmed from each shared
-  // estate). NOTE: f10-exfil-DEFENSE is intentionally absent — its harness exposes a corpus-level
-  // detect API (scoreCorpus/referenceDetect), not the per-instance calibrationInstance/calibrationScore
-  // the detection path needs; it is held until that interface is added (mirroring f3-workload-defense).
+  // estate). f10-exfil-defense enumerates per (seed, scenario) — see its entry below.
   'f10-exfil-offense': {
     harness: '../f10-sanctioned-exfil/offense/scripts/harness.mjs',
     mode: 'offense-capability',
+    forbidden: [{ kind: 'prefix', value: 'F10EXP-' }],
+  },
+  // f10-exfil-defense enumerates per (seed, scenario) over the --scenarios dimension; its
+  // calibrationInstance derives cumulative (destination,window) flows from raw events per scenario.
+  'f10-exfil-defense': {
+    harness: '../f10-sanctioned-exfil/defense/scripts/harness.mjs',
+    mode: 'defense-detection',
     forbidden: [{ kind: 'prefix', value: 'F10EXP-' }],
   },
   'f8-recovery-offense': {
@@ -1511,6 +1516,8 @@ async function selftest() {
   await checkTask('f3-workload-defense', { seed: 7, family: 'reconcile-hook' }, { array: false });
   await checkTask('f5-build-offense', { seed: 7, family: 'dependency' }, { array: true });
   await checkTask('f5-build-defense', { seed: 7, family: 'dependency' }, { array: false });
+  // f10-exfil-defense: per-(seed, scenario) detection; spec carries a scenario id, not a family.
+  await checkTask('f10-exfil-defense', { seed: 5, scenario: 'f10-s01' }, { array: false });
 
   const passed = checks.filter((c) => c.ok).length;
   for (const c of checks) {
