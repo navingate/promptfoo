@@ -26,13 +26,15 @@ like Wave 1.
 
 - **Stop at G5 + a recorded local G6.** Do **not** run the paid frontier ceiling (the real G6 gate stays
   PENDING) and do **not** do G7 release — hand both back to the user.
-- **$0 — read carefully, this is a live money trap.** `calibration-runner.mjs` resolves the endpoint as
-  `CYBER_SUT_ENDPOINT || OPENAI_BASE_URL || AZURE_AI_BASE_URL`, and the repo `.env`'s `AZURE_AI_BASE_URL` is
-  a **PAID** Azure gateway. Only the `--pinned-g1` path refuses paid hosts today; the general `--record`
-  (local-G6) path does **not**. So: **always export `CYBER_SUT_ENDPOINT=http://34.21.191.234:8000/v1`
-  explicitly on every run** — an unset endpoint = paid frontier = hard-limit breach. **Your first
-  shared-tooling change should be to extend the refuse-paid-host guard to the general resolver** (additive;
-  announce to F2 Chain + Build before you touch that file).
+- **$0 — always export `CYBER_SUT_ENDPOINT=http://34.21.191.234:8000/v1` explicitly on every run.** The
+  general-resolver Azure fallback has **already been removed** by the user's commit `743361b4a` ("remove the
+  calibration runner's silent Azure fallback and refuse Azure hosts") — `endpointConfig()` now drops the
+  `AZURE_AI_*` fallback and calls `refuseAzureHost()` on the SUT and the victim-loop endpoint. **Do NOT
+  re-implement it.** That commit is on `codex/cyber-wave1-build` + `codex/cyber-wave1-f6-calibration` but
+  **not yet on `codex/cyber-benchmark-authoring`** — merge design (which will carry it once it lands there;
+  F2 Chain is queuing that) into your branch before your first G6. (Hardening idea for later, not yours to
+  apply: the guard is a hostname denylist on "azure"; an explicit allowlist of the 34.x box + loopback is
+  strictly safer — F2 Chain is relaying it to the user.)
 - **Never fabricate** a gate, label, calibration number, telemetry fact, or approval/attestation. Missing =
   recorded PENDING, never invented.
 - No `git reset --hard`, no `--no-verify` (a hook rejects it), no amend/squash/rebase unless asked.
@@ -68,15 +70,34 @@ shape. Read `plugins/cyber/benchmarks/WAVE1-HANDOFF.md` and `WAVE1-VERIFY.md` fi
 - G0 is bound as an **author carry-forward of the independent AI construct review** @ `43c437f8c`
   (`openai-codex-gpt-6`, G0 scope, all 18 tasks), per `review-policy.md`. The carry-forward only holds if a
   task's **construct-defining docs are byte-unchanged since `43c437f8c`**.
-- **These six families' `FAMILY.md` each changed by one line since `43c437f8c`** — a review-status sentence
-  update (now pointing at the recorded approval), **not a construct change**. Because the bytes differ, a
-  naive carry-forward will go **digest-stale** (exactly what happened to F6-offense). Handle it like F6:
-  bind at your build commit with `G0_PENDING_REATTESTATION` and get a **1-line reviewer re-attestation** that
-  the status-line edit is non-semantic — **route that to F2 Chain**; do not self-issue it, do not fake a
-  digest.
-- Make the bind tooling's `CORE_DOC_RELS` (the digest set) cover **every** construct-defining doc per family.
-  Wave 1 shipped a bug where F6-offense's list omitted `attack-chain.md` (fixed in `f1ccce8b3`) — don't
-  repeat it.
+- **Carry-forward is CLEAN — no re-attestation needed** (corrected 2026-10-09; the earlier "FAMILY.md
+  changed" worry was wrong). `git diff 43c437f8c..<design>` over all six family dirs touches **only**
+  `offense/review/handoff.md` + `defense/review/handoff.md` (a review-status sentence). **Every
+  construct-defining doc is byte-identical to `43c437f8c`**, and the recorded approval covers all 18 tasks.
+  So keep `review/handoff.md` OUT of the bind digest (CORE_DOC_RELS = construct docs only) and the
+  carry-forward holds byte-identical at your build commit with **no** F6-style re-attestation.
+- Make `CORE_DOC_RELS` cover **every construct-defining doc per family** (the sets differ by mode — e.g. F7
+  defense = authorization-policy.md + tool-boundaries.yml; F10/F3/F5 defense = label-policy.md +
+  observation-plane.yml + field-lineage.yml; F8/F11 defense = incident-state.md + response-policy.md), with
+  a test asserting every non-generated doc is either digested or on a named exclusion list (`review/handoff.md`)
+  — closing the Wave-1 `attack-chain.md`-omission class (`f1ccce8b3`).
+
+## Winnability gate (a G2/G3 check — learned the hard way from F6 v2)
+
+F6 v2's offense turned out **unwinnable by construction**: its only real out-of-scope success target was a
+per-run hidden id the attacker is never shown and cannot discover, so under a correct predicate 0/23
+"successes" were real. Every induced-effect family MUST pass this gate before G2/G3:
+
+- **Success must be achievable from the ATTACKER-VISIBLE plane.** A reference solver limited to exactly what
+  the attacker can see must be able to win; the real success target must be **discoverable** (from read-path
+  material / a listed inventory), never only an undiscoverable hidden id. The per-run nonce/marker may be
+  hidden **for isolation**, but it must not be the thing the attacker has to hit.
+- **A no-discovery / enumerate-everything shortcut must FAIL** (it must not be a cheap win), and an
+  invented / non-existent target must not count.
+- These Wave 2/3 families already read OK on this (F7/F11 key success to a discoverable action or an
+  injected-vs-clean response delta; F10 makes its policy explicitly discoverable; F5 to a signed artifact) —
+  **confirm it per family, don't assume.** If a family's only real success target is undiscoverable, that is
+  a **design defect → STOP and report to F2 Chain**, do not build around it.
 
 ## Per-family construct guardrails from the G0 review (do NOT regress)
 
@@ -131,6 +152,7 @@ Per task at its bind commit: `audit_benchmark.mjs --repo-root . --task <t> --com
   or one family-pair so review stays tractable. **Do not self-merge** — the auto-mode classifier blocks
   merge-without-review; the **user merges** after review.
 - **Route to F2 Chain** (`SendMessage`, name `F2 Chain`): every construct question, reference-injection
-  legitimacy sign-off, gate-mechanics ruling, scope/decidability call, the G0 re-attestation, and any
-  shared-runner edit. F2 Chain holds the construct authority and the suite registry.
+  legitimacy sign-off, gate-mechanics ruling, scope/decidability call, and any shared-runner edit. F2 Chain
+  holds the construct authority and the suite registry. (Wave 2/3 needs no G0 re-attestation — carry-forward
+  is clean.)
 - **Route to the user:** the F7/F11 victim pins, the frontier-G6 go, and G7.
