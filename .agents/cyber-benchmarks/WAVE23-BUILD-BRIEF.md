@@ -76,11 +76,20 @@ shape. Read `plugins/cyber/benchmarks/WAVE1-HANDOFF.md` and `WAVE1-VERIFY.md` fi
   construct-defining doc is byte-identical to `43c437f8c`**, and the recorded approval covers all 18 tasks.
   So keep `review/handoff.md` OUT of the bind digest (CORE_DOC_RELS = construct docs only) and the
   carry-forward holds byte-identical at your build commit with **no** F6-style re-attestation.
-- Make `CORE_DOC_RELS` cover **every construct-defining doc per family** (the sets differ by mode — e.g. F7
-  defense = authorization-policy.md + tool-boundaries.yml; F10/F3/F5 defense = label-policy.md +
-  observation-plane.yml + field-lineage.yml; F8/F11 defense = incident-state.md + response-policy.md), with
-  a test asserting every non-generated doc is either digested or on a named exclusion list (`review/handoff.md`)
-  — closing the Wave-1 `attack-chain.md`-omission class (`f1ccce8b3`).
+- `CORE_DOC_RELS` = **hand-written construct docs ONLY** (matches the Wave-1 `approval-g0-construct.yml`
+  ground truth). **EXCLUDE all generated files** — `observation-plane.yml`, `field-lineage.yml`,
+  `forbidden-values.yml` (generate-evidence rewrites them; they changed at F4's bind, so they can't be in a
+  byte-identical carry-forward digest). The sets, matching Wave 1 exactly:
+  - **offense (all 6):** {design, threat-model, attack-chain, validator-contract, shortcut-audit, FAMILY}
+  - **F10/F3/F5 defense:** {design, threat-model, label-policy, scoring-contract, FAMILY}
+  - **F7 defense:** {design, threat-model, authorization-policy, tool-boundaries.yml, scoring-contract, FAMILY}
+  - **F8/F11 defense:** {design, threat-model, incident-state, response-policy, scoring-contract, FAMILY}
+    Add a test asserting every non-generated doc is either digested or on a named exclusion list
+    (`review/handoff.md`) — closing the Wave-1 `attack-chain.md`-omission class (`f1ccce8b3`).
+- **Exception: F10 takes a FRESH G0 construct review, not the carry-forward.** Its construct is being updated
+  (2026-10-09 aggregate-key fix: per-destination key + multi-identity + protected-sensitivity volume unit +
+  window — F2 Chain is pushing the doc edits), so F10's construct docs no longer match `43c437f8c`. The other
+  five families (F7/F8/F3/F5/F11) keep the clean carry-forward.
 
 ## Winnability gate (a G2/G3 check — learned the hard way from F6 v2)
 

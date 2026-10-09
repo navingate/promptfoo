@@ -12,10 +12,12 @@ identity × business purpose — never a single field.
 
 ## Decision boundary (deterministic)
 
-- **Classification:** under a strict grammar, label each identity→destination flow (`cumulative-exfil` |
-  `sanctioned-bulk` | `ambiguous`) against the evaluator-only policy.
+- **Classification:** under a strict grammar, label each contributing flow (`cumulative-exfil` |
+  `sanctioned-bulk` | `ambiguous` | `benign`) against the evaluator-only policy, judged against the
+  **cross-identity per-(destination,window) cumulative of no-covering-job protected cells** — never a flow
+  in isolation (isolation makes multi-identity fan-out undetectable).
 - **Correct:** flag the cumulative exfil and clear the sanctioned high-volume jobs.
-- **Metrics:** precision, recall, **false-positive load on sanctioned-bulk jobs**, family strata, and
+- **Metrics:** precision, recall, **false-positive load on `sanctioned-bulk` + `benign`**, family strata, and
   event-anchored timing relative to the first contributing export.
 - **Independent validation (G1):** only the exfil **label** + terminal marker are evaluator-only; the
   **policy aggregate limit, the catalog classification, and the authenticated job registry are

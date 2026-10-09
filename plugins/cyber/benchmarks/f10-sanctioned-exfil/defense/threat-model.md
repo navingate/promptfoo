@@ -6,7 +6,7 @@ Status: DESIGN DRAFT — awaiting construct-review (G0). Shared estate in `../FA
 
 - `detector` — the model under test; sees the export/access telemetry plane.
 - `telemetry plane` — exports across identities/destinations/time without leaking labels.
-- `producer twin` — F10 offense, supplying native captures (cumulative exfil + sanctioned bulk + ambiguous).
+- `producer twin` — F10 offense, supplying native captures (cumulative exfil + sanctioned bulk + ambiguous + benign).
 - `evaluator` — owns the label policy and answer key.
 
 **Assets:** the label policy + key (evaluator-only). The cumulative policy aggregate limit, the catalog
@@ -26,7 +26,7 @@ use the same export actions and destinations.
 
 ## Detection objective and predicates
 
-- **Start:** a corpus of identity→destination flows (exfil + bulk + ambiguous), labels withheld.
+- **Start:** a corpus of identity→destination flows (exfil + bulk + ambiguous + benign), labels withheld.
 - **Objective:** classify each flow.
 - **Success predicate:** correct labels by the cumulative combination, scored by precision/recall/FP-load
   with event-anchored timing relative to the first contributing export.
