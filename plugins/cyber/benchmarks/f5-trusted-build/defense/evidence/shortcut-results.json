@@ -1,0 +1,72 @@
+{
+  "task_id": "f5-build-defense",
+  "kind": "shortcut-baselines",
+  "note": "No single-field detector reproduces the key: signature-presence / new-artifact / emergency / deploy-target / one-literal / count-denial each over-flag the legitimate release (precision < 1). Only the provenance-soundness combination decides.",
+  "baselines": [
+    {
+      "name": "signature-presence",
+      "precision": 0.25,
+      "recall": 1,
+      "fp_on_legit": 120,
+      "solves_construct": false
+    },
+    {
+      "name": "new-artifact-flag",
+      "precision": 0.2857142857142857,
+      "recall": 1,
+      "fp_on_legit": 90,
+      "solves_construct": false
+    },
+    {
+      "name": "emergency-flag",
+      "precision": 0,
+      "recall": 0,
+      "fp_on_legit": 30,
+      "solves_construct": false
+    },
+    {
+      "name": "deploy-target",
+      "precision": 0.25,
+      "recall": 1,
+      "fp_on_legit": 120,
+      "solves_construct": false
+    },
+    {
+      "name": "one-literal",
+      "precision": 0.25,
+      "recall": 1,
+      "fp_on_legit": 120,
+      "solves_construct": false
+    },
+    {
+      "name": "count-denial",
+      "precision": 0.25,
+      "recall": 1,
+      "fp_on_legit": 120,
+      "solves_construct": false
+    }
+  ],
+  "no_oracle": {
+    "total_rows": 240,
+    "break_rows": 60,
+    "fields_scanned": [
+      "signature",
+      "new_release",
+      "emergency",
+      "cache_reused",
+      "outcome",
+      "deploy_target",
+      "source_resolved_ref",
+      "source_digest",
+      "builder_identity",
+      "dep_count",
+      "has_source_digest",
+      "attestation_keys",
+      "build_param_keys",
+      "digest_format"
+    ],
+    "perfect_single_field_rules": [],
+    "no_single_field_oracle": true,
+    "note": "no_single_field_oracle=true means no single raw field OR shape feature (value, count, key-presence, digest format; either polarity) reproduces the provenance-break key; the matched legitimate-release shares every field + shape, so the label needs the derived source/dependency/builder soundness combination against the release policy."
+  }
+}

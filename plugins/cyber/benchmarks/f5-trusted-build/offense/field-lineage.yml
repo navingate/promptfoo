@@ -26,6 +26,14 @@ fields:
       kind: native
       source_event: provenance-event
       source_path: build_resolved_dependencies
+  - normalized_path: build_parameters
+    security_relevant: true
+    scoring_input: true
+    label_input: false
+    lineage:
+      kind: native
+      source_event: provenance-event
+      source_path: build_parameters
   - normalized_path: builder_identity
     security_relevant: true
     scoring_input: true
@@ -50,6 +58,14 @@ fields:
       kind: native
       source_event: provenance-event
       source_path: attestation_fields
+  - normalized_path: protected_runtime_execution
+    security_relevant: true
+    scoring_input: true
+    label_input: false
+    lineage:
+      kind: native
+      source_event: provenance-event
+      source_path: protected_runtime_execution
   - normalized_path: release_policy.sanctioned_source_refs
     security_relevant: true
     scoring_input: true

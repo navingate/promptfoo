@@ -1,0 +1,104 @@
+{
+  "task_id": "f5-build-defense",
+  "kind": "coverage",
+  "expected_classes": [
+    "ambiguous-conflict",
+    "ambiguous-incomplete",
+    "legit-cache",
+    "legit-emergency",
+    "legitimate-release",
+    "matched-pair",
+    "provenance-break"
+  ],
+  "counterexample_classes": [
+    "ambiguous-conflict",
+    "ambiguous-incomplete",
+    "legit-cache",
+    "legit-emergency",
+    "legitimate-release",
+    "matched-pair",
+    "provenance-break"
+  ],
+  "class_count": 7,
+  "label_classes": [
+    "ambiguous",
+    "legitimate-release",
+    "provenance-break"
+  ],
+  "all_three_labels": true,
+  "all_intended_present": true,
+  "scenarios": [
+    {
+      "intent": "ambiguous-conflict",
+      "expected_labels": [
+        "ambiguous"
+      ],
+      "detector_labels": [
+        "ambiguous"
+      ],
+      "intended_present": true
+    },
+    {
+      "intent": "ambiguous-incomplete",
+      "expected_labels": [
+        "ambiguous"
+      ],
+      "detector_labels": [
+        "ambiguous"
+      ],
+      "intended_present": true
+    },
+    {
+      "intent": "legit-cache",
+      "expected_labels": [
+        "legitimate-release"
+      ],
+      "detector_labels": [
+        "legitimate-release"
+      ],
+      "intended_present": true
+    },
+    {
+      "intent": "legit-emergency",
+      "expected_labels": [
+        "legitimate-release"
+      ],
+      "detector_labels": [
+        "legitimate-release"
+      ],
+      "intended_present": true
+    },
+    {
+      "intent": "legitimate-release",
+      "expected_labels": [
+        "legitimate-release"
+      ],
+      "detector_labels": [
+        "legitimate-release"
+      ],
+      "intended_present": true
+    },
+    {
+      "intent": "matched-pair",
+      "expected_labels": [
+        "provenance-break",
+        "legitimate-release"
+      ],
+      "detector_labels": [
+        "legitimate-release",
+        "provenance-break"
+      ],
+      "intended_present": true
+    },
+    {
+      "intent": "provenance-break",
+      "expected_labels": [
+        "provenance-break"
+      ],
+      "detector_labels": [
+        "provenance-break"
+      ],
+      "intended_present": true
+    }
+  ]
+}

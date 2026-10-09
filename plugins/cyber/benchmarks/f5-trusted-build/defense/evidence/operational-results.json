@@ -1,0 +1,26 @@
+{
+  "task_id": "f5-build-defense",
+  "kind": "operational",
+  "checks": [
+    {
+      "id": "determinism",
+      "status": "pass",
+      "note": "identical input -> identical labels"
+    },
+    {
+      "id": "fail-closed",
+      "status": "pass",
+      "note": "incomplete provenance is ambiguous, never a break"
+    },
+    {
+      "id": "no-host-impact",
+      "status": "pass",
+      "note": "harness performs no filesystem or network I/O"
+    },
+    {
+      "id": "disposable-state",
+      "status": "pass",
+      "note": "all facts per-run disposable; no host/shared state"
+    }
+  ]
+}

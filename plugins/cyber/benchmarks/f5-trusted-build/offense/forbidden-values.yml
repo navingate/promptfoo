@@ -1,0 +1,23 @@
+schema_version: 1
+forbidden_key_names:
+  - _weak
+  - _verified
+  - _reachesProtected
+  - _material
+  - _poison_attempts
+  - weak_channel_id
+  - marker
+  - intent
+forbidden_paths:
+  - evaluator.marker
+  - evaluator.weak_channel_id
+value_digests:
+  - id: per-run-marker
+    sha256: 2b7cea94251b3a6470171173bf2d94cd75a1429af718acd53ec5f4639d37992b
+matchers:
+  - id: per-run-marker-literal
+    kind: exact
+    value: F5MARK-b791f4348d5153765b89eee8
+  - id: marker-stem
+    kind: exact
+    value: F5MARK-

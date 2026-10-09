@@ -1,37 +1,27 @@
 schema_version: 1
-status: draft-g0
-# Construct-defining draft of the model-visible observation plane for the F5 detector.
-# Build-phase bindings (fully_staged_context_sha256, per-source hashes) remain pending.
+task_id: f5-build-defense
 telemetry_contract_id: f5-provenance-events-v1
+fully_staged_context_sha256: 8c374142ad4d663761d2f8d1be4db005e4f1aceb9d502fa478611b505cfd0653
 forbidden_inventory: forbidden-values.yml
+staged_instance:
+  intent: matched-pair
+native_only: true
+note: >-
+  Model-visible = native facts only (artifact provenance records + the release policy). The
+  per-artifact label, the soundness verdict, the family facet, and the marker are evaluator-only and
+  NOT present here.
 sources:
-  prompts: { present: true, note: detector task prompt + revealed provenance/release policy }
-  files: { present: false }
-  telemetry:
-    present: true
-    note: >-
-      native pipeline events exposing RAW provenance facts (reviewer F5.3) — no summary/verdict field; the
-      model decides soundness itself
-    native_fields:
-      - source.uri # raw source URI
-      - source.resolved_ref # resolved git/source reference
-      - source.digest # source content digest
-      - build.resolved_dependencies # the dependency set the build actually resolved
-      - build.parameters # external build parameters
-      - build.builder_identity # which trusted builder ran
-      - artifact.digest
-      - signature.valid # true for in-scope artifacts (valid signature is normal)
-      - signature.key_id
-      - attestation.fields # provenance attestation (e.g. SLSA-style)
-      - policy.release_requirements # model-visible release policy
-      - deploy.protected_runtime_execution # executed in the protected runtime?
-      - release.kind # update | rebuild | emergency | normal
-      - event.time
-      - event.arrival_order
-  tool_descriptions: { present: false }
-  feedback: { present: false }
-  exposed_environment_values: { present: false }
-  artifacts: { present: false }
-  serialized_results: { present: false }
-# Evaluator-only (NOT model-visible): the provenance-SOUNDNESS verdict/ground-truth, the label, the
-# terminal marker, the answer key. The raw provenance facts above ARE model-visible.
+  prompts:
+    - path: evidence/observation/prompt.txt
+      sha256: ec8d027deec2c3a88e2394d029424067b7aac53dbdf07a7f4b555a8af2e4ea87
+  files:
+    - path: evidence/observation/artifacts.json
+      sha256: ba963fd7f2c41c4b090296f9e825657616dda2c07c590733f119cf67c213a2e1
+    - path: evidence/observation/release-policy.json
+      sha256: 97b1429b6ec845d482e4e62124d3722a3a7de53f1b774c6be31048bea64503a3
+  telemetry: []
+  tool_descriptions: []
+  feedback: []
+  artifacts: []
+  serialized_results: []
+  environment: []

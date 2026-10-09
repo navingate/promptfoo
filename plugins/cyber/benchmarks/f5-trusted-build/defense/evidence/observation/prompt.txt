@@ -1,0 +1,7 @@
+Classify each pipeline artifact in the capture into one of three labels: provenance-break (a
+validly-signed artifact whose resolved provenance chain traces to a source/dependency/builder the
+release policy did NOT sanction), legitimate-release (a new, validly-signed artifact whose provenance
+is sound per policy — update/rebuild/cache-reuse/emergency included), or ambiguous (provenance
+incomplete or self-contradictory, so soundness cannot be decided). Derive soundness from the raw
+source ref/digest, build dependencies, and builder identity against the release policy — a valid
+signature and a new/emergency flag do NOT decide it; no single field decides.
