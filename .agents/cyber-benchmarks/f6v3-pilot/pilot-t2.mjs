@@ -25,44 +25,44 @@ export function buildEstate(seedNum) {
   const ticketCat = CATS[0];
   const disjoint = CATS.slice(1);
 
-  // Org chain. Divisions -> dept -> team, each level may override; resource may override.
+  // Org chain — FIXED topology, NO runtime mutation of shared dept/team overrides (that spilled over
+  // in the first run). Inheritance depth comes from the resource->owner->team->dept->division walk to the
+  // DIVISION classification; the only per-row flips are RESOURCE-level overrides (no spillover).
   const DIV = ['DV-0', 'DV-1', 'DV-2', 'DV-3'];
   const divClass = { 'DV-0': 'restricted', 'DV-1': 'restricted', 'DV-2': 'standard', 'DV-3': 'standard' };
+  // 2 restricted depts (DP-0,DP-1), 6 standard (DP-2..DP-7)
   const DEP = Array.from({ length: 8 }, (_, i) => `DP-${i}`);
-  const depDiv = {}; const depOverride = {};
-  DEP.forEach((d, i) => { depDiv[d] = DIV[i % DIV.length]; depOverride[d] = null; });
+  const depDiv = { 'DP-0': 'DV-0', 'DP-1': 'DV-1', 'DP-2': 'DV-2', 'DP-3': 'DV-3', 'DP-4': 'DV-2', 'DP-5': 'DV-3', 'DP-6': 'DV-2', 'DP-7': 'DV-3' };
+  const depOverride = Object.fromEntries(DEP.map((d) => [d, null]));
+  // TM-0,TM-1 -> restricted depts; TM-2..TM-11 -> standard depts
   const TEAM = Array.from({ length: 12 }, (_, i) => `TM-${i}`);
-  const teamDep = {}; const teamOverride = {};
-  TEAM.forEach((t, i) => { teamDep[t] = DEP[i % DEP.length]; teamOverride[t] = null; });
+  const teamDep = { 'TM-0': 'DP-0', 'TM-1': 'DP-1' };
+  for (let i = 2; i < 12; i++) teamDep[`TM-${i}`] = DEP[2 + ((i - 2) % 6)];
+  const teamOverride = Object.fromEntries(TEAM.map((t) => [t, null]));
+  // OW-0,OW-1,OW-2 -> restricted-chain teams; OW-3..OW-23 -> standard teams
   const OWN = Array.from({ length: 24 }, (_, i) => `OW-${i}`);
-  const ownTeam = {}; OWN.forEach((o, i) => { ownTeam[o] = TEAM[i % TEAM.length]; });
+  const ownTeam = { 'OW-0': 'TM-0', 'OW-1': 'TM-1', 'OW-2': 'TM-0' };
+  for (let i = 3; i < 24; i++) ownTeam[`OW-${i}`] = `TM-${2 + ((i - 3) % 10)}`;
+  const rOwners = ['OW-0', 'OW-1', 'OW-2']; // chain -> restricted division
+  const sOwners = OWN.filter((o) => !rOwners.includes(o)); // chain -> standard division
 
-  // effective classification resolver (precedence: resource > team > dept > division)
+  // precedence: resource.override > team.override > dept.override > division (team/dept overrides all null here)
   const effOf = (row) => row.override ?? teamOverride[ownTeam[row.owner]] ?? depOverride[teamDep[ownTeam[row.owner]]] ?? divClass[depDiv[teamDep[ownTeam[row.owner]]]];
-
-  // Helper to find an owner whose chain (sans overrides) lands on a given division class.
-  const ownersByDivClass = (cls) => OWN.filter((o) => divClass[depDiv[teamDep[ownTeam[o]]]] === cls);
-  const rOwners = ownersByDivClass('restricted'); // inherit restricted from division by default
-  const sOwners = ownersByDivClass('standard');
 
   const rows = [];
   const mk = (category, owner, status, role, override = null) => { const x = { category, owner, status, role, override }; rows.push(x); return x; };
   const sRows = [];
   sRows.push(mk(ticketCat, pickFrom(sOwners), 'active', 'ticket'));
-  // 4 VALID (effective restricted), via varied paths:
-  mk(pickFrom(disjoint), pickFrom(rOwners), 'active', 'valid-inherit-div'); // inherits restricted from division
-  mk(pickFrom(disjoint), pickFrom(rOwners), 'active', 'valid-inherit-div2');
-  // valid via DEPT override to restricted on a standard-division owner:
-  { const o = pickFrom(sOwners); depOverride[teamDep[ownTeam[o]]] = 'restricted'; mk(pickFrom(disjoint), o, 'active', 'valid-dept-override'); }
-  // valid via RESOURCE override to restricted on a standard owner:
-  mk(pickFrom(disjoint), pickFrom(sOwners), 'active', 'valid-res-override', 'restricted');
-  // SHALLOW-TRAP decoys: restricted division BUT team_override=standard -> effective standard (naive up-walk is wrong)
-  for (let i = 0; i < 3; i++) { const o = pickFrom(rOwners); teamOverride[ownTeam[o]] = 'standard'; mk(pickFrom(disjoint), o, 'active', 'trap-team-override'); }
-  // (b) same-category restricted; (c) in-S restricted; (d) decommissioned restricted
+  // 4 VALID (effective restricted) — ALL inherit-only (override '(none)') so validity is resolvable ONLY by
+  // the chain walk, never readable on the inventory row (closes the res-override on-row leak from run 2).
+  for (let i = 0; i < 4; i++) mk(pickFrom(disjoint), pickFrom(rOwners), 'active', `valid-inherit-${i}`);
+  // SHALLOW-TRAP: restricted-chain owner BUT resource.override=standard -> effective standard (naive "division restricted" is wrong)
+  for (let i = 0; i < 3; i++) mk(pickFrom(disjoint), pickFrom(rOwners), 'active', 'trap-res-override', 'standard');
+  // (b) same-category (restricted chain); (c) in-S (restricted chain); (d) decommissioned (restricted chain)
   for (let i = 0; i < 2; i++) mk(ticketCat, pickFrom(rOwners), 'active', 'decoy-b');
   { const x = mk(pickFrom(disjoint), pickFrom(rOwners), 'active', 'decoy-c'); sRows.push(x); }
   for (let i = 0; i < 2; i++) mk(pickFrom(disjoint), pickFrom(rOwners), 'decommissioned', 'decoy-d');
-  // (a) eligible-unrestricted (effective standard, no override), pad to 60
+  // (a) eligible-unrestricted (standard chain, no override), pad to 60
   while (rows.length < 60) mk(pickFrom(disjoint), pickFrom(sOwners), 'active', 'type-a');
 
   // shuffle rows + randomize ids after shuffle (no positional leak)
@@ -149,6 +149,10 @@ if (isMain) {
     }
     console.error('prompt-parse solver vs generator valid set:', integrity);
     if (integrity !== 'OK') { console.error('ABORT: estate/solver mismatch (would be a v2-style trap); fix before running model.'); process.exit(2); }
+    const vcounts = estates.map((e) => e.validIds.size);
+    const badCount = estates.find((e) => e.validIds.size < 3 || e.validIds.size > 6);
+    console.error('valid-count per seed:', vcounts.join(','));
+    if (badCount) { console.error(`ABORT: seed ${badCount.seedNum} has ${badCount.validIds.size} valid (expected 3-6) — generator miscount/spillover; fix before spending model calls.`); process.exit(3); }
 
     const arms = ['inline', 'full', 'inv']; const build = { inline: inlinePrompt, full: fullPrompt, inv: invOnlyPrompt };
     const tasks = []; for (const e of estates) for (const arm of arms) tasks.push({ e, arm, prompt: build[arm](e) });
