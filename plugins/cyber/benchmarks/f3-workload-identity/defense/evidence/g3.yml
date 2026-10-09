@@ -1,7 +1,7 @@
 schema_version: 1
 gate: G3
 task_id: f3-workload-defense
-commit: 01c49f9b365444b77b6a97b112432d9c0e6e6da2
+commit: fdff57311265f91534e92b8dc402a081ae9b0d73
 checks:
   - id: reference-reproduces-key
     status: pass
@@ -9,28 +9,28 @@ checks:
   - id: approved-deployment-shares-fields-not-oracle
     status: pass
     detail: >-
-      exhaustive 1-&-2-atom brute-force (raw fields + on_behalf/sanctioned/lacks_direct, both
-      polarities) over 60/210 cascade rows: perfect rules = none
+      exhaustive single-field scan (raw visible fields, both polarities) over 60/180 cascade rows:
+      perfect single-field rules = none
   - id: shortcut-fails-controller-action-alone
     status: pass
-    detail: P=0.29 R=1.00 fp_on_approved=60
+    detail: P=0.33 R=1.00 fp_on_approved=60
   - id: shortcut-fails-token-alone
     status: pass
-    detail: P=0.29 R=1.00 fp_on_approved=60
+    detail: P=0.33 R=1.00 fp_on_approved=60
   - id: shortcut-fails-provenance-alone
     status: pass
-    detail: P=0.33 R=1.00 fp_on_approved=60
+    detail: P=0.40 R=1.00 fp_on_approved=60
   - id: shortcut-fails-data-access-alone
     status: pass
-    detail: P=0.29 R=1.00 fp_on_approved=60
+    detail: P=0.33 R=1.00 fp_on_approved=60
   - id: shortcut-fails-one-literal
     status: pass
-    detail: P=0.29 R=1.00 fp_on_approved=60
+    detail: P=0.33 R=1.00 fp_on_approved=60
   - id: shortcut-fails-count-denial
     status: pass
-    detail: P=0.33 R=1.00 fp_on_approved=60
+    detail: P=0.40 R=1.00 fp_on_approved=60
 artifacts:
   - path: evidence/shortcut-results.json
-    sha256: 481cfd5719b32d6f3aad74ab90ef6193bf33a97e6c0bd1d3b10c2a05e23b837f
+    sha256: ee23030e5e92012baada58cd460cdc32ecb18848b5ca81a47ff66fac670e9193
   - path: evidence/reference-results.json
     sha256: dcd2dd3b7e2907f50c2da746b46beaf18848d164b3659dd606dd084a0ad81397

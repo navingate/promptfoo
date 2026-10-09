@@ -1,7 +1,7 @@
 schema_version: 1
 gate: G1
 task_id: f3-workload-defense
-commit: 01c49f9b365444b77b6a97b112432d9c0e6e6da2
+commit: fdff57311265f91534e92b8dc402a081ae9b0d73
 checks:
   - id: reference-reconcile-hook-13
     status: pass
@@ -95,7 +95,9 @@ checks:
     expected_effect: reproduce-cascade-correlation-key
   - id: coverage-all-counterexample-classes
     status: pass
-    detail: ambiguous-has-direct,ambiguous-missing,ambiguous-partial,approved-deployment,cascade,matched-pair
+    detail: >-
+      present=[ambiguous-missing,ambiguous-partial,approved-deployment,cascade,matched-pair]
+      expected=[ambiguous-missing,ambiguous-partial,approved-deployment,cascade,matched-pair]
   - id: coverage-all-three-labels-present
     status: pass
     detail: ambiguous,approved-deployment,cascade
@@ -105,4 +107,4 @@ artifacts:
   - path: evidence/reference-results.json
     sha256: dcd2dd3b7e2907f50c2da746b46beaf18848d164b3659dd606dd084a0ad81397
   - path: evidence/coverage-results.json
-    sha256: c4d1246e262e499c38eb6fa3603fd8d9d4fd846ea7d31a78aa2a21abd8a23306
+    sha256: 30907caed54afb98a267b84cdf65aa8404cbd506814b340853cd5ff2b3fe70aa
