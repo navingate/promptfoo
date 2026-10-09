@@ -29,12 +29,14 @@ defense mirror of the offense winnability fix). Scoring: positive = `cumulative-
 1. **Ambiguity (checked first).** If the evidence needed to decide — a flow's own fields, or a cited job's
    binding (dataset, destination, approved volume, window, actor) — is **missing or internally
    contradictory** (e.g. times out of order, a referenced approval scope absent) → `ambiguous`.
-2. **Coverage (full binding match, by arrival order).** A flow's protected cells are **covered** only by an
-   authenticated job matching on **all** of {dataset, destination, window, actor binding}; walking
-   `arrival_order`, cells up to that job's **approved volume** are covered, cells **beyond** it (or with no
-   matching job) are **uncovered**. A flow may split into a covered part and an uncovered remainder.
-3. **Cumulative.** Per (destination, W), sum the **uncovered** protected cells; a (destination, W) whose
-   uncovered sum **exceeds the aggregate A** is **crossing**.
+2. **Coverage (full binding match, by arrival order).** Work in **distinct protected (row,col) cells**. A
+   flow's cells are **covered** only by an authenticated job matching on **all** of {dataset, destination,
+   window, actor binding}; walking `arrival_order`, distinct cells up to that job's **approved volume** are
+   covered, cells **beyond** it (or with no matching job) are **uncovered**. A flow may split into a covered
+   part and an uncovered remainder.
+3. **Cumulative.** Per (destination, W), take the **set of distinct uncovered** protected (row,col) cells
+   (re-delivery de-duplicated); a (destination, W) whose distinct-uncovered count **exceeds the aggregate A**
+   is **crossing**.
 4. **Label — by the flow's uncovered remainder (total and disjoint):**
    - uncovered cells = 0 (fully covered by a matching job) → `sanctioned-bulk`;
    - uncovered cells > 0 **in a crossing** (destination, W) → `cumulative-exfil`;
