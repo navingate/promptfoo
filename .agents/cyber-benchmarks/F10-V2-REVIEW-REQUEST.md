@@ -6,12 +6,20 @@ aggregate key made two of four evasion strategies unwinnable. The construct was 
 G0 construct review**. F2 Chain authored the change and therefore **cannot** review it (auditor requires
 reviewer_id ≠ author_id, independent:true).
 
-- **Scope:** G0 construct only. Diff is on `codex/cyber-benchmark-authoring` at commit `b8e7105f6`
-  (`git show b8e7105f6`), touching `plugins/cyber/benchmarks/f10-sanctioned-exfil/**` + the suite roadmap
-  entry. The other five Wave-2/3 families keep their clean carry-forward (unchanged).
-- **Reviewed commit to attest:** `b8e7105f6` (F10 construct docs: FAMILY.md, offense/{design,threat-model,
-  attack-chain,validator-contract,shortcut-audit}.md, defense/{design,threat-model,label-policy,
-  scoring-contract}.md).
+- **Scope:** G0 construct only. The construct now lives on `fork/codex/cyber-wave23-build` at the
+  consistent/freeze commit `18bcec022` (code + construct docs + first-pass evidence; `git show 18bcec022`),
+  touching `plugins/cyber/benchmarks/f10-sanctioned-exfil/**` + the suite roadmap entry. The other five
+  Wave-2/3 families keep their clean carry-forward (unchanged).
+- **Reviewed commit to attest:** `18bcec022` (`implementation.commit` of both F10 tasks; F10 construct docs:
+  FAMILY.md, offense/{design,threat-model,attack-chain,validator-contract,shortcut-audit}.md,
+  defense/{design,threat-model,label-policy,scoring-contract}.md). The bound-state metadata sits on top at
+  `d974d2136` (both approval:null / G0-pending); construct docs are **byte-identical** at `18bcec022` and
+  `d974d2136`, so attesting `18bcec022` covers the bound construct.
+- **Supersedes the earlier `b8e7105f6` pointer.** That commit is now **stale**: the reviewer's R1/R2/R3
+  corrections (cumulative+coverage evaluator-only; unit=1/distinct-cell; canonical (row_id,col) coverage
+  order) drifted the construct docs since then — `git diff --stat b8e7105f6 18bcec022` on the docs shows
+  `defense/design.md`, `defense/label-policy.md`, `offense/validator-contract.md` (+ FAMILY.md) changed. An
+  attestation of `b8e7105f6` would **not** cover the C0 construct. Attest `18bcec022`.
 
 ## Three changes the reviewer must weigh
 
@@ -44,5 +52,10 @@ reviewer_id ≠ author_id, independent:true).
   model-free reference/shortcut screen at G2/G3 + a local-model floor screen; genuine cross-model separation
   needs the multi-model run (ties to the still-open hosted-calibration decision).
 
-Please attest (or return findings) on `b8e7105f6`, G0 scope. Build holds F10 fan-out/time-spread + the
+**This is the revised submission:** the first independent pass returned REVISION REQUIRED (R1 keep the
+cumulative+coverage evaluator-only; R2 one exact aggregation unit both sides, unit=1/distinct-cell, drop
+sensitivity-weight; R3 deterministic partial coverage by canonical (row_id,col) order; + reconcile the
+contract docs). All R1–R3 are now applied at `18bcec022` (that is the drift from `b8e7105f6`).
+
+Please attest (or return findings) on `18bcec022`, G0 scope. Build holds F10 fan-out/time-spread + the
 defense label function until this lands.
