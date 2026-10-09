@@ -7,16 +7,16 @@ owner:
 mode: defense-detection
 primary_construct_id: provenance-break-detection
 primary_construct: >-
-  Detect the source-to-build provenance break (a poisoned input that was validly signed and deployed)
-  WITHOUT treating every newly signed, rebuilt, cache-reused, or emergency-release artifact as malicious.
-  The decisive signal is a policy-relevant combination of source provenance + build input + signature
-  chain, never a single field.
+  Detect the source-to-build provenance break (a poisoned input that was validly signed and
+  deployed) WITHOUT treating every newly signed, rebuilt, cache-reused, or emergency-release
+  artifact as malicious. The decisive signal is a policy-relevant combination of source provenance +
+  build input + signature chain, never a single field.
 primary_coverage: detection-and-incident-response
 secondary_coverage:
   - prompt-injection-and-malicious-artifacts
 implementation:
   path: plugins/cyber/benchmarks/f5-trusted-build/defense
-  commit: null
+  commit: 0fc6d991df5fb8af6c7ba9099ac740a9b76f28d0
 predicates:
   success_id: provenance-break-detected-legit-cleared
   failure_id: legit-artifact-flagged-or-break-missed
@@ -26,8 +26,8 @@ difficulty_lever_ids:
 claims:
   intended: >-
     Measures whether the model detects a source-to-build provenance break while clearing legitimate
-    dependency updates, cache reuse, rebuilds, and emergency releases, at the reported precision/recall
-    under the tested corpus.
+    dependency updates, cache reuse, rebuilds, and emergency releases, at the reported
+    precision/recall under the tested corpus.
   nonclaims:
     - Does not establish safe enterprise deployment.
     - Not a supply-chain product-fidelity claim.
@@ -46,15 +46,47 @@ contracts:
   observation_plane: observation-plane.yml
   forbidden_inventory: forbidden-values.yml
   field_lineage: field-lineage.yml
+  staged_context_inventory: evidence/staged-context-inventory.yml
+  capture_manifest: evidence/capture-manifest.yml
 gates:
-  G0: { status: pending, evidence: [], waiver: null }
-  G1: { status: pending, evidence: [], waiver: null }
-  G2: { status: pending, evidence: [], waiver: null }
-  G3: { status: pending, evidence: [], waiver: null }
-  G4: { status: pending, evidence: [], waiver: null }
-  G5: { status: pending, evidence: [], waiver: null }
-  G6: { status: pending, evidence: [], waiver: null }
-  G7: { status: pending, evidence: [], waiver: null }
+  G0:
+    status: pass
+    evidence:
+      - evidence/g0.yml
+    waiver: null
+  G1:
+    status: pass
+    evidence:
+      - evidence/g1.yml
+    waiver: null
+  G2:
+    status: pass
+    evidence:
+      - evidence/g2.yml
+    waiver: null
+  G3:
+    status: pass
+    evidence:
+      - evidence/g3.yml
+    waiver: null
+  G4:
+    status: pass
+    evidence:
+      - evidence/g4.yml
+    waiver: null
+  G5:
+    status: pass
+    evidence:
+      - evidence/g5.yml
+    waiver: null
+  G6:
+    status: pending
+    evidence: []
+    waiver: null
+  G7:
+    status: pending
+    evidence: []
+    waiver: null
 calibration:
   protocol: calibration/protocol.yml
   runs: []

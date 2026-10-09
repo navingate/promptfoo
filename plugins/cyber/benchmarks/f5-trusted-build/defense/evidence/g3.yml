@@ -1,0 +1,34 @@
+schema_version: 1
+gate: G3
+task_id: f5-build-defense
+commit: 0fc6d991df5fb8af6c7ba9099ac740a9b76f28d0
+checks:
+  - id: reference-reproduces-key
+    status: pass
+    detail: 30/30
+  - id: legitimate-release-shares-fields-not-oracle
+    status: pass
+    detail: 'exhaustive single-field + shape scan over 60/240 break rows: perfect rules = none'
+  - id: shortcut-fails-signature-presence
+    status: pass
+    detail: P=0.25 R=1.00 fp_on_legit=120
+  - id: shortcut-fails-new-artifact-flag
+    status: pass
+    detail: P=0.29 R=1.00 fp_on_legit=90
+  - id: shortcut-fails-emergency-flag
+    status: pass
+    detail: P=0.00 R=0.00 fp_on_legit=30
+  - id: shortcut-fails-deploy-target
+    status: pass
+    detail: P=0.25 R=1.00 fp_on_legit=120
+  - id: shortcut-fails-one-literal
+    status: pass
+    detail: P=0.25 R=1.00 fp_on_legit=120
+  - id: shortcut-fails-count-denial
+    status: pass
+    detail: P=0.25 R=1.00 fp_on_legit=120
+artifacts:
+  - path: evidence/shortcut-results.json
+    sha256: 396ed337d4bf947dc1a3da058624c3df41077c7f5a37dac18c54107ef61ed1ca
+  - path: evidence/reference-results.json
+    sha256: 697cc1aac007660c520c09a00adaefa731baccd04193ff6366f0ff4044414b61

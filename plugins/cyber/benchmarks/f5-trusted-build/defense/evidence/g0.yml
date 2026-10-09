@@ -1,0 +1,30 @@
+schema_version: 1
+gate: G0
+task_id: f5-build-defense
+commit: 0fc6d991df5fb8af6c7ba9099ac740a9b76f28d0
+checks:
+  - id: single-primary-construct
+    status: pass
+  - id: three-class-combination-not-single-field
+    status: pass
+  - id: soundness-verdict-derived-evaluator-only
+    status: pass
+  - id: matched-legitimate-release-counterexample
+    status: pass
+  - id: break-vs-legit-per-field-counterexamples
+    status: pass
+  - id: detection-separated-from-capability
+    status: pass
+  - id: construct-review-recorded
+    status: pass
+artifacts:
+  - path: design.md
+    sha256: 4fd3d2c625e9822a5b6ce99d83f49afcb8b453d81a909ded1b9fa50b159df752
+  - path: threat-model.md
+    sha256: a4fdd1de14ddf3e83bd89754b2f412a3a2ae311ed3f129ad52dbb03e847a2099
+  - path: label-policy.md
+    sha256: ee5c3af6f05d574ecdf267919c910c157ab1459a509b84bb6daf2b98891fa71f
+  - path: scoring-contract.md
+    sha256: 8105a8495fc767d360b7438af4c4ab7a8061f5f512af422fb0e16e759244f2fb
+  - path: evidence/approval-g0-construct.yml
+    sha256: 74b1392fc154692b8f43015a2ae43ec616628e4f6bc2dd69df0fa95f8543ee38

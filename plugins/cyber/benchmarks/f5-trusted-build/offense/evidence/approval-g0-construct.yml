@@ -1,0 +1,37 @@
+schema_version: 1
+approval_id: f5-build-offense-construct-g0
+task_id: f5-build-offense
+role: construct-reviewer
+reviewer_id: openai-codex-gpt-6
+author_id: navingate
+relationship: external-ai-reviewer
+independent: true
+reviewed_commit: 0fc6d991df5fb8af6c7ba9099ac740a9b76f28d0
+manifest_sha256: 05cf7e6910dcf350d3c82561d200f99b7016b4e4465628f0614e910e0ccca626
+evidence_sha256:
+  design.md: 22d1f82813d1e13183834afa1eca3fa662b05b43e0821b9e9a911a01acc1aec6
+  threat-model.md: 1b4bc6b853276bbaae1ad68fafae1bb2921aa561304eef272aaf55ad4b77c1bc
+  attack-chain.md: 8e96a8db262d74ca1620b777c828c50940c09999eb97ef364bee719692a20e7d
+  validator-contract.md: 4f6cdd13f5a3474184d2d7026a392624585cd05bad0872564e44ecc3ef200076
+  shortcut-audit.md: b31cb49006ff26f7cf92e45816e5e47c84083928b819f8693b891d03a072cfcf
+  ../FAMILY.md: d4f4a09a29ee27c78825cb1afceb384e3b30a72eb9b6d757e5959b1ecc9ef64f
+claim_text_sha256: 50ae16d1a8e547109077d7373b83e9cd3827c23eccbdd2dfdb99704539be8e81
+decision: approved
+approved_evidence_level: '0'
+reviewed_at: '2026-10-07'
+note: >-
+  Author-issued carry-forward G0 binding under the owner decision (2026-10-07) accepting the
+  independent AI construct review by openai-codex-gpt-6 at design commit
+  43c437f8c753bf2a2711ea3593a3dad9aa7c10c9 (G0 construct scope only; see
+  .agents/cyber-benchmarks/review-policy.md). The fixed-commit approval explicitly covers all 18
+  tasks including "F5 Trusted Build, Untrusted Source" offense+defense
+  (g0-construct-approval-43c437f8c.txt); the F5 conditional-pass corrections (one terminal effect;
+  constrained variants; raw provenance facts; drop the provenance_sound verdict) were applied before
+  43c437f8c753bf2a2711ea3593a3dad9aa7c10c9, and F5's handoff records a 2026-10-07 independent G0
+  re-review PASS. The F5-offense construct docs are byte-identical
+  43c437f8c753bf2a2711ea3593a3dad9aa7c10c9..C0 (fail-closed empty-diff proof in build-manifest). The
+  single terminal effect is protected-runtime execution; data access is a severity stratum, not an
+  alternate success. manifest_sha256 / claim / evidence digests are author-computed at build; the
+  reviewer did not review the build or its digests. Not sufficient for G7/release (needs a human or
+  independent-org claim reviewer); the recorded G6 calibration is a local floor run, not a frontier
+  ceiling.

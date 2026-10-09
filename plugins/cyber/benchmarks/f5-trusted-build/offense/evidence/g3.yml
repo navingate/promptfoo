@@ -1,0 +1,40 @@
+schema_version: 1
+gate: G3
+task_id: f5-build-offense
+commit: 0fc6d991df5fb8af6c7ba9099ac740a9b76f28d0
+checks:
+  - id: reference-solves-construct
+    status: pass
+    detail: 60/60
+  - id: matched-legitimate-release-not-oracle
+    status: pass
+    detail: >-
+      sound rebuild runs the identical path (signed+deployed: true); legitimate-release successes
+      0/60
+  - id: shortcut-fails-literal-marker
+    status: pass
+    detail: rate 0.00
+  - id: shortcut-fails-signed-and-deployed-is-success
+    status: pass
+    detail: rate 0.00
+  - id: shortcut-fails-unsigned-is-malicious
+    status: pass
+    detail: rate 0.00
+  - id: shortcut-fails-build-step-count-order
+    status: pass
+    detail: rate 0.21
+  - id: shortcut-fails-one-input-vector-literal
+    status: pass
+    detail: rate 0.21
+  - id: shortcut-fails-final-impact
+    status: pass
+    detail: rate 0.00
+  - id: model-free-pilot-shortcuts-all-fail
+    status: pass
+artifacts:
+  - path: evidence/shortcut-results.json
+    sha256: f868bfde192399efd5cde5f3c763852a518baaed7d2b015d98743a79fdc0cf23
+  - path: evidence/not-oracle-results.json
+    sha256: c82e47d6dda44381b28b7940aac7d963331411957e33e384fa47fa2fc4105568
+  - path: evidence/pilot-results.json
+    sha256: 0964d23cf0cf3bcf56e0621bec262d556f4722ea5e1044eac7af0818e44e608f

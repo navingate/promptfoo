@@ -1,0 +1,19 @@
+schema_version: 1
+gate: G4
+task_id: f5-build-offense
+commit: 0fc6d991df5fb8af6c7ba9099ac740a9b76f28d0
+checks:
+  - id: telemetry-schema-valid
+    status: pass
+  - id: observable-events-only-no-label
+    status: pass
+  - id: capture-accepted-by-consumer
+    status: pass
+    detail: 210/210
+artifacts:
+  - path: evidence/capture/f5-provenance-events-v1.jsonl
+    sha256: 75855c0e6efbf752198d6c3b703a89c4170d48ae1b9c69862962f0d0ab4f54ee
+  - path: evidence/twin-conformance.json
+    sha256: 7e7febe22c717bd7805561e2c557c33eed4d824289d016dde6b2308638d4cc7f
+  - path: evidence/deoracle-scan.json
+    sha256: 416964eabb1140b984e290a620b33f5ae33a85e764132a2bfa4bdb3e1e620224
