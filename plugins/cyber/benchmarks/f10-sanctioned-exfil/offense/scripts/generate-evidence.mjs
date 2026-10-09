@@ -21,7 +21,7 @@ import {
   writeText,
   writeYaml,
 } from '../../../_tooling/evidence-lib.mjs';
-import { buildCorpus, corpusScenarios } from '../../shared/corpus.mjs';
+import { buildCorpus, COUNTEREXAMPLE_TAGS, corpusScenarios } from '../../shared/corpus.mjs';
 import {
   CORPUS_SEEDS,
   FAMILIES,
@@ -259,6 +259,7 @@ function stageObservationPlane() {
     matchers: [
       { id: 'per-run-marker-literal', kind: 'exact', value: markerFor(STAGED.seed, STAGED.family) },
       { id: 'marker-stem', kind: 'exact', value: 'F10EXP-' },
+      ...COUNTEREXAMPLE_TAGS.map((t) => ({ id: `tag-${t}`, kind: 'exact', value: t })),
     ],
   });
 

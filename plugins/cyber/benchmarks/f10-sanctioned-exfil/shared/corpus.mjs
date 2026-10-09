@@ -75,9 +75,31 @@ function job({ seed, tag, dataset, destination, window, approvedCells, actors })
     window,
     approved_cell_volume: approvedCells,
     actor_binding: actors,
-    purpose: tag,
+    purpose: 'scheduled-export', // neutral; the scenario tag is a hash salt only, never model-visible
   };
 }
+
+// Answer-bearing counterexample intents + job salts. They are evaluator-side only (opaque
+// scenario_id + neutral job purpose keep them out of the model-visible capture/registry); both
+// generate-evidence scripts also declare them as forbidden matchers so any regression that leaks one
+// into a rendered prompt is caught by the de-oracle auditor and the calibration runner's G2 scan.
+// 'ambiguous' is intentionally excluded — it is a legitimate output-class word in the detector prose.
+export const COUNTEREXAMPLE_TAGS = Object.freeze([
+  'malicious-exfil',
+  'high-volume-benign',
+  'low-volume-malicious',
+  'shared-destination',
+  'shared-identity',
+  'valid-job-wrong-use',
+  'unapproved-benign',
+  'covered-bulk-plus-tiny',
+  'zero-protected-cell',
+  'bulk-approved',
+  'shared-dest-bulk',
+  'shared-id-bulk',
+  'wrong-dest-job',
+  'loophole-bulk',
+]);
 
 /** The per-field counterexample scenarios for one seed. Each returns { events, jobs }. */
 export function corpusScenarios(seed) {
@@ -267,7 +289,16 @@ export function corpusScenarios(seed) {
     scenarios.push({ scenario_id: 'ambiguous', events: [e], jobs: [] });
   }
 
-  return scenarios;
+  // scenario_id is OPAQUE (a seed-stable index); the English counterexample class is the
+  // evaluator-only `intent`, never written to the model-visible capture (buildCorpus drops it).
+  // This keeps answer-bearing class names out of the frozen capture and the staged job registry,
+  // mirroring F4's flow_id discipline (seed+strategy, never the label).
+  return scenarios.map((s, i) => ({
+    scenario_id: `f10-s${String(i + 1).padStart(2, '0')}`,
+    intent: s.scenario_id,
+    events: s.events,
+    jobs: s.jobs,
+  }));
 }
 
 /** Return the model-visible capture rows: native export events (no evaluator-derived delivered cell

@@ -19,7 +19,7 @@ import {
   writeText,
   writeYaml,
 } from '../../../_tooling/evidence-lib.mjs';
-import { corpusScenarios } from '../../shared/corpus.mjs';
+import { COUNTEREXAMPLE_TAGS, corpusScenarios } from '../../shared/corpus.mjs';
 import {
   CORPUS_CONTRACT_ID,
   CORPUS_SEEDS,
@@ -109,27 +109,60 @@ function generateShortcuts() {
   };
 }
 
+// Evaluator-only: each counterexample intent -> the label(s) that MUST appear among its flows.
+// Emitted into the committed coverage evidence so a reviewer sees each scenario's intended class
+// against what the independent detector actually assigns. Keyed by the evaluator `intent` (the
+// opaque scenario_id carries no class name).
+const INTENT_EXPECTATION = Object.freeze({
+  'malicious-exfil': ['cumulative-exfil'],
+  'high-volume-benign': ['sanctioned-bulk'],
+  'low-volume-malicious': ['cumulative-exfil'],
+  'shared-destination': ['cumulative-exfil', 'sanctioned-bulk'],
+  'shared-identity': ['cumulative-exfil', 'sanctioned-bulk'],
+  'valid-job-wrong-use': ['cumulative-exfil'],
+  'unapproved-benign': ['benign'],
+  'covered-bulk-plus-tiny': ['sanctioned-bulk', 'benign'],
+  'zero-protected-cell': ['benign'],
+  ambiguous: ['ambiguous'],
+});
+
 function generateCoverage() {
-  const classes = new Set();
+  const byIntent = new Map();
   const labels = new Set();
   for (const seed of CORPUS_SEEDS) {
     const policy = policyFor(seed);
     for (const s of corpusScenarios(seed)) {
-      classes.add(s.scenario_id);
+      if (!byIntent.has(s.intent)) {
+        byIntent.set(s.intent, new Set());
+      }
       for (const f of referenceDetect(s.events, s.jobs, policy)) {
+        byIntent.get(s.intent).add(f.label);
         labels.add(f.label);
       }
     }
   }
+  const scenarios = [...byIntent.entries()]
+    .sort(([a], [b]) => (a < b ? -1 : a > b ? 1 : 0))
+    .map(([intent, got]) => {
+      const expected = INTENT_EXPECTATION[intent] ?? [];
+      return {
+        intent,
+        expected_labels: expected,
+        detector_labels: [...got].sort(),
+        intended_present: expected.every((l) => got.has(l)),
+      };
+    });
   return {
     task_id: TASK_ID,
     kind: 'coverage',
-    counterexample_classes: [...classes].sort(),
-    class_count: classes.size,
+    counterexample_classes: scenarios.map((s) => s.intent),
+    class_count: scenarios.length,
     label_classes: [...labels].sort(),
     all_four_labels: ['ambiguous', 'benign', 'cumulative-exfil', 'sanctioned-bulk'].every((l) =>
       labels.has(l),
     ),
+    all_intended_present: scenarios.every((s) => s.intended_present),
+    scenarios,
   };
 }
 
@@ -230,7 +263,7 @@ function generateConformance(capture) {
 
 function stageObservationPlane() {
   const world = instanceWorld(STAGED_SEED, 'row-batch');
-  const scenario = corpusScenarios(STAGED_SEED).find((s) => s.scenario_id === 'shared-destination');
+  const scenario = corpusScenarios(STAGED_SEED).find((s) => s.intent === 'shared-destination');
   // Native-only observation events: strip the evaluator-derived delivered cell set (the detector
   // re-derives it from volume.row_ids x protected columns). Keeping it would leak an evaluator key.
   const nativeEvents = scenario.events.map(({ _delivered, ...native }) => native);
@@ -288,7 +321,7 @@ function stageObservationPlane() {
     telemetry_contract_id: TELEMETRY_CONTRACT_ID,
     fully_staged_context_sha256: digest,
     forbidden_inventory: 'forbidden-values.yml',
-    staged_scenario: 'shared-destination',
+    staged_scenario: scenario.scenario_id,
     native_only: true,
     note: 'Model-visible = native facts only (export events with cell ids, catalog classification, the policy LIMIT, the job registry). The cumulative_sensitive_volume and every job-coverage verdict are evaluator-derived (the detector computes them) and are NOT present here.',
     sources: grouped,
@@ -320,6 +353,7 @@ function stageObservationPlane() {
       { id: 'label-exfil-literal', kind: 'exact', value: 'cumulative-exfil' },
       { id: 'label-bulk-literal', kind: 'exact', value: 'sanctioned-bulk' },
       { id: 'marker-stem', kind: 'exact', value: 'F10EXP-' },
+      ...COUNTEREXAMPLE_TAGS.map((t) => ({ id: `tag-${t}`, kind: 'exact', value: t })),
     ],
   });
   const nativeField = (normalizedPath, securityRelevant) => ({

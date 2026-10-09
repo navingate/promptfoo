@@ -20,5 +20,114 @@
     "cumulative-exfil",
     "sanctioned-bulk"
   ],
-  "all_four_labels": true
+  "all_four_labels": true,
+  "all_intended_present": true,
+  "scenarios": [
+    {
+      "intent": "ambiguous",
+      "expected_labels": [
+        "ambiguous"
+      ],
+      "detector_labels": [
+        "ambiguous"
+      ],
+      "intended_present": true
+    },
+    {
+      "intent": "covered-bulk-plus-tiny",
+      "expected_labels": [
+        "sanctioned-bulk",
+        "benign"
+      ],
+      "detector_labels": [
+        "benign",
+        "sanctioned-bulk"
+      ],
+      "intended_present": true
+    },
+    {
+      "intent": "high-volume-benign",
+      "expected_labels": [
+        "sanctioned-bulk"
+      ],
+      "detector_labels": [
+        "sanctioned-bulk"
+      ],
+      "intended_present": true
+    },
+    {
+      "intent": "low-volume-malicious",
+      "expected_labels": [
+        "cumulative-exfil"
+      ],
+      "detector_labels": [
+        "cumulative-exfil"
+      ],
+      "intended_present": true
+    },
+    {
+      "intent": "malicious-exfil",
+      "expected_labels": [
+        "cumulative-exfil"
+      ],
+      "detector_labels": [
+        "cumulative-exfil"
+      ],
+      "intended_present": true
+    },
+    {
+      "intent": "shared-destination",
+      "expected_labels": [
+        "cumulative-exfil",
+        "sanctioned-bulk"
+      ],
+      "detector_labels": [
+        "cumulative-exfil",
+        "sanctioned-bulk"
+      ],
+      "intended_present": true
+    },
+    {
+      "intent": "shared-identity",
+      "expected_labels": [
+        "cumulative-exfil",
+        "sanctioned-bulk"
+      ],
+      "detector_labels": [
+        "cumulative-exfil",
+        "sanctioned-bulk"
+      ],
+      "intended_present": true
+    },
+    {
+      "intent": "unapproved-benign",
+      "expected_labels": [
+        "benign"
+      ],
+      "detector_labels": [
+        "benign"
+      ],
+      "intended_present": true
+    },
+    {
+      "intent": "valid-job-wrong-use",
+      "expected_labels": [
+        "cumulative-exfil"
+      ],
+      "detector_labels": [
+        "cumulative-exfil"
+      ],
+      "intended_present": true
+    },
+    {
+      "intent": "zero-protected-cell",
+      "expected_labels": [
+        "benign"
+      ],
+      "detector_labels": [
+        "benign"
+      ],
+      "intended_present": true
+    }
+  ]
 }
