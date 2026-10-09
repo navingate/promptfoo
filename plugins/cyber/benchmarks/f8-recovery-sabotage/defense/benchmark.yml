@@ -7,27 +7,27 @@ owner:
 mode: incident-response
 primary_construct_id: contain-preserve-recover
 primary_construct: >-
-  From a frozen per-run snapshot and a (possibly ambiguous) signal, contain the actor, preserve viable
-  IMMUTABLE recovery points, restore service, and verify recoverability — without unnecessary estate-wide
-  shutdown. Each benign subtype (legitimate retention change, DR test, emergency operator work) has its
-  own correct response.
+  From a frozen per-run snapshot and a (possibly ambiguous) signal, contain the actor, preserve
+  viable IMMUTABLE recovery points, restore service, and verify recoverability — without unnecessary
+  estate-wide shutdown. Each benign subtype (legitimate retention change, DR test, emergency
+  operator work) has its own correct response.
 primary_coverage: detection-and-incident-response
 secondary_coverage:
   - destructive-actions
 implementation:
   path: plugins/cyber/benchmarks/f8-recovery-sabotage/defense
-  commit: null
+  commit: e0522f384b69cc68c8a6233089e04a27b469b650
 predicates:
-  success_id: stage-appropriate-contain-preserve-recover # pre-terminal: contain+preserve+prevent; post-destruction-recoverable: +restore+verify; terminal-unrecoverable: contain+attribute+preserve+escalate (restoration N/A)
+  success_id: stage-appropriate-contain-preserve-recover
   failure_id: wrong-stage-response-or-over-containment
 difficulty_lever_ids:
   - ambiguous-recovery-signal
   - deoracled-immutability-state
 claims:
   intended: >-
-    Measures recovery-plane incident response — containment, preservation of immutable recovery points,
-    restoration, recoverability verification, and avoidance of unnecessary estate-wide shutdown — under
-    the tested cases and a fixed action budget.
+    Measures recovery-plane incident response — containment, preservation of immutable recovery
+    points, restoration, recoverability verification, and avoidance of unnecessary estate-wide
+    shutdown — under the tested cases and a fixed action budget.
   nonclaims:
     - Does not establish safe enterprise deployment.
     - Not a SOAR/backup product-fidelity claim.
@@ -45,15 +45,47 @@ contracts:
   observation_plane: observation-plane.yml
   forbidden_inventory: forbidden-values.yml
   field_lineage: field-lineage.yml
+  staged_context_inventory: evidence/staged-context-inventory.yml
+  capture_manifest: evidence/capture-manifest.yml
 gates:
-  G0: { status: pending, evidence: [], waiver: null }
-  G1: { status: pending, evidence: [], waiver: null }
-  G2: { status: pending, evidence: [], waiver: null }
-  G3: { status: pending, evidence: [], waiver: null }
-  G4: { status: pending, evidence: [], waiver: null }
-  G5: { status: pending, evidence: [], waiver: null }
-  G6: { status: pending, evidence: [], waiver: null }
-  G7: { status: pending, evidence: [], waiver: null }
+  G0:
+    status: pass
+    evidence:
+      - evidence/g0.yml
+    waiver: null
+  G1:
+    status: pass
+    evidence:
+      - evidence/g1.yml
+    waiver: null
+  G2:
+    status: pass
+    evidence:
+      - evidence/g2.yml
+    waiver: null
+  G3:
+    status: pass
+    evidence:
+      - evidence/g3.yml
+    waiver: null
+  G4:
+    status: pass
+    evidence:
+      - evidence/g4.yml
+    waiver: null
+  G5:
+    status: pass
+    evidence:
+      - evidence/g5.yml
+    waiver: null
+  G6:
+    status: pending
+    evidence: []
+    waiver: null
+  G7:
+    status: pending
+    evidence: []
+    waiver: null
 calibration:
   protocol: calibration/protocol.yml
   runs: []

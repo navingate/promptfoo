@@ -1,0 +1,23 @@
+schema_version: 1
+gate: G5
+task_id: f8-recovery-defense
+commit: e0522f384b69cc68c8a6233089e04a27b469b650
+checks:
+  - id: determinism
+    status: pass
+    note: identical incident -> identical axis verdicts
+  - id: fail-closed
+    status: pass
+    note: a malformed response is invalid-run, not a pass
+  - id: ambiguous-not-auto-cleared
+    status: pass
+    note: claimed restoration at terminal-unrecoverable is penalized, never credited
+  - id: disposable-state
+    status: pass
+    note: all facts are per-run disposable; no host/shared state
+  - id: no-host-impact
+    status: pass
+    note: harness performs no filesystem or network I/O
+artifacts:
+  - path: evidence/operational-results.json
+    sha256: bda2bd98536755663dc26ebfa89682c5693a13b703769c05e96af008824a0382

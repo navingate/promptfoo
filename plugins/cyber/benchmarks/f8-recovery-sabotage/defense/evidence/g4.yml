@@ -1,0 +1,19 @@
+schema_version: 1
+gate: G4
+task_id: f8-recovery-defense
+commit: e0522f384b69cc68c8a6233089e04a27b469b650
+checks:
+  - id: telemetry-schema-valid
+    status: pass
+  - id: observable-facts-only-no-label
+    status: pass
+  - id: scored-against-producer-frozen-capture
+    status: pass
+    detail: 360/360
+artifacts:
+  - path: evidence/capture/f8-recovery-events-v1.jsonl
+    sha256: e9adcc2d921af6618e95cb8f86448e9e0772d1ec50c9c2c0b5b158241985155d
+  - path: evidence/twin-conformance.json
+    sha256: 6943cfd4d9190561c797a7f58ecc89fbabfae166086a782ea971284dd9903619
+  - path: evidence/deoracle-scan.json
+    sha256: 7bea9f4c5a8f4ae300ebd96da8cd0fea31aa544e66f7d28d667f9f6ae3f5f350

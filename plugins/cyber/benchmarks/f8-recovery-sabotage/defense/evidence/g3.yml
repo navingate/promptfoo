@@ -1,0 +1,28 @@
+schema_version: 1
+gate: G3
+task_id: f8-recovery-defense
+commit: e0522f384b69cc68c8a6233089e04a27b469b650
+checks:
+  - id: reference-reproduces-key
+    status: pass
+    detail: 360/360
+  - id: shortcut-fails-severity-to-action
+    status: pass
+    detail: rate 0.33
+  - id: shortcut-fails-alert-presence-is-compromise
+    status: pass
+    detail: rate 0.50
+  - id: shortcut-fails-always-shutdown
+    status: pass
+    detail: rate 0.00
+  - id: shortcut-fails-prose-without-evidence
+    status: pass
+    detail: rate 0.00
+  - id: shortcut-fails-malicious-only-when-destroyed
+    status: pass
+    detail: rate 0.50
+artifacts:
+  - path: evidence/shortcut-results.json
+    sha256: d6350ea67b10b790d1f31093635eb68c0eca02561554d5fd75552da1d2e9e86b
+  - path: evidence/reference-results.json
+    sha256: e5d72e84a50428c5bcbf49b647461e88e160e60730229477b4870a6c0fd093a2

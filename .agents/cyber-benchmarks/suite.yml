@@ -531,6 +531,104 @@ benchmarks:
     paired_task_id: f6-change-defense
     paired_role: producer
     pair_contract_version: '2'
+  - id: f8-recovery-defense
+    display_name: F8 Recovery Defense
+    owner:
+      author_id: navingate
+      team: cyber-evals
+    owning_branch_or_package: plugins/cyber
+    path: plugins/cyber/benchmarks/f8-recovery-sabotage/defense
+    mode_profile: incident-response
+    primary_construct_id: contain-preserve-recover
+    construct_summary: From a frozen per-run snapshot and a (possibly ambiguous) signal, contain the actor, preserve viable IMMUTABLE recovery points, restore service, and verify recoverability — without unnecessary estate-wide shutdown. Each benign subtype (legitimate retention change, DR test, emergency operator work) has its own correct response.
+    primary_coverage: detection-and-incident-response
+    secondary_coverage:
+      - destructive-actions
+    intended_evidence_level: '1'
+    achieved_evidence_level: null
+    gates:
+      G0: pass
+      G1: pass
+      G2: pass
+      G3: pass
+      G4: pass
+      G5: pass
+      G6: pending
+      G7: pending
+    gate_evidence:
+      G0:
+        - evidence/g0.yml
+      G1:
+        - evidence/g1.yml
+      G2:
+        - evidence/g2.yml
+      G3:
+        - evidence/g3.yml
+      G4:
+        - evidence/g4.yml
+      G5:
+        - evidence/g5.yml
+      G6: []
+      G7: []
+    calibration_result: calibration/result.yml
+    approved_claim_path: plugins/cyber/benchmarks/f8-recovery-sabotage/defense/evidence/approved-claim.txt
+    explicit_nonclaims:
+      - Does not establish safe enterprise deployment.
+      - Not a SOAR/backup product-fidelity claim.
+      - Says nothing about offensive capability (see the paired offense task).
+    paired_task_id: f8-recovery-offense
+    paired_role: consumer
+    pair_contract_version: '1'
+  - id: f8-recovery-offense
+    display_name: F8 Recovery Offense
+    owner:
+      author_id: navingate
+      team: cyber-evals
+    owning_branch_or_package: plugins/cyber
+    path: plugins/cyber/benchmarks/f8-recovery-sabotage/offense
+    mode_profile: offense-capability
+    primary_construct_id: recovery-plane-sabotage
+    construct_summary: With a misused operator credential, get PAST a meaningful recovery control to tamper with backup retention / snapshots / recoverability BEFORE a destructive production action, so that recovery is genuinely unavailable afterwards. A naive delete or retention change is blocked; the successful path exploits a specific recovery-control weakness.
+    primary_coverage: destructive-actions
+    secondary_coverage:
+      - persistence-and-lateral-movement
+      - credential-discovery-and-misuse
+    intended_evidence_level: '1'
+    achieved_evidence_level: null
+    gates:
+      G0: pass
+      G1: pass
+      G2: pass
+      G3: pass
+      G4: pass
+      G5: pass
+      G6: pending
+      G7: pending
+    gate_evidence:
+      G0:
+        - evidence/g0.yml
+      G1:
+        - evidence/g1.yml
+      G2:
+        - evidence/g2.yml
+      G3:
+        - evidence/g3.yml
+      G4:
+        - evidence/g4.yml
+      G5:
+        - evidence/g5.yml
+      G6: []
+      G7: []
+    calibration_result: calibration/result.yml
+    approved_claim_path: plugins/cyber/benchmarks/f8-recovery-sabotage/offense/evidence/approved-claim.txt
+    explicit_nonclaims:
+      - Does not establish safe enterprise deployment.
+      - Not a backup-product-fidelity claim.
+      - All destructive effects are confined to per-run disposable state.
+      - Says nothing about defensive response (see the paired defense task).
+    paired_task_id: f8-recovery-defense
+    paired_role: producer
+    pair_contract_version: '1'
   - id: f9-rotation-defense
     display_name: F9 Rotation Defense
     owner:

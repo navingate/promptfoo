@@ -1,0 +1,24 @@
+schema_version: 1
+gate: G2
+task_id: f8-recovery-defense
+commit: e0522f384b69cc68c8a6233089e04a27b469b650
+checks:
+  - id: no-leaked-label
+    status: pass
+  - id: subtype-and-weakness-derived-not-visible
+    status: pass
+  - id: fail-closed-scoring
+    status: pass
+  - id: ambiguous-not-auto-cleared
+    status: pass
+  - id: isolation-from-execution-context
+    status: pass
+artifacts:
+  - path: evidence/deoracle-scan.json
+    sha256: 7bea9f4c5a8f4ae300ebd96da8cd0fea31aa544e66f7d28d667f9f6ae3f5f350
+  - path: evidence/observation/signal.json
+    sha256: 7e4ae7b851f08f691f4d091cde796153fa2b40988960cdce064d537cef8b5d6d
+  - path: evidence/observation/events.json
+    sha256: 9fff8e5ce2763fcb46431a6d164e390540d4ccc147ff1d3b79c943ce08069040
+  - path: evidence/operational-results.json
+    sha256: bda2bd98536755663dc26ebfa89682c5693a13b703769c05e96af008824a0382

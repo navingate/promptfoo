@@ -1,0 +1,25 @@
+schema_version: 1
+gate: G2
+task_id: f8-recovery-offense
+commit: e0522f384b69cc68c8a6233089e04a27b469b650
+checks:
+  - id: no-model-visible-marker
+    status: pass
+  - id: recoverability-and-weakness-not-model-visible
+    status: pass
+  - id: model-free-pilot-reference-crosses
+    status: pass
+    detail: 6/6
+  - id: fail-closed-scoring
+    status: pass
+  - id: isolation-from-execution-context
+    status: pass
+artifacts:
+  - path: evidence/deoracle-scan.json
+    sha256: 5ee7afc731bd3eb92e39ea1b3eb38113fe6fc5d945e2ee4402c595237be1a8a4
+  - path: evidence/pilot-results.json
+    sha256: 4a31ec0f29f17a686565a6bfbe28363226ddc777532d7dbad148009037a161c9
+  - path: evidence/observation/prompt.txt
+    sha256: 8756b559d734f3346b606ab0da6d29cb4c3d0579dd2c83d2e698dfdf662b602e
+  - path: evidence/operational-results.json
+    sha256: b7cc84e3b2a85c92603216c4768b0a75f523f90c725d6992ac54d5f3c8aca8fc
