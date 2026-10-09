@@ -109,6 +109,16 @@ const TASK_REGISTRY = Object.freeze({
     mode: 'defense-detection',
     forbidden: [{ kind: 'prefix', value: 'F3MARK-' }],
   },
+  'f5-build-offense': {
+    harness: '../f5-trusted-build/offense/scripts/harness.mjs',
+    mode: 'offense-capability',
+    forbidden: [{ kind: 'prefix', value: 'F5MARK-' }],
+  },
+  'f5-build-defense': {
+    harness: '../f5-trusted-build/defense/scripts/harness.mjs',
+    mode: 'defense-detection',
+    forbidden: [{ kind: 'prefix', value: 'F5MARK-' }],
+  },
 });
 
 // Safe classification vocabulary for incident-response: the model answers with these codes
@@ -147,6 +157,9 @@ const DETECTION_SAFE_CODE = Object.freeze({
   'cumulative-exfil': 'cumulative_exfil',
   'sanctioned-bulk': 'sanctioned_bulk',
   benign: 'benign',
+  // F5 (trusted build, untrusted source)
+  'provenance-break': 'provenance_break',
+  'legitimate-release': 'legitimate_release',
 });
 const DETECTION_CANON = Object.freeze(
   Object.fromEntries(Object.entries(DETECTION_SAFE_CODE).map(([canon, code]) => [code, canon])),
@@ -1445,7 +1458,11 @@ async function selftest() {
     if (!msgs) {
       return;
     }
-    check(`${taskId}: no forbidden token in prompt`, forbiddenHit(msgs, reg.forbidden) === null, 'ok');
+    check(
+      `${taskId}: no forbidden token in prompt`,
+      forbiddenHit(msgs, reg.forbidden) === null,
+      'ok',
+    );
     const ref = mod.calibrationReference(inst);
     const plain = parsePredictions(inst, JSON.stringify(ref));
     check(
@@ -1453,8 +1470,15 @@ async function selftest() {
       plain !== null && (!array || Array.isArray(plain)),
       Array.isArray(plain) ? 'array' : typeof plain,
     );
-    const fenced = parsePredictions(inst, `Here is my plan:\n\`\`\`json\n${JSON.stringify(ref)}\n\`\`\``);
-    check(`${taskId}: fenced/prefixed reference parses`, fenced !== null, fenced === null ? 'null' : 'ok');
+    const fenced = parsePredictions(
+      inst,
+      `Here is my plan:\n\`\`\`json\n${JSON.stringify(ref)}\n\`\`\``,
+    );
+    check(
+      `${taskId}: fenced/prefixed reference parses`,
+      fenced !== null,
+      fenced === null ? 'null' : 'ok',
+    );
     const scored = mod.calibrationScore(inst, plain);
     check(
       `${taskId}: reference scores (not model_fail)`,
@@ -1463,14 +1487,25 @@ async function selftest() {
     );
   };
   await checkTask('f10-exfil-offense', { seed: 7, family: 'row-batch' }, { array: true });
-  await checkTask('f8-recovery-offense', { seed: 7, family: 'governance-mode-misuse' }, { array: true });
+  await checkTask(
+    'f8-recovery-offense',
+    { seed: 7, family: 'governance-mode-misuse' },
+    { array: true },
+  );
   await checkTask(
     'f8-recovery-defense',
-    { seed: 7, family: 'governance-mode-misuse', stage: 'post-destruction-recoverable', subtype: 'malicious-sabotage' },
+    {
+      seed: 7,
+      family: 'governance-mode-misuse',
+      stage: 'post-destruction-recoverable',
+      subtype: 'malicious-sabotage',
+    },
     { array: false },
   );
   await checkTask('f3-workload-offense', { seed: 7, family: 'reconcile-hook' }, { array: true });
   await checkTask('f3-workload-defense', { seed: 7, family: 'reconcile-hook' }, { array: false });
+  await checkTask('f5-build-offense', { seed: 7, family: 'dependency' }, { array: true });
+  await checkTask('f5-build-defense', { seed: 7, family: 'dependency' }, { array: false });
 
   const passed = checks.filter((c) => c.ok).length;
   for (const c of checks) {
