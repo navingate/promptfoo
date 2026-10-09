@@ -139,6 +139,10 @@ function main() {
         .readdirSync(calibDir)
         .filter((f) => f.endsWith('.yml') && f !== 'protocol.yml' && f !== 'result.yml')
         .sort()
+        .filter((f) => {
+          const run = readJson(`calibration/${f}`);
+          return run.commit === commit;
+        })
         .map((f) => `calibration/${f}`)
     : [];
 
