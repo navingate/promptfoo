@@ -14,7 +14,7 @@ the labelled commit):
 | F4     | `9034a567d244493e053770731ab978f40b019901` |
 
 ```bash
-node --test plugins/cyber/benchmarks/_tooling/wave1-regression.test.mjs   # 5/5 pass
+node --test plugins/cyber/benchmarks/_tooling/wave1-regression.test.mjs   # 6/6 pass
 
 A=.agents/skills/cyber-benchmark-authoring/scripts
 SUITE=.agents/cyber-benchmarks/suite.yml

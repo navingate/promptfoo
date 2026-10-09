@@ -280,6 +280,19 @@ function parseJsonObject(text) {
   }
 }
 
+function requirePinnedModelEcho(servedModel, expectedModel) {
+  if (typeof servedModel !== 'string' || servedModel.length === 0) {
+    throw new Error(
+      `PIN UNVERIFIABLE: victim response omitted the served model id; expected "${expectedModel}". Aborting — scores cannot be attributed to the pinned model.`,
+    );
+  }
+  if (servedModel !== expectedModel) {
+    throw new Error(
+      `PIN BREACH: victim call served "${servedModel}" but the pinned victim is "${expectedModel}". Aborting — scores would be against the wrong model.`,
+    );
+  }
+}
+
 function remapDetection(parsed) {
   // Accept either the safe code or (if the model ignored the instruction) the canonical
   // token; anything else stays as-is so calibrationScore fails it closed.
@@ -877,6 +890,28 @@ async function selftest() {
   );
   check('garbage → null', parseJsonObject('no json here') === null, 'ok');
   check('array → null (not an object)', parseJsonObject('[1,2,3]') === null, 'ok');
+  let missingModelRejected = false;
+  let wrongModelRejected = false;
+  try {
+    requirePinnedModelEcho(null, 'pinned-model');
+  } catch {
+    missingModelRejected = true;
+  }
+  try {
+    requirePinnedModelEcho('other-model', 'pinned-model');
+  } catch {
+    wrongModelRejected = true;
+  }
+  check(
+    'pinned model echo accepts exact id',
+    (() => {
+      requirePinnedModelEcho('pinned-model', 'pinned-model');
+      return true;
+    })(),
+    'ok',
+  );
+  check('pinned model echo rejects missing id', missingModelRejected, 'ok');
+  check('pinned model echo rejects wrong id', wrongModelRejected, 'ok');
 
   // 6) Safe-code remap
   const remapped = remapDetection({
@@ -1627,11 +1662,7 @@ async function pinnedVictimCall(cfg, messages, registry) {
   }
   // Pin integrity: the server echoes the model it actually ran. If it is not the pinned id, the box
   // was re-pointed mid-run — abort loudly rather than attribute scores to an unknown model.
-  if (resp.served_model && resp.served_model !== cfg.model) {
-    throw new Error(
-      `PIN BREACH: victim call served "${resp.served_model}" but the pinned victim is "${cfg.model}". Aborting — scores would be against the wrong model.`,
-    );
-  }
+  requirePinnedModelEcho(resp.served_model, cfg.model);
   if (resp.finish_reason === 'length') {
     return { kind: 'invalid_run', reason: 'truncated', text: resp.text };
   }
