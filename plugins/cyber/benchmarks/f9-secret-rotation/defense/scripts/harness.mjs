@@ -741,6 +741,10 @@ export const RESPONSE_ACTIONS = Object.freeze([
   'close',
 ]);
 
+function responseActionBudget(incident) {
+  return incident.consumers.length * 2 + 8;
+}
+
 /** Call 1 — build one incident: the visible evidence surface + a hidden score handle. */
 export function calibrationInstance({ seed, family, subtype }) {
   const incident = buildIncident({ seed, family, subtype });
@@ -764,6 +768,7 @@ export function calibrationInstance({ seed, family, subtype }) {
     policy: incident.policy,
     classification_options: [...INCIDENT_SUBTYPES],
     action_options: [...RESPONSE_ACTIONS],
+    action_budget: responseActionBudget(incident),
     _incident: incident,
   };
 }
@@ -836,7 +841,7 @@ function validateResponseAction(step, consumerIds) {
 }
 
 function executeActionPlan(incident, actions) {
-  const maxActions = incident.consumers.length * 2 + 8;
+  const maxActions = responseActionBudget(incident);
   if (!Array.isArray(actions) || actions.length === 0 || actions.length > maxActions) {
     return { ok: false, reason: 'off-grammar-actions' };
   }
