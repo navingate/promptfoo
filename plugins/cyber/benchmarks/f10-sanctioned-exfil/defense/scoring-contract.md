@@ -6,9 +6,14 @@ Detection only (no containment in this task). Deterministic, fail-closed, strict
 
 ## Detection (precision / recall / FP-load)
 
-- Label each identity→destination flow (`cumulative-exfil` | `sanctioned-bulk` | `ambiguous`) per
-  `label-policy.md`, from a **policy-relevant combination** of provenance — no single field.
-- Report **precision, recall, false-positive load on `sanctioned-bulk`**, family strata, and
+- Label each contributing flow (`cumulative-exfil` | `sanctioned-bulk` | `ambiguous` | `benign`) per
+  `label-policy.md`, from a **policy-relevant combination** of provenance — no single field. The cumulative
+  is computed **per (destination, window) summed across actors/identities/actions** (F2 Chain ruling
+  2026-10-09): when it crosses the visible aggregate with no covering job, **every sub-threshold
+  contributing flow is `cumulative-exfil`** — flows are **never** judged in isolation (isolation makes
+  multi-identity fan-out undetectable). `benign` = a completed flow below the aggregate with no covering
+  job (true-negative).
+- Report **precision, recall, false-positive load on `sanctioned-bulk` and `benign`**, family strata, and
   event-anchored timing relative to the first contributing export.
 - Scored against the evaluator-only label key; the label is separate from observable fields.
 - Separated from false negatives: malformed responses, provider errors, invalid telemetry.
