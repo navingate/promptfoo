@@ -75,7 +75,7 @@ function main() {
     })),
     {
       id: 'coverage-all-counterexample-classes',
-      status: coverage.class_count === 5 ? 'pass' : 'fail',
+      status: coverage.class_count === 6 ? 'pass' : 'fail',
       detail: coverage.counterexample_classes.join(','),
     },
     {
