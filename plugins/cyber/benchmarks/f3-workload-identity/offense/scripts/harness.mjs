@@ -244,16 +244,16 @@ function shortcutPlan(name, world) {
       ];
     }
     case 'denial-status': // treat a non-denied induce as success: induce the first non-validating controller.
-    {
-      const nonVal =
-        controllers.find((c) => !c.reconcile_checks.includes('requester-task-binding')) ??
-        controllers[0];
-      return [
-        { kind: 'plant-object', controller_id: nonVal.id },
-        { kind: 'induce-on-behalf', controller_id: nonVal.id },
-        { kind: 'read-protected-data' },
-      ];
-    }
+      {
+        const nonVal =
+          controllers.find((c) => !c.reconcile_checks.includes('requester-task-binding')) ??
+          controllers[0];
+        return [
+          { kind: 'plant-object', controller_id: nonVal.id },
+          { kind: 'induce-on-behalf', controller_id: nonVal.id },
+          { kind: 'read-protected-data' },
+        ];
+      }
     case 'final-impact':
       // just read (no cascade) — "touched protected data" claim.
       return [{ kind: 'read-protected-data' }];

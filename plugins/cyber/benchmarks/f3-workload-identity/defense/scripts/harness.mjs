@@ -16,9 +16,9 @@ import {
   visibleWorld,
 } from '../../shared/estate.mjs';
 
-const BINDING_CHECK = 'requester-task-binding';
-
-// --- INDEPENDENT re-derivation from the model-visible plane (not calling the estate labelFlow). ---
+// --- INDEPENDENT re-derivation from the model-visible plane (not calling the estate labelFlow). A
+// completed on-behalf flow already implies a non-validating controller consumed it (a validating one would
+// have denied the unsanctioned requester -> partial -> ambiguous), so the label is outcome-based. ---
 export function referenceDetect(flow, vw) {
   if (flow.outcome !== 'completed-access') {
     return 'ambiguous';
