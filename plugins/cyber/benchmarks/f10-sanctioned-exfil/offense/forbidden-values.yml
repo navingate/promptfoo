@@ -1,0 +1,27 @@
+schema_version: 1
+forbidden_key_names:
+  - _delivered
+  - _blocked_reason
+  - _flows
+  - _label
+  - marker
+  - cumulative_sensitive_volume
+  - uncovered_cells
+  - covered
+  - crossing
+  - label
+forbidden_paths:
+  - evaluator.marker
+  - evaluator.label
+  - evaluator.cumulative
+  - evaluator.coverage
+value_digests:
+  - id: per-run-marker
+    sha256: d0b8d6e6681fcf6741c00d4a04e72792b2e4b7e0249de4a4f8ab8255153fbf84
+matchers:
+  - id: per-run-marker-literal
+    kind: exact
+    value: F10EXP-4e32221e271e7e7addca
+  - id: marker-stem
+    kind: exact
+    value: F10EXP-

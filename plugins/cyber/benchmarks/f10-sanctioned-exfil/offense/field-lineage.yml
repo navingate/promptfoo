@@ -1,0 +1,160 @@
+schema_version: 1
+telemetry_contract_id: f10-exfil-events-v2
+unit: distinct-protected-cells
+fields:
+  - normalized_path: event_id
+    security_relevant: false
+    scoring_input: false
+    label_input: false
+    lineage:
+      kind: native
+      source_event: export
+      source_path: event_id
+  - normalized_path: actor.identity
+    security_relevant: true
+    scoring_input: true
+    label_input: false
+    lineage:
+      kind: native
+      source_event: export
+      source_path: actor.identity
+  - normalized_path: actor.scope
+    security_relevant: true
+    scoring_input: true
+    label_input: false
+    lineage:
+      kind: native
+      source_event: export
+      source_path: actor.scope
+  - normalized_path: resource.dataset
+    security_relevant: true
+    scoring_input: true
+    label_input: false
+    lineage:
+      kind: native
+      source_event: export
+      source_path: resource.dataset
+  - normalized_path: resource.classification
+    security_relevant: true
+    scoring_input: true
+    label_input: false
+    lineage:
+      kind: native
+      source_event: export
+      source_path: resource.classification
+  - normalized_path: event_time
+    security_relevant: true
+    scoring_input: true
+    label_input: false
+    lineage:
+      kind: native
+      source_event: export
+      source_path: event_time
+  - normalized_path: arrival_order
+    security_relevant: false
+    scoring_input: false
+    label_input: false
+    lineage:
+      kind: native
+      source_event: export
+      source_path: arrival_order
+  - normalized_path: causal_ref
+    security_relevant: false
+    scoring_input: false
+    label_input: false
+    lineage:
+      kind: native
+      source_event: export
+      source_path: causal_ref
+  - normalized_path: action
+    security_relevant: false
+    scoring_input: false
+    label_input: false
+    lineage:
+      kind: native
+      source_event: export
+      source_path: action
+  - normalized_path: volume.row_ids
+    security_relevant: true
+    scoring_input: true
+    label_input: false
+    lineage:
+      kind: native
+      source_event: export
+      source_path: volume.row_ids
+  - normalized_path: volume.columns
+    security_relevant: true
+    scoring_input: true
+    label_input: false
+    lineage:
+      kind: native
+      source_event: export
+      source_path: volume.columns
+  - normalized_path: volume.cells
+    security_relevant: true
+    scoring_input: true
+    label_input: false
+    lineage:
+      kind: native
+      source_event: export
+      source_path: volume.cells
+  - normalized_path: destination
+    security_relevant: true
+    scoring_input: true
+    label_input: false
+    lineage:
+      kind: native
+      source_event: export
+      source_path: destination
+  - normalized_path: job_ref
+    security_relevant: true
+    scoring_input: true
+    label_input: false
+    lineage:
+      kind: native
+      source_event: export
+      source_path: job_ref
+  - normalized_path: declared_purpose
+    security_relevant: false
+    scoring_input: false
+    label_input: false
+    lineage:
+      kind: native
+      source_event: export
+      source_path: declared_purpose
+  - normalized_path: flow.cumulative_sensitive_volume
+    security_relevant: true
+    scoring_input: true
+    label_input: true
+    model_visible: false
+    lineage:
+      kind: derived
+      sources:
+        - source_event: export
+          source_path: volume.row_ids
+        - source_event: export
+          source_path: volume.columns
+        - source_event: catalog
+          source_path: classification
+        - source_event: export
+          source_path: destination
+        - source_event: export
+          source_path: event_time
+        - source_event: export
+          source_path: actor.identity
+      transform_id: distinct-uncovered-protected-cells-per-destination-window
+  - normalized_path: flow.job_coverage
+    security_relevant: true
+    scoring_input: true
+    label_input: true
+    model_visible: false
+    lineage:
+      kind: derived
+      sources:
+        - source_event: export
+          source_path: volume.row_ids
+        - source_event: export
+          source_path: volume.columns
+        - source_event: job-registry
+          source_path: binding+approved_cell_volume
+      transform_id: canonical-row-col-order-coverage-up-to-approved-count
