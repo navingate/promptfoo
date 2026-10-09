@@ -7,12 +7,9 @@
 // spec, not redesigning). The answer key (which dependency is the weakness, the correct containment order,
 // the stage label) is evaluator-only.
 
+import { buildFixture, fixtureSpecs } from '../../shared/corpus.mjs';
 import {
-  applyOperatorAction,
-  BENIGN_SUBTYPES,
-  buildWorld,
   DEFENSE_SEEDS,
-  deriveStage,
   INCIDENT_SUBTYPES,
   pointRestorable,
   replayActorSteps,
@@ -20,8 +17,6 @@ import {
   responderRestore,
   responderRevokeSession,
   restoreCheck,
-  visiblePolicy,
-  visibleRecoveryGraph,
   WEAKNESS_FAMILIES,
 } from '../../shared/estate.mjs';
 
@@ -58,104 +53,29 @@ export const RESPONSE_OPTIONS = Object.freeze([
 // shortcut misclassifies it.
 // ---------------------------------------------------------------------------
 
-function firstDecoy(world) {
-  const vg = visibleRecoveryGraph(world);
-  const crit = new Set(vg.recovery_points.flatMap((p) => p.requires));
-  return vg.dependencies.find((d) => d.control_mode === 'operator' && !crit.has(d.id));
-}
-
-/** Advance `world` to the malicious stage via attacker actions; return the held remaining attack steps. */
-function stageMalicious(world, stage) {
-  const weakId = world.evaluator.weak_dependency_id;
-  const resId = world.resources[0]?.id;
-  applyOperatorAction(world, { kind: 'map', actor: 'attacker' });
-  if (stage === 'pre-terminal') {
-    applyOperatorAction(world, {
-      kind: 'alter-dependency',
-      target_id: firstDecoy(world).id,
-      actor: 'attacker',
-    });
-    return [
-      { kind: 'alter-dependency', target_id: weakId },
-      { kind: 'destroy', target_id: resId },
-    ];
-  }
-  if (stage === 'post-destruction-recoverable') {
-    applyOperatorAction(world, { kind: 'destroy', target_id: resId, actor: 'attacker' }); // destroyed, recovery intact
-    return [{ kind: 'alter-dependency', target_id: weakId }];
-  }
-  // terminal-unrecoverable
-  applyOperatorAction(world, { kind: 'alter-dependency', target_id: weakId, actor: 'attacker' });
-  applyOperatorAction(world, { kind: 'destroy', target_id: resId, actor: 'attacker' });
-  // residual: an uncontained actor continues to act (so containment stays meaningful at terminal).
-  return [{ kind: 'destroy', target_id: resId }];
-}
-
-/** Advance `world` with an AUTHORIZED operator action matching a benign subtype (recovery stays intact). */
-function stageBenign(world, subtype) {
-  applyOperatorAction(world, { kind: 'map', actor: 'operator' });
-  // same base structure as a pre-terminal fixture: a retention change on a non-critical dep, but AUTHORIZED.
-  applyOperatorAction(world, {
-    kind: 'alter-dependency',
-    target_id: firstDecoy(world).id,
-    actor: 'operator',
-    approval_state: 'approved',
-    op: subtype,
-  });
-  return [];
-}
-
-function evidenceFor(subtype, world) {
-  const base = {
-    alert: {
-      kind: 'recovery-control-anomaly',
-      // severity is deliberately uncorrelated with the correct action (defeats a severity shortcut).
-      severity: ['low', 'medium', 'high'][Math.abs(world.meta.seed) % 3],
-    },
-    production_damaged: world.resources.some((r) => r.destroyed),
-    planned_retention_ticket: null,
-    dr_test_marker: null,
-    emergency_authorization: null,
-    compromise_report: null,
-  };
-  if (subtype === 'malicious-sabotage') {
-    base.compromise_report = {
-      corroborated: true,
-      note: 'unauthorized recovery-control change observed',
-    };
-  } else if (subtype === 'legitimate-retention-change') {
-    base.planned_retention_ticket = { approved: true };
-  } else if (subtype === 'dr-test') {
-    base.dr_test_marker = { planned: true };
-  } else if (subtype === 'emergency-operator-work') {
-    base.emergency_authorization = { authorized: true };
-  }
-  return base;
-}
-
-/** buildIncident({seed, family, stage, subtype}) — the frozen incident. For benign subtypes `stage` is the
- * nominal 'pre-terminal' (nothing destroyed). */
-export function buildIncident({ seed, family, stage, subtype }) {
-  const world = buildWorld({ seed, family });
-  const malicious = subtype === 'malicious-sabotage';
-  const heldSteps = malicious ? stageMalicious(world, stage) : stageBenign(world, subtype);
-  const derived = deriveStage(world);
-  // The alter-budget is an OFFENSE winnability device (force inference); the DEFENSE replay models the
-  // uncontained actor's fresh capability to continue, so reset it before the responder acts/replays.
-  world._alter_attempts = 0;
+/** buildIncident({seed, family, stage, subtype}) — the frozen incident, built from the SHARED fixture
+ * builder (so the producer's capture events match). For benign subtypes `stage` is the nominal
+ * 'pre-terminal' (nothing destroyed). */
+export function buildIncident(spec) {
+  const f = buildFixture(spec);
   return {
-    meta: { seed, family, subtype, telemetry_contract_id: world.meta.telemetry_contract_id },
-    world, // the live estate the responder acts against (its own action ledger lives on world._* + ledger)
-    evidence: evidenceFor(subtype, world),
-    policy: visiblePolicy(),
-    recovery_graph: visibleRecoveryGraph(world),
+    meta: {
+      seed: spec.seed,
+      family: spec.family,
+      subtype: spec.subtype,
+      telemetry_contract_id: f.world.meta.telemetry_contract_id,
+    },
+    world: f.world, // the live estate the responder acts against (own action ledger on world._* + ledger)
+    evidence: f.evidence,
+    policy: f.policy,
+    recovery_graph: f.recovery_graph,
     action_ledger: [],
     evaluator: {
-      subtype,
-      declared_stage: stage,
-      derived_stage: derived,
-      weak_dependency_id: world.evaluator.weak_dependency_id,
-      held_steps: heldSteps,
+      subtype: spec.subtype,
+      declared_stage: spec.stage,
+      derived_stage: f.derived_stage,
+      weak_dependency_id: f.world.evaluator.weak_dependency_id,
+      held_steps: f.held_steps,
     },
   };
 }
@@ -389,23 +309,13 @@ export function referenceRespond(incident) {
 }
 
 export function defenseCorpus() {
-  const out = [];
+  const specs = [];
   for (const family of WEAKNESS_FAMILIES) {
     for (const seed of DEFENSE_SEEDS) {
-      // malicious at each derived stage + the benign subtypes
-      for (const stage of [
-        'pre-terminal',
-        'post-destruction-recoverable',
-        'terminal-unrecoverable',
-      ]) {
-        out.push({ spec: { seed, family, stage, subtype: 'malicious-sabotage' } });
-      }
-      for (const subtype of BENIGN_SUBTYPES) {
-        out.push({ spec: { seed, family, stage: 'pre-terminal', subtype } });
-      }
+      specs.push(...fixtureSpecs(seed, family));
     }
   }
-  return out.map(({ spec }) => ({ spec, result: referenceRespond(buildIncident(spec)) }));
+  return specs.map((spec) => ({ spec, result: referenceRespond(buildIncident(spec)) }));
 }
 
 export function referenceScore() {
