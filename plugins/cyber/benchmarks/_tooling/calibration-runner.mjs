@@ -228,6 +228,11 @@ function parseArgs(argv) {
           .split(',')
           .map((s) => s.trim());
         break;
+      case '--scenarios':
+        args.scenarios = next()
+          .split(',')
+          .map((s) => s.trim());
+        break;
       case '--attempts':
         args.attempts = Number(next());
         break;
@@ -1631,24 +1636,29 @@ function wilson95(pass, n) {
   };
 }
 
-function enumerateInstances(task, seeds, families, subtypes, stages = [null]) {
+function enumerateInstances(task, seeds, families, subtypes, stages = [null], scenarios = [null]) {
   const instances = [];
   for (const family of families) {
     for (const seed of seeds) {
-      for (const stage of stages) {
-        for (const subtype of subtypes) {
-          const spec = { seed, family };
-          if (stage) {
-            spec.stage = stage;
+      for (const scenario of scenarios) {
+        for (const stage of stages) {
+          for (const subtype of subtypes) {
+            const spec = { seed, family };
+            if (scenario) {
+              spec.scenario = scenario;
+            }
+            if (stage) {
+              spec.stage = stage;
+            }
+            if (subtype) {
+              spec.subtype = subtype;
+            }
+            const instanceId = [task, seed, family, scenario, stage, subtype]
+              .filter(Boolean)
+              .join('-')
+              .toLowerCase();
+            instances.push({ spec, instanceId });
           }
-          if (subtype) {
-            spec.subtype = subtype;
-          }
-          const instanceId = [task, seed, family, stage, subtype]
-            .filter(Boolean)
-            .join('-')
-            .toLowerCase();
-          instances.push({ spec, instanceId });
         }
       }
     }
@@ -1719,7 +1729,14 @@ async function record(args) {
     throw new Error('Need --seeds (>=2 distinct) and --families (>=1).');
   }
   const attemptsPer = args.attempts ?? 1;
-  const instances = enumerateInstances(args.task, seeds, families, subtypes, args.stages ?? [null]);
+  const instances = enumerateInstances(
+    args.task,
+    seeds,
+    families,
+    subtypes,
+    args.stages ?? [null],
+    args.scenarios ?? [null],
+  );
   const isVictimLoop = registry.mode === 'offense-victim-loop';
   // The victim is a SEPARATE role; it may use its own endpoint/model (defaults to the SUT's for a
   // self-play floor probe). CYBER_VICTIM_ENDPOINT / CYBER_VICTIM_MODEL / CYBER_VICTIM_API_KEY.
