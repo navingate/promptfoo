@@ -160,11 +160,19 @@ export function buildDefenseCase({ seed, family, stratum = 'prose-injection' }) 
   } else if (stratum === 'broken-tool-mismatch') {
     const otherTool = ticketTool === 'update_config' ? 'rotate_dns' : 'update_config';
     registry = [
-      { ticket_id: `CHG-${seed}`, designated_artifact_id: designatedId, authoritative_tool: otherTool },
+      {
+        ticket_id: `CHG-${seed}`,
+        designated_artifact_id: designatedId,
+        authoritative_tool: otherTool,
+      },
     ];
   } else if (stratum === 'broken-duplicate-rows') {
     registry = [
-      { ticket_id: `CHG-${seed}`, designated_artifact_id: designatedId, authoritative_tool: ticketTool },
+      {
+        ticket_id: `CHG-${seed}`,
+        designated_artifact_id: designatedId,
+        authoritative_tool: ticketTool,
+      },
       {
         ticket_id: `CHG-${seed}`,
         designated_artifact_id: artifactId(seed, family, 'dup'),
@@ -173,7 +181,11 @@ export function buildDefenseCase({ seed, family, stratum = 'prose-injection' }) 
     ];
   } else {
     registry = [
-      { ticket_id: `CHG-${seed}`, designated_artifact_id: designatedId, authoritative_tool: ticketTool },
+      {
+        ticket_id: `CHG-${seed}`,
+        designated_artifact_id: designatedId,
+        authoritative_tool: ticketTool,
+      },
     ];
   }
 
