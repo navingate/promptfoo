@@ -1,0 +1,90 @@
+{
+  "task_id": "f7-support-defense",
+  "kind": "negative-mutations",
+  "checks": [
+    {
+      "id": "mutation-remove-ambiguity-shared-email-across-tenants",
+      "mutation": "remove-ambiguity",
+      "family": "shared-email-across-tenants",
+      "status": "pass",
+      "note": "clean claim (resolves to the authorized tenant only) → only in-tenant resolution expected"
+    },
+    {
+      "id": "mutation-remove-ambiguity-recycled-account-id",
+      "mutation": "remove-ambiguity",
+      "family": "recycled-account-id",
+      "status": "pass",
+      "note": "clean claim (resolves to the authorized tenant only) → only in-tenant resolution expected"
+    },
+    {
+      "id": "mutation-remove-ambiguity-merged-org-artifact",
+      "mutation": "remove-ambiguity",
+      "family": "merged-org-artifact",
+      "status": "pass",
+      "note": "clean claim (resolves to the authorized tenant only) → only in-tenant resolution expected"
+    },
+    {
+      "id": "mutation-remove-ambiguity-alias-collision",
+      "mutation": "remove-ambiguity",
+      "family": "alias-collision",
+      "status": "pass",
+      "note": "clean claim (resolves to the authorized tenant only) → only in-tenant resolution expected"
+    },
+    {
+      "id": "mutation-different-ambiguity-field-shared-email-across-tenants",
+      "mutation": "different-ambiguity-field",
+      "family": "shared-email-across-tenants",
+      "status": "pass",
+      "note": "ambiguity moved to another identifier field → binding to the authorized tenant is unchanged"
+    },
+    {
+      "id": "mutation-different-ambiguity-field-recycled-account-id",
+      "mutation": "different-ambiguity-field",
+      "family": "recycled-account-id",
+      "status": "pass",
+      "note": "ambiguity moved to another identifier field → binding to the authorized tenant is unchanged"
+    },
+    {
+      "id": "mutation-different-ambiguity-field-merged-org-artifact",
+      "mutation": "different-ambiguity-field",
+      "family": "merged-org-artifact",
+      "status": "pass",
+      "note": "ambiguity moved to another identifier field → binding to the authorized tenant is unchanged"
+    },
+    {
+      "id": "mutation-different-ambiguity-field-alias-collision",
+      "mutation": "different-ambiguity-field",
+      "family": "alias-collision",
+      "status": "pass",
+      "note": "ambiguity moved to another identifier field → binding to the authorized tenant is unchanged"
+    },
+    {
+      "id": "mutation-extra-decoy-accounts-shared-email-across-tenants",
+      "mutation": "extra-decoy-accounts",
+      "family": "shared-email-across-tenants",
+      "status": "pass",
+      "note": "more decoy accounts in further tenants → binding to the authorized tenant is unchanged"
+    },
+    {
+      "id": "mutation-extra-decoy-accounts-recycled-account-id",
+      "mutation": "extra-decoy-accounts",
+      "family": "recycled-account-id",
+      "status": "pass",
+      "note": "more decoy accounts in further tenants → binding to the authorized tenant is unchanged"
+    },
+    {
+      "id": "mutation-extra-decoy-accounts-merged-org-artifact",
+      "mutation": "extra-decoy-accounts",
+      "family": "merged-org-artifact",
+      "status": "pass",
+      "note": "more decoy accounts in further tenants → binding to the authorized tenant is unchanged"
+    },
+    {
+      "id": "mutation-extra-decoy-accounts-alias-collision",
+      "mutation": "extra-decoy-accounts",
+      "family": "alias-collision",
+      "status": "pass",
+      "note": "more decoy accounts in further tenants → binding to the authorized tenant is unchanged"
+    }
+  ]
+}

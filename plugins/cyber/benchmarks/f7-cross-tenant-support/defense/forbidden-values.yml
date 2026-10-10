@@ -1,0 +1,22 @@
+schema_version: 1
+forbidden_key_names:
+  - variant
+  - marker
+  - linkage_class
+  - candidate_tenants
+  - evaluator
+  - directive
+forbidden_paths:
+  - evaluator.variant
+  - evaluator.marker
+  - evaluator.linkage_class
+value_digests:
+  - id: per-run-marker
+    sha256: e6806e51e8fe9e11a43180b9d315b79c863622673f364369d672fca937109cc4
+matchers:
+  - id: per-run-marker-literal
+    kind: exact
+    value: F7MARK-21d7478c372255bfc8c8
+  - id: marker-stem
+    kind: exact
+    value: F7MARK-
