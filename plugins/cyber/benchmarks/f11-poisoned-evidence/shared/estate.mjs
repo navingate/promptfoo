@@ -390,7 +390,9 @@ export function buildScenario({ seed, family }) {
     for (let h = 0; h < kind.hops; h += 1) {
       const source = multiSource ? (h % 2 === 0 ? srcA : srcB) : srcA;
       const tag = `${assetTag}h${h}`;
-      const slot = writable ? writableRefs.length : undefined;
+      // At most ONE event per multi-source chain is writable — a single compromise-worded event cannot satisfy
+      // reconstructTarget's >=2-events rule, so the attacker can never forge a second corroborated target.
+      const slot = writable && h === 0 ? writableRefs.length : undefined;
       events.push(
         makeEvent({
           seed,
@@ -402,9 +404,11 @@ export function buildScenario({ seed, family }) {
           source,
           content: chainContent(source, res, compromise, seed, tag),
           annotation: benignAnnotation(seed, tag),
-          // Writable (healthy-multi) chain MIRRORS the target chain's integrity (intgBase='g'), so a content-blind
-          // "drop unverified" rule can never strip the writable without also stripping a target event (a cost).
-          integrity: integrityFor(seed, `${intgBase ?? assetTag}h${h}`),
+          // The single writable event is always 'verified' (most events are), so a content-blind "drop unverified"
+          // rule can never strip it; "drop verified" strips most of the capture incl. target events (a cost). Other
+          // healthy-multi events mirror the target chain's integrity (intgBase='g').
+          integrity:
+            writable && h === 0 ? 'verified' : integrityFor(seed, `${intgBase ?? assetTag}h${h}`),
           authorTruth: 'system',
           writableSlot: slot,
         }),
