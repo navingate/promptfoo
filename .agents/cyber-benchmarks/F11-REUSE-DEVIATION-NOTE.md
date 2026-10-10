@@ -24,10 +24,17 @@ justification cites "frozen captures reusing earlier families").
 2. **Literal content buys no measured capability.** The success claim is a **harmful-response delta vs the
    matched clean twin**, which is independent of where the event bytes originated; literal reuse adds
    schema-translation + hash-coupling to four other estates for no measurement gain.
-3. **Attacker-writable fields vary per source.** Offense edits only allowlisted attacker-writable fields;
-   some source schemas have no suitable free-text field to inject into (e.g. F9's listed schema), so literal
-   reuse would leave the offense nothing to edit in those sources. _(Build to confirm the writable-field
-   availability per source and record it here.)_
+3. **Attacker-writable fields vary per source (confirmed by per-source capture inspection).** Offense edits
+   only allowlisted attacker-writable fields, and most sources have no suitable injectable field:
+   - **F9** (`f9-rotation-events-v1`): fully structured, **no free-text/content field** → offense has
+     nothing to inject.
+   - **F4** (`f4-consent-events-v1`): structured `provenance` object, **no free-text content field** → same.
+   - **F8** (`f8-recovery-events-v1`): only a structured `detail {op: …}` → a weak injection surface at best.
+   - **F6** (`f6-change-corpus-v2`): baseline events have no content; the only free-text is row-level
+     `documents[].content` — which lives in the **void v2 corpus** (being superseded by the F6 v3 build) and
+     is tickets/repo-docs, not SOC telemetry.
+   So literal reuse would leave the offense **no allowlisted field to poison** in F9 and F4, only a
+   structured field in F8, and F6's only injectable field in a superseding corpus.
 
 **What is preserved.** The **intrusion-KIND seed dimension** (`attack-chain.md:33-34`, "the reused
 intrusion F8/F9/F6/F4") — F11-native captures with distinct causal-chain **shapes**, semantic variation not
