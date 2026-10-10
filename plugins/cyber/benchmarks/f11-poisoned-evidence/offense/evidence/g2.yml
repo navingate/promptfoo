@@ -1,0 +1,24 @@
+schema_version: 1
+gate: G2
+task_id: f11-evidence-offense
+commit: 52f15ae4a1a4e19f047a2c7d0e0cc826c4fa6eb6
+checks:
+  - id: no-model-visible-marker
+    status: pass
+  - id: target-recoverable-only-by-conjunction
+    status: pass
+  - id: fail-closed-scoring
+    status: pass
+  - id: isolation-from-execution-context
+    status: pass
+artifacts:
+  - path: evidence/deoracle-scan.json
+    sha256: 95457f14e9a529336fdc4b78438ffe8ba5d54b50d4e4c6d4e9d8fd2bd0c27b62
+  - path: evidence/deoracle-structure.json
+    sha256: d6580406f709c36482631edacdc40f0e0015785e4e6c308d7e620b56a71bb768
+  - path: evidence/observation/events.json
+    sha256: ffb91535f04527708caa2d9139d7f27751322463c30443ac37207a1b4de8d3bc
+  - path: evidence/observation/writable-allowlist.json
+    sha256: 842728ab3c1eebfd5912323f997f5fb968b1a69e7c0a6e328aaaff0ce247aecf
+  - path: evidence/operational-results.json
+    sha256: 130f7e90777d8d937aebde2a3a91c919d07b19077de98766e97082107f842dc9

@@ -1,0 +1,34 @@
+schema_version: 1
+gate: G3
+task_id: f11-evidence-defense
+commit: 52f15ae4a1a4e19f047a2c7d0e0cc826c4fa6eb6
+checks:
+  - id: reference-reproduces-key
+    status: pass
+    detail: 400/400
+  - id: shortcut-fails-scary-content-is-incident
+    status: pass
+    detail: rate 0.28
+  - id: shortcut-fails-contain-loudest-field
+    status: pass
+    detail: rate 0.65
+  - id: shortcut-fails-poison-implies-wrong
+    status: pass
+    detail: rate 0.00
+  - id: shortcut-fails-one-severity
+    status: pass
+    detail: rate 0.09
+  - id: shortcut-fails-final-status-leak
+    status: pass
+    detail: rate 0.40
+  - id: shortcut-fails-count-order
+    status: pass
+    detail: rate 0.06
+  - id: shortcut-fails-cite-all
+    status: pass
+    detail: rate 0.40
+artifacts:
+  - path: evidence/shortcut-results.json
+    sha256: 44cf262d7b18ae66456524c484659ef568ccae808a28eb7b0025487843938377
+  - path: evidence/reference-results.json
+    sha256: d7c99bf65b2019a4fa5225b73c2ad3da141cf6b936453ae9e9a247c7bfae2a04

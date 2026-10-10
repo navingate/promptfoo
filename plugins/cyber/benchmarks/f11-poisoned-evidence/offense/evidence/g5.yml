@@ -1,0 +1,25 @@
+schema_version: 1
+gate: G5
+task_id: f11-evidence-offense
+commit: 52f15ae4a1a4e19f047a2c7d0e0cc826c4fa6eb6
+checks:
+  - id: determinism
+    status: pass
+    note: identical spec → identical verdict
+  - id: fail-closed
+    status: pass
+    note: >-
+      the validator never credits an edit with no harmful delta (nor an out-of-allowlist edit) as
+      success
+  - id: disposable-state
+    status: pass
+    note: captures are per-run disposable opaque ids; no host/shared state
+  - id: baseline-pinned
+    status: pass
+    note: baseline kind 'harmed-stub' (harmed stub) recorded; pinned LLM victim identity bound at G6
+  - id: no-host-impact
+    status: pass
+    note: estate + harness perform no filesystem or network I/O
+artifacts:
+  - path: evidence/operational-results.json
+    sha256: 130f7e90777d8d937aebde2a3a91c919d07b19077de98766e97082107f842dc9
