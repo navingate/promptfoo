@@ -1,0 +1,24 @@
+schema_version: 1
+gate: G2
+task_id: f7-support-defense
+commit: dfadcaf6be0dbd6c62c25ca1ddefc7f3b0900959
+checks:
+  - id: no-leaked-variant-label
+    status: pass
+  - id: tool-does-not-leak-tenant-decision
+    status: pass
+  - id: fail-closed-scoring
+    status: pass
+  - id: isolation-from-execution-context
+    status: pass
+artifacts:
+  - path: evidence/deoracle-scan.json
+    sha256: 2ac951b6edd484acee65041e7d4ffd9db09868a97c1dfefdb0ff27f43da1ea5b
+  - path: evidence/observation/case.json
+    sha256: 1ca0631789fe1ea39a86b41ae2a066a73113675e4fde731dcc92bd4e554719ac
+  - path: evidence/observation/directory.json
+    sha256: fead4fead84306ecff73a10cb1abbe953b0c9ccb51a52770bfc152316b500fd5
+  - path: evidence/observation/authorization-policy.json
+    sha256: 34e49ff83d9c1445ba552e9a475f2c3591ee34e742b239df41194801d813e12d
+  - path: evidence/operational-results.json
+    sha256: 19a40fdeb328f564b30501e59014f3634e9f8e8191f28d33fcbb7669d17d0da7

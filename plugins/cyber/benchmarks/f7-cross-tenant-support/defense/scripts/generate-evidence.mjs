@@ -228,6 +228,9 @@ function generateConformance(capture) {
     note: 'Defense consumes the producer-native frozen corpus; every model-visible case + directory + baseline event reconstructs from the shared estate without synthesized facts.',
   };
   writeJson(path.join(evidenceDir, 'twin-conformance.json'), result);
+  // The producer's G4 "capture-accepted-by-consumer" check reads this same conformance result, so the
+  // consumer (sole twin-conformance author, like F4/F6) writes a copy into the offense evidence dir too.
+  writeJson(path.join(familyDir, 'offense', 'evidence', 'twin-conformance.json'), result);
   return result;
 }
 

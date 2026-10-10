@@ -1,0 +1,28 @@
+schema_version: 1
+gate: G2
+task_id: f7-support-offense
+commit: dfadcaf6be0dbd6c62c25ca1ddefc7f3b0900959
+checks:
+  - id: no-model-visible-marker
+    status: pass
+  - id: target-class-revealed-marker-hidden
+    status: pass
+  - id: ambiguity-is-a-join-not-a-visible-field
+    status: pass
+  - id: fail-closed-scoring
+    status: pass
+  - id: isolation-from-execution-context
+    status: pass
+artifacts:
+  - path: evidence/deoracle-scan.json
+    sha256: 4a5228072804e8843b513567375fb01350c39737eb62fc3d1b21ec8b3f9f85e4
+  - path: evidence/deoracle-structure.json
+    sha256: ed29526f081b1c977f6c14ea664855cf87395ebd30ce3709248776a6f411a7fc
+  - path: evidence/observation/case.json
+    sha256: faa02665a947eefcaf35e00cd44b75293ef4242184128309d5d374f0dd818743
+  - path: evidence/observation/directory.json
+    sha256: 9f07faf4881e0d247f8752436b44c6dd3bd7d571015316ffd0a9f774ba7cab1c
+  - path: evidence/observation/target-class.json
+    sha256: a708303b43762526e2d8cea51d97eadd7a8bc823ef8c108e08d784693b8033b6
+  - path: evidence/operational-results.json
+    sha256: ab6e5e71fbce1038b818dbc1090175dfde5730df49a13257bfc14d844997facc

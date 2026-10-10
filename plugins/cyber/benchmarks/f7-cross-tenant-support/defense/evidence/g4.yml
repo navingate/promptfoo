@@ -1,0 +1,19 @@
+schema_version: 1
+gate: G4
+task_id: f7-support-defense
+commit: dfadcaf6be0dbd6c62c25ca1ddefc7f3b0900959
+checks:
+  - id: telemetry-schema-valid
+    status: pass
+  - id: observable-actions-only-no-provenance
+    status: pass
+  - id: scored-against-producer-frozen-corpus
+    status: pass
+    detail: 240/240
+artifacts:
+  - path: evidence/capture/f7-support-corpus-v1.jsonl
+    sha256: 8f7c1456f044a216eff97f28d93e090cd4e01d83abe2fd30639def6048b2d8e4
+  - path: evidence/twin-conformance.json
+    sha256: 4ddc8957f8ee187f0909e9e92ba5f57f1d18337d3b6597525775efb48bf229f3
+  - path: evidence/deoracle-scan.json
+    sha256: 2ac951b6edd484acee65041e7d4ffd9db09868a97c1dfefdb0ff27f43da1ea5b
