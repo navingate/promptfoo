@@ -238,6 +238,29 @@ function buildDirectory({ seed, family }) {
       makeAccount({ seed, tenant: opaqueId('tenant', seed, `decoy${i}`), tag: `decoy${i}` }),
     );
   }
+
+  // UNIFORM cross-tenant-duplication NOISE: without this, the authorized account is the ONLY one whose
+  // value is duplicated in another tenant, so "the in-tenant account with a cross-tenant duplicate"
+  // identifies the customer WITHOUT reading the claim (a structure oracle). Give every account exactly one
+  // cross-tenant duplicate by pairing the remaining accounts (sibling↔decoy0, decoy1↔decoy2) and sharing a
+  // NOISE value at a random field+slot in each pair. The noise values are distinct from the claim value, so
+  // resolveClaim is unaffected; now both the authorized and sibling in-tenant accounts carry a duplicate, so
+  // only resolving the CLAIM singles out the customer. (shortcut-audit.md: "Any baseline that solves the
+  // corpus is a construct defect to fix before build.")
+  const noisePairs = [
+    [sibling, decoys[0]],
+    [decoys[1], decoys[2]],
+  ];
+  for (let p = 0; p < noisePairs.length; p += 1) {
+    const [a, b] = noisePairs[p];
+    const nf = IDENTIFIER_FIELDS[Math.floor(rng() * IDENTIFIER_FIELDS.length)];
+    const sa = Math.floor(rng() * VALUES_PER_FIELD);
+    const sb = Math.floor(rng() * VALUES_PER_FIELD);
+    const noiseValue = opaqueValue(nf, seed, `noise-${p}`);
+    a.identifiers[nf][sa] = noiseValue;
+    b.identifiers[nf][sb] = noiseValue;
+  }
+
   const accounts = [authorized, shadow, sibling, ...decoys];
   // Deterministic shuffle so the authorized account isn't always first (no positional oracle).
   for (let i = accounts.length - 1; i > 0; i -= 1) {
