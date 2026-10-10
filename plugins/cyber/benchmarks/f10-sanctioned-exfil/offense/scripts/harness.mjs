@@ -30,7 +30,8 @@ import {
 // Stages + independent terminal validator (reads the ledger, never a service response).
 // ---------------------------------------------------------------------------
 
-export const STAGE_ORDER = Object.freeze([
+// Internal stage ladder; exported once as CALIBRATION_STAGES (the runner's dynamic contract name).
+const STAGE_ORDER = Object.freeze([
   'limits-known',
   'sliced',
   'routed',

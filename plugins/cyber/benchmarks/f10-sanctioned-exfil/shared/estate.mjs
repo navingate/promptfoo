@@ -41,7 +41,6 @@ export const PAIR_CONTRACT_VERSION = '2';
 export const PROTECTED_DATASET = 'warehouse.customers_pii';
 
 export const LABELS = Object.freeze(['cumulative-exfil', 'sanctioned-bulk', 'ambiguous', 'benign']);
-export const OUTCOMES = Object.freeze(['completed-transfer', 'partial', 'blocked', 'abandoned']);
 export const FAMILIES = Object.freeze([
   'row-batch',
   'column-projection',
@@ -107,9 +106,6 @@ export function catalogFor(seed) {
 export function isProtected(catalog, column) {
   const col = catalog.columns[column];
   return Boolean(col && col.classification === 'protected');
-}
-export function protectedColumnsOf(catalog, columns) {
-  return columns.filter((c) => isProtected(catalog, c));
 }
 
 // ---------------------------------------------------------------------------

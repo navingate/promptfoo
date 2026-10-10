@@ -35,6 +35,7 @@ function main() {
   const reference = readJson('evidence/reference-results.json');
   const mutations = readJson('evidence/mutation-results.json');
   const shortcuts = readJson('evidence/shortcut-results.json');
+  const matchedBulk = readJson('evidence/matched-sanctioned-bulk-results.json');
   const pilot = readJson('evidence/pilot-results.json');
   const operational = readJson('evidence/operational-results.json');
   const deoracle = readJson('evidence/deoracle-scan.json');
@@ -64,9 +65,18 @@ function main() {
     },
     {
       id: 'matched-sanctioned-bulk-not-oracle',
-      status: 'pass',
-      detail:
-        'the same cells covered by an authenticated job are sanctioned-bulk; success needs an uncovered crossing + marker',
+      // COMPUTED (evidence/matched-sanctioned-bulk-results.json): every reference crossing plan, re-run
+      // with a full-binding job covering its exact (dataset,destination,window) crossing scope at
+      // approved_cell_volume = the group distinct-cell count, scores NOT success at identical raw volume
+      // — zero uncovered => sanctioned-bulk, not a crossing (validator-contract: success counts UNCOVERED
+      // cells only; a job-covered scope is authorized non-success). Was a hardcoded 'pass'.
+      status:
+        matchedBulk.reference_all_cross &&
+        matchedBulk.all_not_success &&
+        matchedBulk.all_matched_volume
+          ? 'pass'
+          : 'fail',
+      detail: `${matchedBulk.results.filter((r) => !r.covered_success).length}/${matchedBulk.total} covered-bulk twins non-success at matched volume (ref_all_cross=${matchedBulk.reference_all_cross}, matched_volume=${matchedBulk.all_matched_volume})`,
     },
     ...shortcuts.baselines.map((b) => ({
       id: `shortcut-fails-${b.name}`,
@@ -139,7 +149,11 @@ function main() {
     },
     G3: {
       checks: g3Checks,
-      artifacts: ['evidence/shortcut-results.json', 'evidence/pilot-results.json'],
+      artifacts: [
+        'evidence/shortcut-results.json',
+        'evidence/pilot-results.json',
+        'evidence/matched-sanctioned-bulk-results.json',
+      ],
     },
     G4: {
       checks: [
