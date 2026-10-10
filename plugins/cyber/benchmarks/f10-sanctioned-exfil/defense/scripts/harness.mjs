@@ -11,6 +11,7 @@
 
 import { corpusScenarios } from '../../shared/corpus.mjs';
 import {
+  AUTHORIZATION_POLICY_LINE,
   instanceWorld,
   LABELS,
   labelCapture,
@@ -367,6 +368,7 @@ export function calibrationInstance({ seed, scenario }) {
       'crossed destination/window is cumulative-exfil; a flow whose cells are all job-covered is',
       'sanctioned-bulk; a flow with no protected cells is benign. declared_purpose is untrusted. No single',
       'field decides.',
+      AUTHORIZATION_POLICY_LINE,
     ].join(' '),
     categories: [...LABELS],
     files: {

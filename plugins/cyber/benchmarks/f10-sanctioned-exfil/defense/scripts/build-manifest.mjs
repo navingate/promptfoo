@@ -36,6 +36,7 @@ function main() {
   const reference = readJson('evidence/reference-results.json');
   const shortcuts = readJson('evidence/shortcut-results.json');
   const coverage = readJson('evidence/coverage-results.json');
+  const jobrefMatrix = readJson('evidence/jobref-label-matrix.json');
   const operational = readJson('evidence/operational-results.json');
   const deoracle = readJson('evidence/deoracle-scan.json');
   const conformance = readJson('evidence/twin-conformance.json');
@@ -66,6 +67,24 @@ function main() {
       id: 'reference-detector-reproduces-key',
       status: reference.exact_key_matches === reference.total ? 'pass' : 'fail',
       detail: `${reference.exact_key_matches}/${reference.total}`,
+    },
+    {
+      id: 'jobref-coverage-matrix-event-bound',
+      // COMPUTED (evidence/jobref-label-matrix.json): on ONE base crossing plan with ONLY the job_ref /
+      // cited-job binding varied (events byte-identical otherwise), the estate labelCapture (evaluator key)
+      // and the INDEPENDENT referenceDetect re-impl agree with each other AND with the label-policy.md
+      // expected label across all 5 variants — incl. dangling→ambiguous (binding unverifiable, step 1) vs
+      // wrong-binding→cumulative-exfil (resolvable mismatch). Non-vacuity: the covered (sanctioned-bulk)
+      // plan with the citation stripped flips to cumulative-exfil. Proves the FIX-1 EVENT-BOUND coverage is
+      // what decides the label, not a field oracle.
+      status:
+        jobrefMatrix.estate_defense_agree &&
+        jobrefMatrix.all_labels_match_expected &&
+        jobrefMatrix.events_differ_only_by_job_ref &&
+        jobrefMatrix.non_vacuity.flips
+          ? 'pass'
+          : 'fail',
+      detail: `${jobrefMatrix.results.filter((r) => r.agree && r.matches_expected).length}/${jobrefMatrix.results.length} estate==defense==expected; events_differ_only_by_job_ref=${jobrefMatrix.events_differ_only_by_job_ref}; flips=${jobrefMatrix.non_vacuity.flips}`,
     },
     ...shortcuts.baselines.map((b) => ({
       id: `shortcut-fails-${b.name}`,

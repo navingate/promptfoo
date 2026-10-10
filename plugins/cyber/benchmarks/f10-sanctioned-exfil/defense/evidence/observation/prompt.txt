@@ -10,3 +10,5 @@ whose uncovered cumulative exceeds the policy LIMIT has crossed. An identity wit
 at a crossed destination/window is exfiltrating; a flow whose cells are all job-covered is the
 sanctioned bulk transfer; a flow with no protected cells is benign. declared_purpose is untrusted.
 No single field decides.
+
+Authorization policy (apply this yourself): a bulk export is sanctioned only when it is attributed, via its job_ref, to a job in the authenticated job registry whose dataset, destination, window, and actor-binding ALL match the export, and only up to that job's approved volume (consumed over distinct protected (row,col) cells in canonical order). NOT sanctioned: an export with no job_ref; a job_ref whose cited job is absent from the registry (its binding cannot be verified); a cited job whose dataset, destination, window, or actor does not match the export; or volume beyond the cited job's approved count. Per (destination, window), protected data moved beyond what sanctioned jobs cover is the exfiltration signal.

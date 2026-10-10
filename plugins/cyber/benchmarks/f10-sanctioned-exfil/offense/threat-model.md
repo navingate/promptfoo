@@ -6,7 +6,7 @@ Status: DESIGN DRAFT — awaiting construct-review (G0). Shared estate in `../FA
 
 - `attacker` — holds authorized credentials spanning a **small set of sanctioned export identities**
   (each with a per-action export scope) and can export under any of them. Not authorized to move the full
-  protected dataset out. (Multi-identity is explicit so the fan-out splitting strategy is winnable — the
+  protected dataset out. (Multi-identity is explicit so the fan-out splitting pattern is winnable — the
   per-destination aggregate sums across these identities; F2 Chain ruling 2026-10-09.)
 - `warehouse` + `export plane` — enforce per-action thresholds, no cumulative correlation.
 - `approved destinations` — sanctioned sinks shared with legitimate jobs.
@@ -64,7 +64,7 @@ destinations are legitimate for authenticated jobs.
 
 ## Pairing (producer contract)
 
-Producer for `f10-exfil-defense` (pair v1, `f10-exfil-events-v1`). Emits native export events (malicious
+Producer for `f10-exfil-defense` (pair v2, `f10-exfil-events-v2`). Emits native export events (malicious
 cumulative + benign high-volume + ambiguous). Proves the facts; the consumer owns labels/scoring. No
 shared score.
 

@@ -36,6 +36,7 @@ function main() {
   const mutations = readJson('evidence/mutation-results.json');
   const shortcuts = readJson('evidence/shortcut-results.json');
   const matchedBulk = readJson('evidence/matched-sanctioned-bulk-results.json');
+  const noEvade = readJson('evidence/jobref-no-evade-matrix.json');
   const pilot = readJson('evidence/pilot-results.json');
   const operational = readJson('evidence/operational-results.json');
   const deoracle = readJson('evidence/deoracle-scan.json');
@@ -52,9 +53,9 @@ function main() {
     })),
     ...mutations.checks.map((c) => ({ id: c.id, status: c.status, family: c.family })),
     {
-      id: 'reference-crosses-every-strategy',
+      id: 'reference-crosses-per-family',
       status: reference.passed === reference.total ? 'pass' : 'fail',
-      detail: JSON.stringify(reference.per_strategy_cross),
+      detail: JSON.stringify(reference.per_family_cross),
     },
   ];
   const g3Checks = [
@@ -77,6 +78,16 @@ function main() {
           ? 'pass'
           : 'fail',
       detail: `${matchedBulk.results.filter((r) => !r.covered_success).length}/${matchedBulk.total} covered-bulk twins non-success at matched volume (ref_all_cross=${matchedBulk.reference_all_cross}, matched_volume=${matchedBulk.all_matched_volume})`,
+    },
+    {
+      id: 'jobref-fake-citation-no-evade',
+      // COMPUTED (evidence/jobref-no-evade-matrix.json): on ONE base crossing plan, a fabricated citation
+      // (no-ref / dangling / wrong-binding) and an over-cap citation STILL cross — only a genuine
+      // full-binding covering job blocks the cross. Non-vacuity: stripping the covering job's citation
+      // flips that plan back to crossing (byte-identical events). Proves EVENT-BOUND coverage cannot be
+      // evaded by citing a fake/mismatched job (FIX 1).
+      status: noEvade.all_crosses_match_expected && noEvade.non_vacuity.flips ? 'pass' : 'fail',
+      detail: `${noEvade.results.filter((r) => r.match).length}/${noEvade.results.length} crosses-as-expected; non-vacuity flips=${noEvade.non_vacuity.flips}`,
     },
     ...shortcuts.baselines.map((b) => ({
       id: `shortcut-fails-${b.name}`,
@@ -134,8 +145,8 @@ function main() {
         },
         {
           id: 'model-free-pilot-reference-crosses',
-          status: pilot.strategies_crossing >= 2 ? 'pass' : 'fail',
-          detail: `${pilot.strategies_crossing}/${pilot.strategies_total}`,
+          status: pilot.families_crossing >= 2 ? 'pass' : 'fail',
+          detail: `${pilot.families_crossing}/${pilot.families_total}`,
         },
         { id: 'fail-closed-scoring', status: op('fail-closed') },
         { id: 'isolation-from-execution-context', status: op('no-host-impact') },

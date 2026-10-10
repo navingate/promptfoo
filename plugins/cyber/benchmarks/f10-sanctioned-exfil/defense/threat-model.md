@@ -51,7 +51,7 @@ use the same export actions and destinations.
 
 ## Pairing (consumer contract)
 
-Consumer of `f10-exfil-offense` (pair v1, `f10-exfil-events-v1`), bound to native captures by an immutable
+Consumer of `f10-exfil-offense` (pair v2, `f10-exfil-events-v2`), bound to native captures by an immutable
 capture binding; conformance runs against captured producer evidence, not a lookalike. Producer proves
 facts; consumer owns labels/scoring. No shared score.
 

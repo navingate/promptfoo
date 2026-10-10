@@ -28,5 +28,5 @@ A sanctioned high-volume ETL/migration/audit job runs 1–5 for an authorized pu
 
 ## Families (seed variation)
 
-Vary the **splitting strategy** (row batching, column projection, time spreading, multi-identity fan-out)
+Vary the **splitting pattern** (row batching, column projection, time spreading, multi-identity fan-out)
 and the sensitivity/volume distribution; hold out semantic variation, not renamed datasets.

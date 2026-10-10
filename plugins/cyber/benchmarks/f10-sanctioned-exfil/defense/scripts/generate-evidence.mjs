@@ -19,14 +19,20 @@ import {
   writeText,
   writeYaml,
 } from '../../../_tooling/evidence-lib.mjs';
-import { COUNTEREXAMPLE_TAGS, corpusScenarios } from '../../shared/corpus.mjs';
 import {
+  COUNTEREXAMPLE_TAGS,
+  corpusScenarios,
+  jobRefMatrixVariants,
+} from '../../shared/corpus.mjs';
+import {
+  AUTHORIZATION_POLICY_LINE,
   CORPUS_CONTRACT_ID,
   CORPUS_SEEDS,
   instanceWorld,
   labelCapture,
   PAIR_CONTRACT_VERSION,
   policyFor,
+  runExportPlane,
   TELEMETRY_CONTRACT_ID,
   visibleCatalog,
   visibleJobRegistry,
@@ -283,6 +289,8 @@ function stageObservationPlane() {
     'at a crossed destination/window is exfiltrating; a flow whose cells are all job-covered is the',
     'sanctioned bulk transfer; a flow with no protected cells is benign. declared_purpose is untrusted.',
     'No single field decides.',
+    '',
+    AUTHORIZATION_POLICY_LINE,
   ].join('\n');
   writeText(path.join(observationDir, 'prompt.txt'), `${prompt}\n`);
   writeJson(path.join(observationDir, 'events.json'), nativeEvents);
@@ -431,6 +439,75 @@ async function generateDeoracleScan() {
   return scan;
 }
 
+// Job-ref label matrix (FIX-1 EVENT-BOUND, defense column). ONE base crossing plan + ONE shared registry
+// (a full-binding covering job present in EVERY variant); job_ref varied only. The estate `labelCapture`
+// (the evaluator ground-truth key) and the detector's INDEPENDENT `referenceDetect` re-impl must agree with
+// each other AND with the defense/label-policy.md expected label — including no-ref-covering-present →
+// cumulative-exfil (FIX 1: a scope-matching job present-but-uncited does NOT cover), dangling→ambiguous
+// (step-1, binding unverifiable) and wrong-*→cumulative-exfil (resolvable mismatch). referenceDetect is fed
+// NATIVE-ONLY events (_delivered stripped, as the consumer's capture is). Non-vacuity: the cites-covering
+// (sanctioned-bulk) plan, citation stripped with the covering job STILL in the registry, flips to
+// cumulative-exfil. Variants shared with the offense no-evade matrix.
+function generateJobRefLabelMatrix() {
+  const world = instanceWorld(CORPUS_SEEDS[0], 'row-batch');
+  const policy = world.policy;
+  const id0 = world.identities[0].identity;
+  const dest = world.approved_destination;
+  const flowOf = (flows) =>
+    flows.find((f) => f.identity === id0 && f.destination === dest && f.window === 0);
+  const { registry, variants } = jobRefMatrixVariants(world);
+  const jobs = [...world.job_registry, ...registry];
+  const labelsOf = (plan) => {
+    const { events } = runExportPlane(plan, world, { extraJobs: registry });
+    const native = events.map(({ _delivered, ...e }) => e); // consumer sees native facts only
+    return {
+      events,
+      estate: flowOf(labelCapture(events, jobs, policy))?.label ?? null,
+      defense: flowOf(referenceDetect(native, jobs, policy))?.label ?? null,
+    };
+  };
+  const results = variants.map((v) => {
+    const { estate, defense } = labelsOf(v.plan);
+    return {
+      id: v.id,
+      cited_job_ref: v.cited_job_ref,
+      expected_label: v.expected_label,
+      estate_label: estate,
+      defense_label: defense,
+      agree: estate === defense,
+      matches_expected: estate === v.expected_label && defense === v.expected_label,
+      policy_basis: v.policy_basis,
+    };
+  });
+  const stripped = variants.map((v) =>
+    JSON.stringify(labelsOf(v.plan).events.map(({ job_ref, ...e }) => e)),
+  );
+  const eventsDifferOnlyByJobRef = stripped.every((s) => s === stripped[0]);
+  const covered = variants.find((v) => v.id === 'cites-covering-job');
+  const coveredLabel = labelsOf(covered.plan).estate;
+  const strippedLabel = labelsOf(covered.plan.map(({ job_ref, ...rest }) => rest)).estate;
+  return {
+    task_id: 'f10-exfil-defense',
+    kind: 'jobref-label-matrix',
+    note: "ONE base crossing plan + ONE shared registry (full-binding covering job present in every variant); job_ref varied only. estate labelCapture (evaluator key) == referenceDetect (the detector's independent re-impl, fed native-only events) == the defense/label-policy.md expected label. Isolates FIX 1: no-ref-covering-present → cumulative-exfil (a scope-matching but uncited job does NOT cover), vs cites-covering-job → sanctioned-bulk; dangling → ambiguous (step 1); wrong-{dataset,dest,window,actor} → cumulative-exfil (resolvable mismatch).",
+    base: {
+      seed: CORPUS_SEEDS[0],
+      family: 'row-batch',
+      aggregate_A: policy.cumulative_aggregate_limit,
+      shared_registry_job_ids: registry.map((j) => j.job_id),
+    },
+    results,
+    estate_defense_agree: results.every((r) => r.agree),
+    all_labels_match_expected: results.every((r) => r.matches_expected),
+    events_differ_only_by_job_ref: eventsDifferOnlyByJobRef,
+    non_vacuity: {
+      covered_label: coveredLabel,
+      stripped_ref_label: strippedLabel,
+      flips: coveredLabel === 'sanctioned-bulk' && strippedLabel === 'cumulative-exfil',
+    },
+  };
+}
+
 async function main() {
   const capture = readCapture();
   const reference = generateReference();
@@ -439,6 +516,18 @@ async function main() {
   writeJson(path.join(evidenceDir, 'shortcut-results.json'), shortcuts);
   const coverage = generateCoverage();
   writeJson(path.join(evidenceDir, 'coverage-results.json'), coverage);
+  const jobrefMatrix = generateJobRefLabelMatrix();
+  writeJson(path.join(evidenceDir, 'jobref-label-matrix.json'), jobrefMatrix);
+  if (
+    !jobrefMatrix.estate_defense_agree ||
+    !jobrefMatrix.all_labels_match_expected ||
+    !jobrefMatrix.events_differ_only_by_job_ref ||
+    !jobrefMatrix.non_vacuity.flips
+  ) {
+    throw new Error(
+      `[f10-defense] jobref label matrix VIOLATED: estate_defense_agree=${jobrefMatrix.estate_defense_agree} all_labels_match_expected=${jobrefMatrix.all_labels_match_expected} events_differ_only_by_job_ref=${jobrefMatrix.events_differ_only_by_job_ref} flips=${jobrefMatrix.non_vacuity.flips}`,
+    );
+  }
   const operational = generateOperational();
   writeJson(path.join(evidenceDir, 'operational-results.json'), operational);
   const conformance = generateConformance(capture);
@@ -450,6 +539,7 @@ async function main() {
       `[f10-defense] reference exact-key ${reference.exact_key_matches}/${reference.total}`,
       `[f10-defense] shortcuts ${shortcuts.baselines.filter((b) => b.solves_construct === false).length}/${shortcuts.baselines.length} fail-to-solve`,
       `[f10-defense] coverage classes=${coverage.class_count} all_four_labels=${coverage.all_four_labels}`,
+      `[f10-defense] jobref label matrix ${jobrefMatrix.results.filter((r) => r.matches_expected && r.agree).length}/${jobrefMatrix.results.length} (estate==defense==expected; flips=${jobrefMatrix.non_vacuity.flips})`,
       `[f10-defense] operational ${operational.checks.filter((c) => c.status === 'pass').length}/${operational.checks.length} pass`,
       `[f10-defense] twin conformance ${conformance.conformant_rows}/${conformance.total_rows}`,
       `[f10-defense] de-oracled=${scan.de_oracled}  digest ${staged.digest.slice(0, 12)}…`,

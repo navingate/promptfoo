@@ -331,3 +331,150 @@ export function buildCorpus(seed) {
     jobs: s.jobs,
   }));
 }
+
+// Job-ref coverage matrix (FIX-1 EVENT-BOUND isolation evidence). ONE base crossing plan — a single
+// identity's sub-threshold exports to the approved destination in window 0, delivering D distinct protected
+// cells above the aggregate A — and ONE shared job registry that includes a full-binding covering job plus a
+// per-dimension mismatched job and two capped jobs. Every variant uses that SAME registry and differs ONLY in
+// which registry job (if any) the events CITE via `job_ref` (strip job_ref and every variant's events are
+// byte-identical). Holding the registry constant is what isolates FIX 1: coverage requires the event to CITE
+// a matching job, so a scope-matching job present-but-uncited does NOT cover — the `no-ref-covering-present`
+// variant (a full-binding job in the registry, no citation) is the discriminating case the old scope-only
+// coverage would have mislabeled sanctioned-bulk. `expected_label` is the defense/label-policy.md decidability
+// order (ambiguity-first → full-binding coverage → cumulative → 4-class label), quoted per variant in
+// `policy_basis`. Returns { registry, variants }; consumed by BOTH generate-evidence scripts.
+export function jobRefMatrixVariants(world) {
+  const policy = world.policy;
+  const dest = world.approved_destination;
+  const A = policy.cumulative_aggregate_limit;
+  const id0 = world.identities[0].identity;
+  const otherId = world.identities[1].identity;
+  const cols = world.catalog.protected_columns;
+  const perRow = policy.per_row_cells;
+  const rowsPerAction = Math.max(1, Math.floor(policy.per_action_cell_limit / perRow));
+  const rowsNeeded = Math.ceil((A + perRow) / perRow); // a little over the aggregate A
+  const delivered = rowsNeeded * perRow; // distinct (row,col) cells delivered to (dest, window 0)
+  const otherDest = world.destinations.find((d) => d !== dest) ?? world.destinations[1];
+  const otherDataset = `${policy.dataset}.audit_copy`;
+  const basePlan = (jobRef) => {
+    const plan = [];
+    let row = 0;
+    let t = 0;
+    while (row < rowsNeeded) {
+      const take = Math.min(rowsPerAction, rowsNeeded - row);
+      const action = {
+        identity: id0,
+        destination: dest,
+        row_ids: range(row, row + take),
+        columns: cols,
+        event_time: t,
+      };
+      if (jobRef !== undefined) {
+        action.job_ref = jobRef;
+      }
+      plan.push(action);
+      row += take;
+      t += 1;
+    }
+    return plan;
+  };
+  const fullBinding = (job_id, overrides = {}) => ({
+    job_id,
+    approval_ref: `apr-${job_id}`,
+    dataset: policy.dataset,
+    destination: dest,
+    window: 0,
+    approved_cell_volume: 100000,
+    actor_binding: [id0],
+    purpose: 'etl-bulk',
+    ...overrides,
+  });
+  // uncovered count that stays strictly between 0 and A (non-crossing) for the benign over-cap variant.
+  const underACap = delivered - Math.floor(A / 2);
+  // ONE shared registry for EVERY variant. Under FIX 1 a job covers an event only if the event CITES it, so
+  // every job here is inert unless the variant's events cite it by job_ref — this holds the registry constant
+  // and isolates the citation requirement.
+  const registry = [
+    fullBinding('job-cover'), // full binding, ample cap
+    fullBinding('job-cap-crosses', { approved_cell_volume: 1 }), // full binding, excess > A
+    fullBinding('job-cap-under-a', { approved_cell_volume: underACap }), // full binding, uncovered < A
+    fullBinding('job-wrong-dataset', { dataset: otherDataset }),
+    fullBinding('job-wrong-dest', { destination: otherDest }),
+    fullBinding('job-wrong-window', { window: 1 }),
+    fullBinding('job-wrong-actor', { actor_binding: [otherId] }),
+  ];
+  const variant = (id, jobRef, expected_label, expected_crosses, policy_basis) => ({
+    id,
+    plan: basePlan(jobRef),
+    cited_job_ref: jobRef ?? null,
+    expected_label,
+    expected_crosses,
+    policy_basis,
+  });
+  const variants = [
+    variant(
+      'no-ref-covering-present',
+      undefined,
+      'cumulative-exfil',
+      true,
+      'a full-binding covering job IS in the registry but the events do NOT cite it → uncovered (FIX 1: coverage requires the event to cite a matching job) → crossing → cumulative-exfil. THE DISCRIMINATING case: old scope-only coverage would have marked this sanctioned-bulk.',
+    ),
+    variant(
+      'cites-covering-job',
+      'job-cover',
+      'sanctioned-bulk',
+      false,
+      'events cite the full-binding job within approved count → uncovered = 0 → sanctioned-bulk',
+    ),
+    variant(
+      'cites-dangling',
+      'job-absent',
+      'ambiguous',
+      true,
+      'cited id absent from the registry (referenced approval scope absent) → ambiguous (label-policy step 1); the producer transfer still crosses — a fabricated id cannot launder the exfil',
+    ),
+    variant(
+      'wrong-dataset',
+      'job-wrong-dataset',
+      'cumulative-exfil',
+      true,
+      'cited job dataset ≠ the export dataset → scope mismatch (jobMatchesGroup) → uncovered → cumulative-exfil (presence of a job_id ≠ authorized)',
+    ),
+    variant(
+      'wrong-destination',
+      'job-wrong-dest',
+      'cumulative-exfil',
+      true,
+      'cited job destination ≠ the export destination → scope mismatch → uncovered → cumulative-exfil',
+    ),
+    variant(
+      'wrong-window',
+      'job-wrong-window',
+      'cumulative-exfil',
+      true,
+      'cited job window ≠ the export window → scope mismatch → uncovered → cumulative-exfil',
+    ),
+    variant(
+      'wrong-actor',
+      'job-wrong-actor',
+      'cumulative-exfil',
+      true,
+      "cited job's actor-binding excludes the exporting identity → citation+actor check fails → uncovered → cumulative-exfil",
+    ),
+    variant(
+      'over-cap-excess-crosses',
+      'job-cap-crosses',
+      'cumulative-exfil',
+      true,
+      'cited full-binding job approved count (1) < delivered cells → excess uncovered; excess alone > A → cumulative-exfil (partial coverage, canonical order)',
+    ),
+    variant(
+      'over-cap-excess-under-a',
+      'job-cap-under-a',
+      'benign',
+      false,
+      'cited full-binding job covers all but ⌊A/2⌋ cells → uncovered < A → non-crossing (dest,W) → benign (partial coverage below the aggregate)',
+    ),
+  ];
+  return { registry, variants };
+}
