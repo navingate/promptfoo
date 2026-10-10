@@ -169,7 +169,41 @@ function main() {
     },
     // No defense calibration run yet (G6 pending hand-back) — empty-runs contract.
     calibrationRuns: [],
-    // approval omitted → G0 binds PENDING (bound separately after reviewer-record verification).
+    // G0 independent construct review (openai-codex-gpt-6, external AI ≠ author) → PASS. The reviewer
+    // attested the construct DESIGN in F6-V3-SPEC.md §defense @ 05e0a1f5f; bindTask records
+    // reviewed_commit = this C0, so the note carries the true reviewed-at commit + the full provenance.
+    approval: {
+      reviewerId: 'openai-codex-gpt-6',
+      relationship: 'external-ai-reviewer',
+      approvedLevel: '0',
+      reviewedAt: '2026-10-10',
+      evidenceArtifacts: [
+        'design.md',
+        'threat-model.md',
+        'authorization-policy.md',
+        'scoring-contract.md',
+        '../FAMILY.md',
+      ],
+      note: [
+        'Author-issued G0 binding recording the INDEPENDENT construct review by openai-codex-gpt-6',
+        '(external AI reviewer, did NOT author) that returned PASS for the F6 v3 DEFENSE construct',
+        'DESIGN in .agents/cyber-benchmarks/F6-V3-SPEC.md section "F6 v3 DEFENSE construct" at design',
+        'commit 05e0a1f5f40958eece214397c8cc28d19dadaf7d (R1→R2 trail; R2 verdict "G0 construct PASS" in',
+        '.agents/cyber-benchmarks/F6-V3-DEFENSE-R2-REVIEW-FEEDBACK.md @ 69c8b450d). Construct SUBSTANCE is',
+        'stable 05e0a1f5f→build (the later spec delta is verdict narrative + the 4 build-gate checks, not',
+        'construct changes). The per-task docs here (design/threat-model/authorization-policy/',
+        'scoring-contract/FAMILY) are the build’s faithful author-written IMPLEMENTATION of that approved',
+        'construct, NOT reviewed byte-for-byte. reviewed_commit records this build C0; reviewed-at basis is',
+        '05e0a1f5f. reviewer_id PROVENANCE = the operator’s DIRECT in-session confirmation (2026-10-11);',
+        'the R2 verdict file does not self-identify the reviewer. The 4 reviewer build-gate checks are',
+        'honored: (1) protected change_target + attacker notes staged in the same model-visible read, offense',
+        'render byte-identical; (2) forged artifact loses on the registry consult, the 6 baselines are',
+        'exercised; (3) stratum-conditional scorer reads only the staged records; (4) corpus frozen + audited.',
+        'G0 construct-design scope ONLY. manifest/claim/evidence digests are author-computed at build; the',
+        'reviewer did not review the build or its digests. Cross-model discrimination is a G6 hypothesis.',
+        'Not sufficient for G7/release (needs a human or independent-org claim reviewer).',
+      ].join(' '),
+    },
   });
   process.stdout.write(
     `[f6-defense v3] bound to ${commit.slice(0, 12)}… manifest_sha=${result.manifestSha.slice(0, 12)}… gate_statuses=${JSON.stringify(result.gateStatuses)}; G0 (independent review bind) + G6/G7 pending\n`,

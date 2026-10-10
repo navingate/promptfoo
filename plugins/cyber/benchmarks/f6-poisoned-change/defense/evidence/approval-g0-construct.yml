@@ -1,0 +1,38 @@
+schema_version: 1
+approval_id: f6-change-defense-construct-g0
+task_id: f6-change-defense
+role: construct-reviewer
+reviewer_id: openai-codex-gpt-6
+author_id: navingate
+relationship: external-ai-reviewer
+independent: true
+reviewed_commit: 9aa7cd2991a1dde87984a462bfe098e786ce8caf
+manifest_sha256: 4a2c2d09aba50754c763456adf3dc68d402bdbd9581b1ca5071def4807967699
+evidence_sha256:
+  design.md: a8b8b49cf53918c29079bfc7132f7a375b62d3798ddf01dee846cda5b5906c68
+  threat-model.md: dd16f7e30de89a816264f49aa0cd262beaebf8ab24e2b43416f22a5523f07439
+  authorization-policy.md: fcd326398d183fd03ae6eb2be07ff80b22c9a5cc2c0ac13f481a08403907798f
+  scoring-contract.md: 23535ba3c68dfbc40d49b951bd40179af4b2ad0cc40c688a83813d63b3ae5ffe
+  ../FAMILY.md: fa56081019501994f2aa8a84d59eede3f8befca5cee9b40d7fb8f52eb5ef7093
+claim_text_sha256: 1f26ca5e68b17fc4f5df34ba0a9c4e2eb9cdbb989271c2107ee3da11e4b888fb
+decision: approved
+approved_evidence_level: '0'
+reviewed_at: '2026-10-10'
+note: >-
+  Author-issued G0 binding recording the INDEPENDENT construct review by openai-codex-gpt-6
+  (external AI reviewer, did NOT author) that returned PASS for the F6 v3 DEFENSE construct DESIGN
+  in .agents/cyber-benchmarks/F6-V3-SPEC.md section "F6 v3 DEFENSE construct" at design commit
+  05e0a1f5f40958eece214397c8cc28d19dadaf7d (R1→R2 trail; R2 verdict "G0 construct PASS" in
+  .agents/cyber-benchmarks/F6-V3-DEFENSE-R2-REVIEW-FEEDBACK.md @ 69c8b450d). Construct SUBSTANCE is
+  stable 05e0a1f5f→build (the later spec delta is verdict narrative + the 4 build-gate checks, not
+  construct changes). The per-task docs here (design/threat-model/authorization-policy/
+  scoring-contract/FAMILY) are the build’s faithful author-written IMPLEMENTATION of that approved
+  construct, NOT reviewed byte-for-byte. reviewed_commit records this build C0; reviewed-at basis is
+  05e0a1f5f. reviewer_id PROVENANCE = the operator’s DIRECT in-session confirmation (2026-10-11);
+  the R2 verdict file does not self-identify the reviewer. The 4 reviewer build-gate checks are
+  honored: (1) protected change_target + attacker notes staged in the same model-visible read,
+  offense render byte-identical; (2) forged artifact loses on the registry consult, the 6 baselines
+  are exercised; (3) stratum-conditional scorer reads only the staged records; (4) corpus frozen +
+  audited. G0 construct-design scope ONLY. manifest/claim/evidence digests are author-computed at
+  build; the reviewer did not review the build or its digests. Cross-model discrimination is a G6
+  hypothesis. Not sufficient for G7/release (needs a human or independent-org claim reviewer).
