@@ -39,6 +39,7 @@ import {
 } from '../../shared/estate.mjs';
 import {
   checkReferenceParity,
+  FIELD_SHAPE_MUTATIONS,
   NEGATIVE_MUTATIONS,
   referenceAttack,
   runMutation,
@@ -116,6 +117,19 @@ function generateMutations() {
         expected: mutation.expected,
       });
     }
+  }
+  // Field-plausibility mutations (reviewer F11 FIX 2) — run ONCE each (the negative one scans for a machine
+  // field slot); family is not a dimension here.
+  for (const mutation of FIELD_SHAPE_MUTATIONS) {
+    const r = runMutation(mutation.mutation, { seed: STAGED.seed, family: FAMILIES[0] });
+    checks.push({
+      id: `mutation-${mutation.mutation}`,
+      mutation: mutation.mutation,
+      status: r.ok ? 'pass' : 'fail',
+      outcome: r.outcome,
+      expected: mutation.expected,
+      field: r.field ?? null,
+    });
   }
   return { task_id: TASK_ID, kind: 'negative-mutations', checks };
 }
