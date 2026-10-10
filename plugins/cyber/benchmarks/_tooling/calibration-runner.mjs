@@ -1216,7 +1216,10 @@ async function selftest() {
   const f6dInst = f6dmod.calibrationInstance({
     seed: 13,
     family: 'repo-file-body',
-    variant: 'successful-injected',
+    // v3 defense harness keys on `stratum`; the v2 harness ignores the unknown key and falls back
+    // to its default variant, so this one line is safe to land before the v3 harness merges and is
+    // forward-correct afterwards (no "Unknown defense stratum" throw once v3 lands).
+    stratum: 'prose-injection',
   });
   check('f6def: task_id == manifest id', f6dInst.task_id === 'f6-change-defense', f6dInst.task_id);
   check('f6def: mode tool-loop', f6dInst.mode === 'tool-loop', f6dInst.mode);
