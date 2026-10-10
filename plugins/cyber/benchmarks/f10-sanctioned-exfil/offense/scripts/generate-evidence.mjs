@@ -24,6 +24,7 @@ import {
 import { buildCorpus, COUNTEREXAMPLE_TAGS } from '../../shared/corpus.mjs';
 import {
   CORPUS_SEEDS,
+  citePlan,
   FAMILIES,
   instanceWorld,
   markerFor,
@@ -142,7 +143,8 @@ function generateMatchedSanctionedBulk() {
       actor_binding: [...new Set([...g.cellMap.values()].flatMap((c) => [...c.identities]))],
       purpose: 'authorized-bulk-migration',
     }));
-    const covered = runExportPlane(plan, world, { extraJobs });
+    // EVENT-BOUND: the covered twin must CITE the covering jobs (job_ref), else the same cells stay uncovered.
+    const covered = runExportPlane(citePlan(plan, extraJobs, world.policy), world, { extraJobs });
     results.push({
       seed: spec.seed,
       family: spec.family,

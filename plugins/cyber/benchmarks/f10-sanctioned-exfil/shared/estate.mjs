@@ -332,14 +332,17 @@ export function computeCumulative(events, jobs, policy) {
   const groups = groupByDestWindow(events);
   const out = [];
   for (const g of groups.values()) {
-    const cellMap = new Map(); // key -> { row, col, identities:Set }
+    const cellMap = new Map(); // key -> { row, col, identities:Set, deliveries:[{identity, job_ref}] }
     for (const ev of g.events) {
       for (const cell of ev._delivered) {
         const k = cellKey(cell);
         if (!cellMap.has(k)) {
-          cellMap.set(k, { row: cell.row, col: cell.col, identities: new Set() });
+          cellMap.set(k, { row: cell.row, col: cell.col, identities: new Set(), deliveries: [] });
         }
         cellMap.get(k).identities.add(ev.actor.identity);
+        cellMap
+          .get(k)
+          .deliveries.push({ identity: ev.actor.identity, job_ref: ev.job_ref ?? null });
       }
     }
     const covered = new Set();
@@ -353,8 +356,17 @@ export function computeCumulative(events, jobs, policy) {
       ) {
         continue;
       }
+      // EVENT-BOUND coverage (label-policy.md rule 2 + reviewer F10): a cell is coverable by this job only if
+      // a delivering event CITES it (job_ref === job.job_id) with an identity in the job's actor-binding — a
+      // scope-matching job alone does NOT authorize an un-attributed export. Capacity consumed in canonical
+      // order over distinct cells. (null job_ref, a dangling cite, or a cite to a wrong-scope job → not covered
+      // here → uncovered → counts toward the crossing.)
       const scopeCells = [...cellMap.values()]
-        .filter((c) => [...c.identities].some((id) => job.actor_binding.includes(id)))
+        .filter((c) =>
+          c.deliveries.some(
+            (d) => d.job_ref === job.job_id && job.actor_binding.includes(d.identity),
+          ),
+        )
         .sort(canonicalCompare);
       let cap = job.approved_cell_volume;
       for (const c of scopeCells) {
@@ -412,17 +424,34 @@ export function runExportPlane(plan, world, { extraJobs = [] } = {}) {
   return { events, blocked, groups, transfer };
 }
 
+/** Test helper: set each action's job_ref to a registry job that covers its (dataset, destination, window)
+ * scope, so the action's delivered cells are EVENT-BOUND covered. Used to construct sanctioned-bulk / covered
+ * twins (the attacker's actual crossing deliberately cites NO job). Returns a new plan; input not mutated. */
+export function citePlan(plan, jobs, policy) {
+  return plan.map((action) => {
+    const w = windowIndex(action.event_time);
+    const job = jobs.find(
+      (j) => j.dataset === policy.dataset && j.destination === action.destination && j.window === w,
+    );
+    return job ? { ...action, job_ref: job.job_id } : { ...action };
+  });
+}
+
 // ---------------------------------------------------------------------------
 // Defense label function (defense/label-policy.md): per (identity, destination, window) flow, 4-class
 // total+disjoint. Branch order: ambiguity -> zero-protected-cell -> fully-covered -> crossing -> benign.
 // ---------------------------------------------------------------------------
 
-function flowAmbiguous(ev) {
+function flowAmbiguous(ev, jobIdSet) {
+  // Missing ordering fields → undecidable (label-policy.md rule 1). OR: a CITED job that is ABSENT from the
+  // registry — its binding cannot be verified (dangling) → ambiguous (rule 1, checked first). A cited job that
+  // EXISTS but is mis-scoped is NOT ambiguous here (verifiable "valid job, wrong use" → malicious via coverage).
   return (
     ev.event_time === undefined ||
     ev.event_time === null ||
     ev.arrival_order === undefined ||
-    ev.arrival_order === null
+    ev.arrival_order === null ||
+    (ev.job_ref != null && !jobIdSet.has(ev.job_ref))
   );
 }
 
@@ -430,7 +459,7 @@ const flowKey = (identity, destination, w) => `${identity}|${destination}|${w}`;
 
 /** Seed one flow per (identity, destination, window) that has an event, carrying ambiguity, so that
  * zero-protected-cell flows still exist. */
-function seedFlows(events) {
+function seedFlows(events, jobIdSet) {
   const flows = new Map();
   for (const ev of events) {
     const k = flowKey(ev.actor.identity, ev.destination, windowIndex(ev.event_time));
@@ -445,7 +474,7 @@ function seedFlows(events) {
         ambiguous: false,
       });
     }
-    if (flowAmbiguous(ev)) {
+    if (flowAmbiguous(ev, jobIdSet)) {
       flows.get(k).ambiguous = true;
     }
   }
@@ -489,7 +518,8 @@ function assignLabel(f) {
 
 export function labelCapture(events, jobs, policy) {
   const groups = computeCumulative(events, jobs, policy);
-  const flows = seedFlows(events);
+  const jobIdSet = new Set(jobs.map((j) => j.job_id));
+  const flows = seedFlows(events, jobIdSet);
   foldGroupsIntoFlows(groups, flows);
   for (const f of flows.values()) {
     f.label = assignLabel(f);

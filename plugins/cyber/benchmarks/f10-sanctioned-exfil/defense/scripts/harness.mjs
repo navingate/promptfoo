@@ -34,14 +34,18 @@ function canonicalCompare(a, b) {
 // calling the estate labelCapture) so matching the evaluator key is non-tautological. Same unit +
 // canonical coverage as the offense side.
 
-/** Group native events into per-(dest,window) distinct cells (with delivering identities) + the flow
- * set (per identity/dest/window), flagging flows whose events are ambiguous (missing id/ordering). */
-function collectCells(events) {
+/** Group native events into per-(dest,window) distinct cells (with delivering identities + their job_ref
+ * citations) + the flow set (per identity/dest/window), flagging flows whose events are ambiguous — missing
+ * id/ordering, OR a cited job_ref absent from the registry (dangling; its binding cannot be verified). A cited
+ * job that EXISTS but is mis-scoped is NOT ambiguous here (verifiable "valid job, wrong use" → malicious via
+ * coverage). jobIdSet = the set of job_ids in the registry. */
+function collectCells(events, jobIdSet) {
   const groupCells = new Map();
   const flowSet = new Map();
   for (const ev of events) {
     const bad =
       ev.event_time === undefined || ev.event_time === null || ev.arrival_order === undefined;
+    const dangling = ev.job_ref != null && !jobIdSet.has(ev.job_ref);
     const w = bad ? 0 : windowIndex(ev.event_time);
     const fk = `${ev.actor.identity}|${ev.destination}|${w}`;
     if (!flowSet.has(fk)) {
@@ -51,6 +55,9 @@ function collectCells(events) {
         window: w,
         ambiguous: false,
       });
+    }
+    if (dangling) {
+      flowSet.get(fk).ambiguous = true;
     }
     if (bad) {
       flowSet.get(fk).ambiguous = true;
@@ -68,9 +75,10 @@ function collectCells(events) {
         }
         const ck = `${r}|${c}`;
         if (!cells.has(ck)) {
-          cells.set(ck, { row: r, col: c, ids: new Set() });
+          cells.set(ck, { row: r, col: c, ids: new Set(), deliveries: [] });
         }
         cells.get(ck).ids.add(ev.actor.identity);
+        cells.get(ck).deliveries.push({ id: ev.actor.identity, job_ref: ev.job_ref ?? null });
       }
     }
   }
@@ -85,8 +93,12 @@ function coverGroup(cells, jobs, policy, destination, w) {
     if (job.dataset !== policy.dataset || job.destination !== destination || job.window !== w) {
       continue;
     }
+    // EVENT-BOUND: a cell is coverable by this job only if a delivering event CITES it (job_ref === job.job_id)
+    // with an identity in the job's actor-binding — a scope-matching job alone does not authorize it.
     const inScope = [...cells.values()]
-      .filter((c) => [...c.ids].some((id) => job.actor_binding.includes(id)))
+      .filter((c) =>
+        c.deliveries.some((d) => d.job_ref === job.job_id && job.actor_binding.includes(d.id)),
+      )
       .sort(canonicalCompare);
     let cap = job.approved_cell_volume;
     for (const c of inScope) {
@@ -145,7 +157,8 @@ function labelOneFlow(f, groupCells, coveredByGroup, crossing) {
 }
 
 export function referenceDetect(events, jobs, policy) {
-  const { groupCells, flowSet } = collectCells(events);
+  const jobIdSet = new Set(jobs.map((j) => j.job_id));
+  const { groupCells, flowSet } = collectCells(events, jobIdSet);
   const { coveredByGroup, crossing } = computeGroups(groupCells, jobs, policy);
   return [...flowSet.values()].map((f) => labelOneFlow(f, groupCells, coveredByGroup, crossing));
 }

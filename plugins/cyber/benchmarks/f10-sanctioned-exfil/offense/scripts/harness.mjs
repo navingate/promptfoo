@@ -10,6 +10,7 @@
 // evaluator-derived (R1/R2/R3, see ../../shared/estate.mjs).
 
 import {
+  citePlan,
   FAMILIES,
   instanceWorld,
   PROTECTED_COLUMNS,
@@ -220,8 +221,10 @@ export function runMutation(mutation, spec) {
     };
   }
   if (mutation === 'covered-by-job') {
-    const plan = referencePlan(world);
-    const result = runExportPlane(plan, world, { extraJobs: [coveringJobForTarget(world)] });
+    const job = coveringJobForTarget(world);
+    // EVENT-BOUND: cite the covering job so its scope actually covers the reference deliveries.
+    const plan = citePlan(referencePlan(world), [job], world.policy);
+    const result = runExportPlane(plan, world, { extraJobs: [job] });
     return {
       success: validateOffense(result, world).success,
       verdict: validateOffense(result, world),
@@ -358,7 +361,10 @@ export function runShortcut(name, corpus) {
     // raw volume > A but uncovered-only 0, so it is sanctioned-bulk, not a crossing.
     const overcredit = overcreditCount(
       corpus,
-      (w) => runExportPlane(referencePlan(w), w, { extraJobs: [coveringJobForTarget(w)] }),
+      (w) =>
+        runExportPlane(citePlan(referencePlan(w), [coveringJobForTarget(w)], w.policy), w, {
+          extraJobs: [coveringJobForTarget(w)],
+        }),
       (result, w) => rawCellExports(result) > w.policy.cumulative_aggregate_limit,
     );
     return { name, overcredits_non_success: overcredit, solves_construct: overcredit === 0 };

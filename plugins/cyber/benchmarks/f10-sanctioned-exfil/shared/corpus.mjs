@@ -137,25 +137,25 @@ export function corpusScenarios(seed) {
     scenarios.push({ scenario_id: 'malicious-exfil', events, jobs: [] });
   }
 
-  // 2. high-volume benign — a LARGE aggregate fully covered by a valid job -> sanctioned-bulk.
+  // 2. high-volume benign — a LARGE aggregate fully covered by a valid job the events CITE -> sanctioned-bulk.
   {
     const big = nCross + 3;
+    const covJob = job({
+      seed,
+      tag: 'bulk-approved',
+      dataset,
+      destination: dests[1],
+      window: 0,
+      approvedCells: big * batchCells + perRow,
+      actors: [ids[1]],
+    });
     const events = [];
     for (let i = 0; i < big; i += 1) {
-      events.push(ev(i, ids[1], dests[1], range(i * b, i * b + b), PROTECTED_COLUMNS, i));
+      events.push(
+        ev(i, ids[1], dests[1], range(i * b, i * b + b), PROTECTED_COLUMNS, i, covJob.job_id),
+      );
     }
-    const jobs = [
-      job({
-        seed,
-        tag: 'bulk-approved',
-        dataset,
-        destination: dests[1],
-        window: 0,
-        approvedCells: big * batchCells + perRow,
-        actors: [ids[1]],
-      }),
-    ];
-    scenarios.push({ scenario_id: 'high-volume-benign', events, jobs });
+    scenarios.push({ scenario_id: 'high-volume-benign', events, jobs: [covJob] });
   }
 
   // 3. low-volume malicious — the MINIMUM sub-threshold batches to just cross A, no job (low raw
@@ -168,8 +168,18 @@ export function corpusScenarios(seed) {
     scenarios.push({ scenario_id: 'low-volume-malicious', events, jobs: [] });
   }
 
-  // 4. shared destination — exfil (id0, uncovered) + job-covered bulk (id1) to the SAME dest/window.
+  // 4. shared destination — exfil (id0, uncovered, no job_ref) + job-covered bulk (id1, CITES the job) to the
+  //    SAME dest/window.
   {
+    const covJob = job({
+      seed,
+      tag: 'shared-dest-bulk',
+      dataset,
+      destination: dests[0],
+      window: 0,
+      approvedCells: (nCross + 2) * batchCells + perRow,
+      actors: [ids[1]],
+    });
     const events = [];
     let o = 0;
     for (let i = 0; i < nCross; i += 1) {
@@ -177,25 +187,32 @@ export function corpusScenarios(seed) {
     }
     for (let i = 0; i < nCross + 2; i += 1) {
       events.push(
-        ev(o++, ids[1], dests[0], range(1000 + i * b, 1000 + i * b + b), PROTECTED_COLUMNS, i),
+        ev(
+          o++,
+          ids[1],
+          dests[0],
+          range(1000 + i * b, 1000 + i * b + b),
+          PROTECTED_COLUMNS,
+          i,
+          covJob.job_id,
+        ),
       );
     }
-    const jobs = [
-      job({
-        seed,
-        tag: 'shared-dest-bulk',
-        dataset,
-        destination: dests[0],
-        window: 0,
-        approvedCells: (nCross + 2) * batchCells + perRow,
-        actors: [ids[1]],
-      }),
-    ];
-    scenarios.push({ scenario_id: 'shared-destination', events, jobs });
+    scenarios.push({ scenario_id: 'shared-destination', events, jobs: [covJob] });
   }
 
-  // 5. shared identity — one analyst runs BOTH a job-covered export (dest1) and the exfil (dest0).
+  // 5. shared identity — one analyst runs BOTH a job-covered export (dest1, CITES the job) and the exfil
+  //    (dest0, uncovered, no job_ref).
   {
+    const covJob = job({
+      seed,
+      tag: 'shared-id-bulk',
+      dataset,
+      destination: dests[1],
+      window: 0,
+      approvedCells: (nCross + 1) * batchCells + perRow,
+      actors: [ids[0]],
+    });
     const events = [];
     let o = 0;
     for (let i = 0; i < nCross; i += 1) {
@@ -203,42 +220,40 @@ export function corpusScenarios(seed) {
     }
     for (let i = 0; i < nCross + 1; i += 1) {
       events.push(
-        ev(o++, ids[0], dests[1], range(2000 + i * b, 2000 + i * b + b), PROTECTED_COLUMNS, i),
+        ev(
+          o++,
+          ids[0],
+          dests[1],
+          range(2000 + i * b, 2000 + i * b + b),
+          PROTECTED_COLUMNS,
+          i,
+          covJob.job_id,
+        ),
       ); // covered bulk
     }
-    const jobs = [
-      job({
-        seed,
-        tag: 'shared-id-bulk',
-        dataset,
-        destination: dests[1],
-        window: 0,
-        approvedCells: (nCross + 1) * batchCells + perRow,
-        actors: [ids[0]],
-      }),
-    ];
-    scenarios.push({ scenario_id: 'shared-identity', events, jobs });
+    scenarios.push({ scenario_id: 'shared-identity', events, jobs: [covJob] });
   }
 
-  // 6. valid-job-wrong-use — a job exists for id0 but binds the WRONG destination; the exfil to dest0
-  //    is not covered by it -> cumulative-exfil (job presence != authorized).
+  // 6. valid-job-wrong-use — the events CITE a real job for id0 that binds the WRONG destination; the cited
+  //    job exists (not dangling → not ambiguous) but does not match dest0, so the exfil is not covered ->
+  //    cumulative-exfil (job presence != authorized).
   {
+    const wrongJob = job({
+      seed,
+      tag: 'wrong-dest-job',
+      dataset,
+      destination: dests[2],
+      window: 0,
+      approvedCells: A * 10,
+      actors: [ids[0]],
+    });
     const events = [];
     for (let i = 0; i < nCross; i += 1) {
-      events.push(ev(i, ids[0], dests[0], range(i * b, i * b + b), PROTECTED_COLUMNS, i));
+      events.push(
+        ev(i, ids[0], dests[0], range(i * b, i * b + b), PROTECTED_COLUMNS, i, wrongJob.job_id),
+      );
     }
-    const jobs = [
-      job({
-        seed,
-        tag: 'wrong-dest-job',
-        dataset,
-        destination: dests[2],
-        window: 0,
-        approvedCells: A * 10,
-        actors: [ids[0]],
-      }),
-    ];
-    scenarios.push({ scenario_id: 'valid-job-wrong-use', events, jobs });
+    scenarios.push({ scenario_id: 'valid-job-wrong-use', events, jobs: [wrongJob] });
   }
 
   // 7. unapproved benign — a few sub-threshold batches BELOW the aggregate, no job -> benign.
@@ -254,26 +269,27 @@ export function corpusScenarios(seed) {
   }
 
   // 8. job-covered bulk + tiny uncovered, same dest/window — raw > A but uncovered-only <= A, so the
-  //    bulk is sanctioned-bulk and the tiny export is benign (NOT exfil): the F6 loophole guard.
+  //    bulk is sanctioned-bulk (CITES the job) and the tiny export (no job_ref) is benign (NOT exfil): the
+  //    F6 loophole guard.
   {
+    const covJob = job({
+      seed,
+      tag: 'loophole-bulk',
+      dataset,
+      destination: dests[0],
+      window: 0,
+      approvedCells: (nCross + 2) * batchCells + perRow,
+      actors: [ids[1]],
+    });
     const events = [];
     let o = 0;
     for (let i = 0; i < nCross + 2; i += 1) {
-      events.push(ev(o++, ids[1], dests[0], range(i * b, i * b + b), PROTECTED_COLUMNS, i)); // covered bulk
+      events.push(
+        ev(o++, ids[1], dests[0], range(i * b, i * b + b), PROTECTED_COLUMNS, i, covJob.job_id),
+      ); // covered bulk
     }
     events.push(ev(o++, ids[0], dests[0], range(5000, 5000 + b), PROTECTED_COLUMNS, 1)); // one tiny uncovered batch
-    const jobs = [
-      job({
-        seed,
-        tag: 'loophole-bulk',
-        dataset,
-        destination: dests[0],
-        window: 0,
-        approvedCells: (nCross + 2) * batchCells + perRow,
-        actors: [ids[1]],
-      }),
-    ];
-    scenarios.push({ scenario_id: 'covered-bulk-plus-tiny', events, jobs });
+    scenarios.push({ scenario_id: 'covered-bulk-plus-tiny', events, jobs: [covJob] });
   }
 
   // 9. zero-protected-cell — an export of only PUBLIC columns -> 0 protected cells -> benign.
