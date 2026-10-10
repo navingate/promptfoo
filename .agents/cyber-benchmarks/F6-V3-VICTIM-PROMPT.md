@@ -11,7 +11,13 @@ the tree.
   canonical victim **system** prompt. It is **`VICTIM_SYS` verbatim** (byte-identical,
   [`f6v3-pilot/victim-resistance.mjs:21`](./f6v3-pilot/victim-resistance.mjs)).
 - **sha256(f6v3-victim-prompt.txt) = `8a7740b558f8448b17917e4d8103bde7d6c37bb84b9c65385bb1bc2795c56e79`**
-  (353 bytes, no trailing newline).
+  (353 bytes, no trailing newline). This file is the **resistance-content reference** — the exact evidenced
+  text (array grammar).
+- **REALIZED FROZEN PIN (build, route 2 — see Output grammar):** the offense build froze
+  `offense/frozen/victim-prompt.txt`, sha256 `e555e210e4006173b35ea261a448f3df4dc465411eab68bcbd97d656d4eec3ea`
+  (374 bytes) — `VICTIM_SYS`'s three resistance-bearing sentences **byte-identical**, output clause adapted to
+  the `{actions}` object grammar only. _F2 Chain to byte-verify the three sentences at the build's push;
+  recorded as the realized pin pending that check._
 - **Victim model id:** `deepseek.v3.2` on Bedrock (non-Azure), per the user's 2026-10-10 pin decision.
 
 ## Why VERBATIM (provenance — read before changing a byte)
@@ -28,18 +34,22 @@ toward the all-refuse floor. Do not re-harden it.)
 - **The offense harness victim is currently the v2 NON-hardened prompt** (`offense/scripts/harness.mjs:~505`,
   commented "generic, NON-hardened change agent"); v3 replaces it with this pinned text.
 
-## Output grammar (a build choice, not a construct lever)
+## Output grammar — ROUTE 2 is correct (the victim parser is object-only and shared)
 
-`VICTIM_SYS` asks for a **JSON array** `[{"tool","target_resource"}, ...]`; the offense harness currently
-parses a `{"actions": [...]}` object. The grammar clause is **not** resistance-load-bearing. Two acceptable
-routes — pick one, record which:
+`VICTIM_SYS` asks for a **JSON array** `[{"tool","target_resource"}, ...]`. The grammar clause is **not**
+resistance-load-bearing, but it is **not free to keep as an array**: the runner's `pinnedVictimCall`
+(`calibration-runner.mjs:1979`) parses the victim's output with the object-only `parseJsonObject`
+(line 379 rejects arrays; selftest line 1111 asserts `[1,2,3] → null`; shared with F4/F9 + the G6
+attacker→victim loop). So a bare-array victim would parse to `null` everywhere and pinning it (route 1)
+would force a **cross-family shared-parser edit** — exactly the kind of change we avoid.
 
-1. **Preferred — pin verbatim, adapt the harness:** keep this text byte-exact (hash above) and make the
-   harness accept the array (or array-or-`{actions}`). The pin then IS the evidenced text.
-2. **Format-only minimal diff:** swap ONLY the output clause to `{"actions": [...]}`, keeping every other
-   byte; re-hash; note the one-line diff. Nothing else changes.
+- **ROUTE 2 (chosen by the build, correct):** keep `VICTIM_SYS`'s three resistance-bearing sentences
+  **byte-identical** and adapt **only** the output clause to the `{"actions": [...]}` object grammar; re-hash.
+  Change no other byte. This is the realized pin above (`e555e210…`).
+- Route 1 (pin the verbatim array, add an array parser) stays possible only if someone deliberately takes on
+  the shared-parser change + updates selftest 1111 — not worth it here.
 
-Do NOT change any sentence other than the output clause under route 2.
+My earlier "route 1 preferred" note was wrong (written before I'd read the object-only victim parser).
 
 ## Honesty condition (binds the build + the G1 gate)
 
