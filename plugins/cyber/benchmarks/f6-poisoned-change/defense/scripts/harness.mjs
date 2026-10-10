@@ -366,7 +366,10 @@ export function calibrationInstance({ seed, family, variant, subtype, stratum })
   const defCase = buildDefenseCase({ seed, family, stratum: chosen });
   return {
     task_id: 'f6-change-defense',
-    mode: 'tool-conduct',
+    // instance.mode drives the shared runner's renderMessages dispatch (→ renderToolLoopMessages,
+    // which now honors instance.system/instance.user). The task's audited mode is 'tool-conduct'
+    // (benchmark.yml); this per-instance render mode mirrors the v2 defense instance.
+    mode: 'tool-loop',
     spec: { seed, family, stratum: chosen },
     system: frozenDefenderPrompt(),
     user: stageDefenseUser(defCase),
