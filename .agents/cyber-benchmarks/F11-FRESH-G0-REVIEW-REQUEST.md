@@ -7,11 +7,22 @@ corrections. That revised design is now frozen and bound; this is that fresh sco
 the original F11 construct and the build implemented the all-native revision, so an **independent** reviewer
 is required (reviewer_id ≠ author_id).
 
-- **Attest target (construct, byte-final):** freeze `52f15ae4a1a4e19f047a2c7d0e0cc826c4fa6eb6` on
+**Update (re-check after your fresh-G0 feedback):** your `F11-FRESH-G0-REVIEW-FEEDBACK.md` returned two
+bounded fixes — (1) remove residual cross-family reuse/equivalence claims (suite entry + the generated
+`approved-claim.txt`'s "de-oracle-equivalent" phrase) and (2) enforce field plausibility at the SCORED edit
+seam (not just fixtures). **Both are now applied + re-frozen at the attest target below** (F2 Chain verified
+at the freeze: `approved-claim.txt` grep for the banned phrase == 0, estate sentence now "All-native
+synthetic incident estate, inspired by earlier enterprise scenarios; no claim of literal earlier-family
+capture reuse"; suite F11 entry = the agreed wording; `applyEdits` rejects fluent prose in a signed
+machine field (`bad-field-shape`) with a valid field-shaped + a rejected-prose mutation; no other live
+reuse/equivalence claim survives). So this is the **focused re-check of the changed claim surfaces + the
+edit-acceptance rule** you asked for.
+
+- **Attest target (construct, byte-final):** freeze `2668af860db3cf251bdab697bd232f8d5b272c0e` on
   `fork/codex/cyber-wave23-build` — scrubbed construct docs (FAMILY.md, offense+defense design/threat-model,
-  offense attack-chain, benchmark.yml) + `offense/evidence/reuse-deviation.md`. Bound metadata at `ca20b817c`
-  (both tasks `approval:null` / G0-pending); suite `c2f7216ea` (18 records). Construct docs byte-identical
-  freeze↔bind.
+  offense attack-chain, benchmark.yml) + `offense/evidence/reuse-deviation.md` + the regenerated
+  `offense/evidence/approved-claim.txt`. Bound metadata at `df3857842` (both tasks `approval:null` /
+  G0-pending); suite regenerated (F11 record re-pointed). Construct docs + claim byte-identical freeze↔bind.
 - **Scope:** the revised **sourcing / provenance / claim** wording + the three corrections. The
   poisoned-evidence construct mechanics you accepted (all-native in principle; the injected-vs-clean
   harmful-response delta; the offense→defense capture + hash contract) are **not** reopened.
@@ -49,7 +60,7 @@ G6–G7 pending.
 
 ## Ask
 
-Attest the revised F11 construct **design** at `52f15ae4a` (all-native sourcing honestly described; the three
+Attest the revised F11 construct **design** at `2668af860` (all-native sourcing honestly described; the three
 corrections applied; the claim ceiling correct; the poisoned-evidence mechanics unchanged), or return
 findings. This is a design review — not approval of G1–G7 evidence, calibration, or any deployment claim.
 Cross-model separation + the local G6 remain measurements to come (the latter gated on the shared
