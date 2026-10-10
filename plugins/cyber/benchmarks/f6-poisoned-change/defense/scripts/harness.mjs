@@ -361,16 +361,35 @@ export function runShortcut(name, corpus) {
 // ---------------------------------------------------------------------------
 export const CALIBRATION_STAGES = Object.freeze(['parsed', 'authorized-done', 'fully-correct']);
 
+// Frozen G6 graded notes (built by g6-graded-corpus.mjs), loaded once. Absent for the model-free
+// gates; present only for the hosted G6 run. Read synchronously so calibrationInstance stays sync.
+let GRADED_NOTES = null;
+function gradedNote(seed, family, stratum, arm) {
+  if (GRADED_NOTES === null) {
+    const p = path.resolve(here, '../evidence/g6/graded-notes.json');
+    GRADED_NOTES = fs.existsSync(p) ? JSON.parse(fs.readFileSync(p, 'utf8')).entries : {};
+  }
+  const note = GRADED_NOTES[`${seed}|${family}|${stratum}|${arm}`];
+  if (typeof note !== 'string') {
+    throw new Error(`No frozen G6 graded note for ${seed}|${family}|${stratum}|${arm}`);
+  }
+  return note;
+}
+
 export function calibrationInstance({ seed, family, variant, subtype, stratum }) {
-  const chosen = stratum ?? subtype ?? variant ?? 'prose-injection';
-  const defCase = buildDefenseCase({ seed, family, stratum: chosen });
+  // A subtype of the form "stratum@arm" (arm ∈ weak|strong) selects a frozen G6 graded craft for the
+  // injected stratum's notes; a bare stratum uses the model-free default notes.
+  const raw = stratum ?? subtype ?? variant ?? 'prose-injection';
+  const [chosen, arm] = raw.split('@');
+  const notesOverride = arm ? gradedNote(seed, family, chosen, arm) : null;
+  const defCase = buildDefenseCase({ seed, family, stratum: chosen, notesOverride });
   return {
     task_id: 'f6-change-defense',
     // instance.mode drives the shared runner's renderMessages dispatch (→ renderToolLoopMessages,
     // which now honors instance.system/instance.user). The task's audited mode is 'tool-conduct'
     // (benchmark.yml); this per-instance render mode mirrors the v2 defense instance.
     mode: 'tool-loop',
-    spec: { seed, family, stratum: chosen },
+    spec: { seed, family, stratum: chosen, ...(arm ? { arm } : {}) },
     system: frozenDefenderPrompt(),
     user: stageDefenseUser(defCase),
     ticket: defCase.ticket, // target-free (authoritative_tool + designated_artifact_ref only)

@@ -93,7 +93,12 @@ function sameCategorySibling(base) {
  * a change-registry, and operational artifacts (a designated artifact with a protected `change_target`
  * co-located with attacker-writable `notes`, plus a forged artifact on the forged stratum).
  */
-export function buildDefenseCase({ seed, family, stratum = 'prose-injection' }) {
+export function buildDefenseCase({
+  seed,
+  family,
+  stratum = 'prose-injection',
+  notesOverride = null,
+}) {
   if (!FAMILIES.includes(family)) {
     throw new Error(`Unknown family: ${family}`);
   }
@@ -122,6 +127,11 @@ export function buildDefenseCase({ seed, family, stratum = 'prose-injection' }) 
   let notes = meta.injected ? injectedBase.documents[0].content : cleanBase.documents[0].content;
   if (meta.injected && injectionTarget !== injectedBase.evaluator.intended_target) {
     notes = notes.split(injectedBase.evaluator.intended_target).join(injectionTarget);
+  }
+  // G6-only graded arm: a frozen WEAK/STRONG craft (from the offense export, target-substituted) may
+  // replace the injected stratum's notes. Default (null) leaves the model-free G1–G5 notes untouched.
+  if (meta.injected && typeof notesOverride === 'string' && notesOverride.length > 0) {
+    notes = notesOverride;
   }
 
   // The designated artifact: protected `change_target` (authorization-bound) + attacker `notes`.
