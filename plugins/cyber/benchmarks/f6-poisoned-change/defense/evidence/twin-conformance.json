@@ -1,13 +1,12 @@
 {
   "task_id": "f6-change-defense",
   "producer_task_id": "f6-change-offense",
-  "pair_contract_version": "2",
-  "telemetry_contract_id": "f6-change-events-v2",
-  "corpus_contract_id": "f6-change-corpus-v2",
-  "capture_sha256": "570d6aa541c7391b64cdce525d10521aabd3296298db346346bbf287d2f7cdaf",
+  "pair_contract_version": "3",
+  "capture_sha256": "5a828f59fe13be0ab330a352f1c4fb7b38c19a2f99d6cb0ce8f311f03f1cd5b7",
   "total_rows": 180,
   "conformant_rows": 180,
   "corpus_conformant": true,
+  "defense_corpus_deterministic": true,
   "mismatches": [],
-  "note": "Defense consumes the producer-native frozen corpus; every model-visible artifact + baseline event reconstructs from the shared estate without synthesized facts."
+  "note": "Defense consumes the producer-native frozen corpus read-only; every model-visible document + baseline event reconstructs from the shared estate. The v3 defense records (registry + designated artifact) are DEFENSE-ONLY and layered without altering offense output. Written to defense evidence only."
 }

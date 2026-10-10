@@ -6,26 +6,33 @@ reviewer_id: openai-codex-gpt-6
 author_id: navingate
 relationship: external-ai-reviewer
 independent: true
-reviewed_commit: ead928d21b87a97452cdbb7536c2fdfb61232224
-manifest_sha256: 47d36f3deb2058a14214ed9bd0f2793e1e9bfd97df537c348f643ddbbe4ea783
+reviewed_commit: 9aa7cd2991a1dde87984a462bfe098e786ce8caf
+manifest_sha256: 4a2c2d09aba50754c763456adf3dc68d402bdbd9581b1ca5071def4807967699
 evidence_sha256:
-  design.md: 3e82aa931165ad9d180d0dc17e64278b4e62e2fe0a1d40b66dee8ae375cc0d99
-  threat-model.md: 816f46ddccb7cc81391b548966493639ef33290518fa9e913f148099678e0efd
-  authorization-policy.md: 75898d98ea582e0a2788b9a3445ce08cd6612cd08a05eff2595f83b8d8aadacb
-  tool-boundaries.yml: 526b8c0430ee77d8792343d3f259a2621eb4d8f4a97bff1120e32de127b20abb
-  scoring-contract.md: 4b931dfeedd0eae108a08d457bdae83b7ad4d3c4ce65957e18a90ecc5a744456
-  ../FAMILY.md: 88234ad3e9289422a37e1a469163cb3e20900acb00311f364a39e61c283e8679
-claim_text_sha256: 14af0cc9df3edaea595410c6e82c9e60615d46eac8bbdfa67e9b98f98840f3b7
+  design.md: a8b8b49cf53918c29079bfc7132f7a375b62d3798ddf01dee846cda5b5906c68
+  threat-model.md: dd16f7e30de89a816264f49aa0cd262beaebf8ab24e2b43416f22a5523f07439
+  authorization-policy.md: fcd326398d183fd03ae6eb2be07ff80b22c9a5cc2c0ac13f481a08403907798f
+  scoring-contract.md: 23535ba3c68dfbc40d49b951bd40179af4b2ad0cc40c688a83813d63b3ae5ffe
+  ../FAMILY.md: fa56081019501994f2aa8a84d59eede3f8befca5cee9b40d7fb8f52eb5ef7093
+claim_text_sha256: 1f26ca5e68b17fc4f5df34ba0a9c4e2eb9cdbb989271c2107ee3da11e4b888fb
 decision: approved
 approved_evidence_level: '0'
-reviewed_at: '2026-10-07'
+reviewed_at: '2026-10-10'
 note: >-
-  Author-issued carry-forward G0 binding under the owner decision (2026-10-07) accepting the
-  independent AI construct review by openai-codex-gpt-6 at design commit
-  43c437f8c753bf2a2711ea3593a3dad9aa7c10c9 (G0 construct scope only; see
-  .agents/cyber-benchmarks/review-policy.md). The construct-defining docs in the evidence closure
-  are byte-identical 43c437f8c753bf2a2711ea3593a3dad9aa7c10c9..C0 (fail-closed empty-diff proof in
-  build-manifest). The review handoff note carries a post-approval wording tweak from design tip
-  5d526fbca (construct unchanged) and is excluded from the closure. manifest_sha256 / claim /
-  evidence digests are author-computed at build; the reviewer did not review the build or its
-  digests. Not sufficient for G7/release (needs a human or independent-org claim reviewer).
+  Author-issued G0 binding recording the INDEPENDENT construct review by openai-codex-gpt-6
+  (external AI reviewer, did NOT author) that returned PASS for the F6 v3 DEFENSE construct DESIGN
+  in .agents/cyber-benchmarks/F6-V3-SPEC.md section "F6 v3 DEFENSE construct" at design commit
+  05e0a1f5f40958eece214397c8cc28d19dadaf7d (R1→R2 trail; R2 verdict "G0 construct PASS" in
+  .agents/cyber-benchmarks/F6-V3-DEFENSE-R2-REVIEW-FEEDBACK.md @ 69c8b450d). Construct SUBSTANCE is
+  stable 05e0a1f5f→build (the later spec delta is verdict narrative + the 4 build-gate checks, not
+  construct changes). The per-task docs here (design/threat-model/authorization-policy/
+  scoring-contract/FAMILY) are the build’s faithful author-written IMPLEMENTATION of that approved
+  construct, NOT reviewed byte-for-byte. reviewed_commit records this build C0; reviewed-at basis is
+  05e0a1f5f. reviewer_id PROVENANCE = the operator’s DIRECT in-session confirmation (2026-10-11);
+  the R2 verdict file does not self-identify the reviewer. The 4 reviewer build-gate checks are
+  honored: (1) protected change_target + attacker notes staged in the same model-visible read,
+  offense render byte-identical; (2) forged artifact loses on the registry consult, the 6 baselines
+  are exercised; (3) stratum-conditional scorer reads only the staged records; (4) corpus frozen +
+  audited. G0 construct-design scope ONLY. manifest/claim/evidence digests are author-computed at
+  build; the reviewer did not review the build or its digests. Cross-model discrimination is a G6
+  hypothesis. Not sufficient for G7/release (needs a human or independent-org claim reviewer).
