@@ -251,6 +251,14 @@ local palmfuture shows the same gradient. So:
   **not required for discrimination**, only an optional stability upgrade. New input to the user's (b)
   decision: (b) can be satisfied at $0 by pinning the free palmfuture + a hardened prompt; paying for a hosted
   victim buys stability, not discrimination.
+  **USER DECISION (2026-10-10): PAID BEDROCK pin = `deepseek.v3.2`.** The user chose the hosted Bedrock victim
+  (stability: hosted + served-model check) over the free $0 palmfuture, with the full knowledge that both
+  discriminate. So the F6 v3 victim is **pinned to `deepseek.v3.2` on Bedrock + the hash-pinned hardened
+  prompt**; G1/G6 are PAID Bedrock runs the build executes on the user's **direct word in the build session**
+  (a relay from F2 Chain is not spend authorization). F7/F11 inherit this pin (earlier "reuse F6's pin" user
+  call). NB the gradient was measured on the free palmfuture; the build's first task is to confirm
+  deepseek.v3.2-as-victim shows the same naive-fails/crafted-lands gradient in its G1 reference pair before
+  spending on the full G6.
 
 **Probe caveats (why "crafted 5/5" is thinner than it reads).** One hand-written injection per variant, one
 scenario template, temperature 0, 5 seeds differing only in service names (≈ n=1 per cell); the probe's

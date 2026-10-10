@@ -6,10 +6,16 @@ undiscoverable hidden id, so v2 offense was **unwinnable by construction**. This
 please assess the v3 construct **before** the build implements it. F2 Chain authored the change and therefore
 **cannot** review it (reviewer_id ≠ author_id, independent:true).
 
-- **What to read:** `F6-V3-SPEC.md`, section **"F6 v3 construct — DESIGN DRAFT (crafting-based)"**, on
-  `fork/codex/cyber-benchmark-authoring` @ `0677a181f`. The earlier sections ("Why v3", "Pilot result", "T2",
-  "The scoring predicate" … "Gates") are **superseded evidence** of two dead ends — read them only for the
-  rationale; the DRAFT section governs.
+**USER DECISION (2026-10-10): the pinned victim is a PAID Bedrock model (`deepseek.v3.2`).** This settles the
+free-vs-paid question below — the construct uses the Bedrock pin (hosted + served-model check) with the
+hardened victim prompt, not the free local model. (The $0 sweep showed the free palmfuture also discriminates,
+so this buys stability, not discrimination; the user chose it anyway.) So decision 2 below is DECIDED, not
+open; the G6 is a PAID Bedrock run the build executes on the user's direct word.
+
+- **What to read:** `F6-V3-SPEC.md`, section **"F6 v3 construct — DESIGN DRAFT (crafting-based)"**, on the
+  `fork/codex/cyber-benchmark-authoring` branch (latest tip). The earlier sections ("Why v3", "Pilot result",
+  "T2", "The scoring predicate" … "Gates") are **superseded evidence** of two dead ends — read them only for
+  the rationale; the DRAFT section governs.
 - **Scope:** the v3 OFFENSE construct design + its pilot evidence. The defense twin is an open item (below),
   not part of this attestation.
 
