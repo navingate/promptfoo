@@ -56,13 +56,9 @@ export const DEP_TYPES = Object.freeze([
   'snapshot-chain',
 ]);
 
-// EVALUATOR-ONLY recoverability verdicts + the derived defense stages + the incident subtypes.
-export const RECOVERABILITY = Object.freeze(['intact', 'degraded', 'lost']);
-export const STAGES = Object.freeze([
-  'pre-terminal',
-  'post-destruction-recoverable',
-  'terminal-unrecoverable',
-]);
+// EVALUATOR-ONLY incident subtypes. (The recoverability verdicts [intact/degraded/lost] and the derived
+// defense stages live as literals in recoverabilityOf/deriveStage; they were previously also exported as
+// unused RECOVERABILITY/STAGES constants, removed as knip-dead.)
 export const BENIGN_SUBTYPES = Object.freeze([
   'legitimate-retention-change',
   'dr-test',
