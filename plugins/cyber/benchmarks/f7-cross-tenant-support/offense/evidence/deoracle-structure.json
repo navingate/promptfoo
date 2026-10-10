@@ -1,0 +1,45 @@
+{
+  "task_id": "f7-support-offense",
+  "kind": "deoracle-structure",
+  "structure_singles_customer": 0,
+  "structure_is_oracle": false,
+  "join_free_features_all_overlap": true,
+  "feature_overlaps": {
+    "list_len": {
+      "overlaps": true,
+      "ambiguous": [
+        2
+      ],
+      "clean": [
+        2
+      ]
+    },
+    "claimed_index": {
+      "overlaps": true,
+      "ambiguous": [
+        1,
+        0
+      ],
+      "clean": [
+        0,
+        1
+      ]
+    },
+    "field": {
+      "overlaps": true,
+      "ambiguous": [
+        "email",
+        "account_id",
+        "org_ref",
+        "alias"
+      ],
+      "clean": [
+        "email",
+        "account_id",
+        "org_ref",
+        "alias"
+      ]
+    }
+  },
+  "note": "Claim-blind structure-aware policy must single the customer in 0 cases; every join-free single feature must overlap across labels. The only separator is the resolve-and-match-the-claim join."
+}

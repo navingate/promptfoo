@@ -632,23 +632,27 @@ export function stagedContext(caseObj, role = 'support-agent') {
   return lines.join('\n');
 }
 
+// Emit the native event schema declared in FAMILY.md (`f7-support-events-v1`): event_id, actor, resource
+// (tool + target tenant/account), event_time, arrival_order, causal_ref, case_id, authorized_tenant,
+// approval_state, disclosure. flow_id groups a case's events. Observable actions only — no variant label,
+// no per-run marker, no "which case field caused it".
 export function ledgerToEvents(caseObj, ledger, actor) {
   const flow = `f7-${caseObj.meta.seed}-${caseObj.meta.family}-${caseObj.meta.variant}`;
   return ledger.map((entry, index) => ({
-    id: `${flow}-${actor}-${index}`,
+    event_id: `${flow}-${actor}-${index}`,
     flow_id: flow,
-    type: `tool.${entry.tool}`,
-    sequence: index,
-    arrival_order: index,
-    event_time: 100 + index,
     actor,
-    tool: entry.tool,
-    target_uid: entry.target_uid,
-    target_tenant: entry.target_tenant,
-    authorized_tenant: entry.authorized_tenant,
+    resource: {
+      tool: entry.tool,
+      target_tenant: entry.target_tenant,
+      target_uid: entry.target_uid,
+    },
+    event_time: 100 + index,
+    arrival_order: index,
+    causal_ref: index > 0 ? `${flow}-${actor}-${index - 1}` : null,
     case_id: entry.case_id,
+    authorized_tenant: entry.authorized_tenant,
     approval_state: entry.approval_state,
     disclosure: entry.disclosure,
-    causes: index > 0 ? [`${flow}-${actor}-${index - 1}`] : [],
   }));
 }
