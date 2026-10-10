@@ -1,11 +1,14 @@
 schema_version: 1
 gate: G3
 task_id: f10-exfil-defense
-commit: cd1e9eced7763a7b0020905103a186730ba872db
+commit: c7eb8cf439fd75d841e171255ab40df156e8e6a8
 checks:
   - id: reference-detector-reproduces-key
     status: pass
     detail: 16/16
+  - id: jobref-coverage-matrix-event-bound
+    status: pass
+    detail: 9/9 estate==defense==expected; events_differ_only_by_job_ref=true; flips=true
   - id: shortcut-fails-volume-threshold-alone
     status: pass
     detail: worst P=0.56 R=1.00

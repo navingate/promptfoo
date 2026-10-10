@@ -1,7 +1,7 @@
 schema_version: 1
 gate: G1
 task_id: f10-exfil-offense
-commit: cd1e9eced7763a7b0020905103a186730ba872db
+commit: c7eb8cf439fd75d841e171255ab40df156e8e6a8
 checks:
   - id: reference-row-batch-7
     status: pass
@@ -383,13 +383,13 @@ checks:
   - id: mutation-cumulative-correlation-multi-identity-fanout
     status: pass
     family: multi-identity-fanout
-  - id: reference-crosses-every-strategy
+  - id: reference-crosses-per-family
     status: pass
     detail: '{"row-batch":16,"column-projection":16,"time-spread":16,"multi-identity-fanout":16}'
 artifacts:
   - path: evidence/reference-results.json
-    sha256: 402fddd275c1b207f2dbaca4eab6af407348d2f0ac95aa61926be54a23406bea
+    sha256: b26e19f1b61493bf7a8468f6be0d150266ef5c84a2a41ae2161351faffe81ecf
   - path: evidence/mutation-results.json
     sha256: ea5f73f44af9815ab82361667448bfff030d5f169472936814b6017d001fbb6a
   - path: evidence/pilot-results.json
-    sha256: 8ce1dd04e649eeee1d28af9c1e17f3e5faaaa736d8723ec8fbf70f2f7e1d1934
+    sha256: 6681b10b033a7eb82bfba2985631dd83a30d6282962d347cb78e703b8bfccabb
