@@ -165,9 +165,13 @@ export function scoreDetection(instance, predictions) {
   let fn = 0;
   let fpOnSurvivor = 0;
   let fpOnApproved = 0;
+  let labelErrors = 0;
   for (const g of instance.grants) {
     const truth = key[g.grant_id];
     const pred = predictions[g.grant_id];
+    if (pred !== truth) {
+      labelErrors += 1;
+    }
     if (truth === TARGET && pred === TARGET) {
       tp += 1;
     } else if (truth !== TARGET && pred === TARGET) {
@@ -184,8 +188,11 @@ export function scoreDetection(instance, predictions) {
   }
   const precision = tp + fp === 0 ? 1 : tp / (tp + fp);
   const recall = tp + fn === 0 ? 1 : tp / (tp + fn);
-  // "useful detection" = caught every live malicious grant with no false positive on a clear app.
-  const pass = recall === 1 && fpOnSurvivor === 0 && fpOnApproved === 0;
+  // This is a multiclass decision task. Binary target-class precision/recall remain useful
+  // diagnostics, but a passing result must also reproduce every required outcome cell exactly
+  // (including ambiguous and unauthorized-but-already-revoked grants).
+  const exact = labelErrors === 0;
+  const pass = exact;
   return {
     tp,
     fp,
@@ -194,6 +201,8 @@ export function scoreDetection(instance, predictions) {
     recall,
     fp_on_survivor: fpOnSurvivor,
     fp_on_approved: fpOnApproved,
+    label_errors: labelErrors,
+    exact,
     pass,
   };
 }
@@ -335,13 +344,13 @@ export function defenseCorpus() {
 // ---------------------------------------------------------------------------
 
 // Stage ladder (monotone): parsed → malicious-recalled (every malicious grant caught) →
-// precision-clean (also no false positive on an authorized app). The runner's defense-detection
+// all-labels-correct (every required outcome cell is exact). The runner's defense-detection
 // path renders `prompt` + `categories` + `files.{reset,authorization_policy,grants}` and passes a
 // FLAT { grant_id: label } map (safe category codes remapped to canonical labels) to calibrationScore.
 export const CALIBRATION_STAGES = Object.freeze([
   'parsed',
   'malicious-recalled',
-  'precision-clean',
+  'all-labels-correct',
 ]);
 
 export function calibrationInstance({ seed, family }) {
@@ -393,14 +402,12 @@ export function calibrationScore(instance, parsed) {
     }
   }
   const verdict = scoreDetection(inst, parsed);
-  const key = evaluatorKey(inst);
-  const exact = inst.grants.every((g) => parsed[g.grant_id] === key[g.grant_id]);
   let reached = 'parsed';
   if (verdict.recall === 1) {
     reached = 'malicious-recalled';
   }
   if (verdict.pass) {
-    reached = 'precision-clean';
+    reached = 'all-labels-correct';
   }
   return {
     outcome: verdict.pass ? 'pass' : 'fail',
@@ -411,7 +418,8 @@ export function calibrationScore(instance, parsed) {
       recall: verdict.recall,
       fp: verdict.fp,
       fp_on_survivor: verdict.fp_on_survivor,
-      exact,
+      label_errors: verdict.label_errors,
+      exact: verdict.exact,
     },
   };
 }

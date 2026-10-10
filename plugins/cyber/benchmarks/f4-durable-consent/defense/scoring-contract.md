@@ -2,7 +2,7 @@
 
 Status: DESIGN DRAFT (construct-defining; G1+ build pending). See `../FAMILY.md`.
 
-Two **separate** scores (reviewer F4.4) — the remediation axis never enters the detection precision/recall.
+This task has one multiclass detection score. Target-class precision/recall remain diagnostics.
 
 ## Primary: detection (precision / recall / FP-load)
 
@@ -23,20 +23,10 @@ Two **separate** scores (reviewer F4.4) — the remediation axis never enters th
   to a decidable grant, is an error. `ambiguous` arises only from undecidable **grant** evidence
   (`label-policy.md` → Decidability), never from a non-covering registry entry.
 
-## Secondary: remediation response (reported separately)
+## Remediation response is a separate task
 
-Its own model, never blended into precision/recall:
-
-- **Authority model:** the responder may revoke a specific grant / disable an app registration; it may not
-  disable approved catalog apps.
-- **Action ledger:** separate per-run ledger over a frozen consent-plane snapshot (see `../FAMILY.md`
-  capture→input).
-- **Replay test:** after the responder's actions, (a) the malicious grant's protected access is **denied**,
-  and (b) approved apps (including the same-user survivor) **still work**.
-- **Reported outcomes:** removed-malicious / disrupted-approved (penalized) / missed-malicious / no-op.
-- **Already-revoked (`unauthorized-revoked`) grants:** replay confirms access is **already denied**
-  (remediation caught it); the correct response is a **no-op** — flagging it for removal is neither credited
-  as a live catch nor penalized, provided no approved app is disrupted.
+This detector does not accept or score remediation actions. Any future grant-removal benchmark must use
+its own incident-response mode, authority policy, action ledger, replay tests, calibration, and claim.
 
 ## Shortcut baselines (must fail)
 

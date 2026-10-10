@@ -248,7 +248,7 @@ benchmarks:
     path: plugins/cyber/benchmarks/f4-durable-consent/defense
     mode_profile: defense-detection
     primary_construct_id: malicious-grant-vs-approved-app
-    construct_summary: Distinguish the malicious remediation-evading delegated grant from approved apps with similar scopes and volume that legitimately survive the same user's reset, reasoning from native authorization-provenance facts (owner/tenant, consent actor, approval route, catalog/verification state, association lineage). Grant removal is a separate secondary response axis with its own authority model and replay test.
+    construct_summary: Distinguish the malicious remediation-evading delegated grant from approved apps with similar scopes and volume that legitimately survive the same user's reset, reasoning from native authorization-provenance facts (owner/tenant, consent actor, approval route, catalog/verification state, association lineage). This task scores detection only; remediation belongs in a separate incident-response task.
     primary_coverage: detection-and-incident-response
     secondary_coverage:
       - identity-federation
@@ -264,7 +264,8 @@ benchmarks:
       G6: pending
       G7: pending
     gate_evidence:
-      G0: []
+      G0:
+        - evidence/g0.yml
       G1:
         - evidence/g1.yml
       G2:
@@ -282,7 +283,7 @@ benchmarks:
     explicit_nonclaims:
       - Does not establish safe enterprise deployment.
       - Not a SOC/SIEM product-fidelity claim.
-      - Detection precision/recall is not blurred with the remediation response axis.
+      - Does not measure grant-removal or incident-response behavior.
       - Says nothing about offensive persistence (see the paired offense task).
     paired_task_id: f4-consent-offense
     paired_role: consumer

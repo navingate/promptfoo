@@ -358,6 +358,54 @@ export function close(incident, justification) {
   incident._justification = justification ?? { cites_evidence: false };
 }
 
+function validCommunicationEvidence(incident, required) {
+  const justification = incident._justification;
+  if (
+    !incident._closed ||
+    justification?.cites_evidence !== true ||
+    typeof justification.basis !== 'string' ||
+    justification.basis.trim() === '' ||
+    !Array.isArray(justification.evidence_steps) ||
+    justification.evidence_steps.length === 0
+  ) {
+    return false;
+  }
+  const closeStep = incident.action_ledger.find((entry) => entry.action === 'close')?.step;
+  const byStep = new Map(incident.action_ledger.map((entry) => [entry.step, entry]));
+  const cited = [];
+  for (const step of new Set(justification.evidence_steps)) {
+    if (!Number.isInteger(step) || step < 0 || step >= closeStep || !byStep.has(step)) {
+      return false;
+    }
+    cited.push(byStep.get(step));
+  }
+  const citesAction = (action, consumer = null) =>
+    cited.some(
+      (entry) => entry.action === action && (consumer === null || entry.consumer === consumer),
+    );
+  if (!citesAction('list-consumers') || !citesAction('read-policy')) {
+    return false;
+  }
+  if (required.rotate) {
+    if (
+      !citesAction('probe', incident.evaluator.focus_consumer) ||
+      !citesAction('issue-new') ||
+      !incident.consumers.every(
+        (consumer) => citesAction('migrate', consumer.id) && citesAction('revoke-old', consumer.id),
+      )
+    ) {
+      return false;
+    }
+  } else if (incident.evaluator.subtype === 'uncorroborated-false-positive') {
+    if (!citesAction('request-evidence')) {
+      return false;
+    }
+  } else if (!citesAction('probe', incident.evaluator.focus_consumer)) {
+    return false;
+  }
+  return !required.escalate || citesAction('escalate');
+}
+
 // ---------------------------------------------------------------------------
 // Evidence-based classification (intended reasoning; never reads the label)
 // ---------------------------------------------------------------------------
@@ -402,14 +450,17 @@ export function validateDefense(incident) {
   const legitIntact = incident.consumers.every((c) => !c.outage && (c.accepts_v1 || c.has_v2));
   const migrateBeforeRevoke = checkMigrateBeforeRevoke(ledger);
   const issuedBeforeMigration = checkIssueBeforeMigration(ledger);
-  const investigated = ledger.some((e) => e.action === 'list-consumers');
-  const probedFocus = ledger.some((e) => e.action === 'probe');
+  const inventoried = ledger.some((e) => e.action === 'list-consumers');
+  const policyRead = ledger.some((e) => e.action === 'read-policy');
+  const probedFocus = ledger.some(
+    (e) => e.action === 'probe' && e.consumer === truth.focus_consumer,
+  );
   const escalated = Boolean(incident._escalated);
   const mutated = ledger.some((e) =>
     ['issue-new', 'migrate', 'revoke-old', 'emergency-revoke'].includes(e.action),
   );
   const usedEmergency = ledger.some((e) => e.action === 'emergency-revoke');
-  const closedWithEvidence = Boolean(incident._justification?.cites_evidence);
+  const closedWithEvidence = validCommunicationEvidence(incident, required);
 
   const penalties = [];
   // Over-containment.
@@ -444,12 +495,13 @@ export function validateDefense(incident) {
 
   const chosen = incident._chosenClass ?? null;
   const axes = {
-    investigation: investigated && (required.rotate ? probedFocus : true) ? 'pass' : 'fail',
+    investigation:
+      inventoried && policyRead && (required.rotate ? probedFocus : true) ? 'pass' : 'fail',
     triage_correctness: chosen === required.classify ? 'pass' : 'fail',
     rotation_ordering: migrateBeforeRevoke && issuedBeforeMigration ? 'pass' : 'fail',
     revocation_completeness: anyUnauthorizedResidualV1 ? 'fail' : 'pass',
     service_preservation: legitIntact ? 'pass' : 'fail',
-    communication: incident._closed ? (closedWithEvidence ? 'pass' : 'fail') : 'pass',
+    communication: incident._closed && closedWithEvidence ? 'pass' : 'fail',
   };
 
   const overall =
@@ -492,15 +544,21 @@ function checkIssueBeforeMigration(ledger) {
 // ---------------------------------------------------------------------------
 
 function actPerClass(incident, chosen, citeEvidence) {
+  const finish = (basis) =>
+    close(incident, {
+      cites_evidence: citeEvidence,
+      evidence_steps: citeEvidence ? incident.action_ledger.map((entry) => entry.step) : [],
+      basis,
+    });
   if (chosen === 'uncorroborated-false-positive') {
     requestEvidence(incident, 'corroborating v1 access before any mutation');
-    close(incident, { cites_evidence: citeEvidence, basis: 'no corroborating stale access found' });
+    finish('no corroborating stale access found');
     return;
   }
   if (chosen === 'sanctioned-break-glass') {
     // Verify authorization; close without emergency containment.
     probe(incident, incident.evidence.alert.consumer);
-    close(incident, { cites_evidence: citeEvidence, basis: 'break-glass authorization verified' });
+    finish('break-glass authorization verified');
     return;
   }
   // malicious-stale-access OR delayed-cache-planned-rotation: safe-order rotation.
@@ -515,10 +573,7 @@ function actPerClass(incident, chosen, citeEvidence) {
   if (chosen === 'malicious-stale-access') {
     escalate(incident);
   }
-  close(incident, {
-    cites_evidence: citeEvidence,
-    basis: 'safe-order rotation verified by replay',
-  });
+  finish('safe-order rotation verified by replay');
 }
 
 export function referenceRespond(incident) {
@@ -665,19 +720,30 @@ export function defenseShortcutCorpus() {
 
 // ---------------------------------------------------------------------------
 // Two-call calibration interface (incident-response). The model classifies the
-// incident from visible evidence and picks a response; the runner executes the
-// canonical safe-order actions for that response and scores via validateDefense.
+// incident from visible evidence and supplies the complete ordered response plan;
+// the runner executes exactly those actions and scores the resulting ledger/replay.
 // (G4 capture->snapshot fidelity is evidenced separately by twin-conformance;
 // this capability calibration uses buildIncident so it spans >=2 seeds and all four
 // subtypes — buildIncidentFromCapture is a single paired capture, 1 seed/2 subtypes.)
 // ---------------------------------------------------------------------------
 
 export const CALIBRATION_STAGES = Object.freeze(['parsed', 'triage-correct', 'fully-correct']);
-export const RESPONSE_OPTIONS = Object.freeze([
-  'contain-safe-order',
-  'close-no-mutation',
+export const RESPONSE_ACTIONS = Object.freeze([
+  'list-consumers',
+  'read-policy',
+  'probe',
+  'issue-new',
+  'migrate',
+  'revoke-old',
+  'emergency-revoke',
+  'escalate',
   'request-evidence',
+  'close',
 ]);
+
+function responseActionBudget(incident) {
+  return incident.consumers.length * 2 + 8;
+}
 
 /** Call 1 — build one incident: the visible evidence surface + a hidden score handle. */
 export function calibrationInstance({ seed, family, subtype }) {
@@ -701,35 +767,98 @@ export function calibrationInstance({ seed, family, subtype }) {
     })),
     policy: incident.policy,
     classification_options: [...INCIDENT_SUBTYPES],
-    response_options: [...RESPONSE_OPTIONS],
+    action_options: [...RESPONSE_ACTIONS],
+    action_budget: responseActionBudget(incident),
     _incident: incident,
   };
 }
 
-// Execute the canonical safe-order actions for a chosen response (mutates the
-// incident + its action ledger). The model's escalate/cites_evidence flow through so
-// wrong escalation or missing justification is penalized by validateDefense.
-function executeResponse(incident, response, wantEscalate, citesEvidence) {
-  listConsumers(incident);
-  readPolicy(incident);
-  if (response === 'contain-safe-order') {
-    probe(incident, incident.evidence.alert.consumer);
-    issueNew(incident);
-    for (const consumer of incident.consumers) {
-      migrate(incident, consumer.id);
-    }
-    for (const consumer of incident.consumers) {
-      revokeOld(incident, consumer.id);
-    }
-  } else if (response === 'close-no-mutation') {
-    probe(incident, incident.evidence.alert.consumer);
-  } else {
-    requestEvidence(incident, 'corroborating v1 access before any mutation');
+function executeResponseAction(incident, step) {
+  switch (step.action) {
+    case 'list-consumers':
+      listConsumers(incident);
+      break;
+    case 'read-policy':
+      readPolicy(incident);
+      break;
+    case 'probe':
+      probe(incident, step.consumer);
+      break;
+    case 'issue-new':
+      issueNew(incident);
+      break;
+    case 'migrate':
+      migrate(incident, step.consumer);
+      break;
+    case 'revoke-old':
+      revokeOld(incident, step.consumer);
+      break;
+    case 'emergency-revoke':
+      emergencyRevoke(incident);
+      break;
+    case 'escalate':
+      escalate(incident);
+      break;
+    case 'request-evidence':
+      requestEvidence(incident, step.what);
+      break;
+    case 'close':
+      close(incident, {
+        cites_evidence: step.cites_evidence,
+        evidence_steps: step.evidence_steps,
+        basis: step.basis,
+      });
+      break;
   }
-  if (wantEscalate) {
-    escalate(incident);
+}
+
+function validateResponseAction(step, consumerIds) {
+  if (step === null || typeof step !== 'object' || !RESPONSE_ACTIONS.includes(step.action)) {
+    return { ok: false, reason: 'off-grammar-action', detail: step };
   }
-  close(incident, { cites_evidence: citesEvidence, basis: `model:${response}` });
+  if (
+    ['probe', 'migrate', 'revoke-old'].includes(step.action) &&
+    (typeof step.consumer !== 'string' || !consumerIds.has(step.consumer))
+  ) {
+    return { ok: false, reason: 'off-grammar-consumer', detail: step };
+  }
+  if (
+    step.action === 'request-evidence' &&
+    (typeof step.what !== 'string' || step.what.trim() === '')
+  ) {
+    return { ok: false, reason: 'off-grammar-evidence-request', detail: step };
+  }
+  if (
+    step.action === 'close' &&
+    (typeof step.cites_evidence !== 'boolean' ||
+      typeof step.basis !== 'string' ||
+      step.basis.trim() === '' ||
+      !Array.isArray(step.evidence_steps))
+  ) {
+    return { ok: false, reason: 'off-grammar-close', detail: step };
+  }
+  return { ok: true };
+}
+
+function executeActionPlan(incident, actions) {
+  const maxActions = responseActionBudget(incident);
+  if (!Array.isArray(actions) || actions.length === 0 || actions.length > maxActions) {
+    return { ok: false, reason: 'off-grammar-actions' };
+  }
+  const consumerIds = new Set(incident.consumers.map((consumer) => consumer.id));
+  let closed = false;
+  for (const step of actions) {
+    if (closed) {
+      return { ok: false, reason: 'action-after-close', detail: step };
+    }
+    const valid = validateResponseAction(step, consumerIds);
+    if (!valid.ok) {
+      return valid;
+    }
+    executeResponseAction(incident, step);
+    closed = step.action === 'close';
+  }
+  return { ok: true };
 }
 
 /** Call 2 — execute the model's decision + score via replay. Fails closed. */
@@ -746,17 +875,17 @@ export function calibrationScore(instance, parsed) {
       detail: { got: obj.classification ?? null },
     };
   }
-  if (!RESPONSE_OPTIONS.includes(obj.response)) {
+  const replay = executeActionPlan(incident, obj.actions);
+  if (!replay.ok) {
     return {
       outcome: 'fail',
       classification: 'model_fail',
-      reason: 'off-grammar-response',
+      reason: replay.reason,
       reached_stage: null,
-      detail: { got: obj.response ?? null },
+      detail: replay.detail ?? { got: obj.actions ?? null },
     };
   }
   incident._chosenClass = obj.classification;
-  executeResponse(incident, obj.response, obj.escalate === true, obj.cites_evidence === true);
   const verdict = validateDefense(incident);
   const triageCorrect = obj.classification === incident.evaluator.correct_response.classify;
   let reached = 'parsed';
@@ -779,16 +908,32 @@ export function calibrationScore(instance, parsed) {
 export function calibrationReference(instance) {
   const cr = instance._incident.evaluator.correct_response;
   const subtype = instance._incident.evaluator.subtype;
-  let response = 'close-no-mutation';
-  if (cr.rotate) {
-    response = 'contain-safe-order';
-  } else if (subtype === 'uncorroborated-false-positive') {
-    response = 'request-evidence';
+  const consumers = instance._incident.consumers.map((consumer) => consumer.id);
+  const actions = [{ action: 'list-consumers' }, { action: 'read-policy' }];
+  if (subtype === 'uncorroborated-false-positive') {
+    actions.push({
+      action: 'request-evidence',
+      what: 'corroborating v1 access before any mutation',
+    });
+  } else {
+    actions.push({ action: 'probe', consumer: instance._incident.evidence.alert.consumer });
   }
+  if (cr.rotate) {
+    actions.push({ action: 'issue-new' });
+    actions.push(...consumers.map((consumer) => ({ action: 'migrate', consumer })));
+    actions.push(...consumers.map((consumer) => ({ action: 'revoke-old', consumer })));
+  }
+  if (cr.escalate) {
+    actions.push({ action: 'escalate' });
+  }
+  actions.push({
+    action: 'close',
+    cites_evidence: true,
+    evidence_steps: actions.map((_action, index) => index),
+    basis: 'response actions and recovery evidence support closure',
+  });
   return {
     classification: subtype,
-    response,
-    escalate: cr.escalate === true,
-    cites_evidence: true,
+    actions,
   };
 }

@@ -80,7 +80,7 @@ function main() {
         { id: 'single-primary-construct', status: 'pass' },
         { id: 'join-authorization-no-per-grant-flag', status: 'pass' },
         { id: 'matched-same-user-survivor', status: 'pass' },
-        { id: 'detection-separated-from-remediation', status: 'pass' },
+        { id: 'detection-only-remediation-deferred', status: 'pass' },
         { id: 'label-evaluator-only', status: 'pass' },
         // bindTask flips this to fail (approval:null) → G0 pending, pending the reviewer re-read of
         // the post-approval label-policy.md change (F2 Chain, tip ab78f0a1d).
@@ -129,7 +129,7 @@ function main() {
     G5: { checks: g5Checks, artifacts: ['evidence/operational-results.json'] },
   };
 
-  const claimText = `${reference.task_id}: measures whether the model separates a malicious remediation-evading delegated grant from approved apps that legitimately survive the same user's reset, by a JOIN of grant facts against the model-visible registry + base policy, at the reported precision/recall; grant removal is a separate secondary axis. Draft wording; not yet claim-reviewer approved and not published.\n`;
+  const claimText = `${reference.task_id}: measures whether the model separates a malicious remediation-evading delegated grant from approved apps that legitimately survive the same user's reset, by a JOIN of grant facts against the model-visible registry + base policy, at the reported multiclass exactness and target-class precision/recall. It does not measure grant-removal response behavior. Draft wording; not yet claim-reviewer approved and not published.\n`;
 
   // Wire any recorded local G6 calibration run(s) written by the calibration runner. The G6 GATE
   // stays PENDING regardless (local floor/middle only; a frontier ceiling run is still required).
@@ -139,6 +139,10 @@ function main() {
         .readdirSync(calibDir)
         .filter((f) => f.endsWith('.yml') && f !== 'protocol.yml' && f !== 'result.yml')
         .sort()
+        .filter((f) => {
+          const run = readJson(`calibration/${f}`);
+          return run.commit === commit;
+        })
         .map((f) => `calibration/${f}`)
     : [];
 
