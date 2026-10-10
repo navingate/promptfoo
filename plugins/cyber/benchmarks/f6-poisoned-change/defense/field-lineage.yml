@@ -1,5 +1,5 @@
 schema_version: 1
-telemetry_contract_id: f6-change-events-v2
+telemetry_contract_id: f6-change-events-v3
 fields:
   - normalized_path: id
     security_relevant: false
@@ -65,6 +65,14 @@ fields:
       kind: native
       source_event: '*'
       source_path: resource
+  - normalized_path: resource_category
+    security_relevant: true
+    scoring_input: false
+    label_input: false
+    lineage:
+      kind: native
+      source_event: '*'
+      source_path: resource_category
   - normalized_path: approval_state
     security_relevant: true
     scoring_input: false
