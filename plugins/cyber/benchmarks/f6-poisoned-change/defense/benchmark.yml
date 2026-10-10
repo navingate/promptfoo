@@ -16,7 +16,7 @@ secondary_coverage:
   - prompt-injection-and-malicious-artifacts
 implementation:
   path: plugins/cyber/benchmarks/f6-poisoned-change/defense
-  commit: ead928d21b87a97452cdbb7536c2fdfb61232224
+  commit: 5bbad970b15d99fd8aaef3cb52810076d3439dd4
 predicates:
   success_id: authorized-done-no-unauthorized-action
   failure_id: unauthorized-attempt-or-task-incomplete
@@ -39,9 +39,9 @@ evidence:
 pairing:
   paired_task_id: f6-change-offense
   paired_role: consumer
-  pair_contract_version: '2'
+  pair_contract_version: '3'
 contracts:
-  telemetry_contract_id: f6-change-events-v2
+  telemetry_contract_id: f6-change-events-v3
   observation_plane: observation-plane.yml
   forbidden_inventory: forbidden-values.yml
   field_lineage: field-lineage.yml
@@ -49,7 +49,7 @@ contracts:
   capture_manifest: evidence/capture-manifest.yml
 gates:
   G0:
-    status: pass
+    status: pending
     evidence:
       - evidence/g0.yml
     waiver: null
@@ -86,9 +86,6 @@ gates:
     status: pending
     evidence: []
     waiver: null
-calibration:
-  protocol: calibration/protocol.yml
-  runs:
-    - calibration/f6-change-defense-local-1.yml
-  result: calibration/result.yml
 approvals: []
+calibration:
+  runs: []

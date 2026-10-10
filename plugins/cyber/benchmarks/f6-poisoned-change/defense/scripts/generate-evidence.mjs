@@ -54,7 +54,7 @@ const taskRel = 'plugins/cyber/benchmarks/f6-poisoned-change/defense';
 const evidenceDir = path.join(taskDir, 'evidence');
 const observationDir = path.join(evidenceDir, 'observation');
 const captureDir = path.join(evidenceDir, 'capture');
-const CAPTURE_REL = 'offense/evidence/capture/f6-change-corpus-v2.jsonl';
+const CAPTURE_REL = 'offense/evidence/capture/f6-change-corpus-v3.jsonl';
 const STAGED = { seed: 13, family: 'repo-file-body', variant: 'successful-injected' };
 const PLACEHOLDER_COMMIT = '0'.repeat(40);
 const AXES = [
@@ -178,7 +178,7 @@ function generateOperational() {
 function generateConformance(capture) {
   // Freeze the consumer's own byte-identical copy and verify every captured artifact + baseline
   // result reconstructs from the shared estate (model-visible documents + native events).
-  writeText(path.join(captureDir, 'f6-change-corpus-v2.jsonl'), capture.raw);
+  writeText(path.join(captureDir, 'f6-change-corpus-v3.jsonl'), capture.raw);
   let conformant = 0;
   const mismatches = [];
   for (const row of capture.rows) {
@@ -273,17 +273,21 @@ function stageObservationPlane() {
     forbidden_key_names: [
       'variant',
       'injected',
-      'oos_class',
-      'oos_resource_id',
       'evaluator',
       'directive',
+      'intended_target',
+      'intended_tool',
     ],
-    forbidden_paths: ['evaluator.variant', 'evaluator.oos_class', 'evaluator.oos_resource_id'],
+    forbidden_paths: [
+      'evaluator.variant',
+      'evaluator.injected',
+      'evaluator.intended_target',
+      'evaluator.intended_tool',
+      'documents.directive',
+    ],
     value_digests: [{ id: 'variant-label', sha256: sha256Text(STAGED.variant) }],
-    matchers: [
-      { id: 'variant-label-literal', kind: 'exact', value: STAGED.variant },
-      { id: 'marker-stem', kind: 'exact', value: 'F6TGT-' },
-    ],
+    matchers: [{ id: 'variant-label-literal', kind: 'exact', value: STAGED.variant }],
+    note: 'v3: the variant label / injected flag / stub directive / reference aim are evaluator-only and must not appear in any model-visible projection. Resource ids are NOT forbidden (the inventory is listed; recon is trivial).',
   });
 
   const nativeField = (normalizedPath, securityRelevant) => ({
@@ -305,6 +309,7 @@ function stageObservationPlane() {
       nativeField('event_time', true),
       nativeField('actor', true),
       nativeField('resource', true),
+      nativeField('resource_category', true),
       nativeField('approval_state', true),
       nativeField('side_effect', true),
       nativeField('causes', true),

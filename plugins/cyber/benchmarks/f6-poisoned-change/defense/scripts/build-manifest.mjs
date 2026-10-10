@@ -1,13 +1,14 @@
 #!/usr/bin/env node
-// F6 defense — bind generated evidence to an audited commit (G0-G5; G6/G7 pending). G0 construct
-// approval is the C0-anchored carry-forward of the independent AI construct review
-// (openai-codex-gpt-6 @ 43c437f8c), accepted by the owner as the G0 bar. A fail-closed guard
-// proves the construct-defining docs are byte-identical to 43c437f8c before issuing. The defense
-// reference is deterministic + model-free, so G1-G5 bind here; G6 (agent-under-test calibration)
-// and G7 (release) stay pending. Run after generate-evidence.mjs + a format pass:
+// F6 v3 defense — MECHANICAL RECIPROCITY REBUILD (scoring HELD, no new claim). v3 reopens both F6
+// tasks at the v3 commit with a bumped pair contract; the defense consumes the v3 producer capture
+// and keeps its v2 conduct scoring (the 4 usefulness/safety axes keyed on the BROAD outOfScopeClass
+// — unchanged). This is NOT the new v3 defense construct (the decidability redesign with its own
+// shortcut baselines + usefulness pressure); that is a separate follow-up with its OWN independent
+// G0. Therefore the defense G0 binds PENDING here: the v2 G0 (@ 43c437f8c) approved the v2 construct
+// over the v2 estate and is NOT carried forward onto the v3 estate. G1-G5 rebind on the held scoring;
+// G6/G7 stay pending. Run after generate-evidence.mjs + a format pass:
 //   node plugins/cyber/benchmarks/f6-poisoned-change/defense/scripts/build-manifest.mjs --commit <40-hex>
 
-import { execFileSync } from 'node:child_process';
 import fs from 'node:fs';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
@@ -16,20 +17,9 @@ import { bindTask } from '../../../_tooling/bind-manifest.mjs';
 
 const here = path.dirname(fileURLToPath(import.meta.url));
 const taskDir = path.resolve(here, '..');
-const repoRoot = path.resolve(here, '../../../../../..');
 const TASK_ID = 'f6-change-defense';
 const PRODUCER_ID = 'f6-change-offense';
 const AUTHOR = 'navingate';
-const REVIEW_COMMIT = '43c437f8c753bf2a2711ea3593a3dad9aa7c10c9';
-
-const CORE_DOC_RELS = [
-  'design.md',
-  'threat-model.md',
-  'authorization-policy.md',
-  'tool-boundaries.yml',
-  'scoring-contract.md',
-  '../FAMILY.md',
-];
 
 function arg(name) {
   const i = process.argv.indexOf(`--${name}`);
@@ -39,28 +29,11 @@ function readJson(rel) {
   return JSON.parse(fs.readFileSync(path.join(taskDir, rel), 'utf8'));
 }
 
-function assertConstructDocsUnchanged() {
-  const repoRelative = CORE_DOC_RELS.map((rel) =>
-    path.relative(repoRoot, path.resolve(taskDir, rel)),
-  );
-  const diff = execFileSync('git', ['diff', REVIEW_COMMIT, '--', ...repoRelative], {
-    cwd: repoRoot,
-    encoding: 'utf8',
-  });
-  if (diff.trim() !== '') {
-    throw new Error(
-      `G0 empty-diff proof FAILED: construct docs drifted from ${REVIEW_COMMIT}. ` +
-        `The carry-forward approval cannot be issued.\n${diff}`,
-    );
-  }
-}
-
 function main() {
   const commit = arg('commit');
   if (!/^[a-f0-9]{40}$|^[a-f0-9]{64}$/u.test(commit ?? '')) {
     throw new Error('Pass --commit <40-or-64-hex>');
   }
-  assertConstructDocsUnchanged();
 
   const reference = readJson('evidence/reference-results.json');
   const mutations = readJson('evidence/mutation-results.json');
@@ -96,6 +69,8 @@ function main() {
 
   const gates = {
     G0: {
+      // PENDING: the v3 defense construct awaits its OWN independent G0 (F2 Chain). bindTask with a
+      // null approval sets construct-review-recorded → fail and removes the approval file → G0 pending.
       checks: [
         { id: 'single-primary-construct', status: 'pass' },
         { id: 'usefulness-and-safety-separated', status: 'pass' },
@@ -110,7 +85,6 @@ function main() {
         'authorization-policy.md',
         'tool-boundaries.yml',
         'scoring-contract.md',
-        'evidence/approval-g0-construct.yml',
       ],
     },
     G1: {
@@ -146,7 +120,7 @@ function main() {
         },
       ],
       artifacts: [
-        'evidence/capture/f6-change-corpus-v2.jsonl',
+        'evidence/capture/f6-change-corpus-v3.jsonl',
         'evidence/twin-conformance.json',
         'evidence/deoracle-scan.json',
       ],
@@ -154,28 +128,7 @@ function main() {
     G5: { checks: g5Checks, artifacts: ['evidence/operational-results.json'] },
   };
 
-  const claimText = `${reference.task_id}: measures whether the model completes an authorized infrastructure change while refusing injected out-of-scope actions, scored on separate usefulness and safety axes against a frozen versioned corpus. Draft wording; not yet claim-reviewer approved and not published.\n`;
-
-  const approval = {
-    reviewerId: 'openai-codex-gpt-6',
-    relationship: 'external-ai-reviewer',
-    approvedLevel: '0',
-    reviewedAt: '2026-10-07',
-    note: `Author-issued carry-forward G0 binding under the owner decision (2026-10-07) accepting the independent AI construct review by openai-codex-gpt-6 at design commit ${REVIEW_COMMIT} (G0 construct scope only; see .agents/cyber-benchmarks/review-policy.md). The construct-defining docs in the evidence closure are byte-identical ${REVIEW_COMMIT}..C0 (fail-closed empty-diff proof in build-manifest). The review handoff note carries a post-approval wording tweak from design tip 5d526fbca (construct unchanged) and is excluded from the closure. manifest_sha256 / claim / evidence digests are author-computed at build; the reviewer did not review the build or its digests. Not sufficient for G7/release (needs a human or independent-org claim reviewer).`,
-    evidenceArtifacts: CORE_DOC_RELS,
-  };
-
-  // Wire any recorded local G6 calibration run(s). FLOOR / PLUMBING probe (the agent-under-test is
-  // a dev-Qwen stand-in, not the pinned baseline); the G6 GATE stays PENDING pending a frontier
-  // ceiling run.
-  const calibDir = path.join(taskDir, 'calibration');
-  const calibrationRuns = fs.existsSync(calibDir)
-    ? fs
-        .readdirSync(calibDir)
-        .filter((f) => f.endsWith('.yml') && f !== 'protocol.yml' && f !== 'result.yml')
-        .sort()
-        .map((f) => `calibration/${f}`)
-    : [];
+  const claimText = `${reference.task_id}: measures whether the model completes an authorized infrastructure change while refusing injected out-of-scope actions, scored on separate usefulness and safety axes against a frozen versioned corpus. v3 reciprocity rebuild — scoring HELD (unchanged v2 conduct axes on the broad out-of-scope predicate); the v3 defense construct redesign awaits its own independent review. Draft wording; not yet claim-reviewer approved and not published.\n`;
 
   const result = bindTask({
     taskDir,
@@ -187,16 +140,18 @@ function main() {
     captureManifest: {
       producerId: PRODUCER_ID,
       consumerId: TASK_ID,
-      producerVersion: '2',
-      consumerVersion: '2',
-      pairContractVersion: '2',
-      files: ['evidence/capture/f6-change-corpus-v2.jsonl'],
+      producerVersion: '3',
+      consumerVersion: '3',
+      pairContractVersion: '3',
+      files: ['evidence/capture/f6-change-corpus-v3.jsonl'],
     },
-    approval,
-    calibrationRuns,
+    // v3 reciprocity rebuild: no defense calibration run yet (G6 pending hand-back). Empty-runs
+    // calibration contract — the honest "not-yet-calibrated" state (no CALIBRATION_INCOMPLETE).
+    calibrationRuns: [],
+    // approval omitted → G0 binds PENDING (v3 defense awaits its own independent review).
   });
   process.stdout.write(
-    `[f6-defense] bound to ${commit.slice(0, 12)}… manifest_sha=${result.manifestSha.slice(0, 12)}… gate_statuses=${JSON.stringify(result.gateStatuses)}; G6/G7 pending\n`,
+    `[f6-defense v3] bound to ${commit.slice(0, 12)}… manifest_sha=${result.manifestSha.slice(0, 12)}… gate_statuses=${JSON.stringify(result.gateStatuses)}; G0 (v3 review) + G6/G7 pending\n`,
   );
 }
 

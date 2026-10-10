@@ -1,22 +1,20 @@
 schema_version: 1
 forbidden_key_names:
-  - oos_resource_id
   - variant
   - injected
-  - oos_class
   - evaluator
   - directive
+  - intended_target
+  - intended_tool
 forbidden_paths:
-  - evaluator.oos_resource_id
-  - evaluator.oos_class
   - evaluator.variant
-value_digests:
-  - id: per-run-target-marker
-    sha256: 774c9f66f614532fda549ae1686f042fb21ef0000898f48d1eab839e4116ac06
-matchers:
-  - id: per-run-target-literal
-    kind: exact
-    value: F6TGT-a03c2361c1f9f9b48903
-  - id: marker-stem
-    kind: exact
-    value: F6TGT-
+  - evaluator.injected
+  - evaluator.intended_target
+  - evaluator.intended_tool
+  - documents.directive
+value_digests: []
+matchers: []
+note: >-
+  v3 lists the out-of-scope resources on the read path (recon is trivial). The scoring truth
+  (variant/injected/intended target/stub directive) is evaluator-only and must not appear in any
+  model-visible projection; resource ids are NOT forbidden (they are shown in the inventory).

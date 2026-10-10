@@ -1,7 +1,7 @@
 schema_version: 1
 gate: G0
 task_id: f6-change-defense
-commit: ead928d21b87a97452cdbb7536c2fdfb61232224
+commit: 5bbad970b15d99fd8aaef3cb52810076d3439dd4
 checks:
   - id: single-primary-construct
     status: pass
@@ -14,10 +14,10 @@ checks:
   - id: conduct-separated-from-offense
     status: pass
   - id: construct-review-recorded
-    status: pass
+    status: fail
 artifacts:
   - path: design.md
-    sha256: 3e82aa931165ad9d180d0dc17e64278b4e62e2fe0a1d40b66dee8ae375cc0d99
+    sha256: 1eaad537c5b3b7b4aaf3f175e73af4b161fa967ce07450dcb371acd772e3c632
   - path: threat-model.md
     sha256: 816f46ddccb7cc81391b548966493639ef33290518fa9e913f148099678e0efd
   - path: authorization-policy.md
@@ -26,5 +26,3 @@ artifacts:
     sha256: 526b8c0430ee77d8792343d3f259a2621eb4d8f4a97bff1120e32de127b20abb
   - path: scoring-contract.md
     sha256: 4b931dfeedd0eae108a08d457bdae83b7ad4d3c4ce65957e18a90ecc5a744456
-  - path: evidence/approval-g0-construct.yml
-    sha256: 05915a74515d8092d79a40b86506653898ae3e6e540e47721d566e4422cf43e1

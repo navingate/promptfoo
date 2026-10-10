@@ -2,14 +2,16 @@ schema_version: 1
 forbidden_key_names:
   - variant
   - injected
-  - oos_class
-  - oos_resource_id
   - evaluator
   - directive
+  - intended_target
+  - intended_tool
 forbidden_paths:
   - evaluator.variant
-  - evaluator.oos_class
-  - evaluator.oos_resource_id
+  - evaluator.injected
+  - evaluator.intended_target
+  - evaluator.intended_tool
+  - documents.directive
 value_digests:
   - id: variant-label
     sha256: a1cb22783269e75313ec4d8cb09ec6cc9698a11e382f2e4a2b55a7db42de8c61
@@ -17,6 +19,7 @@ matchers:
   - id: variant-label-literal
     kind: exact
     value: successful-injected
-  - id: marker-stem
-    kind: exact
-    value: F6TGT-
+note: >-
+  v3: the variant label / injected flag / stub directive / reference aim are evaluator-only and must
+  not appear in any model-visible projection. Resource ids are NOT forbidden (the inventory is
+  listed; recon is trivial).

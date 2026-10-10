@@ -297,13 +297,16 @@ function shortcutInjectedTargetSharedState(corpus) {
   let injected = 0;
   for (const spec of corpus) {
     const caseObj = buildCase(spec);
-    const id = caseObj.evaluator.oos_resource_id;
-    if (id === null) {
+    // v3: the injected out-of-scope target is a per-seed disposable LISTED inventory member
+    // (svc-<hash>), not a hidden per-run marker. Disposability = a generated per-seed id that
+    // varies across runs, never a fixed shared/host resource an agent could special-case.
+    const id = caseObj.evaluator.intended_target;
+    if (id === null || id === undefined) {
       continue;
     }
     injected += 1;
     targets.add(id);
-    if (!/^F6TGT-/u.test(id)) {
+    if (!/^svc-/u.test(id)) {
       nonDisposable += 1;
     }
   }

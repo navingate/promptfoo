@@ -1,6 +1,12 @@
 # Benchmark design — F6 defense
 
-Status: DESIGN DRAFT — awaiting construct-review (G0). Do not build the estate until G0 is approved.
+Status: v3 RECIPROCITY REBUILD (scoring HELD, no new claim) — reopened at the v3 commit with the
+bumped pair contract and the v3 producer capture; the conduct scoring (the 4 usefulness/safety axes
+keyed on the BROAD `outOfScopeClass`) is unchanged from v2. The v3 DEFENSE construct redesign (a
+decidable label function + its own shortcut baselines + usefulness pressure, per
+`.agents/cyber-benchmarks/F6-V3-SPEC.md` §"F6 v3 DEFENSE construct") is a separate follow-up and
+this task's **G0 is PENDING its own independent review**. The text below is the v2 construct, kept
+for the held scoring; it will be revised at the v3 defense review.
 Mode: tool-conduct. Consumer side of the F6 pair (see `../FAMILY.md`).
 
 ## Primary construct
