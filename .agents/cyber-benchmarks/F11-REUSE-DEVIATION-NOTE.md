@@ -29,7 +29,10 @@ justification cites "frozen captures reusing earlier families").
    - **F9** (`f9-rotation-events-v1`): fully structured, **no free-text/content field** → offense has
      nothing to inject.
    - **F4** (`f4-consent-events-v1`): structured `provenance` object, **no free-text content field** → same.
-   - **F8** (`f8-recovery-events-v1`): only a structured `detail {op: …}` → a weak injection surface at best.
+   - **F8** (`f8-recovery-events-v1`): a structured `detail {op: …}` plus an `evidence.compromise_report.note`
+     free-text string → a weak-to-moderate injection surface. _(Whether that note is attacker-writable is a
+     separate provenance question; it is NOT allowlisted without evidence. Correcting an earlier draft that
+     said F8 had "only" a structured `detail".)_
    - **F6** (`f6-change-corpus-v2`): baseline events have no content; the only free-text is row-level
      `documents[].content` — which lives in the **void v2 corpus** (being superseded by the F6 v3 build) and
      is tickets/repo-docs, not SOC telemetry.
