@@ -4,8 +4,11 @@
 // shaped to exactly what audit_benchmark.mjs `validateCalibration` requires. The caller
 // (the runner) produces the tally; this module only formats, hashes, and reconciles.
 //
-// G6 honesty: this records the LOCAL floor/middle run. The G6 gate stays pending until a
-// frontier ceiling run — `limitations[0]` must say so and the result is kept, never flipped.
+// Several runs (one model each — e.g. a local floor run plus hosted runs) share one protocol
+// and one result: after writing a run, the protocol + result are rebuilt over EVERY run record
+// bound to the same commit, in the binder's discovery order (sorted file name).
+//
+// G6 honesty: the recorder never flips the G6 gate — `limitations[0]` says so.
 
 import crypto from 'node:crypto';
 import fs from 'node:fs';
@@ -33,9 +36,64 @@ function artifactRef(taskDir, rel) {
   return { path: rel, sha256: sha256File(path.join(taskDir, rel)) };
 }
 
+// Same interval as the runner's, so per-run numbers match what it prints.
+function wilson95(pass, n) {
+  if (n === 0) {
+    return { low: 0, high: 0 };
+  }
+  const p = pass / n;
+  const z = 1.96;
+  const denom = 1 + (z * z) / n;
+  const centre = p + (z * z) / (2 * n);
+  const margin = z * Math.sqrt((p * (1 - p) + (z * z) / (4 * n)) / n);
+  return {
+    low: Math.max(0, (centre - margin) / denom),
+    high: Math.min(1, (centre + margin) / denom),
+  };
+}
+
+function modelLabel(run) {
+  return run.model?.attacker_sut?.id ?? run.model?.id ?? 'unknown-model';
+}
+
+// Every run record bound to this commit, in the order the binders wire them (sorted file name).
+// Records bound to another commit are skipped exactly as the binders skip them.
+function loadRuns(taskDir, taskId, commit) {
+  const dir = path.join(taskDir, 'calibration');
+  const files = fs
+    .readdirSync(dir)
+    .filter((f) => f.endsWith('.yml') && f !== 'protocol.yml' && f !== 'result.yml')
+    .sort();
+  const runs = [];
+  const skipped = [];
+  for (const file of files) {
+    const run = JSON.parse(fs.readFileSync(path.join(dir, file), 'utf8'));
+    if (run.commit !== commit) {
+      skipped.push(`calibration/${file}`);
+      continue;
+    }
+    if (run.task_id !== taskId) {
+      throw new Error(`calibration/${file} belongs to task ${run.task_id}, not ${taskId}`);
+    }
+    const config = JSON.parse(
+      fs.readFileSync(path.join(taskDir, run.artifacts.config.path), 'utf8'),
+    );
+    runs.push({
+      rel: `calibration/${file}`,
+      run,
+      tier: config.tier ?? 'local',
+      runLimitations: config.run_limitations ?? [
+        `${run.run_id} (${modelLabel(run)}): local floor/middle probe; single samples, directional only.`,
+      ],
+    });
+  }
+  return { runs, skipped };
+}
+
 /**
- * Write all calibration evidence for one run. Returns the manifest-relative paths the
- * binder wires into manifest.calibration.
+ * Write all calibration evidence for one run, then rebuild the shared protocol + result over
+ * every run bound to the same commit. Returns the manifest-relative paths the binder wires into
+ * manifest.calibration, plus any stale-commit records that were left out.
  *
  * input = {
  *   taskDir, taskId, commit, runId, model, harness, opportunityBudget,
@@ -43,7 +101,7 @@ function artifactRef(taskDir, rel) {
  *   tally: { completed, pass, fail, model_failures, provider_errors, invalid_runs, stage_survival },
  *   declaredMinimum: { instances, attempts },
  *   rawLines: [string], summaryLines: [object], samplePrompt: string, runConfig: object,
- *   protocolMeta: object, uncertainty: {method,result}, limitations: [string >=1],
+ *   protocolMeta: object, tier: 'local' | 'hosted', limitations: [string] (this run's own),
  * }
  */
 export function writeCalibrationEvidence(input) {
@@ -65,7 +123,7 @@ export function writeCalibrationEvidence(input) {
     samplePrompt,
     runConfig,
     protocolMeta,
-    uncertainty,
+    tier = 'local',
     limitations,
   } = input;
 
@@ -73,11 +131,16 @@ export function writeCalibrationEvidence(input) {
   const rel = (name) => `calibration/${name}`;
 
   // --- Four artifacts (verified by SHA in the run record) ---
+  // The config also carries this run's tier + limitations so later rebuilds can restate them.
   const configRel = rel(`${runId}-config.json`);
   const promptRel = rel(`${runId}-prompt.txt`);
   const rawRel = rel(`${runId}-raw.jsonl`);
   const summaryRel = rel(`${runId}-summary.jsonl`);
-  writeJson(path.join(dir, `${runId}-config.json`), runConfig);
+  writeJson(path.join(dir, `${runId}-config.json`), {
+    ...runConfig,
+    tier,
+    run_limitations: limitations,
+  });
   writeText(path.join(dir, `${runId}-prompt.txt`), `${samplePrompt}\n`);
   writeText(path.join(dir, `${runId}-raw.jsonl`), `${rawLines.join('\n')}\n`);
   writeText(
@@ -116,44 +179,89 @@ export function writeCalibrationEvidence(input) {
   const runRel = rel(`${runId}.yml`);
   writeYaml(path.join(taskDir, runRel), runRecord);
 
-  // --- Protocol ---
+  // --- Protocol + result, rebuilt over every run bound to this commit ---
+  const { runs, skipped } = loadRuns(taskDir, taskId, commit);
+  const label = (entry) => modelLabel(entry.run);
+  const allSeeds = [...new Set(runs.flatMap((entry) => entry.run.seeds))];
+  const allFamilies = [...new Set(runs.flatMap((entry) => entry.run.families))];
+  const instances = new Set(runs.flatMap((entry) => entry.run.instance_ids));
+  const sum = (pick) => runs.reduce((total, entry) => total + pick(entry.run), 0);
+
   const protocol = {
     schema_version: 1,
     task_id: taskId,
     commit,
-    model,
+    runs: runs.map((entry) => ({
+      run_id: entry.run.run_id,
+      tier: entry.tier,
+      model: entry.run.model,
+    })),
     harness,
     opportunity_budget: opportunityBudget,
-    seeds,
-    families,
+    seeds: allSeeds,
+    families: allFamilies,
     ...protocolMeta,
+    sample_size_rationale: `${runs.length} run(s), one model each, over ${instances.size} instances across ${allFamilies.length} families and ${allSeeds.length} seeds; a probe, not a powered estimate.`,
   };
   const protocolRel = rel('protocol.yml');
   writeYaml(path.join(taskDir, protocolRel), protocol);
 
-  // --- Result (reconciles over the single run) ---
+  const hosted = runs.filter((entry) => entry.tier !== 'local');
+  const unmatched = runs.filter(
+    (entry) => JSON.stringify(entry.run.opportunity_budget) !== JSON.stringify(opportunityBudget),
+  );
+  const resultLimitations = [
+    hosted.length === 0
+      ? 'No frontier ceiling run — this is the local model only (floor/middle); the G6 gate is kept PENDING.'
+      : `Hosted run(s) recorded (${hosted.map(label).join(', ')}); the recorder never flips G6 — the gate is kept PENDING until a reviewed ceiling decision.`,
+    runs.length === 1
+      ? `Single model (${label(runs[0])}); not a cross-model calibration.`
+      : `Cross-model: ${runs.map((entry) => `${entry.run.run_id} = ${label(entry)} [${entry.tier}]`).join('; ')}. Pass rates are per run, never pooled.`,
+    ...(unmatched.length > 0
+      ? [
+          `Opportunity budget differs from the latest run's for ${unmatched.map((entry) => entry.run.run_id).join(', ')}; those comparisons are not matched.`,
+        ]
+      : []),
+    ...new Set(runs.flatMap((entry) => entry.runLimitations)),
+  ];
+  const declaredAttempts = sum((run) => run.attempts.declared_minimum);
+  const validAttempts = sum((run) => run.attempts.completed);
   const result = {
     schema_version: 1,
     task_id: taskId,
     commit,
     protocol: artifactRef(taskDir, protocolRel),
-    runs: [artifactRef(taskDir, runRel)],
-    declared_minimum: { instances: declaredMinimum.instances, attempts: declaredMinimum.attempts },
-    completed: { instances: instanceIds.length, valid_attempts: tally.completed },
+    runs: runs.map((entry) => artifactRef(taskDir, entry.rel)),
+    declared_minimum: { instances: declaredMinimum.instances, attempts: declaredAttempts },
+    completed: { instances: instances.size, valid_attempts: validAttempts },
     outcome_counts: {
-      pass: tally.pass,
-      fail: tally.fail,
-      provider_errors: tally.provider_errors,
-      invalid_runs: tally.invalid_runs,
+      pass: sum((run) => run.outcomes.pass),
+      fail: sum((run) => run.outcomes.fail),
+      provider_errors: sum((run) => run.attempts.provider_errors),
+      invalid_runs: sum((run) => run.attempts.invalid_runs),
     },
-    uncertainty,
-    limitations,
-    minima_met:
-      instanceIds.length >= declaredMinimum.instances &&
-      tally.completed >= declaredMinimum.attempts,
+    uncertainty: {
+      method: 'Wilson score 95% interval on the pass rate, per run (one model per run; not pooled)',
+      result: runs
+        .map(({ run }) => {
+          const n = run.attempts.completed;
+          const ci = wilson95(run.outcomes.pass, n);
+          const rate = n === 0 ? 0 : run.outcomes.pass / n;
+          return `${run.run_id} (${modelLabel(run)}): pass_rate=${rate.toFixed(4)} (pass ${run.outcomes.pass}/${n}); 95% CI [${ci.low.toFixed(4)}, ${ci.high.toFixed(4)}]`;
+        })
+        .join('; '),
+    },
+    limitations: resultLimitations,
+    minima_met: instances.size >= declaredMinimum.instances && validAttempts >= declaredAttempts,
   };
   const resultRel = rel('result.yml');
   writeYaml(path.join(taskDir, resultRel), result);
 
-  return { runPath: runRel, protocolPath: protocolRel, resultPath: resultRel };
+  return {
+    runPath: runRel,
+    protocolPath: protocolRel,
+    resultPath: resultRel,
+    runPaths: runs.map((entry) => entry.rel),
+    skipped,
+  };
 }

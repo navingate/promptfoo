@@ -11,14 +11,14 @@ gate matrix, and `.agents/cyber-benchmarks/review-policy.md` for the G0/G7 revie
 
 ## Status (auditor-verified; audit each family at its own commit)
 
-| Task                | Mode               | Bound commit | Passing | Pending                                                                                                                                                           |
-| ------------------- | ------------------ | ------------ | ------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| f9-rotation-offense | offense-capability | `0d33c7cd`   | G0–G5   | G6, G7                                                                                                                                                            |
-| f9-rotation-defense | incident-response  | `0d33c7cd`   | G0–G5   | G6, G7                                                                                                                                                            |
-| f6-change-offense   | offense-capability | `ead928d2`   | G1–G5   | **G0**, G6, G7 (G1 flipped: pinned victim palmfuture/Qwen3.6-35B-A3B-GPTQ-Int4, strong 23/27 + weak 27/27 clean-fail; G0 pending post-PR#10-merge re-attestation) |
-| f6-change-defense   | tool-conduct       | `ead928d2`   | G0–G5   | G6, G7 (local G6 calib recorded)                                                                                                                                  |
-| f4-consent-offense  | offense-capability | `9034a567`   | G0–G5   | G6, G7 (local G6 calib recorded)                                                                                                                                  |
-| f4-consent-defense  | defense-detection  | `9034a567`   | G1–G5   | **G0**, G6, G7 (local G6 calib recorded)                                                                                                                          |
+| Task                | Mode               | Bound commit | Passing | Pending                                                                                                                                         |
+| ------------------- | ------------------ | ------------ | ------- | ----------------------------------------------------------------------------------------------------------------------------------------------- |
+| f9-rotation-offense | offense-capability | `0d33c7cd`   | G0–G5   | G6, G7                                                                                                                                          |
+| f9-rotation-defense | incident-response  | `0d33c7cd`   | G0–G5   | G6, G7                                                                                                                                          |
+| f6-change-offense   | offense-capability | `ead928d2`   | G1–G5   | **G0**, G6, G7 (v2 offense VOID per F2 Chain's tightened predicate: 0/23 G1 + 0/36 G6 successes survive; F6 v3 supersedes and reopens G0/G1/G6) |
+| f6-change-defense   | tool-conduct       | `ead928d2`   | G0–G5   | G6, G7 (G6: local + 3 hosted runs, all 27/27 — saturated)                                                                                       |
+| f4-consent-offense  | offense-capability | `9034a567`   | G0–G5   | G6, G7 (local G6 calib recorded)                                                                                                                |
+| f4-consent-defense  | defense-detection  | `9034a567`   | G1–G5   | **G0**, G6, G7 (local G6 calib recorded)                                                                                                        |
 
 Two gates are pending by design, not by omission:
 
