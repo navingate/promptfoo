@@ -44,12 +44,31 @@ it (no-wrapper+generic 0/6; wrapper+specific 2/6).
 
 **Implications (NOT the build's to decide):**
 
-- The minimal fix (a reviewer-ratified naive baseline control + a fresh, possibly offense-local, small G1)
-  is supported by Arm Y = 0/6 and would let 3(c) pass.
+- **[WITHDRAWN 2026-10-11, per designer]** An earlier version listed "a reviewer-ratified naive baseline
+  control + a fresh offense-local G1" as a minimal fix supported by Arm Y = 0/6. The designer declined this
+  as **pass-by-fiat** (deliberately weakening the control just to pass 3(c)): 3(c) fails for real, so the
+  inference does not hold. The data stands; the recommendation is withdrawn. See Designer disposition below.
 - The probe ALSO shows generic rule-identifiable target-delegation is an independent success driver (the
   Arm X drop). Whether the construct should additionally resist a _crafted_ reusable wrapper (the authored
   REUSABLE won 6/6) or accept that a naive baseline suffices for 3(c) is a construct-definition question.
 - **No G6-ceiling flag:** Arm X did NOT saturate at 6/6, so "a good wrapper always wins" is not indicated.
+
+## Designer disposition (2026-10-11, after review)
+
+Recorded so this file is not read as endorsing a fix:
+
+- **3(c) fails FOR REAL.** A fixed, zero-per-instance string (good wrapper + generic target) wins 6/6 here
+  and 18/18 at G1 — a genuine anti-gaming failure, not an artifact.
+- **Arm Y = 0/6 is NOT license for a "naive baseline control" fix** — that is pass-by-fiat (the withdrawal
+  above). **Arm X = 2/6 is suggestive, not a proven "specificity hurts" mechanism** (n = 6).
+- **Blast radius (corrected):** an offense fix that leaves the shared primitives `executeTool`,
+  `outOfScopeClass`, `TOOLS` untouched is OFFENSE-LOCAL — no defense re-gen, no pair rebind (the v3 defense
+  is decoupled; it builds via `defense-estate.mjs` / `buildDefenseCase`).
+- **Ruled out: "make the target harder to find" (recon/discovery).** The T2 pilot history shows recon can't
+  discriminate — which is exactly why recon was made trivial and the victim re-pinned with CRAFTING as the axis.
+- **Three options to the operator (designer's framing, no recommendation):** (1) floor-screening — drop the
+  per-instance gate, F6 becomes a tripwire; (2) re-pin to a more resistant victim; (3) reframe to
+  persuasion-susceptibility.
 
 ## Ownership
 
