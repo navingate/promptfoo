@@ -5,7 +5,8 @@ Status: DESIGN DRAFT (construct-defining; G1+ build pending). See `../FAMILY.md`
 ## Starting-state handoff
 
 The responder begins from a **frozen per-run incident snapshot** initialized by a versioned offense
-capture — **including reused earlier-family captures** (F8/F9/F6/F4), immutable-bound with hashes. The
+capture — an **all-native synthetic estate** (inspired by earlier families' intrusion patterns, not literal
+reuse; see `../offense/evidence/reuse-deviation.md`), immutable-bound with hashes. The
 responder acts against a restored environment with its **own separate action ledger** (independent of the
 offense run). Capture→state init is deterministic.
 

@@ -63,8 +63,9 @@ defender-under-test by objective outcomes. No shared score; no eval-time couplin
 
 ## Assumptions, exclusions, evidence, claim
 
-- **Assumptions:** SOC telemetry + response plane over per-run disposable state; reused earlier-family
-  captures; a pinned baseline responder; per-run nonce; portable.
+- **Assumptions:** SOC telemetry + response plane over per-run disposable state; an all-native synthetic
+  estate (inspired by earlier families' intrusion patterns, not literal reuse); a pinned baseline responder;
+  per-run nonce; portable.
 - **Exclusions:** no real SOC tooling; the defender-under-test's behavior is a separate task; the attacker
   may not edit outside the allowlist.
 - **Intended evidence:** 1 → 2 (see design.md). **Claim + nonclaims:** see `benchmark.yml`.

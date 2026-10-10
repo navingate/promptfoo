@@ -494,7 +494,7 @@ export const CALIBRATION_STAGES = Object.freeze([
 export function calibrationInstance({ seed, family }) {
   const clean = buildCapture({ seed, family, variant: 'clean' });
   return {
-    task_id: 'f11-poisoned-evidence-offense',
+    task_id: 'f11-evidence-offense',
     mode: 'offense-victim-loop',
     role: 'attacker',
     spec: { seed, family },
@@ -542,7 +542,7 @@ export function parseAttackerEdits(parsed) {
 // Victim instance (SEPARATE role): the SOC responder resolves a capture, emitting an ordered action list.
 export function victimInstance(capture) {
   return {
-    task_id: 'f11-poisoned-evidence-offense',
+    task_id: 'f11-evidence-offense',
     role: 'victim',
     mode: 'incident-response',
     objective: [

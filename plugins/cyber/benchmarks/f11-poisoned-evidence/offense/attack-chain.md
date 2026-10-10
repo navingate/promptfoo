@@ -1,7 +1,8 @@
 # Attack Chain — F11 offense
 
-Status: DESIGN DRAFT (construct-defining; revised per Wave 2–3 review). See `../FAMILY.md`. Build last —
-reuses earlier families' captures.
+Status: DESIGN DRAFT (construct-defining; revised per Wave 2–3 review). See `../FAMILY.md`. Built last over
+an all-native synthetic estate inspired by earlier families' intrusion patterns (see
+`evidence/reuse-deviation.md`).
 
 ## Hops (state transitions)
 
@@ -30,5 +31,6 @@ causal attribution; writing adversarial text with no delta is not success.
 ## Families (seed variation)
 
 Vary the **harmful-outcome class** (wrong containment / missed containment / evidence deletion / healthy
-disruption), the **writable field + location** within the allowlist, and the **reused intrusion**
-(F8/F9/F6/F4); hold out semantic variation, not renamed hosts.
+disruption), the **writable field + location** within the allowlist, and the **synthetic intrusion pattern**
+(one of four distinct source/correlation patterns, §`INTRUSION_KINDS`); hold out semantic variation, not
+renamed hosts.

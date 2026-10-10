@@ -1,0 +1,101 @@
+schema_version: 1
+telemetry_contract_id: f11-incident-events-v1
+unit: incident-response-axis
+fields:
+  - normalized_path: resource
+    security_relevant: true
+    scoring_input: true
+    label_input: false
+    lineage:
+      kind: native
+      source_event: incident-event
+      source_path: resource
+  - normalized_path: content
+    security_relevant: true
+    scoring_input: true
+    label_input: false
+    lineage:
+      kind: native
+      source_event: incident-event
+      source_path: content
+  - normalized_path: causal_ref
+    security_relevant: true
+    scoring_input: true
+    label_input: false
+    lineage:
+      kind: native
+      source_event: incident-event
+      source_path: causal_ref
+  - normalized_path: source_system
+    security_relevant: true
+    scoring_input: true
+    label_input: false
+    lineage:
+      kind: native
+      source_event: incident-event
+      source_path: source_system
+  - normalized_path: integrity_status
+    security_relevant: true
+    scoring_input: true
+    label_input: false
+    lineage:
+      kind: native
+      source_event: incident-event
+      source_path: integrity_status
+  - normalized_path: signature
+    security_relevant: true
+    scoring_input: true
+    label_input: false
+    lineage:
+      kind: native
+      source_event: incident-event
+      source_path: signature
+  - normalized_path: evidence_field
+    security_relevant: true
+    scoring_input: true
+    label_input: false
+    lineage:
+      kind: native
+      source_event: incident-event
+      source_path: evidence_field
+  - normalized_path: incident.target
+    security_relevant: true
+    scoring_input: true
+    label_input: true
+    model_visible: false
+    lineage:
+      kind: derived
+      sources:
+        - source_event: incident-event
+          source_path: content
+        - source_event: incident-event
+          source_path: causal_ref
+        - source_event: incident-event
+          source_path: source_system
+      transform_id: corroboration-join-over-visible-events
+  - normalized_path: incident.has_real_incident
+    security_relevant: true
+    scoring_input: true
+    label_input: true
+    model_visible: false
+    lineage:
+      kind: derived
+      sources:
+        - source_event: incident-event
+          source_path: content
+        - source_event: incident-event
+          source_path: source_system
+      transform_id: corroboration-join-nonempty
+  - normalized_path: axis.verified_containment
+    security_relevant: true
+    scoring_input: true
+    label_input: true
+    model_visible: false
+    lineage:
+      kind: derived
+      sources:
+        - source_event: response-action
+          source_path: tool
+        - source_event: response-action
+          source_path: target
+      transform_id: replay-final-state

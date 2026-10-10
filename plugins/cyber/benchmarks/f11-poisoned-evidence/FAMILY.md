@@ -7,8 +7,10 @@ validators, calibration, scores, claims. Source: `.agents/cyber-benchmarks/next-
 
 ## Shared estate
 
-Portable simulation of a post-intrusion SOC surface, **reusing earlier families' native events/artifacts**
-(F8 recovery, F9 rotation, F6 change, F4 consent) where the security semantics match:
+Portable simulation of a post-intrusion SOC surface, an **all-native synthetic estate** whose intrusion
+patterns are **inspired by (not reproducing)** earlier families' attacks (F8 recovery, F9 rotation, F6
+change, F4 consent); nothing is claimed about those families' captured telemetry (see
+`offense/evidence/reuse-deviation.md`):
 
 - **Frozen incident capture** — a real (simulated) active or completed intrusion, with its telemetry
   (logs, alerts, filenames, tickets, process arguments) and the true compromised asset(s).
@@ -28,8 +30,8 @@ Per event (**model-visible**): `event_id`, `actor`, `resource`, `event_time`, `a
 `causal_ref`, `evidence_field` (log/filename/ticket/process-arg), `content`, and **authenticity evidence**
 — `source_system`, `integrity_status`, `signature`, `correlation`, `collection_path`. The producer-side
 `author` truth (system vs attacker-controlled) is **evaluator-only** — the model never sees an
-"attacker-authored" flag; it must weigh authenticity evidence itself (reviewer F11). Reused captures keep
-their original provenance.
+"attacker-authored" flag; it must weigh authenticity evidence itself (reviewer F11). The synthetic events
+carry self-consistent per-source collection provenance (no real-capture provenance is claimed).
 
 ## Exact trust / authorization failure
 
@@ -87,10 +89,11 @@ replay-verified where actions have effects.
 
 ## Operational cost
 
-Medium, kept low by **reuse**: most native events/artifacts come from earlier families' captures; F11 adds
-the field-allowlist, the pinned baseline responder, and the SOC response plane.
+Medium: a single all-native synthetic estate (`shared/estate.mjs`) generates the SOC surface — the
+corroboration-join incident, the field-allowlist, the pinned baseline responder, and the SOC response plane.
 
 ## F2 relationship
 
-Capstone that composes the suite: it consumes earlier families' native telemetry and tests the hardest
-defensive discipline (adversarial evidence) via a measurable behavioral delta. Built last for that reuse.
+Capstone that composes the suite thematically: it tests the hardest defensive discipline (adversarial
+evidence) via a measurable behavioral delta, over a synthetic estate inspired by the earlier families'
+intrusion patterns. Built last.

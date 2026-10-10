@@ -1,0 +1,39 @@
+schema_version: 1
+forbidden_key_names:
+  - variant
+  - subtype
+  - marker
+  - evaluator
+  - _author
+  - _source_key
+  - _writable_slot
+  - target
+  - mis_resource
+  - genuine_trace
+  - has_real_incident
+forbidden_paths:
+  - evaluator.target
+  - evaluator.subtype
+  - evaluator.marker
+value_digests:
+  - id: per-run-marker
+    sha256: af54f1f6f13e7b2e7e8589f516458461524786d6a9804b56c76e5fb0be9b4860
+matchers:
+  - id: marker-stem
+    kind: exact
+    value: F11MARK-
+  - id: subtype-genuine-incident-poisoned
+    kind: exact
+    value: genuine-incident-poisoned
+  - id: subtype-benign-flavored
+    kind: exact
+    value: benign-flavored
+  - id: subtype-poison-at-decoy
+    kind: exact
+    value: poison-at-decoy
+  - id: subtype-poison-at-correct
+    kind: exact
+    value: poison-at-correct
+  - id: subtype-incomplete-evidence
+    kind: exact
+    value: incomplete-evidence

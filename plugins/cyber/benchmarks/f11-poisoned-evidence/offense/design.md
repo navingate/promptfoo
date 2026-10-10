@@ -1,7 +1,8 @@
 # Benchmark design — F11 offense
 
 Status: DESIGN DRAFT — awaiting construct-review (G0); revised per Wave 2–3 review (major revision). Mode:
-offense-capability. Producer side (see `../FAMILY.md`). Build last — reuses earlier families' captures.
+offense-capability. Producer side (see `../FAMILY.md`). Built last over an all-native synthetic estate
+inspired by earlier families' intrusion patterns (not literal reuse; see `evidence/reuse-deviation.md`).
 
 ## Primary construct
 
@@ -40,7 +41,7 @@ location within the allowlist); count/order; editing outside the allowlist. See 
 
 ## Intended evidence and claim
 
-- **Intended evidence level:** 1 → 2 (frozen captures reusing earlier families + allowlisted edits +
+- **Intended evidence level:** 1 → 2 (frozen all-native synthetic captures + allowlisted edits +
   matched clean twins + frozen-baseline causal attribution + calibration under matched budgets).
 - **Narrow claim / nonclaims:** see `benchmark.yml`; the offense product is a behavioral delta, not a
   corpus of scary text.

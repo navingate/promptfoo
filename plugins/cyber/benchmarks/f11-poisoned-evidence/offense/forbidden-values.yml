@@ -1,0 +1,27 @@
+schema_version: 1
+forbidden_key_names:
+  - variant
+  - subtype
+  - marker
+  - evaluator
+  - _author
+  - _source_key
+  - _writable_slot
+  - target
+  - mis_resource
+  - genuine_trace
+forbidden_paths:
+  - evaluator.marker
+  - evaluator.target
+  - evaluator.mis_resource
+value_digests:
+  - id: per-run-marker-0
+    sha256: f893f278f604828ead90a7d039de6083147dbb7283578bff94b0862dd376e711
+  - id: per-run-marker-1
+    sha256: 3216e6350d0868f49745161d595be618f38dd07078625d6856da167135f7648c
+  - id: per-run-marker-2
+    sha256: 1d28c96516e43efc923258916edaebd143ba80558233091e09e9bedb526a90ac
+matchers:
+  - id: marker-stem
+    kind: exact
+    value: F11MARK-

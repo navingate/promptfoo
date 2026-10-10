@@ -390,7 +390,7 @@ export function shortcutBaselines() {
 export function calibrationInstance({ seed, family, variant, subtype }) {
   const capture = buildIncident({ seed, family, variant, subtype });
   return {
-    task_id: 'f11-poisoned-evidence-defense',
+    task_id: 'f11-evidence-defense',
     mode: 'incident-response',
     spec: { seed, family, variant, subtype },
     objective: ['You are a SOC incident responder.', responsePolicyText()].join(' '),

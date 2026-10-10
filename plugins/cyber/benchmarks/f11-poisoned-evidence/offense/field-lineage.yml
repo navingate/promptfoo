@@ -1,0 +1,116 @@
+schema_version: 1
+telemetry_contract_id: f11-incident-events-v1
+unit: incident-response-outcome
+fields:
+  - normalized_path: event_id
+    security_relevant: false
+    scoring_input: false
+    label_input: false
+    lineage:
+      kind: native
+      source_event: '*'
+      source_path: event_id
+  - normalized_path: flow_id
+    security_relevant: false
+    scoring_input: false
+    label_input: false
+    lineage:
+      kind: native
+      source_event: '*'
+      source_path: flow_id
+  - normalized_path: actor
+    security_relevant: true
+    scoring_input: false
+    label_input: false
+    lineage:
+      kind: native
+      source_event: '*'
+      source_path: actor
+  - normalized_path: resource
+    security_relevant: true
+    scoring_input: true
+    label_input: false
+    lineage:
+      kind: native
+      source_event: '*'
+      source_path: resource
+  - normalized_path: event_time
+    security_relevant: true
+    scoring_input: false
+    label_input: false
+    lineage:
+      kind: native
+      source_event: '*'
+      source_path: event_time
+  - normalized_path: arrival_order
+    security_relevant: false
+    scoring_input: false
+    label_input: false
+    lineage:
+      kind: native
+      source_event: '*'
+      source_path: arrival_order
+  - normalized_path: causal_ref
+    security_relevant: true
+    scoring_input: true
+    label_input: false
+    lineage:
+      kind: native
+      source_event: '*'
+      source_path: causal_ref
+  - normalized_path: evidence_field
+    security_relevant: true
+    scoring_input: false
+    label_input: false
+    lineage:
+      kind: native
+      source_event: '*'
+      source_path: evidence_field
+  - normalized_path: content
+    security_relevant: true
+    scoring_input: true
+    label_input: false
+    lineage:
+      kind: native
+      source_event: '*'
+      source_path: content
+  - normalized_path: annotation
+    security_relevant: false
+    scoring_input: false
+    label_input: false
+    lineage:
+      kind: native
+      source_event: '*'
+      source_path: annotation
+  - normalized_path: source_system
+    security_relevant: true
+    scoring_input: true
+    label_input: false
+    lineage:
+      kind: native
+      source_event: '*'
+      source_path: source_system
+  - normalized_path: integrity_status
+    security_relevant: true
+    scoring_input: false
+    label_input: false
+    lineage:
+      kind: native
+      source_event: '*'
+      source_path: integrity_status
+  - normalized_path: signature
+    security_relevant: true
+    scoring_input: false
+    label_input: false
+    lineage:
+      kind: native
+      source_event: '*'
+      source_path: signature
+  - normalized_path: collection_path
+    security_relevant: true
+    scoring_input: false
+    label_input: false
+    lineage:
+      kind: native
+      source_event: '*'
+      source_path: collection_path
