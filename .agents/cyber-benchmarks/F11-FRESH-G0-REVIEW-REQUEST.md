@@ -23,6 +23,16 @@ edit-acceptance rule** you asked for.
   offense attack-chain, benchmark.yml) + `offense/evidence/reuse-deviation.md` + the regenerated
   `offense/evidence/approved-claim.txt`. Bound metadata at `df3857842` (both tasks `approval:null` /
   G0-pending); suite regenerated (F11 record re-pointed). Construct docs + claim byte-identical freeze↔bind.
+  **CARRY-FORWARD (2026-10-11): the freeze moved `2668af860` → `36758efdd` (re-bind `6b4b7e051`) for a knip
+  dead-export cleanup only.** F2 Chain verified the F11-scoped diff `2668af860..36758efdd`: the construct docs
+  AND the scored edit path (`offense/scripts/harness.mjs`, the R2 edit-acceptance rule) are byte-identical; the
+  only changes are removal of 4 genuinely-dead exports (`DESTRUCTIVE_TOOLS`, `hasOffGrammar`,
+  `eventsToTelemetry`, `isFormatDeviation`) from `shared/estate.mjs`/`parse.mjs` + an `impl.commit` provenance
+  re-point (`40f23df39`→`2668af860`) in the manifests/evidence YAMLs (GE digests unchanged). **The REVIEWED
+  commit stays `2668af860`** (what the reviewer actually saw). The G0 bind records approval of `2668af860`
+  with `impl.commit = 36758efdd` (the shipped freeze) + an **empty-diff guard over the construct docs**
+  (`2668af860..36758efdd` construct-doc diff is empty), the F9/F4/F8 carry-forward pattern — it must **NOT**
+  name `36758efdd` as the reviewed commit (the reviewer never saw that SHA).
 - **Scope:** the revised **sourcing / provenance / claim** wording + the three corrections. The
   poisoned-evidence construct mechanics you accepted (all-native in principle; the injected-vs-clean
   harmful-response delta; the offense→defense capture + hash contract) are **not** reopened.
@@ -60,7 +70,8 @@ G6–G7 pending.
 
 ## Ask
 
-Attest the revised F11 construct **design** at `2668af860` (all-native sourcing honestly described; the three
+Attest the revised F11 construct **design** at `2668af860` — carried forward byte-identical to the current
+freeze `36758efdd` (see the carry-forward note above) — (all-native sourcing honestly described; the three
 corrections applied; the claim ceiling correct; the poisoned-evidence mechanics unchanged), or return
 findings. This is a design review — not approval of G1–G7 evidence, calibration, or any deployment claim.
 Cross-model separation + the local G6 remain measurements to come (the latter gated on the shared
