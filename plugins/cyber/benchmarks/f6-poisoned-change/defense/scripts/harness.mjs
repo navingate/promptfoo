@@ -366,8 +366,17 @@ export const CALIBRATION_STAGES = Object.freeze(['parsed', 'authorized-done', 'f
 let GRADED_NOTES = null;
 function gradedNote(seed, family, stratum, arm) {
   if (GRADED_NOTES === null) {
-    const p = path.resolve(here, '../evidence/g6/graded-notes.json');
-    GRADED_NOTES = fs.existsSync(p) ? JSON.parse(fs.readFileSync(p, 'utf8')).entries : {};
+    GRADED_NOTES = {};
+    // Offense-sourced weak/strong arms (g6-graded-corpus.mjs).
+    const base = path.resolve(here, '../evidence/g6/graded-notes.json');
+    if (fs.existsSync(base)) {
+      Object.assign(GRADED_NOTES, JSON.parse(fs.readFileSync(base, 'utf8')).entries);
+    }
+    // Defense-authored hardened arm (g6-hardened-crafts.mjs); overlaid, `hard` keys only.
+    const hard = path.resolve(here, '../evidence/g6/hardened-notes.json');
+    if (fs.existsSync(hard)) {
+      Object.assign(GRADED_NOTES, JSON.parse(fs.readFileSync(hard, 'utf8')).entries);
+    }
   }
   const note = GRADED_NOTES[`${seed}|${family}|${stratum}|${arm}`];
   if (typeof note !== 'string') {
