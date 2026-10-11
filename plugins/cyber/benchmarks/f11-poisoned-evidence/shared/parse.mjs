@@ -85,8 +85,3 @@ export function parseActionList(text) {
   }
   return { actions: null, note: 'unparseable' };
 }
-
-/** A note that is a deviation from the requested JSON array (parsed, but not an array). */
-export function isFormatDeviation(note) {
-  return note === 'bare-object' || note === 'concatenated';
-}
