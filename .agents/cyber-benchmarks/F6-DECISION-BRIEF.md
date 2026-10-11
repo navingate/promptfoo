@@ -23,12 +23,12 @@ effectively exhausted. The F6 defense task needs nothing — you already parked 
 
 ## Where F6 stands today
 
-| Piece                               | State                                                                                                                                                                                                                                                             | Anchored at                                                 |
-| ----------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ----------------------------------------------------------- |
-| F6 offense construct (G0)           | Reviewed, **untouched** since the G1 fail (no redesign, no re-pin, no re-bind)                                                                                                                                                                                    | construct `13b28aed…` (victim pin), result doc `dca717c35`  |
-| F6 offense G1 (does the task flip?) | **Failed** the pre-registered anti-gaming rule; gate left unflipped (never marked pass)                                                                                                                                                                           | paid run recorded, branch `codex/cyber-wave1-f6-v3-offense` |
-| F6 offense G6 (paid ceiling)        | **Double-blocked**: the G1 fail bars it, and a renderer-fidelity fix is also needed                                                                                                                                                                               | —                                                           |
-| F6 defense (G0–G6, G7)              | **Parked at rest**: G0 bound and standing; both paid G6 injection tiers ceilinged; the one cross-model separator (broken-binding conduct) recorded and independently verifiable; G7 held; limited claim kept internal, unsigned — **all per your prior decision** | G0 bind `df4bc0045`; G6 runs `9aa7cd29` / `9f254428`        |
+| Piece                               | State                                                                                                                                                                                                                                                             | Anchored at                                                                                                   |
+| ----------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------- |
+| F6 offense construct (G0)           | Reviewed, **untouched** since the G1 fail (no redesign, no re-pin, no re-bind)                                                                                                                                                                                    | construct C0 `13b28aed…` (victim = frozen deepseek.v3.2); G1 write-up `5c96add04`; re-pin batch 2 `dca717c35` |
+| F6 offense G1 (does the task flip?) | **Failed** the pre-registered anti-gaming rule; gate left unflipped (never marked pass)                                                                                                                                                                           | paid run recorded, branch `codex/cyber-wave1-f6-v3-offense`                                                   |
+| F6 offense G6 (paid ceiling)        | **Double-blocked**: the G1 fail bars it, and a renderer-fidelity fix is also needed                                                                                                                                                                               | —                                                                                                             |
+| F6 defense (G0–G6, G7)              | **Parked at rest**: G0 bound and standing; both paid G6 injection tiers ceilinged; the one cross-model separator (broken-binding conduct) recorded and independently verifiable; G7 held; limited claim kept internal, unsigned — **all per your prior decision** | G0 bind `df4bc0045`; G6 runs `9aa7cd29` / `9f254428`                                                          |
 
 So the **only live F6 question is the offense task**.
 
@@ -71,8 +71,9 @@ So the **only live F6 question is the offense task**.
 - On **which of A/B/D** to choose: **I have no basis to recommend** — that is a construct-validity judgment that
   belongs to the designer (F2 Chain) and you. I will not manufacture a preference.
 - On the **re-pin path (C and more like it)**: I recommend **not** spending further paid calls chasing a
-  resistant victim. **Basis: measured** — two batches, ~10 models, no qualifying middle; the expected return on
-  a third try is low. The lone exception worth a single call _if you want certainty_ is the untested nemotron
+  resistant victim. **Basis: judgment, informed by measurement** — the two screen batches (~10 models, no
+  qualifying middle) are measured fact; the forward-looking "a third try won't help" is my judgment from that,
+  not itself measured. The lone exception worth a single call _if you want certainty_ is the untested nemotron
   retry, but it is a paid call and needs your direct word; I will not run it on my own.
 - Whatever is chosen, the F6 offense construct and gate stay **as recorded** until the designer issues the
   revised construct — I do not redesign, and I do a build-feasibility read when/if a revised construct arrives.
