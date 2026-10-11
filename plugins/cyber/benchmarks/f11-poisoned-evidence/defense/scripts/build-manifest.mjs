@@ -8,6 +8,7 @@
 // must run after the offense generator so the capture exists) + a format pass:
 //   node plugins/cyber/benchmarks/f11-poisoned-evidence/defense/scripts/build-manifest.mjs --commit <40-hex>
 
+import { execFileSync } from 'node:child_process';
 import fs from 'node:fs';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
@@ -16,9 +17,24 @@ import { bindTask } from '../../../_tooling/bind-manifest.mjs';
 
 const here = path.dirname(fileURLToPath(import.meta.url));
 const taskDir = path.resolve(here, '..');
+const repoRoot = path.resolve(here, '../../../../../..');
 const TASK_ID = 'f11-evidence-defense';
 const PRODUCER_ID = 'f11-evidence-offense';
 const AUTHOR = 'navingate';
+// G0 carry-forward of the fresh-scoped openai-codex-gpt-6 R2 review at REVIEW_COMMIT. The freeze later moved
+// REVIEW_COMMIT -> the bound impl.commit for a knip dead-export cleanup only (estate/parse). This guard
+// fail-closes if any construct-defining doc (or the deviation note the review's source-claim finding turned
+// on) drifted from the reviewed commit, so the carry-forward can only bind a byte-identical construct.
+const REVIEW_COMMIT = '2668af860db3cf251bdab697bd232f8d5b272c0e';
+const CORE_DOC_RELS = [
+  'design.md',
+  'threat-model.md',
+  'incident-state.md',
+  'response-policy.md',
+  'scoring-contract.md',
+  '../FAMILY.md',
+  'evidence/reuse-deviation.md',
+];
 
 function arg(name) {
   const i = process.argv.indexOf(`--${name}`);
@@ -27,12 +43,27 @@ function arg(name) {
 function readJson(rel) {
   return JSON.parse(fs.readFileSync(path.join(taskDir, rel), 'utf8'));
 }
+function assertConstructDocsUnchanged() {
+  const repoRelative = CORE_DOC_RELS.map((rel) =>
+    path.relative(repoRoot, path.resolve(taskDir, rel)),
+  );
+  const diff = execFileSync('git', ['diff', REVIEW_COMMIT, '--', ...repoRelative], {
+    cwd: repoRoot,
+    encoding: 'utf8',
+  });
+  if (diff.trim() !== '') {
+    throw new Error(
+      `G0 empty-diff proof FAILED: F11 defense construct docs drifted from ${REVIEW_COMMIT}.\n${diff}`,
+    );
+  }
+}
 
 function main() {
   const commit = arg('commit');
   if (!/^[a-f0-9]{40}$|^[a-f0-9]{64}$/u.test(commit ?? '')) {
     throw new Error('Pass --commit <40-or-64-hex>');
   }
+  assertConstructDocsUnchanged();
 
   const reference = readJson('evidence/reference-results.json');
   const shortcuts = readJson('evidence/shortcut-results.json');
@@ -153,6 +184,14 @@ function main() {
         .map((f) => `calibration/${f}`)
     : [];
 
+  const approval = {
+    reviewerId: 'openai-codex-gpt-6',
+    relationship: 'external-ai-reviewer',
+    approvedLevel: '0',
+    reviewedAt: '2026-10-10',
+    note: `Author-issued carry-forward G0 binding under the owner decision accepting the independent AI construct review by openai-codex-gpt-6 of the F11 revised all-native design at review commit ${REVIEW_COMMIT} (fresh scoped G0, construct scope only; see .agents/cyber-benchmarks/F11-FRESH-G0-R2-REVIEW-FEEDBACK.md). The freeze moved ${REVIEW_COMMIT} -> ${commit} for a knip dead-export cleanup only (DESTRUCTIVE_TOOLS, hasOffGrammar, eventsToTelemetry, isFormatDeviation); the F11 construct-defining docs, the published claim, and the scored edit-acceptance path are byte-identical ${REVIEW_COMMIT}..${commit} (fail-closed empty-diff proof in build-manifest). reviewed_commit is bound to the implementation commit ${commit} per the approvals-array equality invariant (audit_benchmark reviewed_commit === implementation.commit); the reviewer reviewed ${REVIEW_COMMIT} and did not see ${commit}. manifest_sha256 / claim / evidence digests are author-computed at build; the reviewer did not review the build or its digests. Not sufficient for G7/release (needs a human or independent-org claim reviewer); the local G6 is pending the shared-runner renderer wiring and, once recorded, is a floor run, not a frontier ceiling.`,
+    evidenceArtifacts: CORE_DOC_RELS,
+  };
   const result = bindTask({
     taskDir,
     taskId: TASK_ID,
@@ -169,10 +208,10 @@ function main() {
       files: ['evidence/capture/f11-incident-events-v1.jsonl'],
     },
     calibrationRuns,
-    approval: null, // G0 pending — fresh SCOPED construct review (all-native deviation), independent reviewer relayed by the user
+    approval,
   });
   process.stdout.write(
-    `[f11-defense] bound to ${commit.slice(0, 12)}… manifest_sha=${result.manifestSha.slice(0, 12)}… gate_statuses=${JSON.stringify(result.gateStatuses)}; G0 pending (fresh scoped review), G6/G7 pending\n`,
+    `[f11-defense] bound to ${commit.slice(0, 12)}… manifest_sha=${result.manifestSha.slice(0, 12)}… gate_statuses=${JSON.stringify(result.gateStatuses)}; G0 RECORDED (openai-codex-gpt-6 carry-forward @ ${REVIEW_COMMIT.slice(0, 12)}…), G6/G7 pending\n`,
   );
 }
 

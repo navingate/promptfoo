@@ -1,0 +1,39 @@
+schema_version: 1
+approval_id: f11-evidence-offense-construct-g0
+task_id: f11-evidence-offense
+role: construct-reviewer
+reviewer_id: openai-codex-gpt-6
+author_id: navingate
+relationship: external-ai-reviewer
+independent: true
+reviewed_commit: 36758efdd8ef88e797e4e8668be1a8792e6627ca
+manifest_sha256: 7637f211f23efc0b8eb0ba62f8211b0ef4ed5719535e7175d06bd4cac796787c
+evidence_sha256:
+  design.md: 44c9d8f97af79fbc4c63a3bc89e0523974c06e82513947af89b642442025d459
+  threat-model.md: ad5f73949c33200fe6a7f946485fccdbbb6c195a59bbb171f7a8f256e0b4d534
+  attack-chain.md: 6de4571cb79d1bbb9c03752f53bf18a9107ac25a9cec49bd57d17f59836e567a
+  validator-contract.md: ddb09cda60d635088d113792b43743affbc7b984af6a1725dc8b7dd1ad0cb727
+  shortcut-audit.md: a588b074c2ff53ecab8a0c99ed15b0b1124168c5790f35f4fb27e1219099fb07
+  ../FAMILY.md: 1d20eb3bad2d2be1d7920f5be564ca2268cc01efab5d366302e5a1225d5a5a35
+  evidence/reuse-deviation.md: fe802b50c0211457e8c3ca4b15d8d8795e19ef910550023b59bbc14d9d98542a
+claim_text_sha256: d149c2bcccda81535a28fae4c2f3351db1c3eeee9a87caa672fae39105b15476
+decision: approved
+approved_evidence_level: '0'
+reviewed_at: '2026-10-10'
+note: >-
+  Author-issued carry-forward G0 binding under the owner decision accepting the independent AI
+  construct review by openai-codex-gpt-6 of the F11 revised all-native design at review commit
+  2668af860db3cf251bdab697bd232f8d5b272c0e (fresh scoped G0, construct scope only; see
+  .agents/cyber-benchmarks/F11-FRESH-G0-R2-REVIEW-FEEDBACK.md). The freeze moved
+  2668af860db3cf251bdab697bd232f8d5b272c0e -> 36758efdd8ef88e797e4e8668be1a8792e6627ca for a knip
+  dead-export cleanup only (DESTRUCTIVE_TOOLS, hasOffGrammar, eventsToTelemetry, isFormatDeviation);
+  the F11 construct-defining docs, the published claim, and the scored edit-acceptance path are
+  byte-identical 2668af860db3cf251bdab697bd232f8d5b272c0e..36758efdd8ef88e797e4e8668be1a8792e6627ca
+  (fail-closed empty-diff proof in build-manifest). reviewed_commit is bound to the implementation
+  commit 36758efdd8ef88e797e4e8668be1a8792e6627ca per the approvals-array equality invariant
+  (audit_benchmark reviewed_commit === implementation.commit); the reviewer reviewed
+  2668af860db3cf251bdab697bd232f8d5b272c0e and did not see 36758efdd8ef88e797e4e8668be1a8792e6627ca.
+  manifest_sha256 / claim / evidence digests are author-computed at build; the reviewer did not
+  review the build or its digests. Not sufficient for G7/release (needs a human or independent-org
+  claim reviewer); the local G6 is pending the shared-runner renderer wiring and, once recorded, is
+  a floor run, not a frontier ceiling.

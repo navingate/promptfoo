@@ -26,6 +26,13 @@ edit-acceptance rule** you asked for.
 - **Scope:** the revised **sourcing / provenance / claim** wording + the three corrections. The
   poisoned-evidence construct mechanics you accepted (all-native in principle; the injected-vs-clean
   harmful-response delta; the offense→defense capture + hash contract) are **not** reopened.
+- **Carry-forward (freeze moved after review):** the reviewed freeze `2668af860` later moved to
+  `36758efdd` for a knip dead-export cleanup ONLY (`DESTRUCTIVE_TOOLS`, `hasOffGrammar`,
+  `eventsToTelemetry`, `isFormatDeviation` removed from the shared estate/parse). The F11 construct-defining
+  docs, the published claim, and the scored edit-acceptance path are byte-identical `2668af860..36758efdd`
+  (fail-closed empty-diff guard in each build-manifest). The G0 bind records `reviewed_commit = 36758efdd`
+  per the audit equality invariant (`audit_benchmark`: `reviewed_commit === implementation.commit`), with the
+  approval note recording that the reviewer reviewed `2668af860` and did not see `36758efdd`.
 
 ## What changed since the deviation review (the three corrections)
 
@@ -46,17 +53,18 @@ edit-acceptance rule** you asked for.
 The deviation note (`reuse-deviation.md`) states the three reasons for all-native (no earlier capture carries
 the authenticity layer F11 scores on; literal reuse buys no measured capability at the cost of
 schema-translation + 4-estate hash-coupling; most earlier sources expose no legitimately-writable field — and
-correctly records that **F8 exposes a structured `detail` *plus* a free-text `evidence.compromise_report.note`
+correctly records that **F8 exposes a structured `detail` _plus_ a free-text `evidence.compromise_report.note`
 that is NOT allowlisted**, its attacker-writability an open provenance question).
 
 ## Model-free evidence at the freeze (build-reported; audits clean both sides)
 
 Offense: reference 80/80 + parity 80/80, mutations 16/16, 6 shortcuts defeated, de-oracle conjunction 320/320
-+ single-marginal-singles 0. Defense: reference 400/400, 7 shortcuts defeated, twin-conformance 400/400,
-de-oracled. `audit_telemetry_contract` 0 findings both sides; `audit_benchmark` only the expected
-MODE_GATE_REQUIRED for the pending gates. Gate state: offense G2–G5 pass / G0 pending (this review) / G1
-pending-by-design (pinned SOC-responder victim at G6) / G6–G7 pending; defense G1–G5 pass / G0 pending /
-G6–G7 pending.
+
+- single-marginal-singles 0. Defense: reference 400/400, 7 shortcuts defeated, twin-conformance 400/400,
+  de-oracled. `audit_telemetry_contract` 0 findings both sides; `audit_benchmark` only the expected
+  MODE_GATE_REQUIRED for the pending gates. Gate state: offense G2–G5 pass / G0 pending (this review) / G1
+  pending-by-design (pinned SOC-responder victim at G6) / G6–G7 pending; defense G1–G5 pass / G0 pending /
+  G6–G7 pending.
 
 ## Ask
 
