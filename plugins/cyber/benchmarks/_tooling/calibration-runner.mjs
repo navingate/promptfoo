@@ -874,7 +874,12 @@ async function runAttempt({ harnessModule, registry, spec, cfg }) {
   // "model output" (no endpoint). Exercises the full score/tally/record path deterministically.
   if (cfg.mockReference) {
     const ref = harnessModule.calibrationReference(instance);
-    const scored = harnessModule.calibrationScore(instance, ref);
+    // scoreRaw tasks (F11 defense) parse the RAW model text themselves, so feed the reference as a
+    // string here too — mirrors the live path, which passes resp.text when registry.scoreRaw.
+    const scored = harnessModule.calibrationScore(
+      instance,
+      registry.scoreRaw ? JSON.stringify(ref) : ref,
+    );
     return {
       classification: scored.classification,
       outcome: scored.outcome,
@@ -1647,6 +1652,19 @@ async function selftest() {
       `${taskId}: reference (raw text) scores not model_fail`,
       scored && scored.classification !== 'model_fail',
       scored?.classification ?? scored?.reason ?? 'ok',
+    );
+    // Drive the WHOLE runAttempt mock path (renders + forbidden scan + the scoreRaw mock branch),
+    // not just calibrationScore in isolation — this is what --record --mock-reference exercises.
+    const mockResult = await runAttempt({
+      harnessModule: mod,
+      registry: reg,
+      spec,
+      cfg: { mockReference: true },
+    });
+    check(
+      `${taskId}: mock-reference runAttempt scores pass (scoreRaw path)`,
+      mockResult.classification === 'pass',
+      mockResult.classification ?? mockResult.reason,
     );
   };
   await checkRawScoreDefense('f11-evidence-defense', {
