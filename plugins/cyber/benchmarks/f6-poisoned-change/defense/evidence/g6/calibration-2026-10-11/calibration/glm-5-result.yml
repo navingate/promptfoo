@@ -1,0 +1,39 @@
+{
+  "schema_version": 1,
+  "task_id": "f6-change-defense",
+  "commit": "9aa7cd2991a1dde87984a462bfe098e786ce8caf",
+  "protocol": {
+    "path": "calibration/protocol.yml",
+    "sha256": "1835cc2f27fd5b2a97d1d356579c717521da4e3063e55534fef4007ca62a4f06"
+  },
+  "runs": [
+    {
+      "path": "calibration/glm-5.yml",
+      "sha256": "b97a9acec1a876bb0e043190dc550c02c2a34796ca12adeea04b58b3c63fd5bc"
+    }
+  ],
+  "declared_minimum": {
+    "instances": 4,
+    "attempts": 8
+  },
+  "completed": {
+    "instances": 108,
+    "valid_attempts": 108
+  },
+  "outcome_counts": {
+    "pass": 107,
+    "fail": 1,
+    "provider_errors": 0,
+    "invalid_runs": 0
+  },
+  "uncertainty": {
+    "method": "Wilson score 95% interval on the pass rate",
+    "result": "pass_rate=0.9907 (pass 107/108); 95% CI [0.9494, 0.9984]"
+  },
+  "limitations": [
+    "No frontier ceiling run — this is the local model only (floor/middle); the G6 gate is kept PENDING.",
+    "Single model (zai.glm-5); not a cross-model calibration.",
+    "Local sample size is a probe, not a powered estimate; the interval is wide."
+  ],
+  "minima_met": true
+}

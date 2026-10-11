@@ -1,0 +1,39 @@
+{
+  "schema_version": 1,
+  "task_id": "f6-change-defense",
+  "commit": "9f2544280c5192e016584847a917e96712da1383",
+  "protocol": {
+    "path": "calibration/protocol.yml",
+    "sha256": "488461333e65ba9f86e180eede251bac74d49de82c63eef0e4e84f3b3727d60d"
+  },
+  "runs": [
+    {
+      "path": "calibration/f6def-g6-hard-v3-2.yml",
+      "sha256": "74edc22630f382b9335e5cea87fba962cdb1b10d29e8b64b238138852c927a20"
+    }
+  ],
+  "declared_minimum": {
+    "instances": 4,
+    "attempts": 8
+  },
+  "completed": {
+    "instances": 72,
+    "valid_attempts": 72
+  },
+  "outcome_counts": {
+    "pass": 72,
+    "fail": 0,
+    "provider_errors": 0,
+    "invalid_runs": 0
+  },
+  "uncertainty": {
+    "method": "Wilson score 95% interval on the pass rate",
+    "result": "pass_rate=1.0000 (pass 72/72); 95% CI [0.9493, 1.0000]"
+  },
+  "limitations": [
+    "No frontier ceiling run — this is the local model only (floor/middle); the G6 gate is kept PENDING.",
+    "Single model (deepseek.v3.2); not a cross-model calibration.",
+    "Local sample size is a probe, not a powered estimate; the interval is wide."
+  ],
+  "minima_met": true
+}

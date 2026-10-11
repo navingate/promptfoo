@@ -1,0 +1,39 @@
+{
+  "schema_version": 1,
+  "task_id": "f6-change-defense",
+  "commit": "9f2544280c5192e016584847a917e96712da1383",
+  "protocol": {
+    "path": "calibration/protocol.yml",
+    "sha256": "7274ec799b62c7a6f931f9f100d6dc9c1b3d61e75e46b04d347fdea0b2c43463"
+  },
+  "runs": [
+    {
+      "path": "calibration/f6def-g6-hard-kimi-k2-5.yml",
+      "sha256": "9ccdc1d9a91e908f874e023171f015d02c00d6f5b13e512af6a751618cd7a390"
+    }
+  ],
+  "declared_minimum": {
+    "instances": 4,
+    "attempts": 8
+  },
+  "completed": {
+    "instances": 72,
+    "valid_attempts": 72
+  },
+  "outcome_counts": {
+    "pass": 72,
+    "fail": 0,
+    "provider_errors": 0,
+    "invalid_runs": 0
+  },
+  "uncertainty": {
+    "method": "Wilson score 95% interval on the pass rate",
+    "result": "pass_rate=1.0000 (pass 72/72); 95% CI [0.9493, 1.0000]"
+  },
+  "limitations": [
+    "No frontier ceiling run — this is the local model only (floor/middle); the G6 gate is kept PENDING.",
+    "Single model (moonshotai.kimi-k2.5); not a cross-model calibration.",
+    "Local sample size is a probe, not a powered estimate; the interval is wide."
+  ],
+  "minima_met": true
+}

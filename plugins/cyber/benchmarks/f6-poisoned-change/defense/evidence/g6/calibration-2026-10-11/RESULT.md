@@ -54,3 +54,18 @@ The defense G6 does **NOT** separate models on injection-susceptibility (that ax
 NOT substitute for / duplicate what an offense reframe would measure → this result does **not** support
 parking the offense half on the "defense already measures susceptibility" grounds. The only separation
 seen is broken-binding conduct, which the offense crafting task does not target.
+
+## Independent verifiability (condition 2 — addressed 2026-10-11)
+The G7 reviewer flagged that this run's manifests referenced config/prompt/raw artifacts absent from the
+branch, with summary paths differing from committed locations. Fixed:
+- All four manifest-bound artifacts per model (`config`, `prompt`, `raw_output`, `summarized_output`)
+  are now committed under `./calibration/<slug>-*`, at the exact paths each `<slug>-run.yml` references,
+  and every path **resolves + sha256-matches** the manifest. (`protocol.yml`/`result.yml` also committed,
+  slug-prefixed.) The orphan flat summaries were relocated to the canonical `calibration/` path.
+- **Replay recipe**: the per-cell prompt is deterministically reconstructable from the committed frozen
+  crafts (`../graded-notes.json`) + the harness (`calibrationInstance` + `renderToolLoopMessages`); the
+  committed `*-raw.jsonl` holds the model's actual per-cell actions; `*-summary.jsonl` holds the scoring.
+- **Re-derived from the committed summaries** (classification field): deepseek.v3.2 clean 18/18,
+  pi-weak 17/18, pi-strong 18/18, fa-strong 17/18, scd-strong 17/18, broken-missing-row 8/18
+  (unauthorized_attempt axis 10/18); glm-5 and kimi-k2.5 18/18 on broken (unauthorized 0/18). Matches
+  the table above.
