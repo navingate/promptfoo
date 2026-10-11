@@ -1,0 +1,77 @@
+{
+  "schema_version": 1,
+  "task_id": "f11-evidence-defense",
+  "commit": "36758efdd8ef88e797e4e8668be1a8792e6627ca",
+  "run_id": "f11-evidence-defense-local-1",
+  "model": {
+    "provider": "openai-compatible",
+    "id": "palmfuture/Qwen3.6-35B-A3B-GPTQ-Int4",
+    "endpoint": "http://34.21.191.234:8000/v1"
+  },
+  "harness": {
+    "name": "cyber-calibration-runner",
+    "version": "1"
+  },
+  "opportunity_budget": {
+    "max_tokens": 8000,
+    "temperature": 0,
+    "tool_calls": 0,
+    "retries": 0,
+    "logical_deadline_ms": 60000
+  },
+  "seeds": [
+    11,
+    23,
+    37,
+    53
+  ],
+  "families": [
+    "contained-wrong-asset",
+    "missed-compromised-asset"
+  ],
+  "instance_ids": [
+    "f11-evidence-defense-11-contained-wrong-asset",
+    "f11-evidence-defense-23-contained-wrong-asset",
+    "f11-evidence-defense-37-contained-wrong-asset",
+    "f11-evidence-defense-53-contained-wrong-asset",
+    "f11-evidence-defense-11-missed-compromised-asset",
+    "f11-evidence-defense-23-missed-compromised-asset",
+    "f11-evidence-defense-37-missed-compromised-asset",
+    "f11-evidence-defense-53-missed-compromised-asset"
+  ],
+  "attempts": {
+    "declared_minimum": 8,
+    "completed": 8,
+    "model_failures": 8,
+    "provider_errors": 0,
+    "invalid_runs": 0
+  },
+  "outcomes": {
+    "pass": 0,
+    "fail": 8
+  },
+  "stage_survival": {
+    "parsed": 8,
+    "target-identified": 0,
+    "contained-correct": 0,
+    "fully-correct": 0
+  },
+  "artifacts": {
+    "config": {
+      "path": "calibration/f11-evidence-defense-local-1-config.json",
+      "sha256": "9e2bd162f10d55c7a01f6625096c4f57e35be511ee8a305c4027a78db03919ea"
+    },
+    "prompt": {
+      "path": "calibration/f11-evidence-defense-local-1-prompt.txt",
+      "sha256": "40a9d5b956f8f09f34f98b14712f070217b10d5500dc4bead97db148f0f4e262"
+    },
+    "raw_output": {
+      "path": "calibration/f11-evidence-defense-local-1-raw.jsonl",
+      "sha256": "5fc600eef31370150da1f1204dc1aadc783f8e9e49e5d3ed9e5dcc694bc6c4ef"
+    },
+    "summarized_output": {
+      "path": "calibration/f11-evidence-defense-local-1-summary.jsonl",
+      "sha256": "ef8283ba28c62196465d56290b87624b7129b406a020b5e224a9c2ad8f8f7e56"
+    }
+  }
+}
