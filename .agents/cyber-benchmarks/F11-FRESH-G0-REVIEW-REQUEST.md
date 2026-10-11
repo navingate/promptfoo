@@ -28,11 +28,12 @@ edit-acceptance rule** you asked for.
   AND the scored edit path (`offense/scripts/harness.mjs`, the R2 edit-acceptance rule) are byte-identical; the
   only changes are removal of 4 genuinely-dead exports (`DESTRUCTIVE_TOOLS`, `hasOffGrammar`,
   `eventsToTelemetry`, `isFormatDeviation`) from `shared/estate.mjs`/`parse.mjs` + an `impl.commit` provenance
-  re-point (`40f23df39`→`2668af860`) in the manifests/evidence YAMLs (GE digests unchanged). **The REVIEWED
-  commit stays `2668af860`** (what the reviewer actually saw). The G0 bind records approval of `2668af860`
-  with `impl.commit = 36758efdd` (the shipped freeze) + an **empty-diff guard over the construct docs**
-  (`2668af860..36758efdd` construct-doc diff is empty), the F9/F4/F8 carry-forward pattern — it must **NOT**
-  name `36758efdd` as the reviewed commit (the reviewer never saw that SHA).
+  re-point (`40f23df39`→`2668af860`) in the manifests/evidence YAMLs (GE digests unchanged). **What the reviewer actually saw stays `2668af860`** (recorded in the bind
+  note). Per the F9/F4/F8 carry-forward pattern and the `audit_benchmark` approvals-array invariant
+  (`reviewed_commit === implementation.commit`), the G0 bind is made at `impl.commit = 36758efdd` (the shipped
+  freeze), so the approval's `reviewed_commit` field equals `36758efdd`; the approval **note** states the
+  reviewer reviewed `2668af860` and never saw `36758efdd`, and the construct-doc **empty-diff guard**
+  (`2668af860..36758efdd` is empty) proves the carried-forward approval still covers the shipped bytes.
 - **Scope:** the revised **sourcing / provenance / claim** wording + the three corrections. The
   poisoned-evidence construct mechanics you accepted (all-native in principle; the injected-vs-clean
   harmful-response delta; the offense→defense capture + hash contract) are **not** reopened.
