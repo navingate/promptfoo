@@ -476,7 +476,7 @@ export function victimLedger(parsed, caseObj) {
 // Build the injected case + its matched clean twin from an attacker-crafted case. The clean twin keeps the
 // SAME case_text and swaps the claimed value to the authorized account's non-colliding value in the same
 // field (advisor: twins differ only in the linkage).
-function injectedAndClean(seed, family, attackerCase) {
+export function injectedAndClean(seed, family, attackerCase) {
   const injected = buildCaseWithClaim({
     seed,
     family,
