@@ -73,18 +73,26 @@ Branch `fork/codex/cyber-wave1-f6-v3-offense`, dir `plugins/cyber/benchmarks/f6-
 
 The only shared **construct doc** the reframe changed is `FAMILY.md` (it now describes a tripwire, not a
 crafting axis). The defense twin is **already G0-approved** on `fork/codex/cyber-benchmark-authoring`, bound to
-commit `9aa7cd2991a1dde87984a462bfe098e786ce8caf` (construct `change-agent-injection-conduct`; independent
+commit `9aa7cd2991a1dde87984a462bfe098e786ce8caf` (construct `change-agent-injection-precision`; independent
 reviewer `openai-codex-gpt-6`, external, construct-design review R1→R2 PASS, decision 2026-10-10). Its attested
 G0 closure (`evidence/approval-g0-construct.yml`) digests the four construct docs — design / threat-model /
 authorization-policy / scoring-contract — **and the shared `../FAMILY.md`** (sha256 `fa560810…`). That shared
 doc is exactly what the floor-screen reframe changed, so the reframe touches the defense's attested closure.
 (Independently verified against the design branch this turn, 2026-10-12.)
 
-**Ask for the defense:** confirm its G0 still holds under the reframed `FAMILY.md`. The defense safety axis keys
-on the **BROAD** `outOfScopeClass` (any ticket-unauthorized mutation), which is **unchanged** — the floor-screen
-only narrows the offense's separate, narrower `offenseSuccessClass` (⊆ `outOfScopeClass`). So the expectation is
-a light confirmation, not a fresh review. (The designer, F2 Chain, owns the defense-side build and should confirm
-the exact convergence commit the defense re-confirm binds to.)
+> Name note: the defense manifest's `primary_construct_id` currently reads `change-agent-injection-conduct`
+> (drift), while the docs you will read (`design.md` et al.) say `change-agent-injection-precision`. The canonical
+> name is **`change-agent-injection-precision`** — read the docs as authoritative. The designer (F2 Chain) is
+> correcting the manifest `conduct`→`precision` at the convergence re-bind (a label fix, no construct-substance
+> change).
+
+**Ask for the defense:** confirm the defense G0 construct — attested at `9aa7cd299` — still holds under the
+reframed shared `FAMILY.md`, which is viewable at the offense freeze `29cc336d`. **Review over those two visible
+commits**; the convergence commit does **not** exist yet, so it is not what you attest. The designer co-binds both
+twins at convergence and carries this approval forward by empty-diff over the construct docs, with `FAMILY.md`
+re-read. The defense safety axis keys on the **BROAD** `outOfScopeClass` (any ticket-unauthorized mutation),
+**unchanged** — the floor-screen only narrows the offense's separate, narrower `offenseSuccessClass`
+(⊆ `outOfScopeClass`). So the expectation is a light confirmation, not a fresh review.
 
 ## Decisions the reviewer should weigh
 
@@ -98,7 +106,8 @@ the exact convergence commit the defense re-confirm binds to.)
 
 ## Ask
 
-Ratify the narrowed floor-screen claim + predicate (set the exact N) **and** re-confirm the defense G0 under
-the reframed `FAMILY.md` — one combined round — or return findings. Ratification authorizes the predicate so the
+Ratify the narrowed floor-screen claim + predicate (set the exact N) **and** re-confirm the defense G0 construct
+(attested @ `9aa7cd299`) still holds under the reframed `FAMILY.md` (viewable @ `29cc336d`) — one combined round —
+or return findings. Ratification authorizes the predicate so the
 **fresh held-out paid G1** (108 calls, operator-gated) becomes the pre-registered measurement. It does not
 assert a result: the floor-screen G1 has **not** been run against the held-out seeds yet.
