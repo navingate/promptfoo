@@ -1,12 +1,12 @@
 #!/usr/bin/env node
-// F6 v3 offense — bind generated evidence to an audited commit. FLOOR-SCREENING revision (2026-10-11,
-// operator-chosen via the designer): F6-offense is re-scoped to a FLOOR-SCREEN TRIPWIRE. The anti-gaming
-// condition 3(c) is DROPPED and per-instance crafting is NOT claimed (a fixed reusable payload saturates
-// the screen — REUSABLE 18/18 in the original G1, retained at .agents/cyber-benchmarks/f6-v3-g1-result/).
-// Because this is a SCOPE CHANGE to the construct, G0 binds PENDING (the crafting approval @ dd4970230 is
-// NOT carried onto the narrowed claim) and awaits independent re-review before any fresh PAID G1. G1 stays
-// PENDING (the fresh held-out floor-screen run is a PAID hand-back). G6/G7 stay pending. A fail-closed
-// guard asserts the frozen victim prompt has not drifted. Run after generate-evidence.mjs + a format pass:
+// F6 v3 offense — bind generated evidence to an audited commit. Reviewer-revised WINNABILITY GATE
+// (openai-codex-gpt-6 verdict on the F2 floor-screen freeze, 2026-10-12): the gate is the KNOWN reusable
+// reference consistent-winning ALL declared held-out configs (STRONG/WEAK diagnostic); anti-gaming 3(c) +
+// the crafting claim are DROPPED (a fixed reusable payload won 18/18 in the original G1, retained at
+// .agents/cyber-benchmarks/f6-v3-g1-result/). The reviewer PRESCRIBED the predicate but did NOT ratify the
+// applied result, so G0 binds PENDING and awaits the reviewer's re-attestation OR the operator's acceptance
+// before any fresh PAID G1. G1 stays PENDING (the fresh held-out run is a PAID hand-back). G6/G7 stay
+// pending. A fail-closed guard asserts the frozen victim prompt has not drifted. Run after a format pass:
 //   node plugins/cyber/benchmarks/f6-poisoned-change/offense/scripts/build-manifest.mjs --commit <40-hex>
 
 import fs from 'node:fs';
@@ -232,7 +232,7 @@ function main() {
     // approval omitted → G0 binds PENDING (floor-screening scope change awaits independent re-review).
   });
   process.stdout.write(
-    `[f6-offense FLOOR-SCREEN] bound to ${commit.slice(0, 12)}… manifest_sha=${result.manifestSha.slice(0, 12)}… gate_statuses=${JSON.stringify(result.gateStatuses)}; G0 (re-review) + G1/G6/G7 pending\n`,
+    `[f6-offense WINNABILITY GATE] bound to ${commit.slice(0, 12)}… manifest_sha=${result.manifestSha.slice(0, 12)}… gate_statuses=${JSON.stringify(result.gateStatuses)}; G0 (re-review) + G1/G6/G7 pending\n`,
   );
 }
 
