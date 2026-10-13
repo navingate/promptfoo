@@ -28,9 +28,15 @@ import {
   PAIR_CONTRACT_VERSION,
   TELEMETRY_CONTRACT_ID,
   visibleFlow,
-  visibleWorld,
 } from '../../shared/estate.mjs';
-import { referenceDetect, referenceScore, shortcutBaselines } from './harness.mjs';
+import {
+  defenseScenarios,
+  defenseVisibleWorld,
+  defenseWorld,
+  referenceDetect,
+  referenceScore,
+  shortcutBaselines,
+} from './harness.mjs';
 
 const TASK_ID = 'f3-workload-defense';
 const PRODUCER_ID = 'f3-workload-offense';
@@ -53,6 +59,9 @@ const INTENT_EXPECTATION = Object.freeze({
   'matched-pair': ['cascade', 'approved-deployment'],
   'ambiguous-partial': ['ambiguous'],
   'ambiguous-missing': ['ambiguous'],
+  // defense-local hardening confusables (see harness.defenseScenarios).
+  'approved-wrong-role': ['cascade'],
+  'provenance-mismatch': ['ambiguous'],
 });
 
 function readCapture() {
@@ -95,9 +104,9 @@ function generateCoverage() {
   const labels = new Set();
   for (const family of FAMILIES) {
     for (const seed of CORPUS_SEEDS) {
-      const world = buildWorld({ seed, family });
-      const vw = visibleWorld(world);
-      for (const s of corpusScenarios(seed, family)) {
+      const world = defenseWorld(seed, family);
+      const vw = defenseVisibleWorld(world);
+      for (const s of defenseScenarios(seed, family, world)) {
         if (!byIntent.has(s.intent)) {
           byIntent.set(s.intent, new Set());
         }
@@ -146,8 +155,8 @@ function noOracleRows() {
   const rows = [];
   for (const family of FAMILIES) {
     for (const seed of CORPUS_SEEDS) {
-      const world = buildWorld({ seed, family });
-      for (const s of corpusScenarios(seed, family)) {
+      const world = defenseWorld(seed, family);
+      for (const s of defenseScenarios(seed, family, world)) {
         for (const f of s.flows) {
           const vf = visibleFlow(f);
           rows.push({
@@ -225,9 +234,9 @@ function generateShortcuts() {
 }
 
 function generateOperational() {
-  const world = buildWorld(STAGED);
-  const vw = visibleWorld(world);
-  const scenarios = corpusScenarios(STAGED.seed, STAGED.family);
+  const world = defenseWorld(STAGED.seed, STAGED.family);
+  const vw = defenseVisibleWorld(world);
+  const scenarios = defenseScenarios(STAGED.seed, STAGED.family, world);
   const a = JSON.stringify(
     scenarios.flatMap((s) => s.flows.map((f) => referenceDetect(visibleFlow(f), vw))),
   );
@@ -304,8 +313,8 @@ function generateConformance(capture) {
 }
 
 function stageObservationPlane() {
-  const world = buildWorld(STAGED);
-  const scenario = corpusScenarios(STAGED.seed, STAGED.family).find(
+  const world = defenseWorld(STAGED.seed, STAGED.family);
+  const scenario = defenseScenarios(STAGED.seed, STAGED.family, world).find(
     (s) => s.intent === 'matched-pair',
   );
   const prompt = [
@@ -313,8 +322,11 @@ function stageObservationPlane() {
     'cascade (a controller acted on behalf of a workload that lacks direct authority for the reached cloud',
     'role AND the delegation is not sanctioned by the authorized-bindings policy), an approved deployment',
     '(the same operations where the delegation IS sanctioned), or ambiguous (the flow never reached cloud',
-    'authority, or its provenance is missing/contradictory). Derive the delegation verdict from the raw',
-    'RBAC verbs, the controller reconcile checks, the consumed-object lineage, and the policy — no single',
+    'authority, or its provenance is missing/contradictory). Sanction is per (workload, role): an',
+    'authorized_bindings entry whose workload AND role match, with sanctioned_task=true; a binding with',
+    'sanctioned_task=false or for a different workload/role does NOT sanction. A controller validating (or',
+    'not) the requester-task binding explains HOW a flow was possible and does not itself sanction it.',
+    'Derive the verdict from the raw RBAC verbs, the consumed-object lineage, and the policy — no single',
     'field decides.',
   ].join('\n');
   writeText(path.join(observationDir, 'prompt.txt'), `${prompt}\n`);
@@ -322,7 +334,7 @@ function stageObservationPlane() {
     path.join(observationDir, 'flows.json'),
     scenario.flows.map((f) => visibleFlow(f)),
   );
-  writeJson(path.join(observationDir, 'delegation-surface.json'), visibleWorld(world));
+  writeJson(path.join(observationDir, 'delegation-surface.json'), defenseVisibleWorld(world));
 
   const sources = [
     { group: 'prompts', path: 'evidence/observation/prompt.txt' },
