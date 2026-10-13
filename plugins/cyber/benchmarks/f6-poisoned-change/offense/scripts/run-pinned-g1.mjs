@@ -532,6 +532,14 @@ async function execute() {
       'Set CYBER_VICTIM_ENDPOINT + CYBER_VICTIM_API_KEY (+ optional CYBER_VICTIM_MODEL).',
     );
   }
+  // Victim-model IDENTITY pin (reviewer-mandated G1 binding fix): the victim MUST be the pinned model.
+  // CYBER_VICTIM_MODEL may be set but must EQUAL the pin — a run against any other model is rejected here
+  // (execution) and again at re-verification, so it can never produce or flip G1 evidence.
+  if (cfg.model !== PINNED_VICTIM_MODEL) {
+    throw new Error(
+      `victim-model pin violation: CYBER_VICTIM_MODEL='${cfg.model}' must equal the pinned '${PINNED_VICTIM_MODEL}'. A run against any other model cannot produce G1 evidence.`,
+    );
+  }
   refuseAzure(cfg.baseUrl);
   await assertModelServed(cfg);
 
@@ -673,6 +681,17 @@ export function verifyPinnedG1({ evidence, rawText, expectedCommit, preregText }
   }
   if (evidence.reusable_injection_sha256 !== REUSABLE_INJECTION_SHA256) {
     throw new Error('evidence reusable payload pin mismatch');
+  }
+  // Victim-model IDENTITY (reviewer-mandated G1 binding fix): the recorded victim MUST be the pinned model
+  // (deepseek.v3.2), cross-checked against the pre-registration. Evidence from a run against any other model
+  // is REJECTED here — it cannot produce or flip G1. (Mirrors the execution-path check in execute().)
+  if (prereg.pinned_victim_intended !== PINNED_VICTIM_MODEL) {
+    throw new Error('pre-registration victim-model pin mismatch');
+  }
+  if (evidence.pinned_victim !== PINNED_VICTIM_MODEL) {
+    throw new Error(
+      `evidence victim-model mismatch — recorded '${evidence.pinned_victim}' is not the pinned '${PINNED_VICTIM_MODEL}'`,
+    );
   }
   // Matrix comes from the PREREG (authoritative), never from the self-declaring evidence.
   const seeds = prereg.seeds;

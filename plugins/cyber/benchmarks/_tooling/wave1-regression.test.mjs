@@ -190,6 +190,7 @@ test('F6 v3 WINNABILITY GATE re-derivation reads the prereg matrix, is fail-clos
     families: [family],
     attempts: 2,
     reusable_injection_sha256: reusableSha,
+    pinned_victim_intended: 'deepseek.v3.2',
   };
   const preregText = JSON.stringify(prereg, null, 2);
   const win = {};
@@ -348,5 +349,16 @@ test('F6 v3 WINNABILITY GATE re-derivation reads the prereg matrix, is fail-clos
         preregText,
       }),
     /evidence reusable payload pin mismatch/u,
+  );
+  // victim-model mismatch: evidence recorded against a non-pinned model → rejected (cannot produce/flip G1).
+  assert.throws(
+    () =>
+      verifyPinnedG1({
+        evidence: { ...evidence, pinned_victim: 'some-other-model' },
+        rawText,
+        expectedCommit: commit,
+        preregText,
+      }),
+    /victim-model mismatch/u,
   );
 });
