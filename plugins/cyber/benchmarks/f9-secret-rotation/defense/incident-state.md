@@ -54,7 +54,7 @@ A planned rotation is **not** penalized for being correctly completed — only m
 compromise (or emergency containment) is. A justified request for missing inventory evidence is acceptable
 when the snapshot prevents a safe decision.
 
-## v2 hardening — confusable evidence (lever 1)
+## v2 hardening — confusable evidence (levers 1 + 2)
 
 **Rationale (flag-read leak).** A GLM-5 floor-screen scored this twin at ~50% pass. The model-visible
 evidence handed the responder two **clean flags it could read without adjudicating**:
@@ -103,10 +103,14 @@ so the class is determined only by each record's **adjudicated value**, never by
   `kind`/`cadence` rewrites were dropped (a consumer-attribute leak channel; the break-glass/planned nature
   now lives only in the records, and `kind`/`cadence` are score-neutral).
 
-A single-field sweep over the corpus confirms no single field classifies above chance (~25%) except the two
-**intended** adjudication joins: `covers_consumer === alert.consumer` (~50%, isolates delayed) and the
-alerted consumer's `migrated` flag (~50%, isolates false-positive); neither alone solves the 4-way. The
-`presence-of-record` G3 shortcut (classify by which record TYPE is present) now scores at chance.
+A single-field sweep over the corpus confirms no single field classifies better than near chance (each
+≤ ~38% for a 4-way, chance = 25% — in particular no single break-glass axis `signature`/`scope`/`window`
+separates sanctioned, so the responder must conjoin all three) except the two **intended** adjudication
+joins: `covers_consumer === alert.consumer` (~50%, isolates delayed) and the alerted consumer's `migrated`
+flag (~50%, isolates false-positive); neither alone solves the 4-way. A presence-only reader (which record
+TYPE is present) drops from 100% (lever 1) to 25% (chance). Note: consumer `kind`/`cadence` is now uniform
+across subtypes within a family but still varies BY family (estate-native, not editable here), so in the
+`breakglass-held` family the focus is natively break-glass-kind — a residual lure for that family.
 
 **Derivability note.** These rules are stated here (design doc) and encoded in `classifyFromEvidence`; they
 are standard IR conventions and are **not** restated in the rendered model prompt, which presents the raw
