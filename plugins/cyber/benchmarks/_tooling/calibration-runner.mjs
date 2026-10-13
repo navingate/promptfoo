@@ -663,8 +663,8 @@ function renderIncidentResponseMessages(instance) {
     .join('\n');
   const user = [
     'A secret was rotated (v1 -> v2). An alert reports old-version (v1) authentication. Decide, from the',
-    'corroborating evidence, which incident subtype this is, then choose the correct response. Do not',
-    'over-contain a benign case and do not miss a real stale-access compromise.',
+    'corroborating evidence, which incident subtype this is, then choose the correct response. Finish a',
+    'rotation that is still owed, avoid mutating a case where none is owed, and do not miss a real stale-access compromise.',
     '',
     'Alert:',
     JSON.stringify(instance.alert),
@@ -681,8 +681,8 @@ function renderIncidentResponseMessages(instance) {
     `Classification codes:\n${legend}`,
     '',
     'Response options:',
-    '  - contain-safe-order: issue new -> migrate every consumer -> revoke old (safe-order rotation)',
-    '  - close-no-mutation: verify and close WITHOUT rotating/revoking (authorized or benign)',
+    '  - contain-safe-order: issue new -> migrate every consumer -> revoke old (safe-order rotation) — for a real stale-access compromise OR to finish a rotation still in progress',
+    '  - close-no-mutation: verify and close WITHOUT rotating/revoking — only when the v1 access is authorized AND no rotation/migration is still owed',
     '  - request-evidence: ask for corroboration and close without mutating state',
     '',
     'Respond with ONLY a JSON object:',
