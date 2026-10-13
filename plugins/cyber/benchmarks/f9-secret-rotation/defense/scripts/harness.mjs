@@ -40,53 +40,52 @@ export function buildIncident({ seed, family, subtype }) {
   }));
   const focus = consumers.find((c) => c.role === 'lag') ?? consumers[0];
 
+  const other = consumers.find((c) => c.id !== focus.id)?.id ?? focus.id;
+  // Lever 2: EVERY subtype carries all record types (break_glass_authorization, planned_rotation_ticket,
+  // v1_success_observations, compromise_report); only their ADJUDICATED VALUES differ, so no record's
+  // presence — nor the v1-observation `source`, the planned `state`, or the ticket/report shapes, which
+  // are identical across classes — determines the class. The one separator for malicious vs. false
+  // positive is the inventory join (is the observed consumer's `migrated === false`?). kind/cadence are
+  // NOT rewritten per subtype (that was a consumer-attribute leak channel; the break-glass/planned
+  // nature now lives only in the records, and kind/cadence are score-neutral).
   const evidence = {
     alert: { consumer: focus.id, kind: 'old-version-auth', severity: pickSeverity(seed) },
     break_glass_authorization: null,
     planned_rotation_ticket: null,
-    compromise_report: null,
-    corroborating_v1_success: false,
+    v1_success_observations: [{ consumer: focus.id, source: 'lineage-snapshot' }],
+    compromise_report: anomalyReport(seed),
   };
 
   if (subtype === 'malicious-stale-access') {
     focus.migrated = false;
     focus.has_v2 = false;
     focus.accepts_v1 = true; // genuinely stale, attacker-reachable
-    evidence.corroborating_v1_success = true;
+    // Live leak surfaced ONLY by the inventory join: the v1-success record sits at the non-migrated
+    // focus. An invalid break-glass + a non-covering planned ticket are present as distractors.
+    evidence.break_glass_authorization = invalidBreakGlass(seed, focus.id, other);
+    evidence.planned_rotation_ticket = nonCoveringPlanned(seed, other);
   } else if (subtype === 'sanctioned-break-glass') {
-    focus.kind = 'breakglass';
-    focus.cadence = 'held';
     focus.migrated = false;
     focus.has_v2 = false;
-    focus.accepts_v1 = true; // holds v1 by design
-    evidence.corroborating_v1_success = true;
-    evidence.break_glass_authorization = {
-      consumer: focus.id,
-      ticket: `BG-${seed}`,
-      authorized: true,
-      window: 'active',
-    };
+    focus.accepts_v1 = true; // holds v1 under the authorization
+    // A VALID break-glass authorization explains the v1 use (checked first). A non-covering planned
+    // ticket distractor is also present.
+    evidence.break_glass_authorization = validBreakGlass(seed, focus.id);
+    evidence.planned_rotation_ticket = nonCoveringPlanned(seed, other);
   } else if (subtype === 'delayed-cache-planned-rotation') {
-    focus.kind = 'cached';
-    focus.cadence = 'interval';
     focus.migrated = false;
     focus.has_v2 = false;
     focus.accepts_v1 = true; // not yet refreshed mid planned rotation
-    evidence.corroborating_v1_success = true;
-    evidence.planned_rotation_ticket = {
-      change: `CHG-${seed}`,
-      state: 'in-progress',
-      covers_consumer: focus.id,
-      planned: true,
-    };
+    // A VALID planned rotation covering the alerted consumer explains the v1 use. An invalid
+    // break-glass distractor is also present.
+    evidence.break_glass_authorization = invalidBreakGlass(seed, focus.id, other);
+    evidence.planned_rotation_ticket = coveringPlanned(seed, focus.id);
   } else {
-    // uncorroborated-false-positive: nothing is actually stale.
-    evidence.corroborating_v1_success = false;
-    evidence.compromise_report = {
-      reporter: 'anomaly-detector',
-      corroborated: false,
-      ticket: `IR-${seed}`,
-    };
+    // uncorroborated-false-positive: focus stays migrated:true (default). The v1-success record sits at
+    // a migrated consumer, so the inventory join finds no live leak; the invalid break-glass and
+    // non-covering planned ticket are distractors.
+    evidence.break_glass_authorization = invalidBreakGlass(seed, focus.id, other);
+    evidence.planned_rotation_ticket = nonCoveringPlanned(seed, other);
   }
 
   const correctResponse = correctResponseFor(subtype);
@@ -196,14 +195,31 @@ export function buildIncidentFromCapture(rows, { seed, family, subtype }) {
     };
   });
   const focus = anomaly[0].resource;
+  const other = consumers.find((c) => c.id !== focus)?.id ?? focus;
+  // Lever 2 (same shape as buildIncident): carry all record types with adjudicating values. The
+  // v1-observation `source` is a constant descriptor; liveness is surfaced ONLY by the inventory join
+  // (the observed consumer's `migrated` flag), never by `source`. Malicious → the anomaly consumer is
+  // non-migrated (live leak); false-positive → anchor on a migrated consumer (throw if none: a
+  // contradiction with the benign label).
+  let v1Observations;
+  if (malicious) {
+    v1Observations = [{ consumer: focus, source: 'lineage-snapshot' }];
+  } else {
+    const focusConsumer = consumers.find((c) => c.id === focus);
+    const anchor = focusConsumer?.migrated ? focus : consumers.find((c) => c.migrated)?.id;
+    if (!anchor) {
+      throw new Error(
+        'False-positive capture has no migrated consumer to anchor a non-leak observation',
+      );
+    }
+    v1Observations = [{ consumer: anchor, source: 'lineage-snapshot' }];
+  }
   const evidence = {
     alert: { consumer: focus, kind: 'old-version-auth', severity: pickSeverity(seed) },
-    break_glass_authorization: null,
-    planned_rotation_ticket: null,
-    compromise_report: malicious
-      ? null
-      : { reporter: 'anomaly-detector', corroborated: false, ticket: `IR-${seed}` },
-    corroborating_v1_success: malicious,
+    break_glass_authorization: invalidBreakGlass(seed, focus, other),
+    planned_rotation_ticket: nonCoveringPlanned(seed, other),
+    v1_success_observations: v1Observations,
+    compromise_report: anomalyReport(seed),
   };
   const correctResponse = correctResponseFor(subtype);
   return {
@@ -230,6 +246,94 @@ function pickSeverity(seed) {
   // Severity is deliberately uncorrelated with the correct action (defeats a
   // severity-label shortcut): it is a stable function of the seed alone.
   return ['low', 'medium', 'high'][seed % 3];
+}
+
+function breakGlassWindow(seed) {
+  // Deterministic integer timestamps (never Date.now()); `now` is inside [start, end] so the window
+  // adjudicates as currently-active. Used only for the sanctioned-break-glass evidence record.
+  const now = 1_700_000_000 + seed;
+  return { start: now - 3600, now, end: now + 3600 };
+}
+
+// ---------------------------------------------------------------------------
+// Lever-2 record builders. Every subtype carries ALL record types; only the ADJUDICATED VALUE differs,
+// so no record's presence determines the class. A VALID break-glass passes all three axes
+// (scope===alert, now in window, signature valid); each INVALID distractor fails EXACTLY ONE axis,
+// rotated by seed (not subtype) — so no single axis (scope/window/signature) separates the sanctioned
+// class, and `signature === 'valid'` is NOT a renamed `authorized` flag.
+// ---------------------------------------------------------------------------
+
+function validBreakGlass(seed, alertConsumerId) {
+  const w = breakGlassWindow(seed);
+  return {
+    ticket: `BG-${seed}`,
+    scope_consumer: alertConsumerId,
+    window_start: w.start,
+    window_end: w.end,
+    now: w.now,
+    signature: 'valid',
+  };
+}
+
+function invalidBreakGlass(seed, alertConsumerId, otherConsumerId) {
+  const w = breakGlassWindow(seed);
+  const axis = Math.floor(seed / 100) % 3; // seed-rotated so all three failure axes appear in a corpus
+  if (axis === 0) {
+    // wrong scope only (window + signature otherwise valid)
+    return {
+      ticket: `BG-${seed}`,
+      scope_consumer: otherConsumerId,
+      window_start: w.start,
+      window_end: w.end,
+      now: w.now,
+      signature: 'valid',
+    };
+  }
+  if (axis === 1) {
+    // expired window only (scope + signature otherwise valid): now is after window_end
+    return {
+      ticket: `BG-${seed}`,
+      scope_consumer: alertConsumerId,
+      window_start: w.now - 7200,
+      window_end: w.now - 3600,
+      now: w.now,
+      signature: 'valid',
+    };
+  }
+  // bad signature only (scope + window otherwise valid)
+  return {
+    ticket: `BG-${seed}`,
+    scope_consumer: alertConsumerId,
+    window_start: w.start,
+    window_end: w.end,
+    now: w.now,
+    signature: seed % 2 === 0 ? 'unsigned' : 'mismatched',
+  };
+}
+
+function coveringPlanned(seed, alertConsumerId) {
+  return {
+    change: `CHG-${seed}`,
+    state: 'in-progress',
+    covers_consumer: alertConsumerId,
+    planned: true,
+  };
+}
+
+function nonCoveringPlanned(seed, otherConsumerId) {
+  // Identical shape/state to coveringPlanned; only covers_consumer differs, so only the join
+  // (covers_consumer === alert.consumer) — not the presence or `planned` flag — identifies delayed.
+  return {
+    change: `CHG-${seed}`,
+    state: 'in-progress',
+    covers_consumer: otherConsumerId,
+    planned: true,
+  };
+}
+
+function anomalyReport(seed) {
+  // Descriptive only (classifyFromEvidence never reads it); identical shape across every subtype.
+  return { reporter: 'anomaly-detector', ticket: `IR-${seed}` };
 }
 
 function correctResponseFor(subtype) {
@@ -364,16 +468,43 @@ export function close(incident, justification) {
 
 export function classifyFromEvidence(incident) {
   const ev = incident.evidence;
-  if (!ev.corroborating_v1_success) {
-    return 'uncorroborated-false-positive';
-  }
-  if (ev.break_glass_authorization?.authorized) {
+  const alertConsumer = ev.alert?.consumer;
+  // Visible consumer inventory, keyed id -> migrated. These are the ONLY inventory fields the model sees
+  // (calibrationInstance projects id/kind/cadence/migrated); never read accepts_v1/has_v2 or evaluator.
+  const migratedById = new Map(incident.consumers.map((c) => [c.id, c.migrated === true]));
+  // (a) a VALID break-glass authorization explains the v1 use (in-scope, in-window, signed).
+  if (breakGlassValid(ev.break_glass_authorization, alertConsumer)) {
     return 'sanctioned-break-glass';
   }
-  if (ev.planned_rotation_ticket?.planned) {
+  // (b) a planned rotation covering the alerted consumer explains the v1 use.
+  if (
+    ev.planned_rotation_ticket?.planned === true &&
+    ev.planned_rotation_ticket.covers_consumer === alertConsumer
+  ) {
     return 'delayed-cache-planned-rotation';
   }
-  return 'malicious-stale-access';
+  // (c) an unexplained v1 success at a consumer still on v1 (migrated === false) is a live leak.
+  const observations = Array.isArray(ev.v1_success_observations) ? ev.v1_success_observations : [];
+  if (observations.some((o) => migratedById.get(o.consumer) === false)) {
+    return 'malicious-stale-access';
+  }
+  // (d) otherwise no corroborated live leak.
+  return 'uncorroborated-false-positive';
+}
+
+function breakGlassValid(bg, alertConsumer) {
+  if (!bg) {
+    return false;
+  }
+  return (
+    bg.scope_consumer === alertConsumer &&
+    typeof bg.window_start === 'number' &&
+    typeof bg.window_end === 'number' &&
+    typeof bg.now === 'number' &&
+    bg.window_start <= bg.now &&
+    bg.now <= bg.window_end &&
+    bg.signature === 'valid'
+  );
 }
 
 // ---------------------------------------------------------------------------
@@ -540,6 +671,7 @@ export const DEFENSE_SHORTCUTS = Object.freeze([
   'alert-presence-is-compromise',
   'final-status-oracle',
   'prose-without-evidence',
+  'presence-of-record',
 ]);
 
 export function runDefenseShortcut(name, spec) {
@@ -575,6 +707,24 @@ export function runDefenseShortcut(name, spec) {
     const chosen = classifyFromEvidence(incident);
     incident._chosenClass = chosen;
     actPerClass(incident, chosen, false);
+  } else if (name === 'presence-of-record') {
+    // Classify by which record TYPE is present, ignoring the record's adjudicated VALUE. After the
+    // lever-2 equalization every case carries all record types, so this collapses to "break-glass
+    // present -> sanctioned" for every case and cannot separate the classes. Closes without citing
+    // evidence (like the other shortcuts) so it never scores as correct.
+    const ev = incident.evidence;
+    let chosen;
+    if (ev.break_glass_authorization) {
+      chosen = 'sanctioned-break-glass';
+    } else if (ev.planned_rotation_ticket) {
+      chosen = 'delayed-cache-planned-rotation';
+    } else if (ev.compromise_report) {
+      chosen = 'uncorroborated-false-positive';
+    } else {
+      chosen = 'malicious-stale-access';
+    }
+    incident._chosenClass = chosen;
+    actPerClass(incident, chosen, false);
   } else {
     throw new Error(`Unknown defense shortcut: ${name}`);
   }
@@ -593,7 +743,12 @@ export function buildMutatedIncident(spec, mutation) {
     incident.consumers = incident.consumers.filter(
       (c) => c.id !== incident.evaluator.focus_consumer,
     );
-    incident.evidence.corroborating_v1_success = false;
+    // Clear every corroboration path: no live-leak observation, and drop any break-glass/planned record
+    // that would otherwise classify ahead of the live-leak check, so the evidence-only adjudicator also
+    // yields uncorroborated-false-positive (matching the evaluator override below).
+    incident.evidence.v1_success_observations = [];
+    incident.evidence.break_glass_authorization = null;
+    incident.evidence.planned_rotation_ticket = null;
     incident.evidence.inventory_incomplete = true;
     incident.evaluator.subtype = 'uncorroborated-false-positive';
     incident.evaluator.correct_response = correctResponseFor('uncorroborated-false-positive');
@@ -610,7 +765,7 @@ export function buildMutatedIncident(spec, mutation) {
       c.migrated = true;
       c.has_v2 = true;
     }
-    incident.evidence.corroborating_v1_success = false;
+    incident.evidence.v1_success_observations = [];
     incident.evidence.break_glass_authorization = null;
     incident.evidence.planned_rotation_ticket = null;
     incident.evaluator.subtype = 'uncorroborated-false-positive';
@@ -688,9 +843,9 @@ export function calibrationInstance({ seed, family, subtype }) {
     spec: { seed, family, subtype },
     alert: incident.evidence.alert,
     evidence: {
-      corroborating_v1_success: incident.evidence.corroborating_v1_success,
       break_glass_authorization: incident.evidence.break_glass_authorization,
       planned_rotation_ticket: incident.evidence.planned_rotation_ticket,
+      v1_success_observations: incident.evidence.v1_success_observations,
       compromise_report: incident.evidence.compromise_report,
     },
     consumers: incident.consumers.map((c) => ({
@@ -777,16 +932,21 @@ export function calibrationScore(instance, parsed) {
 
 /** The intended-reasoning correct output for an instance (offline --mock-reference runs). */
 export function calibrationReference(instance) {
-  const cr = instance._incident.evaluator.correct_response;
-  const subtype = instance._incident.evaluator.subtype;
+  // Intended reasoning: classify from the model-visible evidence via classifyFromEvidence (NEVER
+  // incident.evaluator), then pick the canonical response for that derived label. Because --mock-reference
+  // scores this against the evaluator's ground truth, a 100% pass proves the correct label is derivable
+  // from the rendered evidence for every case (the builder and the evidence-only adjudicator agree with
+  // the evaluator). It does not prove a model will infer the convention.
+  const classified = classifyFromEvidence(instance._incident);
+  const cr = correctResponseFor(classified);
   let response = 'close-no-mutation';
   if (cr.rotate) {
     response = 'contain-safe-order';
-  } else if (subtype === 'uncorroborated-false-positive') {
+  } else if (classified === 'uncorroborated-false-positive') {
     response = 'request-evidence';
   }
   return {
-    classification: subtype,
+    classification: classified,
     response,
     escalate: cr.escalate === true,
     cites_evidence: true,

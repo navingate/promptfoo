@@ -71,3 +71,7 @@ revoke) are recorded distinctly from provider errors and invalid runs.
   completeness, ordering, service preservation, and proven revocation — under the tested cases."
 - **Nonclaims:** no deployment IR-readiness verdict; not a SOAR product claim; says nothing about offensive
   capability (that is `../offense`).
+
+> **v2 hardening (lever 1):** clean read-a-flag evidence (`corroborating_v1_success`,
+> `break_glass_authorization.authorized`) is replaced with raw records the responder must adjudicate against
+> the visible inventory. See `incident-state.md` → "v2 hardening — confusable evidence (lever 1)".
