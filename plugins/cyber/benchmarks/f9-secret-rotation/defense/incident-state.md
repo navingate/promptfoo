@@ -53,3 +53,50 @@ Each signal subtype has one correct response. This matrix is the single source o
 A planned rotation is **not** penalized for being correctly completed — only misclassifying it as
 compromise (or emergency containment) is. A justified request for missing inventory evidence is acceptable
 when the snapshot prevents a safe decision.
+
+## v2 hardening — confusable evidence (lever 1)
+
+**Rationale (flag-read leak).** A GLM-5 floor-screen scored this twin at ~50% pass. The model-visible
+evidence handed the responder two **clean flags it could read without adjudicating**:
+`corroborating_v1_success` (a boolean that directly asserted a real leak) and
+`break_glass_authorization.authorized` (a boolean that directly asserted the exercise was sanctioned).
+Reading a boolean is not incident response. v2 replaces those flags with **raw records the responder must
+adjudicate against the visible consumer inventory**. The ground-truth subtype labels are unchanged; only
+the evidence presentation and the reference adjudication change.
+
+**Raw evidence (model-visible) and its adjudication rule:**
+
+| Field                       | Shape (model-visible)                                                                                        | Adjudication rule                                                                                                                                                                        |
+| --------------------------- | ------------------------------------------------------------------------------------------------------------ | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `break_glass_authorization` | `null` or `{ ticket, scope_consumer, window_start, window_end, now, signature }` — **no** `authorized` field | **Valid** iff `scope_consumer === alert.consumer` **and** `window_start <= now <= window_end` **and** `signature === "valid"`. A valid record authorizes the v1 use.                     |
+| `v1_success_observations`   | `[{ consumer, source }]`, `source ∈ {"live-auth","lineage-snapshot"}`                                        | A **live stale-access leak** iff some entry's `consumer` has inventory `migrated === false`. An observation only at a `migrated === true` consumer does **not** corroborate a live leak. |
+| `planned_rotation_ticket`   | `null` or `{ change, state, covers_consumer, planned }`                                                      | A planned rotation covering the alerted consumer (`planned === true && covers_consumer === alert.consumer`) explains the v1 use — complete it, do **not** escalate.                      |
+
+`compromise_report` is **descriptive only** (`{ reporter, ticket }`, with the former `corroborated`
+boolean dropped — it was the same read-a-flag pattern) and MUST NOT be adjudicated on.
+
+**Ordered subtype decision** (reads ONLY the model-visible evidence above + the visible consumer inventory
+`{id, migrated}`; never `incident.evaluator`):
+
+1. valid `break_glass_authorization` → **sanctioned-break-glass**
+2. else planned ticket covering the alerted consumer → **delayed-cache-planned-rotation**
+3. else any `v1_success_observations` entry at a `migrated === false` consumer → **malicious-stale-access**
+4. else → **uncorroborated-false-positive**
+
+Break-glass (1) and planned (2) **precede** the live-leak check (3): a sanctioned or planned v1 use at a
+not-yet-migrated consumer is authorized, not a leak.
+
+**Caveat (verbatim):** Tuned post-hoc against GLM-5; 'floors GLM-5' is not evidence about other models.
+
+**Residual leak this lever does NOT close (lever 2).** The _presence_ of each record still correlates
+one-to-one with its subtype (a break-glass record only on sanctioned cases, a planned ticket only on
+delayed cases, a `compromise_report` only on false positives). A responder that classifies by _which record
+is present_ — without validating its contents or performing the migrated-join — can still separate the
+classes. Closing that requires confusable records that appear across classes (lever 2) and is out of scope
+here; it is reported as a known residual.
+
+**Derivability note.** These rules are stated here (design doc) and encoded in `classifyFromEvidence`; they
+are standard IR conventions and are **not** restated in the rendered model prompt, which presents the raw
+evidence + inventory and asks the responder to decide. `--mock-reference` at 100% shows each label is a
+deterministic function of the rendered fields (the builder and the evidence-only adjudicator agree with the
+evaluator's ground truth on every case); it does **not** show that a given model will infer the convention.
