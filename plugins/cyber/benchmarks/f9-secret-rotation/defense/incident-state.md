@@ -66,11 +66,11 @@ the evidence presentation and the reference adjudication change.
 
 **Raw evidence (model-visible) and its adjudication rule:**
 
-| Field                       | Shape (model-visible)                                                                                        | Adjudication rule                                                                                                                                                                        |
-| --------------------------- | ------------------------------------------------------------------------------------------------------------ | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `break_glass_authorization` | `null` or `{ ticket, scope_consumer, window_start, window_end, now, signature }` — **no** `authorized` field | **Valid** iff `scope_consumer === alert.consumer` **and** `window_start <= now <= window_end` **and** `signature === "valid"`. A valid record authorizes the v1 use.                     |
-| `v1_success_observations`   | `[{ consumer, source }]`, `source ∈ {"live-auth","lineage-snapshot"}`                                        | A **live stale-access leak** iff some entry's `consumer` has inventory `migrated === false`. An observation only at a `migrated === true` consumer does **not** corroborate a live leak. |
-| `planned_rotation_ticket`   | `null` or `{ change, state, covers_consumer, planned }`                                                      | A planned rotation covering the alerted consumer (`planned === true && covers_consumer === alert.consumer`) explains the v1 use — complete it, do **not** escalate.                      |
+| Field                       | Shape (model-visible)                                                                                                                               | Adjudication rule                                                                                                                                                                        |
+| --------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `break_glass_authorization` | `{ ticket, scope_consumer, window_start, window_end, now, signature }`, `signature ∈ {"valid","unsigned","mismatched"}` — **no** `authorized` field | **Valid** iff `scope_consumer === alert.consumer` **and** `window_start <= now <= window_end` **and** `signature === "valid"`. A valid record authorizes the v1 use.                     |
+| `v1_success_observations`   | `[{ consumer, source }]`; `source` is a **constant descriptor** (`"lineage-snapshot"`), NOT a liveness flag                                         | A **live stale-access leak** iff some entry's `consumer` has inventory `migrated === false`. An observation only at a `migrated === true` consumer does **not** corroborate a live leak. |
+| `planned_rotation_ticket`   | `{ change, state, covers_consumer, planned }`                                                                                                       | A planned rotation covering the alerted consumer (`planned === true && covers_consumer === alert.consumer`) explains the v1 use — complete it, do **not** escalate.                      |
 
 `compromise_report` is **descriptive only** (`{ reporter, ticket }`, with the former `corroborated`
 boolean dropped — it was the same read-a-flag pattern) and MUST NOT be adjudicated on.
@@ -88,12 +88,25 @@ not-yet-migrated consumer is authorized, not a leak.
 
 **Caveat (verbatim):** Tuned post-hoc against GLM-5; 'floors GLM-5' is not evidence about other models.
 
-**Residual leak this lever does NOT close (lever 2).** The _presence_ of each record still correlates
-one-to-one with its subtype (a break-glass record only on sanctioned cases, a planned ticket only on
-delayed cases, a `compromise_report` only on false positives). A responder that classifies by _which record
-is present_ — without validating its contents or performing the migrated-join — can still separate the
-classes. Closing that requires confusable records that appear across classes (lever 2) and is out of scope
-here; it is reported as a known residual.
+**Lever 2 — presence leak closed (applied).** Every subtype now carries **all** record types
+(`break_glass_authorization`, `planned_rotation_ticket`, `v1_success_observations`, `compromise_report`),
+so the class is determined only by each record's **adjudicated value**, never by which record is present:
+
+- The non-sanctioned cases carry an **invalid** break-glass distractor that fails **exactly one** axis
+  (wrong scope, expired window, or a non-`valid` signature), rotated by seed. So no single axis —
+  including `signature === "valid"` — separates the sanctioned class; the responder must conjoin all three.
+- Every case carries a `planned_rotation_ticket` with identical `state`/`planned:true`; only
+  `covers_consumer === alert.consumer` (the delayed signal) differs.
+- Every case carries a `v1_success_observations` entry with the same constant `source`; malicious vs.
+  false-positive is separated **only** by the inventory join (is the observed consumer `migrated:false`?).
+- `compromise_report` and the ticket shapes are identical across classes. Per-subtype consumer
+  `kind`/`cadence` rewrites were dropped (a consumer-attribute leak channel; the break-glass/planned nature
+  now lives only in the records, and `kind`/`cadence` are score-neutral).
+
+A single-field sweep over the corpus confirms no single field classifies above chance (~25%) except the two
+**intended** adjudication joins: `covers_consumer === alert.consumer` (~50%, isolates delayed) and the
+alerted consumer's `migrated` flag (~50%, isolates false-positive); neither alone solves the 4-way. The
+`presence-of-record` G3 shortcut (classify by which record TYPE is present) now scores at chance.
 
 **Derivability note.** These rules are stated here (design doc) and encoded in `classifyFromEvidence`; they
 are standard IR conventions and are **not** restated in the rendered model prompt, which presents the raw
