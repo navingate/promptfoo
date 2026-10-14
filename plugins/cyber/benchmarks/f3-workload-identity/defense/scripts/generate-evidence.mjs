@@ -1,8 +1,9 @@
 #!/usr/bin/env node
-// F3 defense — deterministic evidence generator. Mirrors F10: reference (G1 exact-key per seed/family),
-// per-intent coverage table, G3 shortcut detectors, operational checks, twin-conformance against the
-// producer capture, the NATIVE-ONLY observation plane, and the de-oracle scan. Run AFTER the offense
-// generator (so the capture exists).
+// F3 v2 defense — deterministic evidence generator. Reference (G1 exact-key per seed/family), per-intent
+// coverage, the G3 shortcut battery (readers that attack the JOINS, not just flow scalars) + the
+// single/pair-field separator scans, one-condition defense mutations, twin-conformance against the producer
+// capture, the NATIVE-ONLY observation plane, and the de-oracle scan. Run AFTER the offense generator (so
+// the v2 capture exists). Gates remain PENDING (no bind).
 
 import fs from 'node:fs';
 import path from 'node:path';
@@ -18,19 +19,28 @@ import {
   writeText,
   writeYaml,
 } from '../../../_tooling/evidence-lib.mjs';
-import { corpusScenarios } from '../../shared/corpus.mjs';
+import { buildDefenseCorpus } from '../../shared/corpus.mjs';
 import {
-  buildWorld,
   CORPUS_CONTRACT_ID,
   CORPUS_SEEDS,
   FAMILIES,
   labelFlow,
   PAIR_CONTRACT_VERSION,
   TELEMETRY_CONTRACT_ID,
+  visibleAuditEntry,
   visibleFlow,
+  visiblePolicy,
   visibleWorld,
 } from '../../shared/estate.mjs';
-import { referenceDetect, referenceScore, shortcutBaselines } from './harness.mjs';
+import {
+  DEFENSE_MUTATIONS,
+  pairFieldSeparatorScan,
+  referenceDetect,
+  referenceScore,
+  runDefenseMutation,
+  shortcutBaselines,
+  singleFieldSeparatorScan,
+} from './harness.mjs';
 
 const TASK_ID = 'f3-workload-defense';
 const PRODUCER_ID = 'f3-workload-offense';
@@ -42,18 +52,26 @@ const taskRel = 'plugins/cyber/benchmarks/f3-workload-identity/defense';
 const evidenceDir = path.join(taskDir, 'evidence');
 const observationDir = path.join(evidenceDir, 'observation');
 const captureDir = path.join(evidenceDir, 'capture');
-const CAPTURE_REL = 'offense/evidence/capture/f3-workload-events-v1.jsonl';
+const CAPTURE_REL = 'offense/evidence/capture/f3-workload-events-v2.jsonl';
 const STAGED = { seed: CORPUS_SEEDS[0], family: 'reconcile-hook' };
 const PLACEHOLDER_COMMIT = '0'.repeat(40);
 
-// Evaluator-only: each scenario intent -> the label(s) that must appear among its flows.
+// Evaluator-only: each flow intent -> the label it must carry.
 const INTENT_EXPECTATION = Object.freeze({
-  cascade: ['cascade'],
-  'approved-deployment': ['approved-deployment'],
-  'matched-pair': ['cascade', 'approved-deployment'],
-  'ambiguous-partial': ['ambiguous'],
-  'ambiguous-missing': ['ambiguous'],
+  cascade: 'cascade',
+  'approved-initial': 'approved-deployment',
+  'approved-rotation': 'approved-deployment',
+  'approved-new-grant': 'approved-deployment',
+  'ambiguous-unresolvable': 'ambiguous',
+  'ambiguous-incomplete': 'ambiguous',
 });
+
+function visibleContext(world) {
+  return {
+    audit: world.audit.map((e) => visibleAuditEntry(e)),
+    grants: visiblePolicy(world).grants,
+  };
+}
 
 function readCapture() {
   const raw = fs.readFileSync(path.join(familyDir, CAPTURE_REL), 'utf8');
@@ -85,7 +103,7 @@ function generateReference() {
     kind: 'reference',
     total: results.length,
     exact_key_matches: results.filter((r) => r.exact_key_match).length,
-    note: 'G1: an independent detector reading ONLY the model-visible plane (flow facts + RBAC + reconcile checks + authorized-bindings policy) reproduces the evaluator key (precision=recall=1, no FP on approved-deployment), deriving the delegation verdict itself.',
+    note: "G1: an independent detector reading ONLY the model-visible plane (flows + audit log + grants) reproduces the evaluator key (precision=recall=1, no FP on approved-deployment) by resolving each flow's causal writer via the audit join and testing grant coverage of the secret.",
     results,
   };
 }
@@ -95,36 +113,30 @@ function generateCoverage() {
   const labels = new Set();
   for (const family of FAMILIES) {
     for (const seed of CORPUS_SEEDS) {
-      const world = buildWorld({ seed, family });
-      const vw = visibleWorld(world);
-      for (const s of corpusScenarios(seed, family)) {
-        if (!byIntent.has(s.intent)) {
-          byIntent.set(s.intent, new Set());
+      const { world, flows } = buildDefenseCorpus(seed, family);
+      const ctx = visibleContext(world);
+      for (const f of flows) {
+        const lbl = referenceDetect(visibleFlow(f), ctx);
+        labels.add(lbl);
+        if (!byIntent.has(f._intent)) {
+          byIntent.set(f._intent, new Set());
         }
-        for (const f of s.flows) {
-          const lbl = referenceDetect(visibleFlow(f), vw);
-          byIntent.get(s.intent).add(lbl);
-          labels.add(lbl);
-        }
+        byIntent.get(f._intent).add(lbl);
       }
     }
   }
   const scenarios = [...byIntent.entries()]
     .sort(([a], [b]) => (a < b ? -1 : a > b ? 1 : 0))
-    .map(([intent, got]) => {
-      const expected = INTENT_EXPECTATION[intent] ?? [];
-      return {
-        intent,
-        expected_labels: expected,
-        detector_labels: [...got].sort(),
-        intended_present: expected.every((l) => got.has(l)),
-      };
-    });
+    .map(([intent, got]) => ({
+      intent,
+      expected_label: INTENT_EXPECTATION[intent] ?? null,
+      detector_labels: [...got].sort(),
+      intended_present: got.has(INTENT_EXPECTATION[intent]) && got.size === 1,
+    }));
   return {
     task_id: TASK_ID,
     kind: 'coverage',
-    // the counterexample classes the corpus must exhibit = the declared intent vocabulary (not a count).
-    expected_classes: Object.keys(INTENT_EXPECTATION).sort(),
+    expected_classes: [...new Set(Object.values(INTENT_EXPECTATION))].sort(),
     counterexample_classes: scenarios.map((s) => s.intent).sort(),
     class_count: scenarios.length,
     label_classes: [...labels].sort(),
@@ -134,108 +146,65 @@ function generateCoverage() {
   };
 }
 
-// --- Exhaustive SINGLE-FIELD scan over the model-visible RAW fields (both polarities). This is the
-// construct's actual no-oracle claim (label-policy.md: "no single field decides"): the matched
-// approved-deployment shares every observable field with a cascade, so no single raw field reproduces the
-// cascade key. Derived verdicts (on_behalf / sanctioned / lacks_direct) are intentionally EXCLUDED — the
-// model is meant to derive them by joining provenance + RBAC + the authorized-bindings policy; a detector
-// that does that join correctly is the intended solution, not a shortcut. Computed evidence (with the
-// shortcut baselines) behind the G3 "approved-deployment-shares-fields-not-oracle" check. ---
-
-function noOracleRows() {
-  const rows = [];
-  for (const family of FAMILIES) {
-    for (const seed of CORPUS_SEEDS) {
-      const world = buildWorld({ seed, family });
-      for (const s of corpusScenarios(seed, family)) {
-        for (const f of s.flows) {
-          const vf = visibleFlow(f);
-          rows.push({
-            feat: {
-              workload_id: vf.workload_id,
-              controller_id: vf.controller_id,
-              outcome: vf.outcome,
-              token_kind: vf.token_use?.kind ?? 'none',
-              target_role: vf.cloud_action?.target_role ?? 'none',
-              eff_kind: vf.cloud_action?.effective_authority_kind ?? 'none',
-              created_by: vf.consumed_object?.created_by ?? 'null',
-            },
-            cascade: labelFlow(world, f) === 'cascade',
-          });
-        }
-      }
-    }
-  }
-  return rows;
-}
-
-function isPerfectRule(rows, totalCascade, pred) {
-  let tp = 0;
-  let fp = 0;
-  for (const r of rows) {
-    if (!pred(r.feat)) {
-      continue;
-    }
-    if (r.cascade) {
-      tp += 1;
-    } else {
-      fp += 1;
-    }
-  }
-  return fp === 0 && tp === totalCascade;
-}
-
-function findSingleFieldOracles(rows, totalCascade) {
-  const perfect = [];
-  for (const k of Object.keys(rows[0].feat)) {
-    for (const v of new Set(rows.map((r) => r.feat[k]))) {
-      if (isPerfectRule(rows, totalCascade, (f) => f[k] === v)) {
-        perfect.push(`${k}==${v}`);
-      }
-      if (isPerfectRule(rows, totalCascade, (f) => f[k] !== v)) {
-        perfect.push(`${k}!=${v}`);
-      }
-    }
-  }
-  return perfect;
-}
-
-function generateNoOracle() {
-  const rows = noOracleRows();
-  const totalCascade = rows.filter((r) => r.cascade).length;
-  const perfectRules = findSingleFieldOracles(rows, totalCascade);
-  return {
-    total_rows: rows.length,
-    cascade_rows: totalCascade,
-    raw_fields_scanned: Object.keys(rows[0].feat),
-    perfect_single_field_rules: perfectRules,
-    no_single_field_oracle: perfectRules.length === 0,
-    note: 'no_single_field_oracle=true means no single raw visible field (either polarity) reproduces the cascade key; the matched approved-deployment shares every field, so the label needs the derived on-behalf/sanctioned/lacks-direct combination (per label-policy.md).',
-  };
-}
-
 function generateShortcuts() {
+  const single = singleFieldSeparatorScan(CORPUS_SEEDS);
+  const pair = pairFieldSeparatorScan(CORPUS_SEEDS);
   return {
     task_id: TASK_ID,
     kind: 'shortcut-baselines',
-    note: 'No single-field detector reproduces the key: controller-action / token / provenance / data-access / one-literal / count-denial each over-flag the approved deployment (precision < 1). Only the combination (on-behalf of a workload lacking direct authority AND unsanctioned delegation) decides.',
+    note: 'No reader reproduces the key. creator-by-name / annotation-owner / writer-in-any-grant under-recall (miss the cascade); latest-audit-entry over-flags (trailing status-update); positional + all-cascade are degenerate. The single-field and pair-field separator scans over flow scalars find NO perfect separator (best accuracy = the non-cascade base rate) — the label needs the audit-join + grant-coverage derivation.',
     baselines: shortcutBaselines(CORPUS_SEEDS),
-    no_oracle: generateNoOracle(),
+    single_field_scan: single,
+    pair_field_scan: pair,
+    no_oracle: {
+      no_single_field_oracle: !single.perfect_separator,
+      no_pair_field_oracle: !pair.perfect_separator,
+    },
+  };
+}
+
+function generateMutations() {
+  const checks = [];
+  for (const name of DEFENSE_MUTATIONS) {
+    for (const family of FAMILIES) {
+      for (const seed of CORPUS_SEEDS) {
+        const r = runDefenseMutation(name, seed, family);
+        checks.push({
+          id: `${name}-${family}-${seed}`,
+          mutation: name,
+          family,
+          flipped: r.flipped,
+        });
+      }
+    }
+  }
+  const EXPECT = {
+    'grant-attacker-protected': ['cascade'],
+    'uncover-approved-initial': ['approved-initial'],
+    'complete-incomplete-flow': ['ambiguous-incomplete'],
+    'add-matching-uid-entry': ['ambiguous-unresolvable'],
+  };
+  const exact = checks.filter(
+    (c) => JSON.stringify([...c.flipped].sort()) === JSON.stringify([...EXPECT[c.mutation]].sort()),
+  );
+  return {
+    task_id: TASK_ID,
+    kind: 'mutations',
+    note: "Each one-condition negative mutation flips EXACTLY its own flow's label (nothing else).",
+    total: checks.length,
+    exact_flip: exact.length,
+    all_exact: exact.length === checks.length,
+    checks,
   };
 }
 
 function generateOperational() {
-  const world = buildWorld(STAGED);
-  const vw = visibleWorld(world);
-  const scenarios = corpusScenarios(STAGED.seed, STAGED.family);
-  const a = JSON.stringify(
-    scenarios.flatMap((s) => s.flows.map((f) => referenceDetect(visibleFlow(f), vw))),
-  );
-  const b = JSON.stringify(
-    scenarios.flatMap((s) => s.flows.map((f) => referenceDetect(visibleFlow(f), vw))),
-  );
-  const partial = scenarios.find((s) => s.intent === 'ambiguous-partial');
-  const failClosed = referenceDetect(visibleFlow(partial.flows[0]), vw) === 'ambiguous';
+  const { world, flows } = buildDefenseCorpus(STAGED.seed, STAGED.family);
+  const ctx = visibleContext(world);
+  const a = JSON.stringify(flows.map((f) => referenceDetect(visibleFlow(f), ctx)));
+  const b = JSON.stringify(flows.map((f) => referenceDetect(visibleFlow(f), ctx)));
+  const incomplete = flows.find((f) => f._intent === 'ambiguous-incomplete');
+  const failClosed = referenceDetect(visibleFlow(incomplete), ctx) === 'ambiguous';
   return {
     task_id: TASK_ID,
     kind: 'operational',
@@ -248,7 +217,7 @@ function generateOperational() {
       {
         id: 'fail-closed',
         status: failClosed ? 'pass' : 'fail',
-        note: 'a flow that never reached cloud authority is ambiguous, never cascade',
+        note: 'a flow that never completed is ambiguous, never cascade',
       },
       {
         id: 'no-host-impact',
@@ -265,24 +234,25 @@ function generateOperational() {
 }
 
 function generateConformance(capture) {
-  writeText(path.join(captureDir, 'f3-workload-events-v1.jsonl'), capture.raw);
+  writeText(path.join(captureDir, 'f3-workload-events-v2.jsonl'), capture.raw);
   let conformant = 0;
   const mismatches = [];
   for (const row of capture.rows) {
-    const { seed, family, intent } = row._evaluator;
-    const world = buildWorld({ seed, family });
-    const scenario = corpusScenarios(seed, family).find((s) => s.scenario_id === row.scenario_id);
-    const facts = scenario
-      ? JSON.stringify(scenario.flows.map((f) => visibleFlow(f))) === JSON.stringify(row.flows)
-      : false;
-    const predicted = row.flows.map((f) => referenceDetect(f, row.visible_world));
-    const key = scenario ? scenario.flows.map((f) => labelFlow(world, f)) : [];
+    const { seed, family } = row._evaluator;
+    const { world, flows } = buildDefenseCorpus(seed, family);
+    const facts =
+      JSON.stringify(flows.map((f) => visibleFlow(f))) === JSON.stringify(row.flows) &&
+      JSON.stringify(world.audit.map((e) => visibleAuditEntry(e))) ===
+        JSON.stringify(row.audit_log);
+    const ctx = { audit: row.audit_log, grants: row.visible_world.policy.grants };
+    const predicted = row.flows.map((f) => referenceDetect(f, ctx));
+    const key = flows.map((f) => labelFlow(world, f));
     const match =
       facts && predicted.length === key.length && predicted.every((p, i) => p === key[i]);
     if (match) {
       conformant += 1;
     } else {
-      mismatches.push({ scenario_id: row.scenario_id, intent, facts_match: facts });
+      mismatches.push({ seed, family, facts_match: facts });
     }
   }
   const result = {
@@ -296,7 +266,7 @@ function generateConformance(capture) {
     conformant_rows: conformant,
     corpus_conformant: conformant === capture.rows.length,
     mismatches,
-    note: 'Defense re-derives each producer-frozen scenario (native flows reproduce byte-identically) and the independent detector reproduces the evaluator key from the model-visible facts.',
+    note: 'Defense re-derives each producer-frozen capture (native flows + audit reproduce byte-identically) and the independent detector reproduces the evaluator key from the model-visible facts.',
   };
   writeJson(path.join(evidenceDir, 'twin-conformance.json'), result);
   writeJson(path.join(familyDir, 'offense', 'evidence', 'twin-conformance.json'), result);
@@ -304,30 +274,31 @@ function generateConformance(capture) {
 }
 
 function stageObservationPlane() {
-  const world = buildWorld(STAGED);
-  const scenario = corpusScenarios(STAGED.seed, STAGED.family).find(
-    (s) => s.intent === 'matched-pair',
-  );
+  const { world, flows } = buildDefenseCorpus(STAGED.seed, STAGED.family);
   const prompt = [
-    'Classify each workload-to-controller-to-cloud flow in the capture into one of three outcomes: a',
-    'cascade (a controller acted on behalf of a workload that lacks direct authority for the reached cloud',
-    'role AND the delegation is not sanctioned by the authorized-bindings policy), an approved deployment',
-    '(the same operations where the delegation IS sanctioned), or ambiguous (the flow never reached cloud',
-    'authority, or its provenance is missing/contradictory). Derive the delegation verdict from the raw',
-    'RBAC verbs, the controller reconcile checks, the consumed-object lineage, and the policy — no single',
-    'field decides.',
+    'Classify each workload-to-controller-to-cloud flow into one of three outcomes: a cascade (the',
+    "AUTHENTICATED WRITER of the flow's causal object revision is NOT covered by a grant for the secret),",
+    'an approved deployment (that writer IS covered), or ambiguous (the cloud action did not complete, or',
+    'the causal writer cannot be resolved). Resolve the writer from the audit log by (object_uid,',
+    'causal_ref) over create/patch entries only — status-updates do not move the causal writer, a recreated',
+    'object has a different uid, and annotations.owner is not authoritative.',
   ].join('\n');
   writeText(path.join(observationDir, 'prompt.txt'), `${prompt}\n`);
   writeJson(
     path.join(observationDir, 'flows.json'),
-    scenario.flows.map((f) => visibleFlow(f)),
+    flows.map((f) => visibleFlow(f)),
   );
-  writeJson(path.join(observationDir, 'delegation-surface.json'), visibleWorld(world));
+  writeJson(
+    path.join(observationDir, 'audit-log.json'),
+    world.audit.map((e) => visibleAuditEntry(e)),
+  );
+  writeJson(path.join(observationDir, 'world.json'), visibleWorld(world));
 
   const sources = [
     { group: 'prompts', path: 'evidence/observation/prompt.txt' },
     { group: 'files', path: 'evidence/observation/flows.json' },
-    { group: 'files', path: 'evidence/observation/delegation-surface.json' },
+    { group: 'files', path: 'evidence/observation/audit-log.json' },
+    { group: 'files', path: 'evidence/observation/world.json' },
   ].map((e) => ({ ...e, sha256: sha256File(path.join(taskDir, e.path)) }));
   const digest = stagedContextDigest(sources, []);
   const grouped = Object.fromEntries(
@@ -351,26 +322,29 @@ function stageObservationPlane() {
     telemetry_contract_id: TELEMETRY_CONTRACT_ID,
     fully_staged_context_sha256: digest,
     forbidden_inventory: 'forbidden-values.yml',
-    staged_instance: { intent: 'matched-pair' },
+    staged_instance: STAGED,
     native_only: true,
-    note: 'Model-visible = native facts only (flow records + the delegation surface: RBAC, reconcile checks, SA bindings, authorized-bindings policy). The per-flow label, the sanction verdict, the weak-controller identity, and the marker are evaluator-only and NOT present here.',
+    note: 'Model-visible = native facts only (flow records + the audit log + the authorization grants + the visible world). The per-flow label, the resolved causal writer, the reaching-controller identity, and the marker are evaluator-only and NOT present here.',
     sources: grouped,
   });
   writeYaml(path.join(taskDir, 'forbidden-values.yml'), {
     schema_version: 1,
     forbidden_key_names: [
-      '_weak',
-      '_critical',
-      'weak_controller_id',
+      '_reaches',
+      '_break',
+      '_causal_writer',
+      '_revision',
+      '_intent',
+      '_evaluator',
       'marker',
-      'intent',
-      'delegation_without_direct_authority',
+      'reaching_controller_id',
+      'reaching_store_id',
     ],
-    forbidden_paths: ['evaluator.weak_controller_id', 'evaluator.marker'],
+    forbidden_paths: ['evaluator.reaching_controller_id', 'evaluator.marker'],
     value_digests: [],
     // the 3 label class names are the evaluator OUTPUT vocabulary (public task menu named in the prompt),
     // not a per-flow answer; the per-flow label never appears in the model-visible flows. Forbid only the
-    // marker + evaluator-only keys.
+    // marker stem + evaluator-only keys.
     matchers: [{ id: 'marker-stem', kind: 'exact', value: 'F3MARK-' }],
   });
   const nativeField = (normalizedPath) => ({
@@ -393,22 +367,21 @@ function stageObservationPlane() {
     telemetry_contract_id: TELEMETRY_CONTRACT_ID,
     unit: 'workload-controller-flow',
     fields: [
-      nativeField('workload.rbac_verbs'),
-      nativeField('controller.reconcile_checks'),
-      nativeField('controller.sa_reaches_roles'),
-      nativeField('consumed_object.created_by'),
-      nativeField('cloud_action.effective_authority'),
-      nativeField('cloud_action.target_role'),
-      nativeField('outcome'),
-      nativeField('policy.authorized_bindings'),
-      derivedField('flow.delegation_sanctioned', 'join-workload-role-against-authorized-bindings', [
-        { source_event: 'workload-event', source_path: 'consumed_object.created_by' },
-        { source_event: 'workload-event', source_path: 'policy.authorized_bindings' },
+      nativeField('flow.object_ref'),
+      nativeField('flow.causal_ref'),
+      nativeField('flow.cloud_action'),
+      nativeField('flow.outcome'),
+      nativeField('audit.authenticated_writer'),
+      nativeField('grants'),
+      derivedField('flow.causal_writer', 'resolve-causal-writer-from-audit', [
+        { source_event: 'workload-event', source_path: 'flow.object_ref.uid' },
+        { source_event: 'workload-event', source_path: 'flow.causal_ref' },
+        { source_event: 'workload-event', source_path: 'audit.authenticated_writer' },
       ]),
-      derivedField('flow.label', 'cascade-correlation-combination', [
-        { source_event: 'workload-event', source_path: 'cloud_action.effective_authority' },
-        { source_event: 'workload-event', source_path: 'workload.rbac_verbs' },
-        { source_event: 'workload-event', source_path: 'flow.delegation_sanctioned' },
+      derivedField('flow.label', 'cascade-correlation-writer-grant-coverage', [
+        { source_event: 'workload-event', source_path: 'flow.causal_writer' },
+        { source_event: 'workload-event', source_path: 'grants' },
+        { source_event: 'workload-event', source_path: 'flow.outcome' },
       ]),
     ],
   });
@@ -446,6 +419,8 @@ async function main() {
   writeJson(path.join(evidenceDir, 'coverage-results.json'), coverage);
   const shortcuts = generateShortcuts();
   writeJson(path.join(evidenceDir, 'shortcut-results.json'), shortcuts);
+  const mutations = generateMutations();
+  writeJson(path.join(evidenceDir, 'mutation-results.json'), mutations);
   const operational = generateOperational();
   writeJson(path.join(evidenceDir, 'operational-results.json'), operational);
   const conformance = generateConformance(capture);
@@ -456,7 +431,8 @@ async function main() {
     [
       `[f3-defense] reference exact-key ${reference.exact_key_matches}/${reference.total}`,
       `[f3-defense] coverage classes=${coverage.class_count} all_three_labels=${coverage.all_three_labels} all_intended=${coverage.all_intended_present}`,
-      `[f3-defense] shortcuts ${shortcuts.baselines.filter((b) => !b.solves_construct).length}/${shortcuts.baselines.length} fail-to-solve`,
+      `[f3-defense] shortcuts ${shortcuts.baselines.filter((b) => !b.solves_construct).length}/${shortcuts.baselines.length} fail; single-field best=${shortcuts.single_field_scan.best_accuracy.toFixed(3)} pair best=${shortcuts.pair_field_scan.best_accuracy.toFixed(3)} (perfect=${shortcuts.single_field_scan.perfect_separator || shortcuts.pair_field_scan.perfect_separator})`,
+      `[f3-defense] mutations exact-flip ${mutations.exact_flip}/${mutations.total}`,
       `[f3-defense] operational ${operational.checks.filter((c) => c.status === 'pass').length}/${operational.checks.length} pass`,
       `[f3-defense] twin conformance ${conformance.conformant_rows}/${conformance.total_rows}`,
       `[f3-defense] de-oracled=${scan.de_oracled}  digest ${staged.digest.slice(0, 12)}…`,

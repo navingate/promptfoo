@@ -180,7 +180,7 @@ function main() {
         },
       ],
       artifacts: [
-        'evidence/capture/f3-workload-events-v1.jsonl',
+        'evidence/capture/f3-workload-events-v2.jsonl',
         'evidence/twin-conformance.json',
         'evidence/deoracle-scan.json',
       ],

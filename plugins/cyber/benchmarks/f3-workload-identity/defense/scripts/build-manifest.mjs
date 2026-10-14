@@ -168,7 +168,7 @@ function main() {
         },
       ],
       artifacts: [
-        'evidence/capture/f3-workload-events-v1.jsonl',
+        'evidence/capture/f3-workload-events-v2.jsonl',
         'evidence/twin-conformance.json',
         'evidence/deoracle-scan.json',
       ],
@@ -210,7 +210,7 @@ function main() {
       producerVersion: '1',
       consumerVersion: '1',
       pairContractVersion: '1',
-      files: ['evidence/capture/f3-workload-events-v1.jsonl'],
+      files: ['evidence/capture/f3-workload-events-v2.jsonl'],
     },
     calibrationRuns,
   });
