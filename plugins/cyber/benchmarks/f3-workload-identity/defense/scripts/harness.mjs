@@ -87,7 +87,9 @@ export function referenceScore(seed, family) {
 // fail. The last two are KNOWN-LEAK demonstrators that currently SOLVE (P=R=1): they exploit the FIXED LIST
 // ORDERING of this v2 corpus — `workloads[0]` is always the attacker, and the cascade's causal audit entry
 // is always `event_time==2`. This is a construct defect (my flow-scalar separator scans missed it); the fix
-// is a v2.1 revision that shuffles every disclosed list per seed and randomizes audit event_time. See
+// is a v2.1 revision that shuffles every disclosed list per seed, randomizes audit event_time, AND gives the
+// other flows same-object siblings (so sharing an object is not cascade-specific). The v2.1 gate is an
+// exhaustive scan over JOINED + CROSS-ROW features, not just flow scalars. See
 // `.agents/cyber-benchmarks/F3-V2-SCREEN-RESULTS.md`. They are kept in the battery so the evidence tells the
 // truth until v2.1 is authorized.
 // ---------------------------------------------------------------------------
@@ -101,6 +103,7 @@ export const SHORTCUT_DETECTORS = Object.freeze([
   'all-cascade',
   'writer-is-first-workload', // KNOWN LEAK (v2.1 fix): attacker is always workloads[0]
   'causal-entry-event-time-2', // KNOWN LEAK (v2.1 fix): cascade causal audit entry is always event_time==2
+  'cross-row-shared-uid', // KNOWN LEAK (v2.1 fix): only the cascade shares its object with a lower-rev flow
 ]);
 
 function creatorByName(flow, ctx) {
@@ -168,12 +171,24 @@ function causalEntryEventTime2(flow, ctx) {
   );
   return e && e.event_time === 2 ? 'cascade' : 'ambiguous';
 }
+// Cross-row structural leak: only the cascade shares its object with another (lower-rev) flow.
+function crossRowSharedUid(flow, allVisibleFlows) {
+  if (flow.outcome !== 'completed-access') {
+    return 'ambiguous';
+  }
+  const shares = allVisibleFlows.some(
+    (o) =>
+      o !== flow && o.object_ref?.uid === flow.object_ref?.uid && o.causal_ref < flow.causal_ref,
+  );
+  return shares ? 'cascade' : 'ambiguous';
+}
 
 export function runShortcutDetector(name, seed, family) {
   const { world, flows } = buildDefenseCorpus(seed, family);
   const ctx = visibleContext(world);
   const objectsByName = Object.fromEntries(world.objects.map((o) => [o.name, o]));
   const firstWorkloadPrincipal = visibleWorld(world).workloads[0].principal;
+  const allVisibleFlows = flows.map((f) => visibleFlow(f));
   const detect = (flow, index) => {
     switch (name) {
       case 'creator-by-name':
@@ -192,6 +207,8 @@ export function runShortcutDetector(name, seed, family) {
         return writerIsFirstWorkload(flow, ctx, firstWorkloadPrincipal);
       case 'causal-entry-event-time-2':
         return causalEntryEventTime2(flow, ctx);
+      case 'cross-row-shared-uid':
+        return crossRowSharedUid(flow, allVisibleFlows);
       default:
         throw new Error(`unknown shortcut detector: ${name}`);
     }

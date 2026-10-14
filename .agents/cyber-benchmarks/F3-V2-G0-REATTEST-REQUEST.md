@@ -1,12 +1,16 @@
 # F3 v2 — independent G0 re-attestation request (construct scope only) — ON HOLD
 
-> **HOLD — do NOT attest the defense side yet.** A post-screen check found a **join-level positional leak**
-> in the v2 defense corpus (fixed list ordering: attacker always `workloads[0]`; cascade causal audit entry
-> always `event_time==2` → readers `writer-is-first-workload` / `causal-entry-event-time-2` solve P=R=1). This
-> is a construct defect that a **v2.1** revision must fix (shuffle every disclosed list per seed + randomize
-> audit event_time) before the DEFENSE is G0-ready. The OFFENSE side is unaffected (reaching controller
-> shuffled; no perfect separator). This request is staged for context; the operator should authorize v2.1
-> first, then an independent reviewer attests the fixed construct. See `F3-V2-SCREEN-RESULTS.md`.
+> **HOLD — do NOT attest the defense side yet.** A post-screen check found **three** shortcut leaks in the
+> v2 defense corpus, each solving P=R=1 (the pre-screen scans covered only flow scalars): (1)
+> `writer-is-first-workload` (attacker always `workloads[0]`); (2) `causal-entry-event-time-2` (cascade causal
+> audit entry always `event_time==2`); (3) `cross-row-shared-uid` (only the cascade shares its object with a
+> lower-revision flow — a CROSS-ROW tell that list-shuffling does NOT fix). A **v2.1** revision must fix all
+> three (shuffle every disclosed list per seed + randomize audit event_time + give the other flows same-object
+> siblings) and pass an exhaustive JOINED/CROSS-ROW scan (not just flow scalars) before the DEFENSE is
+> G0-ready. OFFENSE has no perfect separator (reaching index uniform over 9000 seeds), but note a
+> screened-seeds confound: on seeds 11/23/37 a first-store guess scores 5/9 (= GLM-5) by seed-selection noise.
+> The operator should authorize v2.1 first, then an independent reviewer attests the fixed construct. See
+> `F3-V2-SCREEN-RESULTS.md`.
 
 **For an INDEPENDENT reviewer (reviewer_id ≠ `navingate`, not the author).** The v1 G0 carry-forward
 (openai-codex-gpt-6 @ `43c437f8c`) does **not** cover v2 — the construct docs changed, so the build-manifest

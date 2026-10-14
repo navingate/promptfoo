@@ -72,9 +72,11 @@ All completed flows route through the ONE reaching controller + the protected se
 shape. They differ only in the decisive condition: offense — is the causal writer the attacker and
 uncovered; defense — is the causal writer covered by a grant. No single field decides at the FLOW-SCALAR
 level (verified: exhaustive single-field + pair-field separator scans find no perfect separator over flow
-scalars). KNOWN v2 DEFECT: the fixed list ordering (attacker always `workloads[0]`; cascade causal audit
-entry always `event_time==2`) is a join-level positional separator — a v2.1 revision shuffles every disclosed
-list per seed and randomizes audit event_time. See `.agents/cyber-benchmarks/F3-V2-SCREEN-RESULTS.md`.
+scalars). **KNOWN v2 DEFECT (defense unusable until v2.1):** THREE shortcut leaks the flow-scalar scans
+missed — attacker always `workloads[0]`; cascade causal audit entry always `event_time==2`; and a CROSS-ROW
+tell (only the cascade shares its object with a lower-revision flow). v2.1 must shuffle every disclosed list
+per seed, randomize audit event_time, AND give the other flows same-object siblings, then pass a
+joined/cross-row scan. See `.agents/cyber-benchmarks/F3-V2-SCREEN-RESULTS.md`.
 
 ## Independent terminal proof
 

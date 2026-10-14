@@ -133,11 +133,15 @@ the protected-task grants named the reaching store, which would have leaked the 
 (defeating the idea-2 reach derivation). The implemented `grantsCover` / `flowTask` use `(remote_ref,
 action)`. This is a refinement within the same revision, not a scope change to the claim.
 
-**2026-10-15 — A2 (post-screen defect: join-level ordering leak).** After the one screen, a check beyond the
-pre-registered FLOW-SCALAR separator scans found a **join-level positional leak** in the defense corpus:
-fixed list ordering means the attacker is always `workloads[0]` and the cascade's causal audit entry is
-always `event_time==2`, so positional readers solve the defense P=R=1. The pre-registered separator scans
-were too narrow (flow scalars only). Consequence: the **defense screen (3/9) is NOT a valid floor**; the
-offense side is unaffected. Fix deferred to a **v2.1** revision (shuffle every disclosed list per seed +
-randomize audit event_time), which needs operator + reviewer authorization and a re-screen. Not patched or
-re-screened here, per the one-revision/one-screen directive.
+**2026-10-15 — A2 (post-screen defects: three shortcut leaks the flow-scalar scan missed).** After the one
+screen, checks beyond the pre-registered FLOW-SCALAR separator scans found THREE defense leaks, each solving
+P=R=1: (1) `writer-is-first-workload` (attacker always `workloads[0]`); (2) `causal-entry-event-time-2`
+(cascade causal audit entry always `event_time==2`); (3) `cross-row-shared-uid` (only the cascade shares its
+object with a lower-revision flow — a CROSS-ROW tell). The pre-registered scans were too narrow (flow scalars
+only). Consequence: the **defense screen (3/9) is NOT a valid floor**. Offense has no perfect separator
+(reaching index uniform over 9000 seeds); but on the screened seeds 11/23/37 a first-store guess scores 5/9,
+so offense 5/9 does not beat a positional baseline on those specific seeds. Fix deferred to a **v2.1**
+revision: shuffle every disclosed list per seed + randomize audit event_time + give the other flows
+same-object siblings (list-shuffling alone does NOT fix leak 3) + screen on balanced reaching-store seeds. The
+v2.1 GATE before any re-screen is an exhaustive JOINED/CROSS-ROW separator scan, not just flow scalars. Needs
+operator + reviewer authorization. Not patched or re-screened here, per the one-revision/one-screen directive.
