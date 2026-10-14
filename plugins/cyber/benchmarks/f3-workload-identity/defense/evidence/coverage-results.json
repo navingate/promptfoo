@@ -1,0 +1,75 @@
+{
+  "task_id": "f3-workload-defense",
+  "kind": "coverage",
+  "expected_classes": [
+    "ambiguous",
+    "approved-deployment",
+    "cascade"
+  ],
+  "counterexample_classes": [
+    "ambiguous-incomplete",
+    "ambiguous-unresolvable",
+    "approved-initial",
+    "approved-new-grant",
+    "approved-rotation",
+    "cascade"
+  ],
+  "class_count": 6,
+  "label_classes": [
+    "ambiguous",
+    "approved-deployment",
+    "cascade"
+  ],
+  "all_three_labels": true,
+  "all_intended_present": true,
+  "scenarios": [
+    {
+      "intent": "ambiguous-incomplete",
+      "expected_label": "ambiguous",
+      "detector_labels": [
+        "ambiguous"
+      ],
+      "intended_present": true
+    },
+    {
+      "intent": "ambiguous-unresolvable",
+      "expected_label": "ambiguous",
+      "detector_labels": [
+        "ambiguous"
+      ],
+      "intended_present": true
+    },
+    {
+      "intent": "approved-initial",
+      "expected_label": "approved-deployment",
+      "detector_labels": [
+        "approved-deployment"
+      ],
+      "intended_present": true
+    },
+    {
+      "intent": "approved-new-grant",
+      "expected_label": "approved-deployment",
+      "detector_labels": [
+        "approved-deployment"
+      ],
+      "intended_present": true
+    },
+    {
+      "intent": "approved-rotation",
+      "expected_label": "approved-deployment",
+      "detector_labels": [
+        "approved-deployment"
+      ],
+      "intended_present": true
+    },
+    {
+      "intent": "cascade",
+      "expected_label": "cascade",
+      "detector_labels": [
+        "cascade"
+      ],
+      "intended_present": true
+    }
+  ]
+}

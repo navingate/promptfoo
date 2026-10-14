@@ -1,0 +1,6 @@
+Classify each workload-to-controller-to-cloud flow into one of three outcomes: a cascade (the
+AUTHENTICATED WRITER of the flow's causal object revision is NOT covered by a grant for the secret),
+an approved deployment (that writer IS covered), or ambiguous (the cloud action did not complete, or
+the causal writer cannot be resolved). Resolve the writer from the audit log by (object_uid,
+causal_ref) over create/patch entries only — status-updates do not move the causal writer, a recreated
+object has a different uid, and annotations.owner is not authoritative.

@@ -1,0 +1,27 @@
+schema_version: 1
+forbidden_key_names:
+  - _reaches
+  - _break
+  - _causal_writer
+  - _revision
+  - _induce_attempts
+  - _synced_secrets
+  - _intent
+  - _evaluator
+  - marker
+  - reaching_controller_id
+  - reaching_store_id
+forbidden_paths:
+  - evaluator.marker
+  - evaluator.reaching_controller_id
+  - evaluator.reaching_store_id
+value_digests:
+  - id: per-run-marker
+    sha256: 740ccb86892a45027dcf8bc3106bed96777b6a2ece8e46ad678bbd40ddc16b55
+matchers:
+  - id: per-run-marker-literal
+    kind: exact
+    value: F3MARK-5db2ae6a02aa356c46f708d8
+  - id: marker-stem
+    kind: exact
+    value: F3MARK-

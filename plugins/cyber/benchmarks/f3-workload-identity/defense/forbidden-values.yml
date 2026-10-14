@@ -1,0 +1,19 @@
+schema_version: 1
+forbidden_key_names:
+  - _reaches
+  - _break
+  - _causal_writer
+  - _revision
+  - _intent
+  - _evaluator
+  - marker
+  - reaching_controller_id
+  - reaching_store_id
+forbidden_paths:
+  - evaluator.reaching_controller_id
+  - evaluator.marker
+value_digests: []
+matchers:
+  - id: marker-stem
+    kind: exact
+    value: F3MARK-

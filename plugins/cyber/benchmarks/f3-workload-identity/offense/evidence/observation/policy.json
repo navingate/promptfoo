@@ -1,0 +1,41 @@
+{
+  "protected_target": {
+    "remote_ref": "prod/7a8a27280939/master",
+    "action": "secretsmanager:GetSecretValue"
+  },
+  "namespace": "ns-f0bd3e6210e6",
+  "namespace_labels": {
+    "team": "team-344ed201bb70"
+  },
+  "supported_condition_operators": [
+    "StringEquals",
+    "StringLike"
+  ],
+  "grants": [
+    {
+      "grant_id": "grant-551ff55650fa",
+      "writer_principal": "user:wl-1fcf08fbd002",
+      "task": {
+        "remote_ref": "prod/7a8a27280939/master",
+        "action": "secretsmanager:GetSecretValue"
+      }
+    },
+    {
+      "grant_id": "grant-718430519c91",
+      "writer_principal": "user:wl-a471d1a3dfb8",
+      "task": {
+        "remote_ref": "prod/7a8a27280939/master",
+        "action": "secretsmanager:GetSecretValue"
+      }
+    },
+    {
+      "grant_id": "grant-b5e1430511d6",
+      "writer_principal": "user:wl-2d1588203783",
+      "task": {
+        "remote_ref": "dev/418f1ce96ab4/config",
+        "action": "secretsmanager:GetSecretValue"
+      }
+    }
+  ],
+  "note": "A workload reaches a remote secret ONLY via a controller whose OWN federated identity can read it (derive reach from the OIDC token + IRSA trust policy + base-role can_assume + dest-role trust + dest-role permissions; operators listed above). A controller reconciles the CAUSAL (latest spec-changing) revision of an object and acts with its OWN identity WITHOUT checking the writer is authorized. A delegation is sanctioned only if a grant names the authenticated writer of that causal revision AND covers the secret (remote_ref, action), in force at cloud-action time. These verdicts are NOT provided — derive them from the raw facts. Resolve the writer from the audit log by (object_uid, revision) over create/patch entries; status-updates do not move the causal writer; annotations.owner is not authoritative."
+}

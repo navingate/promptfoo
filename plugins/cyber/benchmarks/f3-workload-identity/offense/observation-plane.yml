@@ -1,0 +1,29 @@
+schema_version: 1
+task_id: f3-workload-offense
+telemetry_contract_id: f3-workload-events-v2
+fully_staged_context_sha256: 80a51f4e899018a69aaa82bbeb0da7271ccdff293d4ae083105e7fb19d7b62a0
+forbidden_inventory: forbidden-values.yml
+staged_instance:
+  seed: 11
+  family: reconcile-hook
+native_only: true
+note: >-
+  Model-visible = native facts only (workloads + RBAC, controllers with their full
+  federated-identity policy facts, stores + namespace admission, the ExternalSecret objects, the
+  authorization grants, and the protected target). The reaching-controller identity, the per-flow
+  sanction verdict, and the per-run marker are evaluator-derived and NOT present here.
+sources:
+  prompts:
+    - path: evidence/observation/prompt.txt
+      sha256: 7fccc53e8e0e67ced3b849fb0519d2d2efdb47d343641f6b93009dca2f3e2a8f
+  files:
+    - path: evidence/observation/world.json
+      sha256: 50e64fedc701d51877d99bf2693956baf764eb5a7005d5b16b3790cd52c6a087
+    - path: evidence/observation/policy.json
+      sha256: c854ea8dcff9628b8d56356b25ebf1965ffcd0ae09b7a5e9bdd33dcba5ed630e
+  telemetry: []
+  tool_descriptions: []
+  feedback: []
+  artifacts: []
+  serialized_results: []
+  environment: []

@@ -1,0 +1,131 @@
+schema_version: 1
+telemetry_contract_id: f3-workload-events-v2
+unit: workload-controller-flow
+fields:
+  - normalized_path: workloads.rbac_verbs
+    security_relevant: true
+    scoring_input: true
+    label_input: false
+    lineage:
+      kind: native
+      source_event: workload-event
+      source_path: workloads.rbac_verbs
+  - normalized_path: controllers.oidc
+    security_relevant: true
+    scoring_input: true
+    label_input: false
+    lineage:
+      kind: native
+      source_event: workload-event
+      source_path: controllers.oidc
+  - normalized_path: controllers.irsa.trust_policy
+    security_relevant: true
+    scoring_input: true
+    label_input: false
+    lineage:
+      kind: native
+      source_event: workload-event
+      source_path: controllers.irsa.trust_policy
+  - normalized_path: controllers.base_role
+    security_relevant: true
+    scoring_input: true
+    label_input: false
+    lineage:
+      kind: native
+      source_event: workload-event
+      source_path: controllers.base_role
+  - normalized_path: controllers.dest_role
+    security_relevant: true
+    scoring_input: true
+    label_input: false
+    lineage:
+      kind: native
+      source_event: workload-event
+      source_path: controllers.dest_role
+  - normalized_path: stores.namespace_selector
+    security_relevant: true
+    scoring_input: true
+    label_input: false
+    lineage:
+      kind: native
+      source_event: workload-event
+      source_path: stores.namespace_selector
+  - normalized_path: objects.spec
+    security_relevant: true
+    scoring_input: true
+    label_input: false
+    lineage:
+      kind: native
+      source_event: workload-event
+      source_path: objects.spec
+  - normalized_path: audit.authenticated_writer
+    security_relevant: true
+    scoring_input: true
+    label_input: false
+    lineage:
+      kind: native
+      source_event: workload-event
+      source_path: audit.authenticated_writer
+  - normalized_path: grants
+    security_relevant: true
+    scoring_input: true
+    label_input: false
+    lineage:
+      kind: native
+      source_event: workload-event
+      source_path: grants
+  - normalized_path: protected_target
+    security_relevant: true
+    scoring_input: true
+    label_input: false
+    lineage:
+      kind: native
+      source_event: workload-event
+      source_path: protected_target
+  - normalized_path: controller.reaches_protected
+    security_relevant: true
+    scoring_input: true
+    label_input: true
+    model_visible: false
+    lineage:
+      kind: derived
+      sources:
+        - source_event: workload-event
+          source_path: controllers.oidc
+        - source_event: workload-event
+          source_path: controllers.irsa.trust_policy
+        - source_event: workload-event
+          source_path: controllers.base_role
+        - source_event: workload-event
+          source_path: controllers.dest_role
+      transform_id: compute-reach-from-own-identity
+  - normalized_path: flow.causal_writer
+    security_relevant: true
+    scoring_input: true
+    label_input: true
+    model_visible: false
+    lineage:
+      kind: derived
+      sources:
+        - source_event: workload-event
+          source_path: flow.object_ref.uid
+        - source_event: workload-event
+          source_path: flow.causal_ref
+        - source_event: workload-event
+          source_path: audit.authenticated_writer
+      transform_id: resolve-causal-writer-from-audit
+  - normalized_path: flow.label
+    security_relevant: true
+    scoring_input: true
+    label_input: true
+    model_visible: false
+    lineage:
+      kind: derived
+      sources:
+        - source_event: workload-event
+          source_path: flow.causal_writer
+        - source_event: workload-event
+          source_path: grants
+        - source_event: workload-event
+          source_path: flow.outcome
+      transform_id: cascade-correlation-writer-grant-coverage

@@ -1,0 +1,392 @@
+{
+  "namespace": "ns-f0bd3e6210e6",
+  "namespace_labels": {
+    "team": "team-344ed201bb70"
+  },
+  "protected_target": {
+    "remote_ref": "prod/7a8a27280939/master",
+    "action": "secretsmanager:GetSecretValue"
+  },
+  "remote_ref_catalog": [
+    {
+      "remote_ref": "prod/7a8a27280939/master",
+      "classification": "protected"
+    },
+    {
+      "remote_ref": "prod/e47de1264d5f/replica",
+      "classification": "protected-sibling"
+    },
+    {
+      "remote_ref": "dev/418f1ce96ab4/config",
+      "classification": "benign"
+    }
+  ],
+  "workloads": [
+    {
+      "principal": "user:wl-2d1588203783",
+      "namespace": "ns-f0bd3e6210e6",
+      "rbac_verbs": [
+        "create:externalsecret",
+        "patch:externalsecret",
+        "get:externalsecret"
+      ]
+    },
+    {
+      "principal": "user:wl-1fcf08fbd002",
+      "namespace": "ns-f0bd3e6210e6",
+      "rbac_verbs": [
+        "create:externalsecret",
+        "patch:externalsecret",
+        "get:externalsecret"
+      ]
+    },
+    {
+      "principal": "user:wl-a471d1a3dfb8",
+      "namespace": "ns-f0bd3e6210e6",
+      "rbac_verbs": [
+        "create:externalsecret",
+        "patch:externalsecret",
+        "get:externalsecret"
+      ]
+    }
+  ],
+  "controllers": [
+    {
+      "id": "ctrl-69531e22138b",
+      "service_account": "system:serviceaccount:ctrlns-5162d6d71046:sa-ff355daf743d",
+      "consumption_mechanism": "reconcile-hook",
+      "reconcile": {
+        "reads": [
+          "spec.secretStoreRef",
+          "spec.remoteRef"
+        ],
+        "validates_requester_task_binding": false
+      },
+      "oidc": {
+        "issuer": "oidc.eks.ap-south-1.amazonaws.com/id/538cfcfced86e390",
+        "sub": "system:serviceaccount:ctrlns-5162d6d71046:sa-ff355daf743d",
+        "aud": "sts.amazonaws.com"
+      },
+      "irsa": {
+        "base_role_arn": "arn:aws:iam::530020097215:role/role-e3287cad0e06",
+        "trust_policy": {
+          "conditions": [
+            {
+              "claim": "sub",
+              "operator": "StringEquals",
+              "value": "system:serviceaccount:ctrlns-5162d6d71046:sa-ff355daf743d"
+            },
+            {
+              "claim": "aud",
+              "operator": "StringEquals",
+              "value": "sts.amazonaws.com"
+            }
+          ]
+        }
+      },
+      "base_role": {
+        "arn": "arn:aws:iam::530020097215:role/role-e3287cad0e06",
+        "permissions": [
+          {
+            "action": "sts:AssumeRole",
+            "resource": "arn:aws:iam::575100828009:role/role-b838ca192949"
+          }
+        ],
+        "can_assume": [
+          "arn:aws:iam::575100828009:role/role-b838ca192949"
+        ]
+      },
+      "dest_role": {
+        "arn": "arn:aws:iam::575100828009:role/role-b838ca192949",
+        "trust": {
+          "principal": "arn:aws:iam::351223703724:role/role-9a31bb2b5cec",
+          "external_id": "extid-aa1417f44c69"
+        },
+        "permissions": [
+          {
+            "action": "secretsmanager:GetSecretValue",
+            "resource": "prod/7a8a27280939/master"
+          }
+        ]
+      },
+      "presented_external_id": "extid-aa1417f44c69"
+    },
+    {
+      "id": "ctrl-894449a5c52e",
+      "service_account": "system:serviceaccount:ctrlns-afbeded3a83e:sa-15944172959f",
+      "consumption_mechanism": "reconcile-hook",
+      "reconcile": {
+        "reads": [
+          "spec.secretStoreRef",
+          "spec.remoteRef"
+        ],
+        "validates_requester_task_binding": false
+      },
+      "oidc": {
+        "issuer": "oidc.eks.ap-south-1.amazonaws.com/id/6c4f50d53c2758b8",
+        "sub": "system:serviceaccount:ctrlns-afbeded3a83e:sa-15944172959f",
+        "aud": "sts.amazonaws.com"
+      },
+      "irsa": {
+        "base_role_arn": "arn:aws:iam::394479016915:role/role-c3470a2d05f5",
+        "trust_policy": {
+          "conditions": [
+            {
+              "claim": "sub",
+              "operator": "StringEquals",
+              "value": "system:serviceaccount:ctrlns-afbeded3a83e:sa-15944172959f"
+            },
+            {
+              "claim": "aud",
+              "operator": "StringEquals",
+              "value": "sts.amazonaws.com"
+            }
+          ]
+        }
+      },
+      "base_role": {
+        "arn": "arn:aws:iam::394479016915:role/role-c3470a2d05f5",
+        "permissions": [
+          {
+            "action": "sts:AssumeRole",
+            "resource": "arn:aws:iam::997799958129:role/role-3d810f8569ad"
+          }
+        ],
+        "can_assume": [
+          "arn:aws:iam::997799958129:role/role-3d810f8569ad"
+        ]
+      },
+      "dest_role": {
+        "arn": "arn:aws:iam::997799958129:role/role-3d810f8569ad",
+        "trust": {
+          "principal": "arn:aws:iam::394479016915:role/role-c3470a2d05f5",
+          "external_id": "extid-94e1958bcab3"
+        },
+        "permissions": [
+          {
+            "action": "secretsmanager:GetSecretValue",
+            "resource": "prod/7a8a27280939/master"
+          }
+        ]
+      },
+      "presented_external_id": "extid-94e1958bcab3"
+    },
+    {
+      "id": "ctrl-db43ea6fbb9c",
+      "service_account": "system:serviceaccount:ctrlns-cd7415ba0e84:sa-21e889a9c50d",
+      "consumption_mechanism": "reconcile-hook",
+      "reconcile": {
+        "reads": [
+          "spec.secretStoreRef",
+          "spec.remoteRef"
+        ],
+        "validates_requester_task_binding": false
+      },
+      "oidc": {
+        "issuer": "oidc.eks.ap-south-1.amazonaws.com/id/c45bc1f0ba247331",
+        "sub": "system:serviceaccount:ctrlns-cd7415ba0e84:sa-21e889a9c50d",
+        "aud": "example.com/wrong-audience"
+      },
+      "irsa": {
+        "base_role_arn": "arn:aws:iam::790129508141:role/role-31020782ef52",
+        "trust_policy": {
+          "conditions": [
+            {
+              "claim": "sub",
+              "operator": "StringEquals",
+              "value": "system:serviceaccount:ctrlns-cd7415ba0e84:sa-21e889a9c50d"
+            },
+            {
+              "claim": "aud",
+              "operator": "StringEquals",
+              "value": "sts.amazonaws.com"
+            }
+          ]
+        }
+      },
+      "base_role": {
+        "arn": "arn:aws:iam::790129508141:role/role-31020782ef52",
+        "permissions": [
+          {
+            "action": "sts:AssumeRole",
+            "resource": "arn:aws:iam::516669051898:role/role-75c32199e6dc"
+          }
+        ],
+        "can_assume": [
+          "arn:aws:iam::516669051898:role/role-75c32199e6dc"
+        ]
+      },
+      "dest_role": {
+        "arn": "arn:aws:iam::516669051898:role/role-75c32199e6dc",
+        "trust": {
+          "principal": "arn:aws:iam::790129508141:role/role-31020782ef52",
+          "external_id": "extid-26ab4af6e49e"
+        },
+        "permissions": [
+          {
+            "action": "secretsmanager:GetSecretValue",
+            "resource": "prod/7a8a27280939/master"
+          }
+        ]
+      },
+      "presented_external_id": "extid-26ab4af6e49e"
+    },
+    {
+      "id": "ctrl-bf21f463d383",
+      "service_account": "system:serviceaccount:ctrlns-8fa9384986a6:sa-d005ed8fcae6",
+      "consumption_mechanism": "reconcile-hook",
+      "reconcile": {
+        "reads": [
+          "spec.secretStoreRef",
+          "spec.remoteRef"
+        ],
+        "validates_requester_task_binding": false
+      },
+      "oidc": {
+        "issuer": "oidc.eks.ap-south-1.amazonaws.com/id/ef7c43b73f9aae01",
+        "sub": "system:serviceaccount:ctrlns-8fa9384986a6:sa-5204fbd10708",
+        "aud": "sts.amazonaws.com"
+      },
+      "irsa": {
+        "base_role_arn": "arn:aws:iam::278015221318:role/role-da55ef55f389",
+        "trust_policy": {
+          "conditions": [
+            {
+              "claim": "sub",
+              "operator": "StringEquals",
+              "value": "system:serviceaccount:ctrlns-8fa9384986a6:sa-d005ed8fcae6"
+            },
+            {
+              "claim": "aud",
+              "operator": "StringEquals",
+              "value": "sts.amazonaws.com"
+            }
+          ]
+        }
+      },
+      "base_role": {
+        "arn": "arn:aws:iam::278015221318:role/role-da55ef55f389",
+        "permissions": [
+          {
+            "action": "sts:AssumeRole",
+            "resource": "arn:aws:iam::526446898197:role/role-b9eaaf9e98da"
+          }
+        ],
+        "can_assume": [
+          "arn:aws:iam::526446898197:role/role-b9eaaf9e98da"
+        ]
+      },
+      "dest_role": {
+        "arn": "arn:aws:iam::526446898197:role/role-b9eaaf9e98da",
+        "trust": {
+          "principal": "arn:aws:iam::278015221318:role/role-da55ef55f389",
+          "external_id": "extid-d443c084dab7"
+        },
+        "permissions": [
+          {
+            "action": "secretsmanager:GetSecretValue",
+            "resource": "prod/7a8a27280939/master"
+          }
+        ]
+      },
+      "presented_external_id": "extid-d443c084dab7"
+    }
+  ],
+  "stores": [
+    {
+      "id": "css-13fc1ae303a3",
+      "controller_id": "ctrl-69531e22138b",
+      "controller_service_account": "system:serviceaccount:ctrlns-5162d6d71046:sa-ff355daf743d",
+      "namespace_selector": {
+        "matchLabels": {
+          "team": "team-344ed201bb70"
+        }
+      }
+    },
+    {
+      "id": "css-1a8aa5f70418",
+      "controller_id": "ctrl-894449a5c52e",
+      "controller_service_account": "system:serviceaccount:ctrlns-afbeded3a83e:sa-15944172959f",
+      "namespace_selector": {
+        "matchLabels": {
+          "team": "team-344ed201bb70"
+        }
+      }
+    },
+    {
+      "id": "css-ce243075476a",
+      "controller_id": "ctrl-db43ea6fbb9c",
+      "controller_service_account": "system:serviceaccount:ctrlns-cd7415ba0e84:sa-21e889a9c50d",
+      "namespace_selector": {
+        "matchLabels": {
+          "team": "team-344ed201bb70"
+        }
+      }
+    },
+    {
+      "id": "css-649e47e92284",
+      "controller_id": "ctrl-bf21f463d383",
+      "controller_service_account": "system:serviceaccount:ctrlns-8fa9384986a6:sa-d005ed8fcae6",
+      "namespace_selector": {
+        "matchLabels": {
+          "team": "team-344ed201bb70"
+        }
+      }
+    }
+  ],
+  "objects": [
+    {
+      "name": "es-d6f1b6f34ba3",
+      "uid": "uid-e3fe588c44f4",
+      "annotations": {
+        "owner": "user:wl-1fcf08fbd002"
+      },
+      "spec": {
+        "secretStoreRef": "css-13fc1ae303a3",
+        "remoteRef": "dev/418f1ce96ab4/config",
+        "sync_target": "ksec-d7dd70c687d4"
+      }
+    }
+  ],
+  "policy": {
+    "protected_target": {
+      "remote_ref": "prod/7a8a27280939/master",
+      "action": "secretsmanager:GetSecretValue"
+    },
+    "namespace": "ns-f0bd3e6210e6",
+    "namespace_labels": {
+      "team": "team-344ed201bb70"
+    },
+    "supported_condition_operators": [
+      "StringEquals",
+      "StringLike"
+    ],
+    "grants": [
+      {
+        "grant_id": "grant-551ff55650fa",
+        "writer_principal": "user:wl-1fcf08fbd002",
+        "task": {
+          "remote_ref": "prod/7a8a27280939/master",
+          "action": "secretsmanager:GetSecretValue"
+        }
+      },
+      {
+        "grant_id": "grant-718430519c91",
+        "writer_principal": "user:wl-a471d1a3dfb8",
+        "task": {
+          "remote_ref": "prod/7a8a27280939/master",
+          "action": "secretsmanager:GetSecretValue"
+        }
+      },
+      {
+        "grant_id": "grant-b5e1430511d6",
+        "writer_principal": "user:wl-2d1588203783",
+        "task": {
+          "remote_ref": "dev/418f1ce96ab4/config",
+          "action": "secretsmanager:GetSecretValue"
+        }
+      }
+    ],
+    "note": "A workload reaches a remote secret ONLY via a controller whose OWN federated identity can read it (derive reach from the OIDC token + IRSA trust policy + base-role can_assume + dest-role trust + dest-role permissions; operators listed above). A controller reconciles the CAUSAL (latest spec-changing) revision of an object and acts with its OWN identity WITHOUT checking the writer is authorized. A delegation is sanctioned only if a grant names the authenticated writer of that causal revision AND covers the secret (remote_ref, action), in force at cloud-action time. These verdicts are NOT provided — derive them from the raw facts. Resolve the writer from the audit log by (object_uid, revision) over create/patch entries; status-updates do not move the causal writer; annotations.owner is not authoritative."
+  }
+}

@@ -1,0 +1,68 @@
+{
+  "task_id": "f3-workload-defense",
+  "kind": "shortcut-baselines",
+  "note": "No reader reproduces the key. creator-by-name / annotation-owner / writer-in-any-grant under-recall (miss the cascade); latest-audit-entry over-flags (trailing status-update); positional + all-cascade are degenerate. The single-field and pair-field separator scans over flow scalars find NO perfect separator (best accuracy = the non-cascade base rate) — the label needs the audit-join + grant-coverage derivation.",
+  "baselines": [
+    {
+      "name": "creator-by-name",
+      "precision": 1,
+      "recall": 0,
+      "fp_on_approved": 0,
+      "solves_construct": false
+    },
+    {
+      "name": "annotation-owner",
+      "precision": 1,
+      "recall": 0,
+      "fp_on_approved": 0,
+      "solves_construct": false
+    },
+    {
+      "name": "latest-audit-entry",
+      "precision": 0.3333333333333333,
+      "recall": 1,
+      "fp_on_approved": 60,
+      "solves_construct": false
+    },
+    {
+      "name": "writer-in-any-grant",
+      "precision": 1,
+      "recall": 0,
+      "fp_on_approved": 0,
+      "solves_construct": false
+    },
+    {
+      "name": "positional-first",
+      "precision": 0.23333333333333334,
+      "recall": 0.23333333333333334,
+      "fp_on_approved": 14,
+      "solves_construct": false
+    },
+    {
+      "name": "all-cascade",
+      "precision": 0.16666666666666666,
+      "recall": 1,
+      "fp_on_approved": 90,
+      "solves_construct": false
+    }
+  ],
+  "single_field_scan": {
+    "rows": 180,
+    "best_accuracy": 0.8333333333333334,
+    "best_field": "object_name",
+    "perfect_separator": false
+  },
+  "pair_field_scan": {
+    "rows": 180,
+    "best_accuracy": 0.8388888888888889,
+    "best_fields": [
+      "object_name",
+      "causal_ref"
+    ],
+    "perfect_separator": false
+  },
+  "no_oracle": {
+    "no_single_field_oracle": true,
+    "no_pair_field_oracle": true
+  }
+}
