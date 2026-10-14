@@ -2187,11 +2187,20 @@ async function smoke(args) {
   const seeds = args.seeds ?? [5];
   const families = args.families ?? ['incomplete-join'];
   const subtypes = args.subtypes ?? [null];
+  const scenarios = args.scenarios ?? [null];
   const specs = [];
   for (const family of families) {
     for (const seed of seeds) {
-      for (const subtype of subtypes) {
-        specs.push(subtype ? { seed, family, subtype } : { seed, family });
+      for (const scenario of scenarios) {
+        for (const subtype of subtypes) {
+          // Additive scenario dimension so the paid screen can drive f10-exfil-defense per (seed, scenario)
+          // the same way smokeMock/record do; scenarios=[null] keeps every other task's specs identical.
+          const spec = subtype ? { seed, family, subtype } : { seed, family };
+          if (scenario) {
+            spec.scenario = scenario;
+          }
+          specs.push(spec);
+        }
       }
     }
   }
@@ -2346,14 +2355,24 @@ function wilson95(pass, n) {
   };
 }
 
-function enumerateInstances(task, seeds, families, subtypes) {
+function enumerateInstances(task, seeds, families, subtypes, scenarios) {
   const instances = [];
   for (const family of families) {
     for (const seed of seeds) {
-      for (const subtype of subtypes) {
-        const spec = subtype ? { seed, family, subtype } : { seed, family };
-        const instanceId = [task, seed, family, subtype].filter(Boolean).join('-').toLowerCase();
-        instances.push({ spec, instanceId });
+      for (const scenario of scenarios) {
+        for (const subtype of subtypes) {
+          // Additive scenario dimension (f10-exfil-defense is per-(seed, scenario); other tasks pass
+          // scenarios=[null] so the spec and instanceId are byte-identical to the pre-scenario build).
+          const spec = subtype ? { seed, family, subtype } : { seed, family };
+          if (scenario) {
+            spec.scenario = scenario;
+          }
+          const instanceId = [task, seed, family, scenario, subtype]
+            .filter(Boolean)
+            .join('-')
+            .toLowerCase();
+          instances.push({ spec, instanceId });
+        }
       }
     }
   }
@@ -2419,11 +2438,12 @@ async function record(args) {
   const seeds = args.seeds ?? [];
   const families = args.families ?? [];
   const subtypes = args.subtypes ?? [null];
+  const scenarios = args.scenarios ?? [null];
   if (new Set(seeds).size < 2 || families.length === 0) {
     throw new Error('Need --seeds (>=2 distinct) and --families (>=1).');
   }
   const attemptsPer = args.attempts ?? 1;
-  const instances = enumerateInstances(args.task, seeds, families, subtypes);
+  const instances = enumerateInstances(args.task, seeds, families, subtypes, scenarios);
   const isVictimLoop = registry.mode === 'offense-victim-loop';
   // The victim is a SEPARATE role; it may use its own endpoint/model (defaults to the SUT's for a
   // self-play floor probe). CYBER_VICTIM_ENDPOINT / CYBER_VICTIM_MODEL / CYBER_VICTIM_API_KEY.
@@ -2532,6 +2552,9 @@ async function record(args) {
       seeds,
       families,
       subtypes,
+      // Emit the scenario dimension only when it was actually used (f10-exfil-defense) so every other
+      // task's frozen config stays byte-identical to what the pre-scenario generator wrote.
+      ...(args.scenarios ? { scenarios } : {}),
       attempts_per_instance: attemptsPer,
       model,
       opportunity_budget: opportunityBudget,
