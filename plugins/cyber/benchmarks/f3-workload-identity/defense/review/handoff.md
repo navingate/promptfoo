@@ -1,64 +1,30 @@
----
-schema_version: 1
-task_id: f3-workload-defense
-status: INCOMPLETE
-reviewed_commit: INCOMPLETE
-manifest_sha256: INCOMPLETE
-reproduction_commands: []
----
+# F3 defense — v2 construct-review handoff
 
-# Security review handoff
+Status: v2 FLOORING REVISION. Gates PENDING. This supersedes the v1 handoff; the v1 G0 carry-forward does
+NOT cover v2. An INDEPENDENT G0 re-attestation of the v2 construct (reviewer ≠ `navingate`) is required
+before binding; the request is staged in `.agents/cyber-benchmarks/F3-V2-G0-REATTEST-REQUEST.md`.
 
-Status: INCOMPLETE
+## What to review (defense)
 
-## Current status
+- Construct: `design.md`, `threat-model.md`, `scoring-contract.md`, `label-policy.md`, `../FAMILY.md`;
+  pre-registration `.agents/cyber-benchmarks/F3-V2-PREREGISTRATION.md`.
+- Idea 1: the label turns on the AUTHENTICATED WRITER of each flow's causal revision, resolved via the audit
+  join on `(object_uid, causal_ref)` over create/patch entries (status-updates do not move it; recreated
+  objects have a new uid; `annotations.owner` is spoofable), then grant coverage of the secret.
+- Six flows per instance (1 cascade / 3 approved / 2 ambiguous), order shuffled; the approved population
+  shares the cascade's controller/role/operation shape (Q5 FP pressure).
 
-G0 review disposition (Wave 2-3 security review, reviewed against the design at commit f24062a18): CONDITIONAL PASS -> applied (expose delegation surface; one invariant; drop delegation_without_direct_authority verdict)
+## Model-free evidence (computed; gates pending)
 
-Corrections applied on branch codex/cyber-benchmark-authoring (see git log). G0 re-review pending. Frontmatter reviewed_commit/manifest_sha256 remain INCOMPLETE (they bind a built commit + manifest hash at G1+, not fabricated here).
+- reference exact-key 30/30; coverage all three labels + all intended; twin-conformance 30/30; shortcuts 6/6
+  fail; single-field + pair-field separator scans find NO perfect separator (best = base rate); mutations
+  120/120 each flip exactly their own flow; de-oracled.
+- `evidence/*.json` + `evidence/capture/f3-workload-events-v2.jsonl`.
 
-G0 re-review (independent reviewer, 2026-10-07, reviewed against `badead9d2`): **PASS**. Gates remain pending: the G0 **construct approval is recorded** (`.agents/cyber-benchmarks/g0-construct-approval-43c437f8c.txt`, AI reviewer `openai-codex-gpt-6` @ `43c437f8c`, G0 scope only); manifest binding is **deferred to build** (the schema binds a built commit).
+## Baseline-failure diagnosis (why idea 1 is aimed right)
 
-## Construct and claim
+The v1 baseline (GLM-5 5/9) failures were PRECISION failures — over-flagging the approved twin (confirmed on
+seed 13/reconcile-hook; inferred from P/R on the other three). v2's causal-writer + grant-coverage
+discriminator directly targets clearing the approved twin.
 
-INCOMPLETE
-
-## Topology and trust boundaries
-
-INCOMPLETE
-
-## Reference and negative controls
-
-INCOMPLETE
-
-## Observation plane
-
-INCOMPLETE
-
-## Telemetry lineage
-
-INCOMPLETE
-
-## Shortcut results
-
-INCOMPLETE
-
-## Isolation and destructive controls
-
-INCOMPLETE
-
-## Calibration evidence
-
-INCOMPLETE
-
-## Limitations and evidence level
-
-INCOMPLETE
-
-## Reproduction commands
-
-INCOMPLETE
-
-## Expert challenge decisions
-
-INCOMPLETE
+G7 (claims/release) still requires a human / independent-organization reviewer.

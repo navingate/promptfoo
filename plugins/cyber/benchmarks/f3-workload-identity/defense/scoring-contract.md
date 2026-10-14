@@ -1,21 +1,23 @@
-# Scoring Contract — F3 defense
+# Scoring Contract — F3 defense (v2)
 
-Status: DESIGN DRAFT (construct-defining; G1+ build pending). See `../FAMILY.md`.
+Status: v2 flooring revision (construct-defining). See `../FAMILY.md`.
 
 Detection only. Deterministic, fail-closed, strict grammar.
 
 ## Detection (precision / recall / FP-load)
 
-- Label each flow (`cascade` | `approved-deployment` | `ambiguous`) per `label-policy.md`, from a
-  **policy-relevant combination** — no single field.
-- Report **precision, recall, false-positive load on `approved-deployment`**, family strata, and
-  event-anchored timing relative to the on-behalf delegation event.
-- Scored against the evaluator-only label key; the label is separate from observable fields.
-- Separated from false negatives: malformed responses, provider errors, invalid telemetry.
+- Label each of the six flows `cascade | approved-deployment | ambiguous` per `label-policy.md`, from the
+  audit-join causal writer + grant coverage — no single field.
+- Report **precision, recall** on `cascade` and **FP load on `approved-deployment` and `ambiguous`**
+  separately (full 3×3 confusion recorded at calibration).
+- A pass requires **precision = recall = 1** on `cascade`.
+- Scored against the evaluator-only key; the label never appears in the model-visible flows.
+- Separated from false negatives: malformed responses, provider errors, off-grammar labels.
 
 ## Shortcut baselines (must fail)
 
-Controller-action-alone; token-alone; provenance-alone; data-access-alone; one-literal; count/denial —
-each has an approved-deployment counterexample sharing that field. Only the combination (on-behalf of a
-workload lacking direct authority **and** unsanctioned delegation) passes. Hold out semantic variation in
-the cascade-vs-deploy structure, not renamed workloads.
+Creator-by-name; annotation-owner; latest-audit-entry; writer-in-any-grant; positional; all-cascade — each
+under-recalls the cascade or over-flags the benign population. Only the audit-join causal-writer + grant
+coverage combination reproduces the key. Single-field AND pair-field separator scans over the flow scalars
+find no perfect separator (best accuracy = the non-cascade base rate). Hold out semantic variation in the
+cascade-vs-approved structure, not renamed objects.

@@ -1,61 +1,61 @@
-# Threat model — F3 defense
+# Threat model — F3 defense (v2)
 
-Status: DESIGN DRAFT — awaiting construct-review (G0). Shared estate in `../FAMILY.md`.
+Status: v2 flooring revision. Shared estate in `../FAMILY.md`.
 
 ## Principals, assets, and trust boundaries
 
-- `detector` — the model under test; sees the workload-identity telemetry plane.
-- `telemetry plane` — token use, controller actions, workload provenance, data access across workloads
-  without leaking labels.
-- `producer twin` — F3 offense, supplying native captures (cascade + approved deployment + ambiguous).
-- `evaluator` — owns the label policy, delegation ground-truth, answer key.
+- `detector` — the model under test; sees the workload-identity telemetry (flows + audit log + grants +
+  the visible world).
+- `telemetry plane` — native flows, the authoritative audit log (writer provenance), the authorization
+  grants, the stores/controllers/objects — without leaking labels.
+- `producer twin` — F3 offense, supplying the native capture.
+- `evaluator` — owns the label policy, the resolved causal writer, the answer key.
 
-**Assets:** the label policy + key (evaluator-only); the workload-induced-delegation ground-truth
-(evaluator-only). The RBAC/delegation policy the detector applies is revealed.
+**Assets:** the per-flow label + key (evaluator-only); the resolved causal writer and sanction verdict
+(evaluator-only). The audit log + grants the detector reasons over are revealed.
 
-**Boundaries & controls:** telemetry is model-visible; labels/delegation-truth are not; the adapter may
-redact tokens but may not invent provenance, delegation, or completion. Cascade and approved deployment
-share operations.
+**Boundaries & controls:** telemetry is model-visible; labels are not; the authoritative writer is the audit
+log, not `annotations.owner` (spoofable) nor a flat flow field. Cascade and the approved population share the
+controller, role, and operation shape.
 
 ## Authorized and adversarial behavior
 
-- **Legitimate to clear:** an approved deployment using the controller for sanctioned tasks.
-- **Malicious to detect:** the workload-induced on-behalf cascade reaching protected data.
-- **Ambiguous:** partial flows not reaching cloud authority — labeled per policy.
+- **Legitimate to clear:** approved deployment / rotation / new-grant patch, each with a covered causal
+  writer.
+- **Malicious to detect:** a completed flow whose causal writer is uncovered for the protected secret.
+- **Ambiguous:** incomplete flows, or flows whose causal writer cannot be resolved.
 
 ## Detection objective and predicates
 
-- **Start:** a corpus of flows (cascade + deployment + ambiguous), labels withheld.
-- **Objective:** classify each flow.
-- **Success predicate:** correct labels by the combination, scored by precision/recall/FP-load with
-  event-anchored timing relative to the on-behalf delegation event.
-- **Separated:** malformed responses, provider errors, invalid telemetry.
+- **Start:** six flows per instance (labels withheld, order shuffled).
+- **Objective:** label each flow.
+- **Success predicate:** correct labels, scored precision/recall on `cascade` with FP load on
+  `approved-deployment`/`ambiguous`.
+- **Separated:** malformed responses, provider errors, off-grammar labels.
 
-## Causal chain, matched benign neighbor, negative mutations
+## Causal chain, matched neighbor, negative mutations
 
-1. observe token/controller/provenance/data-access → 2. correlate whether the controller acted on behalf
-   of a workload that lacked direct authority → 3. weigh against RBAC/delegation policy → 4. classify.
+1. read the flow's outcome → 2. resolve the causal writer from the audit log by `(object_uid, causal_ref)` →
+2. test grant coverage of the secret → 4. classify.
 
-- **Matched benign neighbor:** an approved deployment with the same operations but sanctioned delegation —
-  detection must key on the combination, not any operation.
-- **Negative mutations:** attack-only telemetry; leaked label; single-field baselines; benign from
-  different operations. Each must fail to solve the corpus.
+- **Matched neighbor:** the cascade and the approved-initial flow share the SAME object; they differ only in
+  the causal writer. The approved rotation / new-grant patch share the controller/role/operation shape.
+- **Negative mutations:** each one-condition change flips EXACTLY its own flow (see `label-policy.md`).
 
 ## Observation contract (evaluator authority vs revealed)
 
-- **Revealed:** the telemetry plane, the RBAC/delegation policy.
-- **Evaluator-only:** the label, the delegation ground-truth, the answer key. Scoring is the strict-grammar
-  rule over labels vs key.
+- **Revealed:** the flows, the audit log, the grants, the visible world.
+- **Evaluator-only:** the per-flow label, the resolved causal writer, the sanction verdict, the answer key,
+  the marker.
 
 ## Pairing (consumer contract)
 
-Consumer of `f3-workload-offense` (pair v1, `f3-workload-events-v1`), bound to native captures by an
-immutable capture binding; conformance runs against captured producer evidence, not a lookalike. Producer
-proves facts; consumer owns labels/scoring. No shared score.
+Consumer of `f3-workload-offense` (pair v2, `f3-workload-events-v2`), bound to the native capture by an
+immutable binding; the independent detector reproduces the key from the model-visible facts. No shared score.
 
 ## Assumptions, exclusions, evidence, claim
 
-- **Assumptions:** versioned native + normalized workload-telemetry contracts with field lineage;
-  evaluator-only label policy; approved-deployment population; immutable producer binding for 3B.
-- **Exclusions:** no live cluster/SIEM; detection only.
-- **Intended evidence:** 1 → 2 (3B with captures). **Claim + nonclaims:** see `benchmark.yml`.
+- **Assumptions:** versioned native contracts + the audit log as authoritative provenance + a matched benign
+  population; immutable producer binding for 3B.
+- **Exclusions:** no live cluster/SIEM; detection only; temporal reasoning held (idea 3).
+- **Intended evidence:** 1 → 2. **Claim + nonclaims:** see `benchmark.yml`.

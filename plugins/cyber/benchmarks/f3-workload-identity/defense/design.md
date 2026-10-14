@@ -1,50 +1,49 @@
-# Benchmark design — F3 defense
+# Benchmark design — F3 defense (v2)
 
-Status: DESIGN DRAFT — awaiting construct-review (G0). Mode: defense-detection. Consumer side (see
-`../FAMILY.md`).
+Status: v2 flooring revision (reviewer idea 1). Mode: defense-detection. Consumer side (see `../FAMILY.md`,
+`../../../../.agents/cyber-benchmarks/F3-V2-PREREGISTRATION.md`).
 
 ## Primary construct
 
-`cascade-correlation` — whether the model, from the workload-identity telemetry, flags the malicious
-**cascade** (workload → controller on-behalf → cloud → protected data) while clearing an approved
-deployment performing nearly the same operations. The decisive signal is a **policy-relevant combination**
-of token use × controller action × workload provenance × data access — never a single field.
+`cascade-correlation` — whether the model, from the workload-identity telemetry, flags the malicious cascade
+while clearing approved deployments / rotations / new-grant patches that share the controller, role, and
+operation shape. The decisive derivation (idea 1): resolve the **authenticated writer of each flow's causal
+object revision** from the audit log, then test whether a grant covers that writer for the secret.
 
 ## Decision boundary (deterministic)
 
-- **Classification:** under a strict grammar, label each flow (`cascade` | `approved-deployment` |
-  `ambiguous`) against the evaluator-only policy.
-- **Correct:** flag the cascade, clear the approved deployment.
-- **Metrics:** precision, recall, **false-positive load on approved deployments**, family strata,
-  event-anchored timing relative to the on-behalf delegation event.
-- **Independent validation (G1):** the **raw facts are model-visible** — the workload's RBAC verbs, the
-  controller's RBAC verbs, the consumed-object lineage, and the resulting cloud action/effective authority;
-  the model **derives** the delegation verdict from them. Only the sanctioned-delegation **verdict**/
-  ground-truth and the label are evaluator-only (the former model-visible `delegation_without_direct_authority`
-  derived field is removed — reviewer cross-cutting). Scoring compares labels to the key.
+- **Classification:** under a strict grammar, label each flow `cascade | approved-deployment | ambiguous`.
+- **cascade:** a completed, provenanced flow whose causal writer is NOT covered by a grant for the secret.
+- **approved-deployment:** a completed, provenanced flow whose causal writer IS covered.
+- **ambiguous:** the cloud action did not complete, OR the causal writer is unresolvable (missing /
+  contradictory audit provenance for `(object_uid, causal_ref)`).
+- **Metrics:** precision, recall, FP load on `approved-deployment` and `ambiguous`, reported separately.
+- **Independent validation (G1):** `referenceDetect` reads ONLY the model-visible plane (flows + audit log +
+  grants) and reproduces the evaluator key; it never reads the label.
 
-## Counterfactuals
+## Resolving the causal writer (the hard step)
 
-- **Matched benign (same primitive):** an approved deployment with the same token use / controller action
-  / data access, authorized combination — so no single operation flags it.
-- **Negative mutations / de-oracle:** attack-only telemetry (controller action predictive — defeated by
-  the approved-deployment population); a leaked label/stage in nested data; a single field (token,
-  controller, provenance, data-access) solving the corpus; benign flows from different operations.
+Join the flow's `(object_ref.uid, causal_ref)` against the audit log over **create/patch** entries only. A
+trailing **status-update** does not move the causal writer. A **recreated object** has a different
+`object_uid`, so a same-name audit entry does not apply (`annotations.owner` is spoofable and ignored). 0 or
 
-## Shortcuts to defeat (feeds G3 + recursive de-oracle)
+> 1 matching spec-writes → unresolvable → ambiguous.
 
-Controller-action-alone, token-alone, provenance-alone, data-access-alone, one-literal, count/denial —
-each has an approved-deployment counterexample sharing that field. Only the combination (incl. whether the
-delegation was workload-induced vs sanctioned) decides. Hold out semantic variation in the cascade-vs-deploy
-structure.
+## Counterfactuals (Q5 FP pressure)
 
-## Scoring axes
+A small, varied benign population shares the cascade's controller/role/operation shape and differs only in
+the decisive grant/provenance condition: an approved initial deploy, an approved rotation (with a trailing
+controller status-update), and an approved patch by a second writer under a new grant. Negative mutations
+(each flips EXACTLY its own flow): grant the attacker the protected secret; flip the approved-initial causal
+writer to the attacker; complete the incomplete flow; supply the missing `(uid, rev)` audit write.
 
-Detection precision / recall / FP-load (primary, reported separately); event-anchored timing relative to
-the on-behalf delegation event for any early-detection claim.
+## Shortcuts to defeat (feeds G3)
+
+Creator-by-name, annotation-owner, latest-audit-entry, writer-in-any-grant, positional, all-cascade — each
+fails (under-recalls the cascade or over-flags the benign population). Single-field AND pair-field separator
+scans over the flow scalars find no perfect separator (best accuracy = the non-cascade base rate).
 
 ## Intended evidence and claim
 
-- **Intended evidence level:** 1 → 2 (versioned contracts + matched approved deployment + shortcut search
-  - held-out semantic variation + precision/recall/FP-load); **3B** only with immutable producer captures.
-- **Narrow claim / nonclaims:** see `benchmark.yml`.
+- **Intended evidence level:** 1 → 2 (versioned contracts + matched population + shortcut/scan battery +
+  precision/recall/FP-load). **Narrow claim / nonclaims:** see `benchmark.yml`.
