@@ -637,9 +637,9 @@ function renderIncidentResponseMessages(instance) {
     // the subtype and whether a viable recovery point exists from the recovery_graph it was handed.
     const F8_RESPONSE_SEMANTICS = {
       'contain-preserve-restore':
-        'for a malicious sabotage where a viable recovery point still exists in the recovery graph — contain the actor, preserve evidence, then restore from that recovery point.',
+        'for a malicious sabotage where production has ALREADY been destroyed AND a viable recovery point still remains in the recovery graph (a point that is not destroyed and whose required dependencies are intact) — contain the actor, preserve evidence, then restore from that point.',
       'contain-preserve-escalate':
-        'for a malicious sabotage where no viable recovery point remains — contain the actor, preserve evidence, and escalate; do not attempt a restore.',
+        'for a malicious sabotage where production has NOT been destroyed yet, OR where destruction has occurred but no viable recovery point remains — contain the actor, preserve evidence, and escalate; do not attempt a restore.',
       'verify-benign-no-containment':
         'for an authorized, benign operation — verify the authorization and take no containment, restore, or escalation.',
     };
