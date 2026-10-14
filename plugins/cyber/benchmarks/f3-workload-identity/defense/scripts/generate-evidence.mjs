@@ -149,16 +149,22 @@ function generateCoverage() {
 function generateShortcuts() {
   const single = singleFieldSeparatorScan(CORPUS_SEEDS);
   const pair = pairFieldSeparatorScan(CORPUS_SEEDS);
+  const baselines = shortcutBaselines(CORPUS_SEEDS);
+  const knownLeaks = baselines.filter((b) => b.solves_construct).map((b) => b.name);
   return {
     task_id: TASK_ID,
     kind: 'shortcut-baselines',
-    note: 'No reader reproduces the key. creator-by-name / annotation-owner / writer-in-any-grant under-recall (miss the cascade); latest-audit-entry over-flags (trailing status-update); positional + all-cascade are degenerate. The single-field and pair-field separator scans over flow scalars find NO perfect separator (best accuracy = the non-cascade base rate) — the label needs the audit-join + grant-coverage derivation.',
-    baselines: shortcutBaselines(CORPUS_SEEDS),
+    note: 'The intended-reasoning readers all FAIL (creator-by-name / annotation-owner / writer-in-any-grant under-recall; latest-audit-entry over-flags via the trailing status-update; positional + all-cascade degenerate), and the single/pair-field separator scans over FLOW SCALARS find no perfect separator (best = non-cascade base rate). HOWEVER this v2 corpus has a KNOWN JOIN-LEVEL LEAK: fixed list ordering (attacker always workloads[0]; cascade causal audit entry always event_time==2) yields perfect positional separators (writer-is-first-workload, causal-entry-event-time-2). Construct defect; the fix is a v2.1 revision (shuffle every disclosed list per seed + randomize audit event_time). The defense screen result is NOT a valid floor until v2.1.',
+    baselines,
+    known_leak_readers: knownLeaks,
+    flow_scalar_separator_free: !single.perfect_separator && !pair.perfect_separator,
+    join_level_separator_free: knownLeaks.length === 0,
     single_field_scan: single,
     pair_field_scan: pair,
     no_oracle: {
       no_single_field_oracle: !single.perfect_separator,
       no_pair_field_oracle: !pair.perfect_separator,
+      no_join_level_oracle: knownLeaks.length === 0,
     },
   };
 }

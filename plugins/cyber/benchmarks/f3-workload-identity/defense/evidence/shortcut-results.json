@@ -1,7 +1,7 @@
 {
   "task_id": "f3-workload-defense",
   "kind": "shortcut-baselines",
-  "note": "No reader reproduces the key. creator-by-name / annotation-owner / writer-in-any-grant under-recall (miss the cascade); latest-audit-entry over-flags (trailing status-update); positional + all-cascade are degenerate. The single-field and pair-field separator scans over flow scalars find NO perfect separator (best accuracy = the non-cascade base rate) — the label needs the audit-join + grant-coverage derivation.",
+  "note": "The intended-reasoning readers all FAIL (creator-by-name / annotation-owner / writer-in-any-grant under-recall; latest-audit-entry over-flags via the trailing status-update; positional + all-cascade degenerate), and the single/pair-field separator scans over FLOW SCALARS find no perfect separator (best = non-cascade base rate). HOWEVER this v2 corpus has a KNOWN JOIN-LEVEL LEAK: fixed list ordering (attacker always workloads[0]; cascade causal audit entry always event_time==2) yields perfect positional separators (writer-is-first-workload, causal-entry-event-time-2). Construct defect; the fix is a v2.1 revision (shuffle every disclosed list per seed + randomize audit event_time). The defense screen result is NOT a valid floor until v2.1.",
   "baselines": [
     {
       "name": "creator-by-name",
@@ -44,8 +44,28 @@
       "recall": 1,
       "fp_on_approved": 90,
       "solves_construct": false
+    },
+    {
+      "name": "writer-is-first-workload",
+      "precision": 1,
+      "recall": 1,
+      "fp_on_approved": 0,
+      "solves_construct": true
+    },
+    {
+      "name": "causal-entry-event-time-2",
+      "precision": 1,
+      "recall": 1,
+      "fp_on_approved": 0,
+      "solves_construct": true
     }
   ],
+  "known_leak_readers": [
+    "writer-is-first-workload",
+    "causal-entry-event-time-2"
+  ],
+  "flow_scalar_separator_free": true,
+  "join_level_separator_free": false,
   "single_field_scan": {
     "rows": 180,
     "best_accuracy": 0.8333333333333334,
@@ -63,6 +83,7 @@
   },
   "no_oracle": {
     "no_single_field_oracle": true,
-    "no_pair_field_oracle": true
+    "no_pair_field_oracle": true,
+    "no_join_level_oracle": false
   }
 }

@@ -25,9 +25,8 @@ object revision** from the audit log, then test whether a grant covers that writ
 
 Join the flow's `(object_ref.uid, causal_ref)` against the audit log over **create/patch** entries only. A
 trailing **status-update** does not move the causal writer. A **recreated object** has a different
-`object_uid`, so a same-name audit entry does not apply (`annotations.owner` is spoofable and ignored). 0 or
-
-> 1 matching spec-writes → unresolvable → ambiguous.
+`object_uid`, so a same-name audit entry does not apply (`annotations.owner` is spoofable and ignored). Zero
+or more-than-one matching spec-writes → unresolvable → ambiguous.
 
 ## Counterfactuals (Q5 FP pressure)
 
@@ -41,7 +40,10 @@ writer to the attacker; complete the incomplete flow; supply the missing `(uid, 
 
 Creator-by-name, annotation-owner, latest-audit-entry, writer-in-any-grant, positional, all-cascade — each
 fails (under-recalls the cascade or over-flags the benign population). Single-field AND pair-field separator
-scans over the flow scalars find no perfect separator (best accuracy = the non-cascade base rate).
+scans over the flow scalars find no perfect separator (best accuracy = the non-cascade base rate). KNOWN v2
+DEFECT: the fixed list ordering is a join-level positional separator (attacker always `workloads[0]`; cascade
+causal audit entry always `event_time==2`); a v2.1 revision shuffles every disclosed list per seed and
+randomizes audit event_time.
 
 ## Intended evidence and claim
 

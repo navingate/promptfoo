@@ -121,3 +121,23 @@ Gates stay **pending** (ab6abc2a1 is already unbound; v1's bind `9aa7ca3f6` is o
 touched). NO re-bind, NO G0 self-attest, NO merge. v1 G1–G5 + local-G6 evidence is now **stale** (noted).
 Only an independent G0 re-attestation REQUEST (reviewer ≠ navingate) is staged. G7 human/org review still
 required at release.
+
+---
+
+## Amendments (appended; the pre-registered text above is left intact as the timestamped record)
+
+**2026-10-15 — A1 (coverage scope).** During build, before commit 1, grant coverage was narrowed from
+`(store, remote_ref, action)` (as written in §"Idea 1" and the defense label function above) to
+**`(remote_ref, action)` + writer** — i.e. a grant authorizes a WRITER for a SECRET, not for a store. Reason:
+the protected-task grants named the reaching store, which would have leaked the reaching store to the offense
+(defeating the idea-2 reach derivation). The implemented `grantsCover` / `flowTask` use `(remote_ref,
+action)`. This is a refinement within the same revision, not a scope change to the claim.
+
+**2026-10-15 — A2 (post-screen defect: join-level ordering leak).** After the one screen, a check beyond the
+pre-registered FLOW-SCALAR separator scans found a **join-level positional leak** in the defense corpus:
+fixed list ordering means the attacker is always `workloads[0]` and the cascade's causal audit entry is
+always `event_time==2`, so positional readers solve the defense P=R=1. The pre-registered separator scans
+were too narrow (flow scalars only). Consequence: the **defense screen (3/9) is NOT a valid floor**; the
+offense side is unaffected. Fix deferred to a **v2.1** revision (shuffle every disclosed list per seed +
+randomize audit event_time), which needs operator + reviewer authorization and a re-screen. Not patched or
+re-screened here, per the one-revision/one-screen directive.

@@ -16,9 +16,13 @@ before binding; the request is staged in `.agents/cyber-benchmarks/F3-V2-G0-REAT
 
 ## Model-free evidence (computed; gates pending)
 
-- reference exact-key 30/30; coverage all three labels + all intended; twin-conformance 30/30; shortcuts 6/6
-  fail; single-field + pair-field separator scans find NO perfect separator (best = base rate); mutations
+- reference exact-key 30/30; coverage all three labels + all intended; twin-conformance 30/30; mutations
   120/120 each flip exactly their own flow; de-oracled.
+- **KNOWN DEFECT:** intended-reasoning shortcuts fail and the single/pair-field separator scans find no
+  perfect separator over FLOW SCALARS, BUT a join-level positional leak exists (fixed list ordering: attacker
+  always `workloads[0]`; cascade causal audit entry always `event_time==2`) → shortcuts 6/8 fail (2
+  known-leak readers solve). Defense is NOT G0-ready until a v2.1 revision shuffles every disclosed list per
+  seed + randomizes audit event_time. See `.agents/cyber-benchmarks/F3-V2-SCREEN-RESULTS.md`.
 - `evidence/*.json` + `evidence/capture/f3-workload-events-v2.jsonl`.
 
 ## Baseline-failure diagnosis (why idea 1 is aimed right)

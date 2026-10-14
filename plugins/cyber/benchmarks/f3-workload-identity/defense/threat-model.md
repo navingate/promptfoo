@@ -35,8 +35,8 @@ controller, role, and operation shape.
 
 ## Causal chain, matched neighbor, negative mutations
 
-1. read the flow's outcome → 2. resolve the causal writer from the audit log by `(object_uid, causal_ref)` →
-2. test grant coverage of the secret → 4. classify.
+Read the flow's outcome; resolve the causal writer from the audit log by `(object_uid, causal_ref)`; test
+grant coverage of the secret; then classify.
 
 - **Matched neighbor:** the cascade and the approved-initial flow share the SAME object; they differ only in
   the causal writer. The approved rotation / new-grant patch share the controller/role/operation shape.

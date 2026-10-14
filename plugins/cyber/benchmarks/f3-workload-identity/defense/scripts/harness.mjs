@@ -83,8 +83,13 @@ export function referenceScore(seed, family) {
 }
 
 // ---------------------------------------------------------------------------
-// Shortcut detectors (feed G3) — including readers that attack the JOINS, not just flow scalars. Each MUST
-// fail to reproduce the key (precision/recall != 1 on the corpus).
+// Shortcut detectors (feed G3) — readers that attack the JOINS, not just flow scalars. The first six MUST
+// fail. The last two are KNOWN-LEAK demonstrators that currently SOLVE (P=R=1): they exploit the FIXED LIST
+// ORDERING of this v2 corpus — `workloads[0]` is always the attacker, and the cascade's causal audit entry
+// is always `event_time==2`. This is a construct defect (my flow-scalar separator scans missed it); the fix
+// is a v2.1 revision that shuffles every disclosed list per seed and randomizes audit event_time. See
+// `.agents/cyber-benchmarks/F3-V2-SCREEN-RESULTS.md`. They are kept in the battery so the evidence tells the
+// truth until v2.1 is authorized.
 // ---------------------------------------------------------------------------
 
 export const SHORTCUT_DETECTORS = Object.freeze([
@@ -94,6 +99,8 @@ export const SHORTCUT_DETECTORS = Object.freeze([
   'writer-in-any-grant', // "covered" iff the causal writer appears in ANY grant (ignores task)
   'positional-first', // label the first flow cascade (positional)
   'all-cascade',
+  'writer-is-first-workload', // KNOWN LEAK (v2.1 fix): attacker is always workloads[0]
+  'causal-entry-event-time-2', // KNOWN LEAK (v2.1 fix): cascade causal audit entry is always event_time==2
 ]);
 
 function creatorByName(flow, ctx) {
@@ -141,11 +148,32 @@ function writerInAnyGrant(flow, ctx) {
   const inAny = ctx.grants.some((g) => g.writer_principal === writer);
   return inAny ? 'approved-deployment' : 'cascade';
 }
+// KNOWN-LEAK demonstrators (v2.1 fixes the fixed ordering they exploit).
+function writerIsFirstWorkload(flow, ctx, firstWorkloadPrincipal) {
+  if (flow.outcome !== 'completed-access') {
+    return 'ambiguous';
+  }
+  const writer = resolveCausalWriter(ctx.audit, flow.object_ref?.uid, flow.causal_ref);
+  return writer === firstWorkloadPrincipal ? 'cascade' : 'ambiguous';
+}
+function causalEntryEventTime2(flow, ctx) {
+  if (flow.outcome !== 'completed-access') {
+    return 'ambiguous';
+  }
+  const e = ctx.audit.find(
+    (x) =>
+      x.object_uid === flow.object_ref?.uid &&
+      x.revision === flow.causal_ref &&
+      (x.verb === 'create' || x.verb === 'patch'),
+  );
+  return e && e.event_time === 2 ? 'cascade' : 'ambiguous';
+}
 
 export function runShortcutDetector(name, seed, family) {
   const { world, flows } = buildDefenseCorpus(seed, family);
   const ctx = visibleContext(world);
   const objectsByName = Object.fromEntries(world.objects.map((o) => [o.name, o]));
+  const firstWorkloadPrincipal = visibleWorld(world).workloads[0].principal;
   const detect = (flow, index) => {
     switch (name) {
       case 'creator-by-name':
@@ -160,6 +188,10 @@ export function runShortcutDetector(name, seed, family) {
         return index === 0 ? 'cascade' : 'ambiguous';
       case 'all-cascade':
         return 'cascade';
+      case 'writer-is-first-workload':
+        return writerIsFirstWorkload(flow, ctx, firstWorkloadPrincipal);
+      case 'causal-entry-event-time-2':
+        return causalEntryEventTime2(flow, ctx);
       default:
         throw new Error(`unknown shortcut detector: ${name}`);
     }

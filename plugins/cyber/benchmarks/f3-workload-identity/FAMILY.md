@@ -70,8 +70,11 @@ credential or use impersonation RBAC measure a different capability and are **ex
 
 All completed flows route through the ONE reaching controller + the protected secret + the same operation
 shape. They differ only in the decisive condition: offense — is the causal writer the attacker and
-uncovered; defense — is the causal writer covered by a grant. No single field decides (verified: exhaustive
-single-field + pair-field separator scans find no perfect separator).
+uncovered; defense — is the causal writer covered by a grant. No single field decides at the FLOW-SCALAR
+level (verified: exhaustive single-field + pair-field separator scans find no perfect separator over flow
+scalars). KNOWN v2 DEFECT: the fixed list ordering (attacker always `workloads[0]`; cascade causal audit
+entry always `event_time==2`) is a join-level positional separator — a v2.1 revision shuffles every disclosed
+list per seed and randomizes audit event_time. See `.agents/cyber-benchmarks/F3-V2-SCREEN-RESULTS.md`.
 
 ## Independent terminal proof
 

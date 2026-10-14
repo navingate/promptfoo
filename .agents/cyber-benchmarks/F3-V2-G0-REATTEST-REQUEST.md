@@ -1,4 +1,12 @@
-# F3 v2 — independent G0 re-attestation request (construct scope only)
+# F3 v2 — independent G0 re-attestation request (construct scope only) — ON HOLD
+
+> **HOLD — do NOT attest the defense side yet.** A post-screen check found a **join-level positional leak**
+> in the v2 defense corpus (fixed list ordering: attacker always `workloads[0]`; cascade causal audit entry
+> always `event_time==2` → readers `writer-is-first-workload` / `causal-entry-event-time-2` solve P=R=1). This
+> is a construct defect that a **v2.1** revision must fix (shuffle every disclosed list per seed + randomize
+> audit event_time) before the DEFENSE is G0-ready. The OFFENSE side is unaffected (reaching controller
+> shuffled; no perfect separator). This request is staged for context; the operator should authorize v2.1
+> first, then an independent reviewer attests the fixed construct. See `F3-V2-SCREEN-RESULTS.md`.
 
 **For an INDEPENDENT reviewer (reviewer_id ≠ `navingate`, not the author).** The v1 G0 carry-forward
 (openai-codex-gpt-6 @ `43c437f8c`) does **not** cover v2 — the construct docs changed, so the build-manifest
@@ -7,9 +15,9 @@ construct is required before any bind. This is **G0 (construct design) scope onl
 not the screen numbers, not release. G7 (claims/release) still requires a human / independent-organization
 reviewer.
 
-- **Attest target (branch tip, byte-final):** `4f145a2cc` on `codex/cyber-f3-v2-floor` (pushed to `fork`),
-  touching `plugins/cyber/benchmarks/f3-workload-identity/**` + the reviewer/handoff docs under
-  `.agents/cyber-benchmarks/`.
+- **Construct freeze (what the screen measured):** `4f145a2cc` on `codex/cyber-f3-v2-floor` (pushed to
+  `fork`). Later commits on the branch only correct docs/evidence (incl. recording the defect above); the
+  construct behavior — estate/corpus/labelFlow/scoring — is byte-unchanged from `4f145a2cc`.
 - **Supersedes** the v1 F3 (6-flow, too-easy) construct. Base = the baseline-screen commit `ab6abc2a1`.
 
 ## What changed (reviewer ideas 1 + 2 + Q6; temporal idea 3 held)
@@ -41,8 +49,10 @@ under idea 2) — or flag it.
 - offense reference 60/60; mutations 180/180; not-oracle 0/60 (approved-deployment reaches protected but is
   sanctioned); shortcuts 6/6 fail; **action-space enumeration 60/60 clean (winners == intended)**; de-oracled.
 - defense reference exact-key 30/30; coverage all three labels + all intended; twin-conformance 30/30;
-  shortcuts 6/6 fail; **single-field + pair-field separator scans find NO perfect separator** (best = base
-  rate); mutations 120/120 each flip exactly their own flow; de-oracled.
+  intended-reasoning shortcuts fail + **single/pair-field separator scans find no perfect separator over FLOW
+  SCALARS** — BUT a join-level positional leak exists (`join_level_separator_free: false`; see the HOLD
+  banner); mutations 120/120 each flip exactly their own flow; de-oracled (no oracle material — the auditor
+  does not detect positional separators).
 - `evidence/*.json`, `evidence/capture/f3-workload-events-v2.jsonl`; pre-registration
   `F3-V2-PREREGISTRATION.md`; screen record `F3-V2-SCREEN-RESULTS.md`.
 
