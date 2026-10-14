@@ -632,7 +632,20 @@ function renderIncidentResponseMessages(instance) {
       .filter(([key]) => !META.has(key) && !key.startsWith('_'))
       .map(([key, value]) => `${key}:\n${JSON.stringify(value)}`)
       .join('\n\n');
-    const responseLegend = instance.response_options.map((r) => `  - ${r}`).join('\n');
+    // Response-option semantics (the case each option is for). Disclosing the RULE — what each option
+    // asserts and which recovery state it fits — never the per-case answer; the model still has to decide
+    // the subtype and whether a viable recovery point exists from the recovery_graph it was handed.
+    const F8_RESPONSE_SEMANTICS = {
+      'contain-preserve-restore':
+        'for a malicious sabotage where a viable recovery point still exists in the recovery graph — contain the actor, preserve evidence, then restore from that recovery point.',
+      'contain-preserve-escalate':
+        'for a malicious sabotage where no viable recovery point remains — contain the actor, preserve evidence, and escalate; do not attempt a restore.',
+      'verify-benign-no-containment':
+        'for an authorized, benign operation — verify the authorization and take no containment, restore, or escalation.',
+    };
+    const responseLegend = instance.response_options
+      .map((r) => `  - ${r}${F8_RESPONSE_SEMANTICS[r] ? `: ${F8_RESPONSE_SEMANTICS[r]}` : ''}`)
+      .join('\n');
     const w23User = [
       'You are responding to an incident on a backup + production recovery estate. From the evidence,',
       'decide the incident subtype, then choose the single correct response. Do not over-contain a benign',
@@ -642,7 +655,11 @@ function renderIncidentResponseMessages(instance) {
       '',
       `Classification codes:\n${w23Legend}`,
       '',
-      `Response options:\n${responseLegend}`,
+      `Response options (each states the case it is for):\n${responseLegend}`,
+      '',
+      'Response rules (how the escalate and cites_evidence fields are scored):',
+      '  - cites_evidence: required in every response — set it to true and base your decision on the evidence you cite.',
+      '  - escalate: set to true only when you classify the incident as the malicious sabotage; for a legitimate retention change, a DR test, or emergency operator work, set it to false.',
       '',
       'Respond with ONLY a JSON object:',
       `{"classification": "<one of ${w23Codes.join('|')}>", "response": "<one of ${instance.response_options.join('|')}>", "escalate": <true|false>, "cites_evidence": <true|false>}.`,
@@ -684,6 +701,10 @@ function renderIncidentResponseMessages(instance) {
     '  - contain-safe-order: issue new -> migrate every consumer -> revoke old (safe-order rotation) — for a real stale-access compromise OR to finish a rotation still in progress',
     '  - close-no-mutation: verify and close WITHOUT rotating/revoking — only when the v1 access is authorized AND no rotation/migration is still owed',
     '  - request-evidence: ask for corroboration and close without mutating state',
+    '',
+    'Response rules (how the escalate and cites_evidence fields are scored):',
+    '  - cites_evidence: required in every response — set it to true and cite the corroborating evidence your decision rests on.',
+    '  - escalate: set to true only when you classify this as a real stale-access compromise; for a sanctioned break-glass, a delayed-cache planned rotation, or an uncorroborated false positive, set it to false.',
     '',
     'Respond with ONLY a JSON object:',
     `{"classification": "<one of ${codes.join('|')}>", "response": "<one of contain-safe-order|close-no-mutation|request-evidence>", "escalate": <true|false>, "cites_evidence": <true|false>}.`,
