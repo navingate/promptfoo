@@ -1,28 +1,23 @@
-# F3 v2 — independent G0 re-attestation request (construct scope only) — ON HOLD
+# F3 v2.1 — independent G0 re-attestation request (construct scope only)
 
-> **HOLD — do NOT attest the defense side yet.** A post-screen check found **three** shortcut leaks in the
-> v2 defense corpus, each solving P=R=1 (the pre-screen scans covered only flow scalars): (1)
-> `writer-is-first-workload` (attacker always `workloads[0]`); (2) `causal-entry-event-time-2` (cascade causal
-> audit entry always `event_time==2`); (3) `cross-row-shared-uid` (only the cascade shares its object with a
-> lower-revision flow — a CROSS-ROW tell that list-shuffling does NOT fix). A **v2.1** revision must fix all
-> three (shuffle every disclosed list per seed + randomize audit event_time + give the other flows same-object
-> siblings) and pass an exhaustive JOINED/CROSS-ROW scan (not just flow scalars) before the DEFENSE is
-> G0-ready. OFFENSE has no perfect separator (reaching index uniform over 9000 seeds), but note a
-> screened-seeds confound: on seeds 11/23/37 a first-store guess scores 5/9 (= GLM-5) by seed-selection noise.
-> The operator should authorize v2.1 first, then an independent reviewer attests the fixed construct. See
-> `F3-V2-SCREEN-RESULTS.md`.
+> **Now v2.1 — order of gates: independent BREAKER first, THEN this G0 re-attestation.** The three v2 leaks
+> (`writer-is-first-workload`, `causal-entry-event-time-2`, `cross-row-shared-uid`) plus a writer-footprint
+> asymmetry are FIXED in v2.1 (per-seed shuffling + randomized audit event_time + symmetric same-object twins).
+> Before any G0 bind, the operator routes an INDEPENDENT breaker (reviewer ≠ `navingate`) to re-run an
+> exhaustive JOINED/CROSS-ROW shortcut scan against the v2.1 corpus; only once it clears does the ONE GLM-5
+> screen run, and this G0 re-attestation applies to the v2.1 construct. See `F3-V2.1-PREREGISTRATION.md`.
 
 **For an INDEPENDENT reviewer (reviewer_id ≠ `navingate`, not the author).** The v1 G0 carry-forward
-(openai-codex-gpt-6 @ `43c437f8c`) does **not** cover v2 — the construct docs changed, so the build-manifest
-empty-diff guard against `43c437f8c` correctly refuses to bind. A fresh independent G0 attestation of the v2
-construct is required before any bind. This is **G0 (construct design) scope only** — not G1–G6 evidence,
+(openai-codex-gpt-6 @ `43c437f8c`) does **not** cover v2.1 — the construct docs changed, so the build-manifest
+empty-diff guard against `43c437f8c` correctly refuses to bind. A fresh independent G0 attestation of the
+v2.1 construct is required before any bind. This is **G0 (construct design) scope only** — not G1–G6 evidence,
 not the screen numbers, not release. G7 (claims/release) still requires a human / independent-organization
 reviewer.
 
-- **Construct freeze (what the screen measured):** `4f145a2cc` on `codex/cyber-f3-v2-floor` (pushed to
-  `fork`). Later commits on the branch only correct docs/evidence (incl. recording the defect above); the
-  construct behavior — estate/corpus/labelFlow/scoring — is byte-unchanged from `4f145a2cc`.
-- **Supersedes** the v1 F3 (6-flow, too-easy) construct. Base = the baseline-screen commit `ab6abc2a1`.
+- **Construct freeze:** the v2.1 freeze commit on `codex/cyber-f3-v2-floor` (pushed to `fork`); its SHA is
+  recorded in the handback. `git diff <freeze>..HEAD` over `shared/` + the harnesses must stay empty.
+- **Supersedes** the v1 (6-flow, too-easy) and v2 (leaky) F3 constructs. v1 (`9aa7ca3f6`) STANDS until/unless
+  a v2.x binds. Base = the baseline-screen commit `ab6abc2a1`.
 
 ## What changed (reviewer ideas 1 + 2 + Q6; temporal idea 3 held)
 

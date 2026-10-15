@@ -1,10 +1,22 @@
-// F3 v2 shared corpus — the SIX-flow detection set + the producer-native capture. Mirrors v1's pairing
-// (the defense consumes the producer's native facts), rebuilt for the revision: authorization turns on the
-// AUTHENTICATED WRITER of each flow's CAUSAL object revision (resolved via the audit log, not a flat flow
-// field, not annotations), and a grant must name that writer AND the task. All completed flows route through
-// the ONE reaching controller + the protected target + the same operation shape (Q5 FP pressure); they
-// differ only in the decisive grant/provenance condition. Flow order is shuffled per seed (no positional
-// tell). Opaque object names / annotation values.
+// F3 v2.1 shared corpus — the SIX-flow detection set + the producer-native capture. v2.1 revision fixes the
+// v2 leaks (list-ordering, event_time, cross-row same-object, and writer-footprint asymmetry) WITHOUT
+// changing the discriminator or scoring: the label still turns on the causal revision's authenticated writer
+// (audit join) + grant coverage of the secret.
+//
+// Structure (symmetric twins so no STRUCTURAL feature isolates the cascade — only grant coverage does):
+//  - Pair A (object OA): flow approved-initial (OA rev1, writer=approved, covered)
+//                        + flow CASCADE      (OA rev2, writer=attacker, UNCOVERED).
+//  - Pair B (object OB): flow approved-base  (OB rev1, writer=approved, covered)
+//                        + flow approved-new-grant (OB rev2, writer=approved2, covered by a distinct grant).
+//  - Singleton OC: ambiguous-incomplete (OC rev1, writer=approved, outcome=blocked).
+//  - Singleton OD: ambiguous-unresolvable (OD, flow references a RECREATED uid absent from the audit).
+// The cascade (OA rev2) and approved-new-grant (OB rev2) are STRUCTURALLY IDENTICAL: both are rev2 patches
+// with a lower-rev sibling flow, both completed+protected, both on an object with a trailing controller
+// status-update, both owner!=writer. The attacker and approved2 each author exactly ONE patch and no create
+// (footprint-symmetric). They differ ONLY in grant coverage of the protected secret. Every disclosed list is
+// shuffled per seed and audit event_time is seed-randomized (per-object monotonic), so position/order carry
+// no signal. Expected STRUCTURAL ceiling ~1/2 (two indistinguishable rev2 twins) — the defense chance
+// baseline; an exact pass requires the grant-coverage derivation.
 
 import {
   buildWorld,
@@ -28,6 +40,9 @@ function mulberry32(a) {
     return ((x ^ (x >>> 14)) >>> 0) / 4294967296;
   };
 }
+function seedInt(...parts) {
+  return Number.parseInt(sha256Hex(parts.join('|')).slice(0, 8), 16) >>> 0;
+}
 function shuffle(arr, rand) {
   const out = [...arr];
   for (let i = out.length - 1; i > 0; i -= 1) {
@@ -36,19 +51,29 @@ function shuffle(arr, rand) {
   }
   return out;
 }
+// Seed-randomized, per-object monotonic event_time: distinct base per object uid, +revision for intra-object
+// order. Over seeds the base varies, so no fixed event_time (or rank) marks the cascade.
+function eventTimeFor(seed, family, uid, revision) {
+  const base = (seedInt('etbase', seed, family, uid) % 900) + 1;
+  return base * 10 + revision;
+}
 
-/**
- * buildDefenseCorpus(seed, family) -> { world, flows }. The returned world carries the FROZEN audit log and
- * objects for this corpus (so labelFlow re-derives the key from world.audit + world.grants). Six flows:
- *  1 cascade  2 approved-initial  3 approved-rotation(+trailing status-update)  4 approved-new-writer+grant
- *  5 ambiguous-unresolvable(uid recreation)  6 ambiguous-incomplete.
- */
+/** buildDefenseCorpus(seed, family) -> { world, flows }. The returned world carries the FROZEN audit log and
+ * objects for this corpus (so labelFlow re-derives the key from world.audit + world.grants). */
 export function buildDefenseCorpus(seed, family) {
   const world = buildWorld({ seed, family });
-  const [attacker, approved, approved2] = world.workloads.map((w) => w.principal);
-  const reachingStore = world.evaluator.reaching_store_id;
+  const attacker = world.workloads.find((w) => w.compromised).principal;
+  // Assign the two approved roles (approved = creator of OA/OB rev1 + OC/OD; approved2 = the OB rev2 twin's
+  // writer) by an INDEPENDENT seeded coin — NOT by their position in the shuffled workloads list — so the
+  // approved-new-grant twin's writer index is symmetric with the attacker's (a "lower-index twin" reader
+  // then stays at the 50% coin-flip ceiling, not 2/3).
+  const [approved, approved2] = shuffle(
+    world.workloads.filter((w) => !w.compromised).map((w) => w.principal),
+    mulberry32(seedInt('approved-roles', seed, family)),
+  );
   const reaching = controllerById(world, world.evaluator.reaching_controller_id);
   const reachingSA = reaching.service_account;
+  const reachingStore = world.evaluator.reaching_store_id;
   const protectedRef = world.protected_target.remote_ref;
   const cloudAction = {
     effective_authority_kind: 'controller-sa',
@@ -57,150 +82,84 @@ export function buildDefenseCorpus(seed, family) {
   };
   const tokenUse = { issued_to: reachingSA, kind: 'sts-web-identity-session' };
 
-  // Object + audit construction (object_uid distinguishes recreations with the same name).
-  const O1 = oid('es', seed, family, 'o1');
-  const U1 = oid('uid', seed, family, 'o1');
-  const O2 = oid('es', seed, family, 'o2');
-  const U2 = oid('uid', seed, family, 'o2');
-  const O3 = oid('es', seed, family, 'o3');
-  const U3 = oid('uid', seed, family, 'o3');
-  const O4 = oid('es', seed, family, 'o4');
-  const U4old = oid('uid', seed, family, 'o4-old');
-  const U4new = oid('uid', seed, family, 'o4-new');
-  const O5 = oid('es', seed, family, 'o5');
-  const U5 = oid('uid', seed, family, 'o5');
+  const OA = oid('es', seed, family, 'oa');
+  const U_A = oid('uid', seed, family, 'oa');
+  const OB = oid('es', seed, family, 'ob');
+  const U_B = oid('uid', seed, family, 'ob');
+  const OC = oid('es', seed, family, 'oc');
+  const U_C = oid('uid', seed, family, 'oc');
+  const OD = oid('es', seed, family, 'od');
+  const U_D_old = oid('uid', seed, family, 'od-old');
+  const U_D_new = oid('uid', seed, family, 'od-new');
 
-  let ev = 0;
-  const A = (verb, object_uid, object_name, revision, authenticated_writer) => ({
-    event_id: oid('evt', seed, family, `${object_uid}-${revision}-${verb}`),
+  const A = (verb, uid, name, revision, writer) => ({
+    event_id: oid('evt', seed, family, `${uid}-${revision}-${verb}`),
     verb,
-    object_uid,
-    object_name,
+    object_uid: uid,
+    object_name: name,
     revision,
-    authenticated_writer,
-    event_time: (ev += 1),
+    authenticated_writer: writer,
+    event_time: eventTimeFor(seed, family, uid, revision),
   });
+  // Pair A + Pair B each: create(rev1, approved) -> patch(rev2, twin) -> trailing controller status-update.
+  // attacker authors ONLY OA rev2; approved2 authors ONLY OB rev2 (footprint-symmetric, no create).
   const audit = [
-    // O1: approved create (rev1), attacker patch (rev2) — same object, same protected task, writers differ.
-    A('create', U1, O1, 1, approved),
-    A('patch', U1, O1, 2, attacker),
-    // O2: approved create + approved rotation, then a trailing controller STATUS-UPDATE (does not move
-    // the causal writer; defeats a latest-audit-entry reader).
-    A('create', U2, O2, 1, approved),
-    A('patch', U2, O2, 2, approved),
-    A('status-update', U2, O2, 3, reachingSA),
-    // O3: approved create, then a patch by a SECOND approved writer (covered by a distinct grant).
-    A('create', U3, O3, 1, approved),
-    A('patch', U3, O3, 2, approved2),
-    // O4: created+patched under the OLD uid; the flow references a NEW uid (recreation) -> unresolvable.
-    A('create', U4old, O4, 1, approved),
-    A('patch', U4old, O4, 2, approved),
-    // O5: attacker create (uncovered) but the flow never completes -> incomplete gate wins.
-    A('create', U5, O5, 1, attacker),
+    A('create', U_A, OA, 1, approved),
+    A('patch', U_A, OA, 2, attacker),
+    A('status-update', U_A, OA, 3, reachingSA),
+    A('create', U_B, OB, 1, approved),
+    A('patch', U_B, OB, 2, approved2),
+    A('status-update', U_B, OB, 3, reachingSA),
+    A('create', U_C, OC, 1, approved),
+    A('create', U_D_old, OD, 1, approved),
+    A('patch', U_D_old, OD, 2, approved),
   ];
+  // Disclosed audit log is ordered by the (randomized) event_time — a realistic, position-neutral log.
+  const auditSorted = [...audit].sort((a, b) => a.event_time - b.event_time);
 
-  const objects = [
-    {
-      name: O1,
-      uid: U1,
-      annotations: { owner: approved },
-      spec: {
-        secretStoreRef: reachingStore,
-        remoteRef: protectedRef,
-        sync_target: oid('ksec', seed, family, 'o1'),
-      },
+  // annotations.owner = each object's rev1 creator (approved) -> owner!=writer for BOTH rev2 flows.
+  const mkObj = (name, uid, tag) => ({
+    name,
+    uid,
+    annotations: { owner: approved },
+    spec: {
+      secretStoreRef: reachingStore,
+      remoteRef: protectedRef,
+      sync_target: oid('ksec', seed, family, tag),
     },
-    {
-      name: O2,
-      uid: U2,
-      annotations: { owner: approved },
-      spec: {
-        secretStoreRef: reachingStore,
-        remoteRef: protectedRef,
-        sync_target: oid('ksec', seed, family, 'o2'),
-      },
-    },
-    {
-      name: O3,
-      uid: U3,
-      annotations: { owner: approved },
-      spec: {
-        secretStoreRef: reachingStore,
-        remoteRef: protectedRef,
-        sync_target: oid('ksec', seed, family, 'o3'),
-      },
-    },
-    {
-      name: O4,
-      uid: U4new,
-      annotations: { owner: approved },
-      spec: {
-        secretStoreRef: reachingStore,
-        remoteRef: protectedRef,
-        sync_target: oid('ksec', seed, family, 'o4'),
-      },
-    },
-    {
-      name: O5,
-      uid: U5,
-      annotations: { owner: attacker },
-      spec: {
-        secretStoreRef: reachingStore,
-        remoteRef: protectedRef,
-        sync_target: oid('ksec', seed, family, 'o5'),
-      },
-    },
-  ];
+  });
+  const objects = shuffle(
+    [mkObj(OA, U_A, 'oa'), mkObj(OB, U_B, 'ob'), mkObj(OC, U_C, 'oc'), mkObj(OD, U_D_new, 'od')],
+    mulberry32(seedInt('obj-order', seed, family)),
+  );
 
-  const mkFlow = (tag, { objectName, uid, causalRef, outcome }) => ({
+  const mkFlow = (tag, { name, uid, causalRef, outcome }) => ({
     flow_id: oid('flow', seed, family, tag),
-    object_ref: { name: objectName, uid, store_ref: reachingStore },
+    object_ref: { name, uid, store_ref: reachingStore },
     causal_ref: causalRef,
     token_use: { ...tokenUse },
-    cloud_action:
-      outcome === 'completed-access'
-        ? { ...cloudAction }
-        : { ...cloudAction, effective_authority: reachingSA },
+    cloud_action: { ...cloudAction },
     outcome,
-    _intent: tag, // evaluator-only
+    _intent: tag,
   });
-
   const flows = [
-    mkFlow('cascade', { objectName: O1, uid: U1, causalRef: 2, outcome: 'completed-access' }),
-    mkFlow('approved-initial', {
-      objectName: O1,
-      uid: U1,
-      causalRef: 1,
-      outcome: 'completed-access',
-    }),
-    mkFlow('approved-rotation', {
-      objectName: O2,
-      uid: U2,
-      causalRef: 2,
-      outcome: 'completed-access',
-    }),
-    mkFlow('approved-new-grant', {
-      objectName: O3,
-      uid: U3,
-      causalRef: 2,
-      outcome: 'completed-access',
-    }),
+    mkFlow('cascade', { name: OA, uid: U_A, causalRef: 2, outcome: 'completed-access' }),
+    mkFlow('approved-initial', { name: OA, uid: U_A, causalRef: 1, outcome: 'completed-access' }),
+    mkFlow('approved-base', { name: OB, uid: U_B, causalRef: 1, outcome: 'completed-access' }),
+    mkFlow('approved-new-grant', { name: OB, uid: U_B, causalRef: 2, outcome: 'completed-access' }),
+    mkFlow('ambiguous-incomplete', { name: OC, uid: U_C, causalRef: 1, outcome: 'blocked' }),
     mkFlow('ambiguous-unresolvable', {
-      objectName: O4,
-      uid: U4new,
+      name: OD,
+      uid: U_D_new,
       causalRef: 2,
       outcome: 'completed-access',
     }),
-    mkFlow('ambiguous-incomplete', { objectName: O5, uid: U5, causalRef: 1, outcome: 'blocked' }),
   ];
 
   world.objects = objects;
-  world.audit = audit;
-  const shuffled = shuffle(
-    flows,
-    mulberry32(Number.parseInt(sha256Hex(`f3v2|order|${seed}|${family}`).slice(0, 8), 16)),
-  );
-  return { world, flows: shuffled };
+  world.audit = auditSorted;
+  const shuffledFlows = shuffle(flows, mulberry32(seedInt('flow-order', seed, family)));
+  return { world, flows: shuffledFlows };
 }
 
 /** Model-visible capture for one (seed, family): the visible world + the audit log + the native flows. NO

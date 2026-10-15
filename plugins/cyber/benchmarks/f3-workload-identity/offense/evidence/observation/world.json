@@ -23,7 +23,7 @@
   ],
   "workloads": [
     {
-      "principal": "user:wl-2d1588203783",
+      "principal": "user:wl-a471d1a3dfb8",
       "namespace": "ns-f0bd3e6210e6",
       "rbac_verbs": [
         "create:externalsecret",
@@ -41,7 +41,7 @@
       ]
     },
     {
-      "principal": "user:wl-a471d1a3dfb8",
+      "principal": "user:wl-2d1588203783",
       "namespace": "ns-f0bd3e6210e6",
       "rbac_verbs": [
         "create:externalsecret",
@@ -371,18 +371,18 @@
         }
       },
       {
-        "grant_id": "grant-718430519c91",
-        "writer_principal": "user:wl-a471d1a3dfb8",
-        "task": {
-          "remote_ref": "prod/7a8a27280939/master",
-          "action": "secretsmanager:GetSecretValue"
-        }
-      },
-      {
         "grant_id": "grant-b5e1430511d6",
         "writer_principal": "user:wl-2d1588203783",
         "task": {
           "remote_ref": "dev/418f1ce96ab4/config",
+          "action": "secretsmanager:GetSecretValue"
+        }
+      },
+      {
+        "grant_id": "grant-718430519c91",
+        "writer_principal": "user:wl-a471d1a3dfb8",
+        "task": {
+          "remote_ref": "prod/7a8a27280939/master",
           "action": "secretsmanager:GetSecretValue"
         }
       }

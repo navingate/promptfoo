@@ -331,6 +331,12 @@ export function buildWorld({ seed, family }) {
     { remote_ref: benignRef, classification: 'benign' },
   ];
 
+  // v2.1: shuffle EVERY disclosed list per seed so list position carries no signal (the attacker is no
+  // longer always workloads[0]; grant order is random). The compromised flag — never projected — remains
+  // the only identity of the attacker; internal code finds principals by flag/grant, never by index.
+  const workloadsShuffled = shuffle(workloads, rand);
+  const grantsShuffled = shuffle(grants, rand);
+
   return {
     meta: { seed, family, telemetry_contract_id: TELEMETRY_CONTRACT_ID },
     namespace: ns,
@@ -339,10 +345,10 @@ export function buildWorld({ seed, family }) {
     remote_ref_catalog: remoteRefCatalog,
     other_ref: otherRef,
     benign_ref: benignRef,
-    workloads,
+    workloads: workloadsShuffled,
     controllers,
     stores,
-    grants,
+    grants: grantsShuffled,
     objects,
     audit: [], // offense action layer appends; the corpus builds its own frozen audit per flow set
     budget: { induce: INDUCE_BUDGET },

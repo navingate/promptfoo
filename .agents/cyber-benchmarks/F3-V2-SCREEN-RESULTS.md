@@ -1,5 +1,10 @@
 # F3 v2 — GLM-5 screen results (one pre-registered screen)
 
+> **SUPERSEDED by v2.1.** This recorded the v2 construct, which had defense shortcut leaks (documented below).
+> v2.1 fixes them and refreshes the screen seeds; see `F3-V2.1-PREREGISTRATION.md`. The v2 defense 3/9 was
+> never a valid floor; the v2 screen is NOT re-run as part of v2.1 (the v2.1 screen is gated on an
+> independent breaker).
+
 **Branch:** `codex/cyber-f3-v2-floor` @ `4f145a2cc` (pushed to `fork`). **Model:** `zai.glm-5` via the mantle
 gateway (`https://bedrock-mantle.ap-south-1.api.aws/v1`). **Specs:** offense seeds 11/23/37, defense seeds
 13/29/41, each × 3 families, **attempts 1** — same as the v1 baseline. This is a **screen (smoke)**, not a
@@ -120,7 +125,7 @@ Not claimed.
 
 ## Gates / binding
 
-Gates PENDING. NO re-bind, NO G0 self-attest, NO merge. v1's bind (`9aa7ca3f6`, another branch) is untouched;
-its G1–G5 + local-G6 evidence is now STALE. An independent G0 re-attestation (reviewer ≠ `navingate`) is
-staged in `F3-V2-G0-REATTEST-REQUEST.md`. G7 (claims/release) still requires a human / independent-org
-reviewer.
+Gates PENDING. NO re-bind, NO G0 self-attest, NO merge. v1's bind (`9aa7ca3f6`, another branch) is untouched
+and STANDS until/unless a v2.x binds — its G1–G5 + local-G6 evidence remains valid for v1 (not "stale").
+An independent G0 re-attestation (reviewer ≠ `navingate`) is staged. G7 (claims/release) still requires a
+human / independent-org reviewer.

@@ -83,15 +83,12 @@ export function referenceScore(seed, family) {
 }
 
 // ---------------------------------------------------------------------------
-// Shortcut detectors (feed G3) — readers that attack the JOINS, not just flow scalars. The first six MUST
-// fail. The last two are KNOWN-LEAK demonstrators that currently SOLVE (P=R=1): they exploit the FIXED LIST
-// ORDERING of this v2 corpus — `workloads[0]` is always the attacker, and the cascade's causal audit entry
-// is always `event_time==2`. This is a construct defect (my flow-scalar separator scans missed it); the fix
-// is a v2.1 revision that shuffles every disclosed list per seed, randomizes audit event_time, AND gives the
-// other flows same-object siblings (so sharing an object is not cascade-specific). The v2.1 gate is an
-// exhaustive scan over JOINED + CROSS-ROW features, not just flow scalars. See
-// `.agents/cyber-benchmarks/F3-V2-SCREEN-RESULTS.md`. They are kept in the battery so the evidence tells the
-// truth until v2.1 is authorized.
+// Shortcut detectors (feed G3) — readers that attack the JOINS, not just flow scalars. ALL must fail to
+// reproduce the key. The last three (`writer-is-first-workload`, `causal-entry-event-time-2`,
+// `cross-row-shared-uid`) are REGRESSION GUARDS for the three v2 leaks that v2.1 fixed (shuffled lists +
+// randomized audit event_time + symmetric same-object twins). In v2 they solved P=R=1; in v2.1 they must
+// NOT solve (the cross-row reader now flags BOTH symmetric rev2 twins -> precision 0.5). See
+// `.agents/cyber-benchmarks/F3-V2.1-PREREGISTRATION.md`.
 // ---------------------------------------------------------------------------
 
 export const SHORTCUT_DETECTORS = Object.freeze([
@@ -101,9 +98,9 @@ export const SHORTCUT_DETECTORS = Object.freeze([
   'writer-in-any-grant', // "covered" iff the causal writer appears in ANY grant (ignores task)
   'positional-first', // label the first flow cascade (positional)
   'all-cascade',
-  'writer-is-first-workload', // KNOWN LEAK (v2.1 fix): attacker is always workloads[0]
-  'causal-entry-event-time-2', // KNOWN LEAK (v2.1 fix): cascade causal audit entry is always event_time==2
-  'cross-row-shared-uid', // KNOWN LEAK (v2.1 fix): only the cascade shares its object with a lower-rev flow
+  'writer-is-first-workload', // regression guard (v2 leak, fixed): workloads shuffled -> attacker not [0]
+  'causal-entry-event-time-2', // regression guard (v2 leak, fixed): event_time randomized per seed
+  'cross-row-shared-uid', // regression guard (v2 leak, fixed): both rev2 twins share a lower-rev flow (P=0.5)
 ]);
 
 function creatorByName(flow, ctx) {
@@ -347,10 +344,11 @@ export function pairFieldSeparatorScan(seeds = CORPUS_SEEDS) {
 // ---------------------------------------------------------------------------
 
 export const DEFENSE_MUTATIONS = Object.freeze([
-  'grant-attacker-protected', // cascade flow -> approved-deployment
-  'uncover-approved-initial', // approved-initial -> cascade (flip ONLY O1 rev1's causal writer to the attacker)
-  'complete-incomplete-flow', // ambiguous-incomplete -> cascade (attacker writer, now completed)
-  'add-matching-uid-entry', // ambiguous-unresolvable -> cascade (supply the missing (uid,rev) attacker write)
+  'grant-attacker-protected', // cascade (OA rev2) -> approved-deployment
+  'uncover-approved-initial', // approved-initial (OA rev1) -> cascade (flip ONLY OA rev1's causal writer)
+  'revoke-approved2-grant', // approved-new-grant (OB rev2) -> cascade (drop ONLY approved2's protected grant)
+  'complete-incomplete-flow', // ambiguous-incomplete (OC) -> approved-deployment (OC writer is approved)
+  'add-matching-uid-entry', // ambiguous-unresolvable (OD) -> cascade (supply the missing (uid,rev) attacker write)
 ]);
 
 export function runDefenseMutation(name, seed, family) {
@@ -367,8 +365,8 @@ export function runDefenseMutation(name, seed, family) {
       },
     });
   } else if (name === 'uncover-approved-initial') {
-    // flip ONLY the causal writer of the approved-initial flow's revision (O1 rev1) to the attacker. The
-    // cascade flow (O1 rev2) and approved-rotation (O2) are untouched -> exactly one flow flips.
+    // flip ONLY the causal writer of the approved-initial flow's revision (OA rev1) to the attacker. The
+    // cascade (OA rev2) and the OB pair are untouched -> exactly one flow flips.
     const f = flows.find((x) => x._intent === 'approved-initial');
     const entry = world.audit.find(
       (e) =>
@@ -377,6 +375,15 @@ export function runDefenseMutation(name, seed, family) {
         (e.verb === 'create' || e.verb === 'patch'),
     );
     entry.authenticated_writer = attacker;
+  } else if (name === 'revoke-approved2-grant') {
+    // drop ONLY the grant covering approved-new-grant's writer (approved2) for the protected secret -> that
+    // one flow loses coverage (its symmetric twin, the cascade, is untouched).
+    const f = flows.find((x) => x._intent === 'approved-new-grant');
+    const writer = resolveCausalWriter(world.audit, f.object_ref.uid, f.causal_ref);
+    world.grants = world.grants.filter(
+      (g) =>
+        !(g.writer_principal === writer && g.task.remote_ref === world.protected_target.remote_ref),
+    );
   } else if (name === 'complete-incomplete-flow') {
     const f = flows.find((x) => x._intent === 'ambiguous-incomplete');
     f.outcome = 'completed-access';

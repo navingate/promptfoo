@@ -18,9 +18,9 @@ Detection only. Deterministic, fail-closed, strict grammar.
 
 Creator-by-name; annotation-owner; latest-audit-entry; writer-in-any-grant; positional; all-cascade — each
 under-recalls the cascade or over-flags the benign population. Only the audit-join causal-writer + grant
-coverage combination reproduces the key. Single-field AND pair-field separator scans over the flow scalars
-find no perfect separator (best accuracy = the non-cascade base rate). KNOWN v2 DEFECT (not yet fixed): the
-fixed list ordering yields a join-level positional separator (attacker always `workloads[0]`; cascade causal
-audit entry always `event_time==2`) — a v2.1 revision shuffles every disclosed list per seed and randomizes
-audit event_time. Hold out semantic variation in the
-cascade-vs-approved structure, not renamed objects.
+coverage combination reproduces the key. An exhaustive joined + cross-row scan (flow scalars +
+flows/audit-rows-per-uid, has-status-update, writer-index-in-workloads, causal-rev/event_time, owner==writer,
+sibling features; singles + pairs) finds no perfect separator. The three v2 leaks + a writer-footprint
+asymmetry are FIXED in v2.1; the strongest remaining structural attack is a coin-flip between the two
+symmetric rev2 twins (~50% exact-pass = the defense chance baseline; only grant coverage beats it). Hold out
+semantic variation in the cascade-vs-approved structure, not renamed objects.

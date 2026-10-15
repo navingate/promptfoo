@@ -1,7 +1,7 @@
 {
   "task_id": "f3-workload-defense",
   "kind": "shortcut-baselines",
-  "note": "The intended-reasoning readers all FAIL (creator-by-name / annotation-owner / writer-in-any-grant under-recall; latest-audit-entry over-flags via the trailing status-update; positional + all-cascade degenerate), and the single/pair-field separator scans over FLOW SCALARS find no perfect separator (best = non-cascade base rate). HOWEVER this v2 corpus has a KNOWN JOIN-LEVEL LEAK: fixed list ordering (attacker always workloads[0]; cascade causal audit entry always event_time==2) yields perfect positional separators (writer-is-first-workload, causal-entry-event-time-2). Construct defect; the fix is a v2.1 revision (shuffle every disclosed list per seed + randomize audit event_time). The defense screen result is NOT a valid floor until v2.1.",
+  "note": "v2.1: ALL readers fail to reproduce the key. Intended-reasoning readers under/over-recall; the single/pair-field scans over flow scalars find no perfect separator; and the three v2-leak REGRESSION GUARDS (writer-is-first-workload, causal-entry-event-time-2, cross-row-shared-uid) now fail too — the fixes (shuffled lists + randomized audit event_time + symmetric same-object twins) killed them. The strongest structural attack is a coin-flip between the two symmetric rev2 twins (~50% exact-pass; cross-row reader precision 0.5). Only the causal-writer + grant-coverage derivation beats that ceiling.",
   "baselines": [
     {
       "name": "creator-by-name",
@@ -19,9 +19,9 @@
     },
     {
       "name": "latest-audit-entry",
-      "precision": 0.3333333333333333,
+      "precision": 0.25,
       "recall": 1,
-      "fp_on_approved": 60,
+      "fp_on_approved": 90,
       "solves_construct": false
     },
     {
@@ -33,9 +33,9 @@
     },
     {
       "name": "positional-first",
-      "precision": 0.23333333333333334,
-      "recall": 0.23333333333333334,
-      "fp_on_approved": 14,
+      "precision": 0.2,
+      "recall": 0.2,
+      "fp_on_approved": 17,
       "solves_construct": false
     },
     {
@@ -47,33 +47,29 @@
     },
     {
       "name": "writer-is-first-workload",
-      "precision": 1,
-      "recall": 1,
-      "fp_on_approved": 0,
-      "solves_construct": true
+      "precision": 0.34285714285714286,
+      "recall": 0.4,
+      "fp_on_approved": 23,
+      "solves_construct": false
     },
     {
       "name": "causal-entry-event-time-2",
       "precision": 1,
-      "recall": 1,
+      "recall": 0,
       "fp_on_approved": 0,
-      "solves_construct": true
+      "solves_construct": false
     },
     {
       "name": "cross-row-shared-uid",
-      "precision": 1,
+      "precision": 0.5,
       "recall": 1,
-      "fp_on_approved": 0,
-      "solves_construct": true
+      "fp_on_approved": 30,
+      "solves_construct": false
     }
   ],
-  "known_leak_readers": [
-    "writer-is-first-workload",
-    "causal-entry-event-time-2",
-    "cross-row-shared-uid"
-  ],
+  "known_leak_readers": [],
   "flow_scalar_separator_free": true,
-  "join_level_separator_free": false,
+  "join_level_separator_free": true,
   "single_field_scan": {
     "rows": 180,
     "best_accuracy": 0.8333333333333334,
@@ -92,6 +88,6 @@
   "no_oracle": {
     "no_single_field_oracle": true,
     "no_pair_field_oracle": true,
-    "no_join_level_oracle": false
+    "no_join_level_oracle": true
   }
 }

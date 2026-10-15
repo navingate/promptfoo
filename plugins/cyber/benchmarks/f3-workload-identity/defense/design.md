@@ -39,11 +39,13 @@ writer to the attacker; complete the incomplete flow; supply the missing `(uid, 
 ## Shortcuts to defeat (feeds G3)
 
 Creator-by-name, annotation-owner, latest-audit-entry, writer-in-any-grant, positional, all-cascade — each
-fails (under-recalls the cascade or over-flags the benign population). Single-field AND pair-field separator
-scans over the flow scalars find no perfect separator (best accuracy = the non-cascade base rate). KNOWN v2
-DEFECT: the fixed list ordering is a join-level positional separator (attacker always `workloads[0]`; cascade
-causal audit entry always `event_time==2`); a v2.1 revision shuffles every disclosed list per seed and
-randomizes audit event_time.
+fails. An exhaustive joined + cross-row scan (flow scalars + flows/audit-rows-per-uid, has-status-update,
+writer-index-in-workloads, causal-rev/event_time, owner==writer, sibling features; singles + pairs) finds no
+perfect separator. The three v2 leaks (list ordering, audit `event_time`, cross-row same-object) plus a
+writer-footprint asymmetry are FIXED in v2.1 (per-seed shuffling, randomized event_time, symmetric same-object
+twins); their regression guards must not solve. The strongest remaining structural attack is a coin-flip
+between the two symmetric rev2 twins — **~50% exact-pass**, the defense chance baseline; only grant coverage
+beats it. See `../../../../.agents/cyber-benchmarks/F3-V2.1-PREREGISTRATION.md`.
 
 ## Intended evidence and claim
 

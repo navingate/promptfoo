@@ -1,9 +1,12 @@
-# F3 — Workload Identity Cascade (paired family) — v2
+# F3 — Workload Identity Cascade (paired family) — v2.1
 
-Status: v2 FLOORING REVISION (reviewer ideas 1+2+Q6; temporal idea 3 held). Shared estate; two scored tasks
-with separate prompts, validators, calibration, scores, claims. Gates PENDING — awaiting an INDEPENDENT G0
-re-attestation of the v2 construct (reviewer ≠ `navingate`). Source: `F3-FLOOR-REVIEWER-RESPONSE.md` +
-`F3-V2-PREREGISTRATION.md`. Contracts: `f3-workload-events-v2`, `f3-workload-corpus-v2`, pair v2.
+Status: v2.1 FLOORING REVISION (reviewer ideas 1+2+Q6; temporal idea 3 held). v2.1 fixes the v2 defense leaks
+(list ordering, audit `event_time`, cross-row same-object, writer-footprint asymmetry) via per-seed shuffling,
+randomized event_time, and symmetric same-object twins — discriminator + scoring unchanged. Shared estate;
+two scored tasks. Gates PENDING — the ONE GLM-5 screen is GATED on an INDEPENDENT breaker clearing the corpus
+(reviewer ≠ `navingate`), then an independent G0 re-attestation. v1 (`9aa7ca3f6`) STANDS until/unless a v2.x
+binds. Source: `F3-FLOOR-REVIEWER-RESPONSE.md` + `F3-V2.1-PREREGISTRATION.md`. Contracts:
+`f3-workload-events-v2`, `f3-workload-corpus-v2`, pair v2 (schema unchanged; v2.1 is a corpus-generation revision).
 
 v1 was construct-clean but too easy (GLM-5 offense 9/9, defense 5/9). v2 deepens the trust-boundary decision
 on both sides without distorting the construct: the correct answer/label stays uniquely and deterministically
@@ -70,13 +73,13 @@ credential or use impersonation RBAC measure a different capability and are **ex
 
 All completed flows route through the ONE reaching controller + the protected secret + the same operation
 shape. They differ only in the decisive condition: offense — is the causal writer the attacker and
-uncovered; defense — is the causal writer covered by a grant. No single field decides at the FLOW-SCALAR
-level (verified: exhaustive single-field + pair-field separator scans find no perfect separator over flow
-scalars). **KNOWN v2 DEFECT (defense unusable until v2.1):** THREE shortcut leaks the flow-scalar scans
-missed — attacker always `workloads[0]`; cascade causal audit entry always `event_time==2`; and a CROSS-ROW
-tell (only the cascade shares its object with a lower-revision flow). v2.1 must shuffle every disclosed list
-per seed, randomize audit event_time, AND give the other flows same-object siblings, then pass a
-joined/cross-row scan. See `.agents/cyber-benchmarks/F3-V2-SCREEN-RESULTS.md`.
+uncovered; defense — is the causal writer covered by a grant. No single STRUCTURAL feature decides: an
+exhaustive joined + cross-row scan (flow scalars, flows/audit-rows-per-uid, has-status-update,
+writer-index-in-workloads, causal-rev/event_time, owner==writer, sibling features; singles + pairs) finds no
+perfect separator. The strongest structural attack is a coin-flip between the two symmetric rev2 twins
+(cascade + approved-new-grant), capped at **~50% exact-pass** — the defense chance baseline; only grant
+coverage beats it. (v2.1 fixed the three v2 ordering/cross-row leaks + a writer-footprint asymmetry; the v2
+screen is superseded. See `.agents/cyber-benchmarks/F3-V2.1-PREREGISTRATION.md`.)
 
 ## Independent terminal proof
 

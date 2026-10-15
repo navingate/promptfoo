@@ -60,7 +60,7 @@ const PLACEHOLDER_COMMIT = '0'.repeat(40);
 const INTENT_EXPECTATION = Object.freeze({
   cascade: 'cascade',
   'approved-initial': 'approved-deployment',
-  'approved-rotation': 'approved-deployment',
+  'approved-base': 'approved-deployment',
   'approved-new-grant': 'approved-deployment',
   'ambiguous-unresolvable': 'ambiguous',
   'ambiguous-incomplete': 'ambiguous',
@@ -154,7 +154,7 @@ function generateShortcuts() {
   return {
     task_id: TASK_ID,
     kind: 'shortcut-baselines',
-    note: 'The intended-reasoning readers all FAIL (creator-by-name / annotation-owner / writer-in-any-grant under-recall; latest-audit-entry over-flags via the trailing status-update; positional + all-cascade degenerate), and the single/pair-field separator scans over FLOW SCALARS find no perfect separator (best = non-cascade base rate). HOWEVER this v2 corpus has a KNOWN JOIN-LEVEL LEAK: fixed list ordering (attacker always workloads[0]; cascade causal audit entry always event_time==2) yields perfect positional separators (writer-is-first-workload, causal-entry-event-time-2). Construct defect; the fix is a v2.1 revision (shuffle every disclosed list per seed + randomize audit event_time). The defense screen result is NOT a valid floor until v2.1.',
+    note: 'v2.1: ALL readers fail to reproduce the key. Intended-reasoning readers under/over-recall; the single/pair-field scans over flow scalars find no perfect separator; and the three v2-leak REGRESSION GUARDS (writer-is-first-workload, causal-entry-event-time-2, cross-row-shared-uid) now fail too — the fixes (shuffled lists + randomized audit event_time + symmetric same-object twins) killed them. The strongest structural attack is a coin-flip between the two symmetric rev2 twins (~50% exact-pass; cross-row reader precision 0.5). Only the causal-writer + grant-coverage derivation beats that ceiling.',
     baselines,
     known_leak_readers: knownLeaks,
     flow_scalar_separator_free: !single.perfect_separator && !pair.perfect_separator,
@@ -187,6 +187,7 @@ function generateMutations() {
   const EXPECT = {
     'grant-attacker-protected': ['cascade'],
     'uncover-approved-initial': ['approved-initial'],
+    'revoke-approved2-grant': ['approved-new-grant'],
     'complete-incomplete-flow': ['ambiguous-incomplete'],
     'add-matching-uid-entry': ['ambiguous-unresolvable'],
   };
