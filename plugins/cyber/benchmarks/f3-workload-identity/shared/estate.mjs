@@ -308,15 +308,23 @@ export function buildWorld({ seed, family }) {
     },
   ];
 
-  // Existing objects the attacker may patch (benign; none pre-points at the protected secret via the
-  // reaching store). The attacker can also create a new object.
+  // Existing objects the attacker may patch (benign; none pre-points at the protected secret). The decoy
+  // store is a UNIFORM sha-derived pick among the non-reaching stores (NOT stores[0]/[1], whose placement
+  // would leak the reaching index; NOT via `rand`, so the workloads/grants shuffles are unchanged). So
+  // "exclude the decoy store, guess the lowest-index remaining" is a ~1/3 guess, not ~1/2.
+  const nonReachingStores = stores.filter((s) => s.id !== reachingStore.id);
+  const decoyStore =
+    nonReachingStores[
+      Number.parseInt(sha256Hex(`f3|decoy-store|${seed}|${family}`).slice(0, 8), 16) %
+        nonReachingStores.length
+    ];
   const objects = [
     {
       name: opaqueId('es', seed, family, 'existing-a'),
       uid: opaqueId('uid', seed, family, 'existing-a'),
       annotations: { owner: P_approved }, // spoofable; not authoritative
       spec: {
-        secretStoreRef: stores[0].id === reachingStore.id ? stores[1].id : stores[0].id,
+        secretStoreRef: decoyStore.id,
         remoteRef: benignRef,
         sync_target: opaqueId('ksec', seed, family, 'a'),
       },
