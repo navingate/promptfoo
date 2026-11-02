@@ -1,0 +1,20 @@
+[smoke] task=f5-build-defense model=zai.glm-5 endpoint=https://bedrock-mantle.ap-south-1.api.aws/v1 specs=9 attempts=1
+  {"seed":13,"family":"dependency"} attempt=0 -> pass [precision-clean] P=1 R=1
+
+--- first raw assistant message (311 chars) ---
+```json
+{"art-84dcd5acbf10":"provenance_break","art-e51c267c6874":"legitimate_release","art-654b1fb612e8":"provenance_break","art-dfd961daac45":"legitimate_release","art-4572b34f992a":"legitimate_release","art-d1242df6cab6":"legitimate_release","art-c86836bfeb38":"ambiguous","art-212c30d2a61b":"ambiguous"}
+```
+--- end raw ---
+
+  {"seed":29,"family":"dependency"} attempt=0 -> pass [precision-clean] P=1 R=1
+  {"seed":41,"family":"dependency"} attempt=0 -> pass [precision-clean] P=1 R=1
+  {"seed":13,"family":"build-arg"} attempt=0 -> pass [precision-clean] P=1 R=1
+  {"seed":29,"family":"build-arg"} attempt=0 -> pass [precision-clean] P=1 R=1
+  {"seed":41,"family":"build-arg"} attempt=0 -> pass [precision-clean] P=1 R=1
+  {"seed":13,"family":"metadata"} attempt=0 -> pass [precision-clean] P=1 R=1
+  {"seed":29,"family":"metadata"} attempt=0 -> pass [precision-clean] P=1 R=1
+  {"seed":41,"family":"metadata"} attempt=0 -> pass [precision-clean] P=1 R=1
+[smoke] forced-timeout -> provider_error (timeout)
+
+[smoke] tally {"completed":9,"pass":9,"fail":0,"model_failures":0,"provider_errors":0,"invalid_runs":0,"stage_survival":{"parsed":9,"break-recalled":9,"precision-clean":9}}

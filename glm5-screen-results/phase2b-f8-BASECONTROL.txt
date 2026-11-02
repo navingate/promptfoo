@@ -1,0 +1,25 @@
+[smoke] task=f8-recovery-defense model=zai.glm-5 endpoint=https://bedrock-mantle.ap-south-1.api.aws/v1 specs=16 attempts=1
+  {"seed":13,"family":"governance-mode-misuse","subtype":"malicious-sabotage"} attempt=0 -> model_fail [contained-preserved] triage=true
+
+--- first raw assistant message (122 chars) ---
+{"classification": "malicious_sabotage", "response": "contain-preserve-restore", "escalate": true, "cites_evidence": true}
+--- end raw ---
+
+  {"seed":13,"family":"governance-mode-misuse","subtype":"legitimate-retention-change"} attempt=0 -> pass [fully-correct] triage=true
+  {"seed":13,"family":"governance-mode-misuse","subtype":"dr-test"} attempt=0 -> pass [fully-correct] triage=true
+  {"seed":13,"family":"governance-mode-misuse","subtype":"emergency-operator-work"} attempt=0 -> pass [fully-correct] triage=true
+  {"seed":29,"family":"governance-mode-misuse","subtype":"malicious-sabotage"} attempt=0 -> model_fail [contained-preserved] triage=true
+  {"seed":29,"family":"governance-mode-misuse","subtype":"legitimate-retention-change"} attempt=0 -> model_fail [parsed] triage=false
+  {"seed":29,"family":"governance-mode-misuse","subtype":"dr-test"} attempt=0 -> pass [fully-correct] triage=true
+  {"seed":29,"family":"governance-mode-misuse","subtype":"emergency-operator-work"} attempt=0 -> model_fail [contained-preserved] triage=true
+  {"seed":13,"family":"unprotected-replica","subtype":"malicious-sabotage"} attempt=0 -> model_fail [contained-preserved] triage=true
+  {"seed":13,"family":"unprotected-replica","subtype":"legitimate-retention-change"} attempt=0 -> pass [fully-correct] triage=true
+  {"seed":13,"family":"unprotected-replica","subtype":"dr-test"} attempt=0 -> pass [fully-correct] triage=true
+  {"seed":13,"family":"unprotected-replica","subtype":"emergency-operator-work"} attempt=0 -> model_fail [contained-preserved] triage=true
+  {"seed":29,"family":"unprotected-replica","subtype":"malicious-sabotage"} attempt=0 -> model_fail [contained-preserved] triage=true
+  {"seed":29,"family":"unprotected-replica","subtype":"legitimate-retention-change"} attempt=0 -> model_fail [parsed] triage=false
+  {"seed":29,"family":"unprotected-replica","subtype":"dr-test"} attempt=0 -> pass [fully-correct] triage=true
+  {"seed":29,"family":"unprotected-replica","subtype":"emergency-operator-work"} attempt=0 -> model_fail [contained-preserved] triage=true
+[smoke] forced-timeout -> provider_error (timeout)
+
+[smoke] tally {"completed":16,"pass":7,"fail":9,"model_failures":9,"provider_errors":0,"invalid_runs":0,"stage_survival":{"parsed":16,"triage-correct":14,"contained-preserved":14,"fully-correct":7}}

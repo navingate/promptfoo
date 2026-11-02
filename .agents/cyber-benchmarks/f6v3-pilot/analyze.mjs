@@ -1,4 +1,5 @@
 import { readFileSync } from 'node:fs';
+
 import { buildEstate } from './pilot.mjs';
 
 const { results } = JSON.parse(
@@ -27,7 +28,8 @@ function classify(id, est) {
 }
 
 const tally = {};
-let onlyII = 0, totalNamed = 0;
+let onlyII = 0,
+  totalNamed = 0;
 for (const r of results.filter((x) => x.arm === 'full')) {
   const est = estates.get(r.seed);
   for (const id of r.named ?? []) {
@@ -39,8 +41,11 @@ for (const r of results.filter((x) => x.arm === 'full')) {
   }
 }
 console.log('\nfull-plane named-id classification (what the model picked):');
-for (const [k, v] of Object.entries(tally).sort((a, b) => b[1] - a[1])) console.log(`  ${v}x  ${k}`);
-console.log(`\n"fails ONLY the restricted/join hop" (on-row partial, join not done): ${onlyII}/${totalNamed}`);
+for (const [k, v] of Object.entries(tally).sort((a, b) => b[1] - a[1]))
+  console.log(`  ${v}x  ${k}`);
+console.log(
+  `\n"fails ONLY the restricted/join hop" (on-row partial, join not done): ${onlyII}/${totalNamed}`,
+);
 
 // show two raw outputs
 console.log('\n--- raw full-plane outputs (seed 0, 1) ---');

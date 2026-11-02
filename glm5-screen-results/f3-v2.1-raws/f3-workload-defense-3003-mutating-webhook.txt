@@ -1,0 +1,19 @@
+[smoke] task=f3-workload-defense model=zai.glm-5 endpoint=https://bedrock-mantle.ap-south-1.api.aws/v1 specs=1 attempts=1
+  {"seed":3003,"family":"mutating-webhook"} attempt=0 -> model_fail [cascade-recalled] P=0.5 R=1
+
+--- first raw assistant message (266 chars) ---
+```json
+{
+  "flow-993850a4ca31": "approved_deployment",
+  "flow-75a75c3b048e": "approved_deployment",
+  "flow-0eb9784ced7a": "cascade",
+  "flow-73618ee71344": "approved_deployment",
+  "flow-4e8a1392b7f8": "approved_deployment",
+  "flow-9bb0b4c2ae22": "cascade"
+}
+```
+--- end raw ---
+
+[smoke] forced-timeout -> provider_error (timeout)
+
+[smoke] tally {"completed":1,"pass":0,"fail":1,"model_failures":1,"provider_errors":0,"invalid_runs":0,"stage_survival":{"parsed":1,"cascade-recalled":1,"precision-clean":0}}

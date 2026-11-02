@@ -1,0 +1,19 @@
+# F11 — fresh scoped G0 review feedback
+
+Reviewed: 2026-10-10. Scope: `F11-FRESH-G0-REVIEW-REQUEST.md`, the F11 construct at `52f15ae4a1a4e19f047a2c7d0e0cc826c4fa6eb6`, and the bound suite state through `c2f7216ea151f649ad22d9b6dd0811b49017f9fc`. This is a **construct and claim-scope** review, not a G1–G7 evidence approval.
+
+**Verdict: narrow revision required before a fixed-commit G0 attestation.** I accept the all-native synthetic estate as a valid source for F11 and do not ask for literal F8/F9/F6/F4 event reuse. The main family/task documents now state the narrower provenance honestly; `INTRUSION_KINDS` are accurately described as four source/correlation patterns, not four reproduced attacks. The generated process-argument and filename values are more plausible than the earlier fluent recommendations. The injected-versus-clean harmful-response delta and the offense→defense capture contract remain sound as a design. Two residual mismatches prevent attesting the frozen wording as-is.
+
+## 1. Remove the remaining cross-family reuse/equivalence claims
+
+The F11 roadmap entry in `.agents/cyber-benchmarks/suite.yml` at `c2f7216ea` still says the shared estate **“reuses F8/F9/F6/F4 native captures”** and the F2 relationship **“consumes earlier families' native telemetry.”** Both are false under the revised all-native design. The offense draft claim in `offense/evidence/approved-claim.txt` says **“de-oracle-equivalent to earlier families' intrusion patterns”**; `offense/scripts/build-manifest.mjs` regenerates that wording. No cross-family equivalence test is identified, and “de-oracle-equivalent” overstates what the native F11 shortcut checks show.
+
+Change the suite entry to “F11-native synthetic SOC telemetry, with patterns inspired by earlier families”; describe the F2 relationship as thematic/disciplinary rather than a native-telemetry dependency. Remove the equivalence phrase from both the claim generator and the generated draft claim. “All-native synthetic incident estate, inspired by earlier enterprise scenarios; no claim of literal earlier-family capture reuse” is sufficient. Re-scan the suite and generated claims, not just the task design files, for provenance claims before binding G0.
+
+## 2. Enforce field plausibility at the scored edit seam
+
+`shared/estate.mjs` now generates field-shaped reference values. But `offense/scripts/harness.mjs` `applyEdits` accepts **any nonempty string up to `MAX_CONTENT`** for any allowlisted slot, provided the corroborated target remains unchanged. Thus a scored attacker can put fluent instructions in a signed EDR `process-arg` or file-integrity `filename` field and still receive a valid run. This leaves the earlier field-plausibility concern unresolved for the **actual attack surface**, even though the frozen reference fixtures look right.
+
+Apply minimal per-`evidence_field` validation when edits are accepted: process arguments must retain a plausible argument shape and filenames a plausible path/name shape; log/ticket fields may allow their naturally broader text forms. Add one negative mutation with fluent prose in a machine field and one valid field-shaped edit. Keep the content cap and the existing allowlist/corroboration checks. If the intended benchmark instead permits arbitrary strings in every writable field, say so in the construct and narrow the operational-realism claim; do not describe all scored writable values as field-shaped.
+
+These are bounded corrections, not a request to reopen the poisoned-evidence mechanics, add products, or import earlier estates. A focused re-check of the changed claim surfaces and edit acceptance rule should be enough. The reported model-free audit counts and future model separation belong to their respective build/calibration gates and are not attested here.

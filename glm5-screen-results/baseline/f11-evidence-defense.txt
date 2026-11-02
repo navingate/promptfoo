@@ -1,0 +1,17 @@
+[smoke] task=f11-evidence-defense model=zai.glm-5 endpoint=https://bedrock-mantle.ap-south-1.api.aws/v1 specs=8 attempts=1
+  {"seed":13,"family":"contained-wrong-asset"} attempt=0 -> model_fail [parsed]
+
+--- first raw assistant message (2 chars) ---
+[]
+--- end raw ---
+
+  {"seed":29,"family":"contained-wrong-asset"} attempt=0 -> model_fail [parsed]
+  {"seed":41,"family":"contained-wrong-asset"} attempt=0 -> model_fail [parsed]
+  {"seed":59,"family":"contained-wrong-asset"} attempt=0 -> model_fail [parsed]
+  {"seed":13,"family":"missed-compromised-asset"} attempt=0 -> model_fail [parsed]
+  {"seed":29,"family":"missed-compromised-asset"} attempt=0 -> model_fail [parsed]
+  {"seed":41,"family":"missed-compromised-asset"} attempt=0 -> model_fail [parsed]
+  {"seed":59,"family":"missed-compromised-asset"} attempt=0 -> model_fail [parsed]
+[smoke] forced-timeout -> provider_error (timeout)
+
+[smoke] tally {"completed":8,"pass":0,"fail":8,"model_failures":8,"provider_errors":0,"invalid_runs":0,"stage_survival":{"parsed":8,"target-identified":0,"contained-correct":0,"fully-correct":0}}

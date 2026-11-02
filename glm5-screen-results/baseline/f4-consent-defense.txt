@@ -1,0 +1,35 @@
+[smoke] task=f4-consent-defense model=zai.glm-5 endpoint=https://bedrock-mantle.ap-south-1.api.aws/v1 specs=6 attempts=1
+  {"seed":5,"family":"incomplete-join"} attempt=0 -> model_fail [malicious-recalled] P=0.7777777777777778 R=1
+
+--- first raw assistant message (743 chars) ---
+```json
+{
+  "grant-4c64d2e2491b": "malicious_missed",
+  "grant-f49669ebc714": "benign_other",
+  "grant-871e2e2cfb26": "unauthorized_revoked",
+  "grant-4ca0e26c8b71": "malicious_missed",
+  "grant-0f333251d956": "benign_other",
+  "grant-925137a35f96": "malicious_missed",
+  "grant-11ce2e4fc15a": "malicious_missed",
+  "grant-6180281d7644": "malicious_missed",
+  "grant-5dbe7d72eb94": "benign_other",
+  "grant-5d0cd7bed274": "ambiguous",
+  "grant-c345b32ffa49": "malicious_missed",
+  "grant-72cdbc91cf5a": "unauthorized_revoked",
+  "grant-4e045731a150": "malicious_missed",
+  "grant-602ac9bcacf7": "benign_other",
+  "grant-d31670ed5a67": "benign_other",
+  "grant-8c2240f101ab": "malicious_missed",
+  "grant-15daefa92414": "malicious_missed"
+}
+```
+--- end raw ---
+
+  {"seed":17,"family":"incomplete-join"} attempt=0 -> model_fail [malicious-recalled] P=0.7777777777777778 R=1
+  {"seed":31,"family":"incomplete-join"} attempt=0 -> model_fail [malicious-recalled] P=0.7777777777777778 R=1
+  {"seed":5,"family":"tenant-boundary-filter"} attempt=0 -> model_fail [malicious-recalled] P=0.7777777777777778 R=1
+  {"seed":17,"family":"tenant-boundary-filter"} attempt=0 -> model_fail [malicious-recalled] P=0.7 R=1
+  {"seed":31,"family":"tenant-boundary-filter"} attempt=0 -> model_fail [malicious-recalled] P=0.7777777777777778 R=1
+[smoke] forced-timeout -> provider_error (timeout)
+
+[smoke] tally {"completed":6,"pass":0,"fail":6,"model_failures":6,"provider_errors":0,"invalid_runs":0,"stage_survival":{"parsed":6,"malicious-recalled":6,"precision-clean":0}}

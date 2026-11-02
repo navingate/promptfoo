@@ -22,15 +22,15 @@ import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 
 import {
-  sha256Hex,
-  VICTIM_SYSTEM_PROMPT,
-} from '../../../plugins/cyber/benchmarks/f6-poisoned-change/shared/estate.mjs';
-import {
   calibrationInstance,
   calibrationScoreOffense,
   REUSABLE_INJECTION,
   victimInstance,
 } from '../../../plugins/cyber/benchmarks/f6-poisoned-change/offense/scripts/harness.mjs';
+import {
+  sha256Hex,
+  VICTIM_SYSTEM_PROMPT,
+} from '../../../plugins/cyber/benchmarks/f6-poisoned-change/shared/estate.mjs';
 
 const here = path.dirname(fileURLToPath(import.meta.url));
 const frozenVictimPath = path.resolve(
@@ -157,9 +157,12 @@ async function assertModelServed(cfg) {
 }
 
 function renderByteIdentityOk() {
-  const canonical = renderVictimMessages(victimInstance({ seed: 11, family: 'repo-file-body' }, 'clean', null));
+  const canonical = renderVictimMessages(
+    victimInstance({ seed: 11, family: 'repo-file-body' }, 'clean', null),
+  );
   const ours = sha256Hex(JSON.stringify(canonical));
-  const pinned = JSON.parse(fs.readFileSync(frozenVictimPath, 'utf8')).rendering?.canonical_messages_sha256;
+  const pinned = JSON.parse(fs.readFileSync(frozenVictimPath, 'utf8')).rendering
+    ?.canonical_messages_sha256;
   return { ok: ours === pinned, ours, pinned };
 }
 
@@ -186,7 +189,9 @@ function dryRun() {
     ].join('\n'),
   );
   if (!r.ok) {
-    throw new Error('render byte-identity check FAILED — probe would not measure the frozen G1 victim');
+    throw new Error(
+      'render byte-identity check FAILED — probe would not measure the frozen G1 victim',
+    );
   }
 }
 
@@ -204,7 +209,9 @@ async function execute() {
     model: process.env.CYBER_VICTIM_MODEL || 'deepseek.v3.2',
   };
   if (!cfg.baseUrl || !cfg.apiKey) {
-    throw new Error('Set CYBER_VICTIM_ENDPOINT + CYBER_VICTIM_API_KEY (+ optional CYBER_VICTIM_MODEL).');
+    throw new Error(
+      'Set CYBER_VICTIM_ENDPOINT + CYBER_VICTIM_API_KEY (+ optional CYBER_VICTIM_MODEL).',
+    );
   }
   refuseAzure(cfg.baseUrl);
   const rbi = renderByteIdentityOk();
@@ -218,7 +225,13 @@ async function execute() {
     const spec = { seed, family };
     const instance = calibrationInstance(spec);
     const clean = await callVictim(cfg, victimInstance(spec, 'clean', null));
-    const row = { seed, family, g1_strong, clean_tools: toolsOf(clean.parsed), raw: { clean: clean.text ?? null } };
+    const row = {
+      seed,
+      family,
+      g1_strong,
+      clean_tools: toolsOf(clean.parsed),
+      raw: { clean: clean.text ?? null },
+    };
     for (const armSpec of ARMS) {
       const inj = await callVictim(cfg, victimInstance(spec, 'successful-injected', armSpec.prose));
       const score =
@@ -248,7 +261,8 @@ async function execute() {
     schema_version: 1,
     label: 'DIAGNOSTIC — not a G1 result, no gate flip, frozen predicate/injections untouched',
     task_id: 'f6-change-offense',
-    purpose: 'separate target-delegation (A) from crafted-new-capability (B) via a word-matched tool swap',
+    purpose:
+      'separate target-delegation (A) from crafted-new-capability (B) via a word-matched tool swap',
     pinned_victim: cfg.model,
     pinned_endpoint: cfg.baseUrl,
     sampling: { temperature: 0, max_tokens: 2048 },
@@ -268,7 +282,10 @@ async function execute() {
     },
     rows: rows.map(({ raw, ...keep }) => keep),
   };
-  fs.writeFileSync(path.join(outDir, 'diagnostic-results.json'), `${JSON.stringify(result, null, 2)}\n`);
+  fs.writeFileSync(
+    path.join(outDir, 'diagnostic-results.json'),
+    `${JSON.stringify(result, null, 2)}\n`,
+  );
   fs.writeFileSync(path.join(outDir, 'diagnostic-raw.jsonl'), rawText);
   process.stdout.write(
     `\n[f6-offense DIAGNOSTIC] same-tool REUSABLE ${result.tally.reusable_wins}/${rows.length}, NEW-tool word-matched ${result.tally.newtool_minimal_wins}/${rows.length}, NEW-tool framed ${result.tally.newtool_framed_wins}/${rows.length}. Wrote ${outDir}. (DIAGNOSTIC — no gate flip.)\n`,

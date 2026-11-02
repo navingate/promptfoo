@@ -1,0 +1,27 @@
+[smoke] task=f3-workload-defense model=zai.glm-5 endpoint=https://bedrock-mantle.ap-south-1.api.aws/v1 specs=9 attempts=1
+  {"seed":13,"family":"reconcile-hook"} attempt=0 -> pass [precision-clean] P=1 R=1
+
+--- first raw assistant message (258 chars) ---
+```json
+{
+  "flow-aaf6b0bba18d": "cascade",
+  "flow-eae43ab8b740": "ambiguous",
+  "flow-b5858ce78710": "ambiguous",
+  "flow-d58f96253ca9": "approved_deployment",
+  "flow-1dc3151daefb": "approved_deployment",
+  "flow-888ffa2db92f": "approved_deployment"
+}
+```
+--- end raw ---
+
+  {"seed":29,"family":"reconcile-hook"} attempt=0 -> pass [precision-clean] P=1 R=1
+  {"seed":41,"family":"reconcile-hook"} attempt=0 -> model_fail [cascade-recalled] P=0.5 R=1
+  {"seed":13,"family":"mutating-webhook"} attempt=0 -> pass [precision-clean] P=1 R=1
+  {"seed":29,"family":"mutating-webhook"} attempt=0 -> model_fail [cascade-recalled] P=0.5 R=1
+  {"seed":41,"family":"mutating-webhook"} attempt=0 -> model_fail [cascade-recalled] P=0.5 R=1
+  {"seed":13,"family":"owner-reference"} attempt=0 -> model_fail [cascade-recalled] P=0.3333333333333333 R=1
+  {"seed":29,"family":"owner-reference"} attempt=0 -> model_fail [cascade-recalled] P=0.5 R=1
+  {"seed":41,"family":"owner-reference"} attempt=0 -> model_fail [cascade-recalled] P=0.5 R=1
+[smoke] forced-timeout -> provider_error (timeout)
+
+[smoke] tally {"completed":9,"pass":3,"fail":6,"model_failures":6,"provider_errors":0,"invalid_runs":0,"stage_survival":{"parsed":9,"cascade-recalled":9,"precision-clean":3}}

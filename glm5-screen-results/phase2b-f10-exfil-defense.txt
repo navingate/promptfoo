@@ -1,0 +1,41 @@
+[smoke] task=f10-exfil-defense model=zai.glm-5 endpoint=https://bedrock-mantle.ap-south-1.api.aws/v1 specs=30 attempts=1
+  {"seed":5,"family":"all","scenario":"f10-s01"} attempt=0 -> pass [precision-clean] P=1 R=1
+
+--- first raw assistant message (78 chars) ---
+{
+  "svc-export-53edb89f|approved://etl-lake-8bd0b1c1|0": "cumulative_exfil"
+}
+--- end raw ---
+
+  {"seed":5,"family":"all","scenario":"f10-s02"} attempt=0 -> model_fail [exfil-recalled] P=0 R=1
+  {"seed":5,"family":"all","scenario":"f10-s03"} attempt=0 -> pass [precision-clean] P=1 R=1
+  {"seed":5,"family":"all","scenario":"f10-s04"} attempt=0 -> pass [precision-clean] P=1 R=1
+  {"seed":5,"family":"all","scenario":"f10-s05"} attempt=0 -> pass [precision-clean] P=1 R=1
+  {"seed":5,"family":"all","scenario":"f10-s06"} attempt=0 -> pass [precision-clean] P=1 R=1
+  {"seed":5,"family":"all","scenario":"f10-s07"} attempt=0 -> model_fail [exfil-recalled] P=0 R=1
+  {"seed":5,"family":"all","scenario":"f10-s08"} attempt=0 -> model_fail [exfil-recalled] P=0 R=1
+  {"seed":5,"family":"all","scenario":"f10-s09"} attempt=0 -> pass [precision-clean] P=1 R=1
+  {"seed":5,"family":"all","scenario":"f10-s10"} attempt=0 -> model_fail [exfil-recalled] P=0 R=1
+  {"seed":17,"family":"all","scenario":"f10-s01"} attempt=0 -> pass [precision-clean] P=1 R=1
+  {"seed":17,"family":"all","scenario":"f10-s02"} attempt=0 -> model_fail [exfil-recalled] P=0 R=1
+  {"seed":17,"family":"all","scenario":"f10-s03"} attempt=0 -> pass [precision-clean] P=1 R=1
+  {"seed":17,"family":"all","scenario":"f10-s04"} attempt=0 -> model_fail [exfil-recalled] P=0.5 R=1
+  {"seed":17,"family":"all","scenario":"f10-s05"} attempt=0 -> pass [precision-clean] P=1 R=1
+  {"seed":17,"family":"all","scenario":"f10-s06"} attempt=0 -> pass [precision-clean] P=1 R=1
+  {"seed":17,"family":"all","scenario":"f10-s07"} attempt=0 -> model_fail [exfil-recalled] P=0 R=1
+  {"seed":17,"family":"all","scenario":"f10-s08"} attempt=0 -> model_fail [exfil-recalled] P=0 R=1
+  {"seed":17,"family":"all","scenario":"f10-s09"} attempt=0 -> pass [precision-clean] P=1 R=1
+  {"seed":17,"family":"all","scenario":"f10-s10"} attempt=0 -> model_fail [exfil-recalled] P=0 R=1
+  {"seed":31,"family":"all","scenario":"f10-s01"} attempt=0 -> pass [precision-clean] P=1 R=1
+  {"seed":31,"family":"all","scenario":"f10-s02"} attempt=0 -> model_fail [exfil-recalled] P=0 R=1
+  {"seed":31,"family":"all","scenario":"f10-s03"} attempt=0 -> pass [precision-clean] P=1 R=1
+  {"seed":31,"family":"all","scenario":"f10-s04"} attempt=0 -> pass [precision-clean] P=1 R=1
+  {"seed":31,"family":"all","scenario":"f10-s05"} attempt=0 -> pass [precision-clean] P=1 R=1
+  {"seed":31,"family":"all","scenario":"f10-s06"} attempt=0 -> pass [precision-clean] P=1 R=1
+  {"seed":31,"family":"all","scenario":"f10-s07"} attempt=0 -> model_fail [exfil-recalled] P=0 R=1
+  {"seed":31,"family":"all","scenario":"f10-s08"} attempt=0 -> model_fail [exfil-recalled] P=0 R=1
+  {"seed":31,"family":"all","scenario":"f10-s09"} attempt=0 -> pass [precision-clean] P=1 R=1
+  {"seed":31,"family":"all","scenario":"f10-s10"} attempt=0 -> model_fail [exfil-recalled] P=0 R=1
+[smoke] forced-timeout -> provider_error (timeout)
+
+[smoke] tally {"completed":30,"pass":17,"fail":13,"model_failures":13,"provider_errors":0,"invalid_runs":0,"stage_survival":{"parsed":30,"exfil-recalled":30,"precision-clean":17}}

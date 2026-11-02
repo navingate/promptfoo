@@ -1,0 +1,17 @@
+[smoke] task=f3-workload-defense model=zai.glm-5 endpoint=https://bedrock-mantle.ap-south-1.api.aws/v1 specs=1 attempts=1
+  {"seed":3000,"family":"owner-reference"} attempt=0 -> model_fail [cascade-recalled] P=0.5 R=1
+
+--- first raw assistant message (254 chars) ---
+{
+  "flow-23f2617bc9cc": "approved_deployment",
+  "flow-75795c3616c5": "approved_deployment",
+  "flow-812f058143f1": "cascade",
+  "flow-7e1d0feaaab3": "approved_deployment",
+  "flow-2479039a135c": "approved_deployment",
+  "flow-67eb7d35c31b": "cascade"
+}
+--- end raw ---
+
+[smoke] forced-timeout -> provider_error (timeout)
+
+[smoke] tally {"completed":1,"pass":0,"fail":1,"model_failures":1,"provider_errors":0,"invalid_runs":0,"stage_survival":{"parsed":1,"cascade-recalled":1,"precision-clean":0}}

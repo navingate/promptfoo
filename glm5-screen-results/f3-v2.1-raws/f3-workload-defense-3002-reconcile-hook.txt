@@ -1,0 +1,19 @@
+[smoke] task=f3-workload-defense model=zai.glm-5 endpoint=https://bedrock-mantle.ap-south-1.api.aws/v1 specs=1 attempts=1
+  {"seed":3002,"family":"reconcile-hook"} attempt=0 -> model_fail [cascade-recalled] P=0.5 R=1
+
+--- first raw assistant message (256 chars) ---
+```json
+{
+  "flow-24073ea9c360": "approved_deployment",
+  "flow-85cf7c6d1221": "approved_deployment",
+  "flow-27323ee5a663": "ambiguous",
+  "flow-d0c4bd6f81c3": "cascade",
+  "flow-9652da98cb8a": "approved_deployment",
+  "flow-74c30194d4f8": "cascade"
+}
+```
+--- end raw ---
+
+[smoke] forced-timeout -> provider_error (timeout)
+
+[smoke] tally {"completed":1,"pass":0,"fail":1,"model_failures":1,"provider_errors":0,"invalid_runs":0,"stage_survival":{"parsed":1,"cascade-recalled":1,"precision-clean":0}}

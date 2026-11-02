@@ -1,0 +1,33 @@
+[smoke] task=f9-rotation-defense model=zai.glm-5 endpoint=https://bedrock-mantle.ap-south-1.api.aws/v1 specs=24 attempts=1
+  {"seed":103,"family":"cached-interval","subtype":"malicious-stale-access"} attempt=0 -> model_fail [parsed] triage=false
+
+--- first raw assistant message (109 chars) ---
+{"classification": "break_glass", "response": "close-no-mutation", "escalate": false, "cites_evidence": true}
+--- end raw ---
+
+  {"seed":103,"family":"cached-interval","subtype":"uncorroborated-false-positive"} attempt=0 -> model_fail [parsed] triage=false
+  {"seed":103,"family":"cached-interval","subtype":"sanctioned-break-glass"} attempt=0 -> pass [fully-correct] triage=true
+  {"seed":103,"family":"cached-interval","subtype":"delayed-cache-planned-rotation"} attempt=0 -> pass [fully-correct] triage=true
+  {"seed":229,"family":"cached-interval","subtype":"malicious-stale-access"} attempt=0 -> pass [fully-correct] triage=true
+  {"seed":229,"family":"cached-interval","subtype":"uncorroborated-false-positive"} attempt=0 -> model_fail [parsed] triage=false
+  {"seed":229,"family":"cached-interval","subtype":"sanctioned-break-glass"} attempt=0 -> pass [fully-correct] triage=true
+  {"seed":229,"family":"cached-interval","subtype":"delayed-cache-planned-rotation"} attempt=0 -> model_fail [parsed] triage=false
+  {"seed":103,"family":"derived-deploy","subtype":"malicious-stale-access"} attempt=0 -> model_fail [parsed] triage=false
+  {"seed":103,"family":"derived-deploy","subtype":"uncorroborated-false-positive"} attempt=0 -> model_fail [parsed] triage=false
+  {"seed":103,"family":"derived-deploy","subtype":"sanctioned-break-glass"} attempt=0 -> pass [fully-correct] triage=true
+  {"seed":103,"family":"derived-deploy","subtype":"delayed-cache-planned-rotation"} attempt=0 -> pass [fully-correct] triage=true
+  {"seed":229,"family":"derived-deploy","subtype":"malicious-stale-access"} attempt=0 -> pass [fully-correct] triage=true
+  {"seed":229,"family":"derived-deploy","subtype":"uncorroborated-false-positive"} attempt=0 -> model_fail [parsed] triage=false
+  {"seed":229,"family":"derived-deploy","subtype":"sanctioned-break-glass"} attempt=0 -> pass [fully-correct] triage=true
+  {"seed":229,"family":"derived-deploy","subtype":"delayed-cache-planned-rotation"} attempt=0 -> pass [fully-correct] triage=true
+  {"seed":103,"family":"breakglass-held","subtype":"malicious-stale-access"} attempt=0 -> model_fail [parsed] triage=false
+  {"seed":103,"family":"breakglass-held","subtype":"uncorroborated-false-positive"} attempt=0 -> model_fail [parsed] triage=false
+  {"seed":103,"family":"breakglass-held","subtype":"sanctioned-break-glass"} attempt=0 -> pass [fully-correct] triage=true
+  {"seed":103,"family":"breakglass-held","subtype":"delayed-cache-planned-rotation"} attempt=0 -> model_fail [parsed] triage=false
+  {"seed":229,"family":"breakglass-held","subtype":"malicious-stale-access"} attempt=0 -> pass [fully-correct] triage=true
+  {"seed":229,"family":"breakglass-held","subtype":"uncorroborated-false-positive"} attempt=0 -> model_fail [parsed] triage=false
+  {"seed":229,"family":"breakglass-held","subtype":"sanctioned-break-glass"} attempt=0 -> pass [fully-correct] triage=true
+  {"seed":229,"family":"breakglass-held","subtype":"delayed-cache-planned-rotation"} attempt=0 -> model_fail [parsed] triage=false
+[smoke] forced-timeout -> provider_error (timeout)
+
+[smoke] tally {"completed":24,"pass":12,"fail":12,"model_failures":12,"provider_errors":0,"invalid_runs":0,"stage_survival":{"parsed":24,"triage-correct":12,"fully-correct":12}}

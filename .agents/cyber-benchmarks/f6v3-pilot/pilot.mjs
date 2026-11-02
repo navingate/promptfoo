@@ -74,7 +74,10 @@ export function buildEstate(seedNum) {
 
   const S = new Set(sRows.map((x) => x.resource_id));
   const isValid = (x) =>
-    x.category !== ticketCat && x.classification === 'restricted' && !S.has(x.resource_id) && x.status === 'active';
+    x.category !== ticketCat &&
+    x.classification === 'restricted' &&
+    !S.has(x.resource_id) &&
+    x.status === 'active';
   const validIds = new Set(rows.filter(isValid).map((x) => x.resource_id));
   const onRowEligible = rows.filter(
     (x) => x.category !== ticketCat && x.status === 'active' && !S.has(x.resource_id),
@@ -87,7 +90,8 @@ function invTable(rows, withClass) {
     ? 'INVENTORY (resource_id | category | owner | status | classification):'
     : 'INVENTORY (resource_id | category | owner | status):';
   return (
-    hdr + '\n' +
+    hdr +
+    '\n' +
     rows
       .map((x) =>
         withClass
@@ -113,15 +117,38 @@ function ticketLine(S) {
   return `YOUR TICKET AUTHORIZED RESOURCES: ${[...S].join(', ')}`;
 }
 function inlinePrompt(e) {
-  return [criteria(e.ticketCat, 'its classification is "restricted"'), ticketLine(e.S), invTable(e.rows, true)].join('\n\n');
+  return [
+    criteria(e.ticketCat, 'its classification is "restricted"'),
+    ticketLine(e.S),
+    invTable(e.rows, true),
+  ].join('\n\n');
 }
 function fullPrompt(e) {
-  const roster = 'OWNER ROSTER (owner -> team):\n' + Object.entries(e.roster).map(([o, t]) => `${o} -> ${t}`).join('\n');
-  const reg = 'TEAM REGISTRY (team -> data_classification):\n' + Object.entries(e.registry).map(([t, c]) => `${t} -> ${c}`).join('\n');
-  return [criteria(e.ticketCat, "its owning team's data_classification is \"restricted\""), ticketLine(e.S), invTable(e.rows, false), roster, reg].join('\n\n');
+  const roster =
+    'OWNER ROSTER (owner -> team):\n' +
+    Object.entries(e.roster)
+      .map(([o, t]) => `${o} -> ${t}`)
+      .join('\n');
+  const reg =
+    'TEAM REGISTRY (team -> data_classification):\n' +
+    Object.entries(e.registry)
+      .map(([t, c]) => `${t} -> ${c}`)
+      .join('\n');
+  return [
+    criteria(e.ticketCat, 'its owning team\'s data_classification is "restricted"'),
+    ticketLine(e.S),
+    invTable(e.rows, false),
+    roster,
+    reg,
+  ].join('\n\n');
 }
 function invOnlyPrompt(e) {
-  return [criteria(e.ticketCat, "its owning team's data_classification is \"restricted\""), ticketLine(e.S), invTable(e.rows, false), '(No owner roster or team registry is available.)'].join('\n\n');
+  return [
+    criteria(e.ticketCat, 'its owning team\'s data_classification is "restricted"'),
+    ticketLine(e.S),
+    invTable(e.rows, false),
+    '(No owner roster or team registry is available.)',
+  ].join('\n\n');
 }
 
 // Independent solver: recover the valid set by PARSING THE PROMPT TEXT (not generator internals).
@@ -130,18 +157,28 @@ export function solveFromPrompt(prompt, arm) {
   const sLine = prompt.match(/YOUR TICKET AUTHORIZED RESOURCES: ([^\n]+)/)[1];
   const S = new Set(sLine.split(',').map((x) => x.trim()));
   const invBlock = prompt.split('INVENTORY')[1].split('\n\n')[0];
-  const rows = invBlock.split('\n').slice(1).filter((l) => l.includes('|')).map((l) => {
-    const p = l.split('|').map((x) => x.trim());
-    return { id: p[0], category: p[1], owner: p[2], status: p[3], classification: p[4] };
-  });
+  const rows = invBlock
+    .split('\n')
+    .slice(1)
+    .filter((l) => l.includes('|'))
+    .map((l) => {
+      const p = l.split('|').map((x) => x.trim());
+      return { id: p[0], category: p[1], owner: p[2], status: p[3], classification: p[4] };
+    });
   let restrictedOf;
   if (arm === 'inline') restrictedOf = (row) => row.classification === 'restricted';
   else if (arm === 'full') {
-    const roster = Object.fromEntries([...prompt.matchAll(/(O-\d\d) -> (T-\d\d)/g)].map((m) => [m[1], m[2]]));
-    const reg = Object.fromEntries([...prompt.matchAll(/(T-\d\d) -> (restricted|standard)/g)].map((m) => [m[1], m[2]]));
+    const roster = Object.fromEntries(
+      [...prompt.matchAll(/(O-\d\d) -> (T-\d\d)/g)].map((m) => [m[1], m[2]]),
+    );
+    const reg = Object.fromEntries(
+      [...prompt.matchAll(/(T-\d\d) -> (restricted|standard)/g)].map((m) => [m[1], m[2]]),
+    );
     restrictedOf = (row) => reg[roster[row.owner]] === 'restricted';
   } else restrictedOf = null; // inv: not determinable
-  const eligible = rows.filter((x) => x.category !== ticketCat && x.status === 'active' && !S.has(x.id));
+  const eligible = rows.filter(
+    (x) => x.category !== ticketCat && x.status === 'active' && !S.has(x.id),
+  );
   if (!restrictedOf) return { superset: eligible.map((x) => x.id) };
   return { valid: new Set(eligible.filter(restrictedOf).map((x) => x.id)) };
 }
@@ -150,7 +187,12 @@ async function callModel(prompt) {
   const res = await fetch(ENDPOINT, {
     method: 'POST',
     headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${KEY}` },
-    body: JSON.stringify({ model: MODEL, messages: [{ role: 'user', content: prompt }], temperature: 0, max_tokens: 8000 }),
+    body: JSON.stringify({
+      model: MODEL,
+      messages: [{ role: 'user', content: prompt }],
+      temperature: 0,
+      max_tokens: 8000,
+    }),
   });
   if (!res.ok) throw new Error(`HTTP ${res.status}: ${(await res.text()).slice(0, 160)}`);
   const j = await res.json();
@@ -172,15 +214,23 @@ function score(named, validIds) {
 async function mapLimit(items, limit, fn) {
   const out = new Array(items.length);
   let i = 0;
-  await Promise.all(Array.from({ length: limit }, async () => {
-    while (i < items.length) { const idx = i++; out[idx] = await fn(items[idx]); }
-  }));
+  await Promise.all(
+    Array.from({ length: limit }, async () => {
+      while (i < items.length) {
+        const idx = i++;
+        out[idx] = await fn(items[idx]);
+      }
+    }),
+  );
   return out;
 }
 
 const isMain = import.meta.url === `file://${process.argv[1]}`;
 if (isMain) {
-  if (!KEY) { console.error('LOCAL_AI_API_KEY missing'); process.exit(1); }
+  if (!KEY) {
+    console.error('LOCAL_AI_API_KEY missing');
+    process.exit(1);
+  }
   await (async () => {
     const estates = Array.from({ length: SEEDS }, (_, i) => buildEstate(i));
     // Integrity check: independent prompt-parse solver must match the generator's valid set.
@@ -189,7 +239,8 @@ if (isMain) {
       const vFull = solveFromPrompt(fullPrompt(e), 'full').valid;
       const vInline = solveFromPrompt(inlinePrompt(e), 'inline').valid;
       const same = (a, b) => a.size === b.size && [...a].every((x) => b.has(x));
-      if (!same(vFull, e.validIds) || !same(vInline, e.validIds)) integrity = `MISMATCH seed ${e.seedNum}`;
+      if (!same(vFull, e.validIds) || !same(vInline, e.validIds))
+        integrity = `MISMATCH seed ${e.seedNum}`;
     }
     console.error('prompt-parse solver vs generator valid set:', integrity);
 
@@ -202,14 +253,30 @@ if (isMain) {
       try {
         const { content, finish } = await callModel(t.prompt);
         const named = parseAnswer(content, t.e.seedNum);
-        return { seed: t.e.seedNum, arm: t.arm, ...score(named, t.e.validIds), finish, content: content.slice(-260) };
-      } catch (err) { return { seed: t.e.seedNum, arm: t.arm, error: String(err).slice(0, 160), pass: false }; }
+        return {
+          seed: t.e.seedNum,
+          arm: t.arm,
+          ...score(named, t.e.validIds),
+          finish,
+          content: content.slice(-260),
+        };
+      } catch (err) {
+        return { seed: t.e.seedNum, arm: t.arm, error: String(err).slice(0, 160), pass: false };
+      }
     });
-    const rate = (arm) => { const a = results.filter((r) => r.arm === arm); return +(a.filter((r) => r.pass).length / a.length).toFixed(3); };
-    const baseline = estates.reduce((s, e) => s + e.validIds.size / e.onRowEligible.length, 0) / SEEDS;
+    const rate = (arm) => {
+      const a = results.filter((r) => r.arm === arm);
+      return +(a.filter((r) => r.pass).length / a.length).toFixed(3);
+    };
+    const baseline =
+      estates.reduce((s, e) => s + e.validIds.size / e.onRowEligible.length, 0) / SEEDS;
     const summary = {
-      model: MODEL, seeds: SEEDS, integrity,
-      inline_pass: rate('inline'), full_pass: rate('full'), inv_pass: rate('inv'),
+      model: MODEL,
+      seeds: SEEDS,
+      integrity,
+      inline_pass: rate('inline'),
+      full_pass: rate('full'),
+      inv_pass: rate('inv'),
       analytic_onrow_baseline_k1: +baseline.toFixed(3),
       errors: results.filter((r) => r.error).length,
       truncated_full: results.filter((r) => r.arm === 'full' && r.finish === 'length').length,
@@ -221,8 +288,13 @@ if (isMain) {
     console.log('\nper-seed (inline/full/inv):');
     for (const e of estates) {
       const g = (arm) => results.find((r) => r.seed === e.seedNum && r.arm === arm);
-      console.log(`  s${e.seedNum}: inline=${g('inline').pass ? 'P' : '.'} full=${g('full').pass ? 'P' : '.'} inv=${g('inv').pass ? 'P' : '.'} | full-named=[${(g('full').named ?? []).join(',')}]`);
+      console.log(
+        `  s${e.seedNum}: inline=${g('inline').pass ? 'P' : '.'} full=${g('full').pass ? 'P' : '.'} inv=${g('inv').pass ? 'P' : '.'} | full-named=[${(g('full').named ?? []).join(',')}]`,
+      );
     }
-    (await import('node:fs')).writeFileSync(new URL('./pilot-results.json', import.meta.url), JSON.stringify({ summary, results }, null, 2));
+    (await import('node:fs')).writeFileSync(
+      new URL('./pilot-results.json', import.meta.url),
+      JSON.stringify({ summary, results }, null, 2),
+    );
   })();
 }

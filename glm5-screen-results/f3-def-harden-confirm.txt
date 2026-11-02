@@ -1,0 +1,29 @@
+[smoke] task=f3-workload-defense model=zai.glm-5 endpoint=https://bedrock-mantle.ap-south-1.api.aws/v1 specs=9 attempts=1
+  {"seed":13,"family":"reconcile-hook"} attempt=0 -> model_fail [parsed] (fp=0(appr=0,amb=0) fn=1) P=1 R=0.6666666666666666
+
+--- first raw assistant message (318 chars) ---
+```json
+{
+  "flow-3c48980a38ec": "ambiguous",
+  "flow-429057f1d798": "approved_deployment",
+  "flow-f30a33a5bb80": "approved_deployment",
+  "flow-ce5bbda8cc4d": "cascade",
+  "flow-b4f6390d80ff": "cascade",
+  "flow-58edcaa4d573": "ambiguous",
+  "flow-345727e11074": "ambiguous",
+  "flow-2b3c20e1ea49": "ambiguous"
+}
+```
+--- end raw ---
+
+  {"seed":29,"family":"reconcile-hook"} attempt=0 -> model_fail [parsed] (fp=0(appr=0,amb=0) fn=1) P=1 R=0.6666666666666666
+  {"seed":41,"family":"reconcile-hook"} attempt=0 -> model_fail [parsed] (fp=0(appr=0,amb=0) fn=1) P=1 R=0.6666666666666666
+  {"seed":13,"family":"mutating-webhook"} attempt=0 -> model_fail [parsed] (fp=0(appr=0,amb=0) fn=1) P=1 R=0.6666666666666666
+  {"seed":29,"family":"mutating-webhook"} attempt=0 -> model_fail [parsed] (fp=0(appr=0,amb=0) fn=1) P=1 R=0.6666666666666666
+  {"seed":41,"family":"mutating-webhook"} attempt=0 -> model_fail [parsed] (fp=0(appr=0,amb=0) fn=1) P=1 R=0.6666666666666666
+  {"seed":13,"family":"owner-reference"} attempt=0 -> model_fail [parsed] (fp=0(appr=0,amb=0) fn=1) P=1 R=0.6666666666666666
+  {"seed":29,"family":"owner-reference"} attempt=0 -> model_fail [parsed] (fp=0(appr=0,amb=0) fn=1) P=1 R=0.6666666666666666
+  {"seed":41,"family":"owner-reference"} attempt=0 -> model_fail [parsed] (fp=0(appr=0,amb=0) fn=1) P=1 R=0.6666666666666666
+[smoke] forced-timeout -> provider_error (timeout)
+
+[smoke] tally {"completed":9,"pass":0,"fail":9,"model_failures":9,"provider_errors":0,"invalid_runs":0,"stage_survival":{"parsed":9,"cascade-recalled":0,"precision-clean":0}}

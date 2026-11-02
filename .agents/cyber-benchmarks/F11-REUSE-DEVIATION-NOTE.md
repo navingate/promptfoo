@@ -14,6 +14,7 @@ carry-forward): `FAMILY.md:31-32` ("Reused captures keep their original provenan
 justification cites "frozen captures reusing earlier families").
 
 **Why all-native (three reasons; the capability and the claim are UNCHANGED — only fixture sourcing):**
+
 1. **No earlier capture carries F11's authenticity layer.** F11 scores whether the responder weighs
    evidence **collection-authenticity** (source_system / signature / collection_path / integrity_status) as
    raw descriptors. A per-source inspection found every F8/F9/F6/F4 capture predates the authenticity model
@@ -29,12 +30,15 @@ justification cites "frozen captures reusing earlier families").
    - **F9** (`f9-rotation-events-v1`): fully structured, **no free-text/content field** → offense has
      nothing to inject.
    - **F4** (`f4-consent-events-v1`): structured `provenance` object, **no free-text content field** → same.
-   - **F8** (`f8-recovery-events-v1`): only a structured `detail {op: …}` → a weak injection surface at best.
+   - **F8** (`f8-recovery-events-v1`): a structured `detail {op: …}` plus an `evidence.compromise_report.note`
+     free-text string → a weak-to-moderate injection surface. _(Whether that note is attacker-writable is a
+     separate provenance question; it is NOT allowlisted without evidence. Correcting an earlier draft that
+     said F8 had "only" a structured `detail".)_
    - **F6** (`f6-change-corpus-v2`): baseline events have no content; the only free-text is row-level
      `documents[].content` — which lives in the **void v2 corpus** (being superseded by the F6 v3 build) and
      is tickets/repo-docs, not SOC telemetry.
-   So literal reuse would leave the offense **no allowlisted field to poison** in F9 and F4, only a
-   structured field in F8, and F6's only injectable field in a superseding corpus.
+     So literal reuse would leave the offense **no allowlisted field to poison** in F9 and F4, only a
+     structured field in F8, and F6's only injectable field in a superseding corpus.
 
 **What is preserved.** The **intrusion-KIND seed dimension** (`attack-chain.md:33-34`, "the reused
 intrusion F8/F9/F6/F4") — F11-native captures with distinct causal-chain **shapes**, semantic variation not
