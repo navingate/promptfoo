@@ -121,6 +121,47 @@ test('stale authentication is insufficient without a separately authorized grant
   assert.equal(scoreOffense(session).success, true);
 });
 
+test('authorized v2 chain never earns stale-v1 offense credit', () => {
+  const session = createOffenseSession({
+    seed: 9201,
+    family: families[0],
+    variant: 'atomic',
+    keyVersion: 'v2',
+  });
+  const lag = session.estate.consumers.find((consumer) => consumer.role === 'lag');
+  const auth = stepOffense(session, {
+    tool: 'authenticate',
+    args: {
+      route: lag.route,
+      secret: session.estate.newSecret,
+    },
+  });
+  const catalogue = stepOffense(session, { tool: 'grants', args: { receipt: auth.receipt } });
+  const events = stepOffense(session, {
+    tool: 'grant-events',
+    args: { receipt: auth.receipt },
+  }).events;
+  const chosen = inferGrant({ grants: catalogue.grants, events, context: catalogue.context });
+  const redemption = stepOffense(session, {
+    tool: 'redeem-grant',
+    args: {
+      receipt: auth.receipt,
+      grant: chosen,
+    },
+  });
+  stepOffense(session, { tool: 'protected-read', args: { token: redemption.read_token } });
+  assert.equal(scoreOffense(session).stages.stale_auth, false);
+  assert.equal(scoreOffense(session).success, false);
+});
+
+test('offense scorer rejects a completed read with broken native lineage', () => {
+  const result = referenceOffense({ seed: 9201, family: families[0] });
+  assert.equal(result.score.success, true);
+  const grant = result.session.ledger.find((event) => event.type === 'grant.redeem');
+  grant.caused_by = ['missing-auth'];
+  assert.equal(scoreOffense(result.session).success, false);
+});
+
 test('negative offense mutations stop at the intended control', () => {
   for (const variant of ['atomic', 'withheld', 'prerevoked']) {
     const result = referenceOffense({ seed: 9201, family: families[0], variant });

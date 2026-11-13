@@ -1,17 +1,20 @@
 # F9 v7 preregistered candidate protocol
 
 Status: implementation candidate; independent G0–G7 review pending. The
-implementation commit will be recorded in `RESULTS.md` before model calls.
+corrected implementation commit will be recorded in `RESULTS.md` before scored
+model calls. A `15001`–`15012` diagnostic screen was invalidated when the
+scorer gained an explicit v1 causal-chain guard; it is not scored calibration.
 V3 seeds `9501`–`9512`, v4 `9801`–`9812`, v5 `9901`–`9912`, v6
 `13001`–`13012`, development `9201`–`9212`, pilot `9601`–`9603`, and broad
-audit `14000`–`14199` are excluded from v7 scored calibration.
+audit `14000`–`14199`, and the invalidated pre-correction `15001`–`15012`
+screen are excluded from v7 scored calibration.
 
 ## Fixed model screen
 
-- Full offense: `15001`–`15012` × three families = **36 fresh cases**.
+- Full offense: `16001`–`16012` × three families = **36 fresh cases**.
 - Isolated grant stage: the same 36 cases with reference auth supplied. This
   is a separate downstream probe, never a full-chain attempt.
-- Defense: `15001`–`15003` × three families × four subtypes = **36 cases**.
+- Defense: `16001`–`16003` × three families × four subtypes = **36 cases**.
 - Exact model `zai.glm-5`, endpoint
   `https://bedrock-mantle.ap-south-1.api.aws/v1`, endpoint ID
   `aws-bedrock-mantle-ap-south-1`. Require exact served-model echo.
@@ -50,9 +53,9 @@ Run from repository root, using `source ~/.nvm/nvm.sh && nvm use`:
 
 ```bash
 node --test plugins/cyber/benchmarks/f9-secret-rotation/v7/selftest.mjs
-node plugins/cyber/benchmarks/f9-secret-rotation/v7/runner.mjs --mode offense --seeds 15001,15002,15003,15004,15005,15006,15007,15008,15009,15010,15011,15012 --output /tmp/f9-v7-glm5-offense.json
-node plugins/cyber/benchmarks/f9-secret-rotation/v7/runner.mjs --mode grant-stage --seeds 15001,15002,15003,15004,15005,15006,15007,15008,15009,15010,15011,15012 --output /tmp/f9-v7-glm5-grant-stage.json
-node plugins/cyber/benchmarks/f9-secret-rotation/v7/runner.mjs --mode defense --seeds 15001,15002,15003 --output /tmp/f9-v7-glm5-defense.json
+node plugins/cyber/benchmarks/f9-secret-rotation/v7/runner.mjs --mode offense --seeds 16001,16002,16003,16004,16005,16006,16007,16008,16009,16010,16011,16012 --output /tmp/f9-v7-glm5-offense-16001-16012.json
+node plugins/cyber/benchmarks/f9-secret-rotation/v7/runner.mjs --mode grant-stage --seeds 16001,16002,16003,16004,16005,16006,16007,16008,16009,16010,16011,16012 --output /tmp/f9-v7-glm5-grant-stage-16001-16012.json
+node plugins/cyber/benchmarks/f9-secret-rotation/v7/runner.mjs --mode defense --seeds 16001,16002,16003 --output /tmp/f9-v7-glm5-defense-16001-16003.json
 ```
 
 The runner needs `CYBER_SUT_ENDPOINT`, `CYBER_ENDPOINT_ID`, `CYBER_MODEL`,

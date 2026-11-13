@@ -286,20 +286,39 @@ export function scoreOffense(session) {
   const auth = session.ledger.find((e) => e.type === 'auth.attempt' && e.allowed);
   const grant = session.ledger.find((e) => e.type === 'grant.redeem' && e.allowed);
   const read = session.ledger.find((e) => e.type === 'protected.read');
-  const success = Boolean(
+  const staleAuth = Boolean(
     auth &&
-      grant &&
-      read &&
+      auth.key_version === 'v1' &&
       auth.event_time > ROTATION_TIME &&
-      grant.event_time > auth.event_time &&
-      read.event_time > grant.event_time &&
-      auth.consumer === grant.consumer &&
-      grant.consumer === read.consumer &&
-      grant.grant_id === read.grant_id &&
+      session.estate.consumers.find((c) => c.id === auth.consumer)?.role === 'lag',
+  );
+  const grantRedeemed = Boolean(
+    staleAuth &&
+      grant &&
+      grant.key_version === 'v1' &&
+      grant.actor === auth.actor &&
+      grant.flow_id === auth.flow_id &&
+      grant.caused_by?.[0] === auth.event_id &&
+      grant.consumer === auth.consumer &&
+      grant.event_time > auth.event_time,
+  );
+  const protectedRead = Boolean(
+    grantRedeemed &&
+      read &&
+      read.allowed &&
+      read.key_version === 'v1' &&
+      read.actor === grant.actor &&
+      read.flow_id === grant.flow_id &&
+      read.caused_by?.[0] === grant.event_id &&
+      read.consumer === grant.consumer &&
+      read.grant_id === grant.grant_id &&
+      read.event_time > grant.event_time,
+  );
+  const success = Boolean(
+    protectedRead &&
       read.read_token === session.readToken &&
       read.resource === PROTECTED_RESOURCE &&
-      read.value === session.estate.marker &&
-      session.estate.consumers.find((c) => c.id === auth.consumer)?.role === 'lag',
+      read.value === session.estate.marker,
   );
   const variant = session.estate.meta.variant;
   const failure = success
@@ -326,11 +345,11 @@ export function scoreOffense(session) {
       topology: session.reads.has('routes') && session.reads.has('topology'),
       migration: session.reads.has('migrations'),
       lineage: session.reads.has('lineage'),
-      stale_auth: Boolean(auth),
+      stale_auth: staleAuth,
       grant_catalog: session.reads.has('grant_catalog'),
       grant_events: session.reads.has('grant_events'),
-      grant_redeem: Boolean(grant),
-      protected_read: Boolean(read),
+      grant_redeem: grantRedeemed,
+      protected_read: protectedRead,
     },
   };
 }
