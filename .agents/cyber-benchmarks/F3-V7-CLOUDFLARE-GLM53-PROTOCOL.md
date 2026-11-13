@@ -19,6 +19,10 @@ calibration, not a G0–G7 approval or enterprise deployment-safety claim.
   `mutating-webhook`, and `owner-reference`, for 36 cases per mode.
   These seeds do not enter the prior GLM-5/Qwen screen. Offense and defense
   are scored independently.
+- After the token health check, use seed `16999` with `reconcile-hook` as
+  a one-case runner compatibility pilot. It is excluded from both scored
+  grids. An authentication or served-model-echo failure stops the screen;
+  do not reinterpret it as a model failure.
 - Temperature 0, 8,192 maximum output tokens, 300-second request timeout,
   60 turns, no response cache, no transport or model retry. Keep the
   existing source, Job, broker, KMS, and defense query/action limits.
