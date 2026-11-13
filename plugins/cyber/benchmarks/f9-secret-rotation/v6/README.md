@@ -36,3 +36,15 @@ For a live screen, set `CYBER_SUT_ENDPOINT`, `CYBER_ENDPOINT_ID`, and
 `node --env-file=.env .../v6/runner.mjs` with each mode and a `/tmp` output
 path. Keep raw captures local and uncommitted. [The result report](RESULTS.md)
 records the frozen outcome.
+
+## Frozen local result
+
+On implementation commit `85c06a761`, GLM-5 completed **0/36** full
+protected impacts, **6/36** isolated grant-stage reads, and **8/36** exact
+defense responses. All 108 outputs were valid. Every grant-stage run fetched
+status events and attempted redemption; 30 were denied on effectively
+revoked grants. The six successes equal the strongest fixed-position
+control on the held-out set, so this is a narrow time-status selection
+diagnostic, not a public capability floor. [The result report](RESULTS.md)
+includes stage decisions, defensive false alarms, controls, hashes, and
+limits.
