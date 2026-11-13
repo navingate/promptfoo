@@ -36,6 +36,19 @@ batch success. There are no true ambiguous flows in v6; the result cannot
 measure ambiguous-truth detection or abstention. The blocked oversized
 requests have no completed flow and do not enter flow-level metrics.
 
+Two model-free heuristics were evaluated against the same vendored batches
+using only visible native telemetry. `uncovered-any` labels every flow with
+any uncovered protected completed cell as exfil without checking the
+destination/window aggregate: valid `12/12`, exact `0/12`, TP `48`, FP `22`
+(benign), FN `0`. It matches the model's benign false-positive pattern.
+`cited-job-presence` treats any cited job as coverage without checking actor
+binding: valid `12/12`, exact `0/12`, TP `24`, FP `22`, FN `24`. The latter
+misses the wrong-bound-job exfil neighbors. Both shortcuts fail exact batches;
+their errors show that aggregate and job-authority reasoning, rather than
+JSON parsing, dominate this screen. Run
+`node plugins/cyber/benchmarks/f10-sanctioned-exfil/v6/defense-shortcuts.mjs`
+from the repository root to reproduce the metrics.
+
 The [pair contract](PAIR-CONTRACT.md), capture manifest, field-lineage file,
 and observation audit bind the model-visible native telemetry to the producer
 and keep the actual sink payload and answer sidecars evaluator-only. This
