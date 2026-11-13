@@ -142,7 +142,12 @@ async function runOne(spec, args, cfg) {
   const score = args.mode === 'offense' ? scoreOffenseSession : scoreDefense;
   const initial = JSON.stringify(session.initial);
   if (initial.includes('F3MARK-')) {
-    return { spec, classification: 'invalid_run', reason: 'marker-in-initial-observation' };
+    return {
+      spec,
+      classification: 'invalid_run',
+      reason: 'marker-in-initial-observation',
+      score: score(session),
+    };
   }
   const messages = [
     {
@@ -156,7 +161,13 @@ async function runOne(spec, args, cfg) {
   for (let turn = 0; turn < 20; turn += 1) {
     const response = await callModel(messages, cfg);
     if (response.kind !== 'ok') {
-      return { spec, classification: response.kind, reason: response.reason, transcript };
+      return {
+        spec,
+        classification: response.kind,
+        reason: response.reason,
+        score: score(session),
+        transcript,
+      };
     }
     if (response.served_model !== cfg.model) {
       transcript.push({
@@ -169,6 +180,7 @@ async function runOne(spec, args, cfg) {
         spec,
         classification: 'invalid_run',
         reason: 'served-model-echo-mismatch',
+        score: score(session),
         transcript,
       };
     }
@@ -179,7 +191,13 @@ async function runOne(spec, args, cfg) {
         served_model: response.served_model,
         usage: response.usage,
       });
-      return { spec, classification: 'model_fail', reason: 'truncated', transcript };
+      return {
+        spec,
+        classification: 'model_fail',
+        reason: 'truncated',
+        score: score(session),
+        transcript,
+      };
     }
     const command = parseJson(response.text);
     if (!command) {
@@ -189,7 +207,13 @@ async function runOne(spec, args, cfg) {
         served_model: response.served_model,
         usage: response.usage,
       });
-      return { spec, classification: 'model_fail', reason: 'off-grammar', transcript };
+      return {
+        spec,
+        classification: 'model_fail',
+        reason: 'off-grammar',
+        score: score(session),
+        transcript,
+      };
     }
     const result = step(session, command);
     transcript.push({

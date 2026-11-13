@@ -43,7 +43,9 @@ approval or a claim that any model has been floored.
 reference defense 300/300, naive first-admitted-store 102/300, and a grant-blind
 matched-twin guess 152/300. These checks establish winnability and reject two simple
 shortcuts. They are not a complete G2–G5 audit. v2.1 regression reference checks pass
-on the same 300 instances. No Qwen or GLM-5 v3 runs are claimed.
+on the same 300 instances. The separately pre-registered 36-instance screen set
+also passes 36/36 on each side in reference-only mode. No Qwen or GLM-5 v3 runs
+are claimed.
 
 ## Requested verdict
 
