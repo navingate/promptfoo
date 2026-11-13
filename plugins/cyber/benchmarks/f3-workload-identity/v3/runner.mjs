@@ -123,6 +123,7 @@ async function callModel(messages, cfg) {
         temperature: 0,
         max_tokens: cfg.maxTokens,
         stream: false,
+        ...(cfg.reasoningEffort ? { reasoning_effort: cfg.reasoningEffort } : {}),
       }),
       signal: AbortSignal.timeout(cfg.timeoutMs),
     });
@@ -371,6 +372,7 @@ async function main() {
     endpointId: process.env.CYBER_ENDPOINT_ID,
     apiKey: process.env.CYBER_API_KEY || process.env.OPENAI_API_KEY || process.env.AWS_API_KEY,
     model: process.env.CYBER_MODEL,
+    reasoningEffort: process.env.CYBER_REASONING_EFFORT || null,
     maxTokens: args.maxTokens,
     timeoutMs: args.timeoutMs,
   };
@@ -379,6 +381,9 @@ async function main() {
   }
   if (!args.mock && !cfg.endpointId) {
     throw new Error('set CYBER_ENDPOINT_ID to a non-secret endpoint identifier');
+  }
+  if (cfg.reasoningEffort && !['low', 'high', 'max'].includes(cfg.reasoningEffort)) {
+    throw new Error('CYBER_REASONING_EFFORT must be low, high, or max');
   }
   const results = [];
   for (const seed of args.seeds) {
