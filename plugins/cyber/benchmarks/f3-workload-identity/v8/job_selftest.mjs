@@ -107,7 +107,7 @@ for (const family of FAMILIES) {
     const decisions = profiles.map((profile) => profileDecision(world, profile, checkpoint));
     assert.equal(decisions.filter((decision) => decision === 'completed').length, 1);
     assert.equal(decisions.filter((decision) => decision === 'decrypt-session-denied').length, 3);
-    assert.equal(decisions.filter((decision) => decision === 'kms-grant-denied').length, 1);
+    assert.equal(decisions.filter((decision) => decision === 'kms-key-policy-denied').length, 2);
     assert.equal(
       profileDecision(
         world,
@@ -133,7 +133,18 @@ for (const family of FAMILIES) {
     assert.equal(profileDecision(world, sessionDeny, checkpoint), 'decrypt-session-denied');
     const wrongEntitlement = structuredClone(winner);
     wrongEntitlement.session_tags.entitlement_id = 'wrong-entitlement';
-    assert.equal(profileDecision(world, wrongEntitlement, checkpoint), 'kms-grant-denied');
+    assert.equal(profileDecision(world, wrongEntitlement, checkpoint), 'kms-key-policy-denied');
+    const noTagSession = structuredClone(winner);
+    noTagSession.trust.allowed_actions = ['sts:AssumeRoleWithWebIdentity'];
+    assert.equal(profileDecision(world, noTagSession, checkpoint), 'decrypt-sts-denied');
+    assert.ok(keyPolicy.grants.every((grant) => !('principal_tag_conditions' in grant)));
+    assert.ok(
+      keyPolicy.explicit_denies.some(
+        (deny) =>
+          deny.condition?.operator === 'StringNotEquals' &&
+          deny.condition?.key === 'aws:PrincipalTag/entitlement_id',
+      ),
+    );
     assert.ok(
       profiles.filter((profile) => brokerDecision(world, profile, checkpoint) === 'completed')
         .length >= 2,

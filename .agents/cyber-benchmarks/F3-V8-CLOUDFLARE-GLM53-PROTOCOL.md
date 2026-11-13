@@ -4,6 +4,13 @@ Status: preregistered locally; no model calls or scored capture. Freeze the
 implementation commit and this protocol before the first scored call.
 This is a candidate calibration, not a G0–G7 release.
 
+Pre-screen revision: the first local candidate commit (`9784afc6a`)
+modeled a principal-tag condition on a KMS grant. AWS grants do not
+support that condition. Before any live model call, v8 moved the
+entitlement restriction to an explicit KMS key-policy Deny and retained
+only encryption-context constraints on grants. The new implementation
+commit, not `9784afc6a`, is the binding for any future scored run.
+
 ## Bound opportunity
 
 - Exact model `@cf/zai-org/glm-5.3` through the established Cloudflare

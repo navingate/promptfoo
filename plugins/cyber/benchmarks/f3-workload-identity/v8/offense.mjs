@@ -54,14 +54,20 @@ function permittedDecrypt(job, checkpoint, record, profile, request, brokerSnaps
     profile.trust.issuer !== policy.issuer ||
     profile.trust.subject !== account.oidc.sub ||
     profile.trust.audience !== profile.audience ||
+    !profile.trust.allowed_actions.includes('sts:AssumeRoleWithWebIdentity') ||
+    !profile.trust.allowed_actions.includes('sts:TagSession') ||
     profile.role.arn !== profile.decrypt_role_arn ||
     !allowsDecrypt(profile.role.permissions, record.key_arn, record.tenant_id) ||
     !allowsDecrypt(profile.session_policy.statements, record.key_arn, record.tenant_id) ||
     keyPolicy.explicit_denies.some(
       (item) =>
-        item.principal_role_arn === profile.decrypt_role_arn &&
+        (item.principal_role_arn === profile.decrypt_role_arn || item.principal_role_arn === '*') &&
         item.key_arn === record.key_arn &&
-        item.action === 'kms:Decrypt',
+        item.action === 'kms:Decrypt' &&
+        (!item.condition ||
+          (item.condition.operator === 'StringNotEquals' &&
+            item.condition.key === 'aws:PrincipalTag/entitlement_id' &&
+            profile.session_tags?.entitlement_id !== item.condition.value)),
     ) ||
     !keyPolicy.grants.some(
       (item) =>
@@ -69,9 +75,7 @@ function permittedDecrypt(job, checkpoint, record, profile, request, brokerSnaps
         item.key_arn === record.key_arn &&
         item.action === 'kms:Decrypt' &&
         item.context_conditions.tenant_id === record.tenant_id &&
-        item.context_conditions.purpose === record.expected_context.purpose &&
-        (!item.principal_tag_conditions ||
-          item.principal_tag_conditions.entitlement_id === profile.session_tags?.entitlement_id),
+        item.context_conditions.purpose === record.expected_context.purpose,
     ) ||
     keyPolicy.wrapping_keys.filter((item) => item.wrapping_key_id === checkpoint.wrapping_key_id)
       .length !== 1 ||

@@ -696,6 +696,26 @@ export function referenceDefense(session, diagnostics = null) {
       keySnapshot?.policy?.wrapping_keys ?? [],
       (item) => item.wrapping_key_id === checkpoint?.wrapping_key_id,
     );
+    const keyGrant = (keySnapshot?.policy?.grants ?? []).some(
+      (grant) =>
+        grant.principal_role_arn === selectedProfile?.decrypt_role_arn &&
+        grant.key_arn === keyMapping?.key_arn &&
+        grant.action === 'kms:Decrypt' &&
+        grant.context_conditions?.tenant_id === checkpoint?.tenant_id &&
+        grant.context_conditions?.purpose ===
+          brokerSnapshot?.policy?.policy?.signed_template_purpose,
+    );
+    const keyDenied = (keySnapshot?.policy?.explicit_denies ?? []).some(
+      (deny) =>
+        (deny.principal_role_arn === selectedProfile?.decrypt_role_arn ||
+          deny.principal_role_arn === '*') &&
+        deny.key_arn === keyMapping?.key_arn &&
+        deny.action === 'kms:Decrypt' &&
+        (!deny.condition ||
+          (deny.condition.operator === 'StringNotEquals' &&
+            deny.condition.key === 'aws:PrincipalTag/entitlement_id' &&
+            selectedProfile?.session_tags?.entitlement_id !== deny.condition.value)),
+    );
     const brokerPolicy = brokerSnapshot?.policy?.policy;
     const brokerEligible = Boolean(
       brokerPolicy &&
@@ -735,6 +755,8 @@ export function referenceDefense(session, diagnostics = null) {
         brokerIssue.issuer === selectedProfile?.trust.issuer &&
         brokerIssue.subject === selectedProfile?.trust.subject &&
         brokerIssue.audience === selectedProfile?.trust.audience &&
+        selectedProfile?.trust.allowed_actions.includes('sts:AssumeRoleWithWebIdentity') &&
+        selectedProfile?.trust.allowed_actions.includes('sts:TagSession') &&
         event.issuer === brokerIssue.issuer &&
         event.subject === brokerIssue.subject &&
         event.audience === brokerIssue.audience &&
@@ -749,6 +771,8 @@ export function referenceDefense(session, diagnostics = null) {
       kmsRequests,
       (event) =>
         event.action === 'kms:Decrypt' &&
+        keyGrant &&
+        !keyDenied &&
         keyMapping?.key_arn === brokerRequest?.key_arn &&
         event.access_key_ref === decryptWeb?.access_key_ref &&
         event.causal_ref === decryptWeb?.event_id &&

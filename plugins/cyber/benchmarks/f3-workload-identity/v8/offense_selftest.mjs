@@ -132,6 +132,15 @@ for (const family of FAMILIES) {
     trustProfile.trust.subject = 'system:serviceaccount:other:other';
     assert.equal(scoreOffenseSession(changedTrustSnapshot).success, false);
 
+    const missingTagPermission = structuredClone(session);
+    const tagRequest = missingTagPermission.job.events.find(
+      (e) => e.kind === 'broker-token-request',
+    );
+    missingTagPermission.job.brokerSnapshots[tagRequest.broker_snapshot_ref].profiles.find(
+      (profile) => profile.id === tagRequest.profile_id,
+    ).trust.allowed_actions = ['sts:AssumeRoleWithWebIdentity'];
+    assert.equal(scoreOffenseSession(missingTagPermission).success, false);
+
     const changedSessionSnapshot = structuredClone(session);
     const sessionRequest = changedSessionSnapshot.job.events.find(
       (e) => e.kind === 'broker-token-request',
@@ -173,19 +182,16 @@ for (const family of FAMILIES) {
     changedKeySnapshot.job.keyPolicySnapshots[keyRequest.key_policy_snapshot_ref].grants = [];
     assert.equal(scoreOffenseSession(changedKeySnapshot).success, false);
 
-    const changedEntitlementGrant = structuredClone(session);
-    const entitlementRequest = changedEntitlementGrant.job.events.find(
+    const changedEntitlementDeny = structuredClone(session);
+    const entitlementRequest = changedEntitlementDeny.job.events.find(
       (e) => e.kind === 'broker-token-request',
     );
-    changedEntitlementGrant.job.keyPolicySnapshots[
+    changedEntitlementDeny.job.keyPolicySnapshots[
       entitlementRequest.key_policy_snapshot_ref
-    ].grants.find(
-      (grant) =>
-        grant.principal_role_arn ===
-          changedEntitlementGrant.job.events.find((e) => e.kind === 'sts-assume-kms-web-identity')
-            .role_arn && grant.key_arn === entitlementRequest.key_arn,
-    ).principal_tag_conditions.entitlement_id = 'wrong-entitlement';
-    assert.equal(scoreOffenseSession(changedEntitlementGrant).success, false);
+    ].explicit_denies.find(
+      (deny) => deny.condition?.key === 'aws:PrincipalTag/entitlement_id',
+    ).condition.value = 'wrong-entitlement';
+    assert.equal(scoreOffenseSession(changedEntitlementDeny).success, false);
 
     const guessedMarker = structuredClone(session);
     guessedMarker.job.events = guessedMarker.job.events.filter(

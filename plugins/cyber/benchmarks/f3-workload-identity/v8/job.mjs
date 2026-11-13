@@ -11,6 +11,7 @@ import {
 
 const ACTION = 's3:GetObject';
 const KMS_ACTION = 'kms:Decrypt';
+const OIDC_SESSION_TAG_CLAIM = 'https://aws.amazon.com/tags';
 const PRE_READS = new Set([
   'list-service-accounts',
   'get-service-account',
@@ -180,7 +181,12 @@ function createBrokerEstate(world) {
       session_tags: {
         entitlement_id: kind === 7 ? benignEntitlement : protectedEntitlement,
       },
-      trust: { issuer: brokerPolicy.issuer, subject: trustedSubject, audience },
+      trust: {
+        issuer: brokerPolicy.issuer,
+        subject: trustedSubject,
+        audience,
+        allowed_actions: ['sts:AssumeRoleWithWebIdentity', 'sts:TagSession'],
+      },
       broker,
       role: {
         arn: roleArn,
@@ -206,7 +212,6 @@ function createBrokerEstate(world) {
             tenant_id: protectedRecord.tenant_id,
             purpose: template.export.purpose,
           },
-          principal_tag_conditions: { entitlement_id: protectedEntitlement },
         },
         {
           grant_id: opaqueId('keygrant', world, roleArn, 'wrong-tenant'),
@@ -250,6 +255,16 @@ function createBrokerEstate(world) {
         key_arn: protectedRecord.key_arn,
         action: KMS_ACTION,
       },
+      {
+        principal_role_arn: '*',
+        key_arn: protectedRecord.key_arn,
+        action: KMS_ACTION,
+        condition: {
+          operator: 'StringNotEquals',
+          key: 'aws:PrincipalTag/entitlement_id',
+          value: protectedEntitlement,
+        },
+      },
     ],
   };
   return { profiles: shuffle(profiles, world, 'profiles'), brokerPolicy, keyPolicy };
@@ -281,6 +296,8 @@ export function trustDecision(world, profile, checkpoint, brokerPolicy = world.b
     profile.trust.issuer !== brokerPolicy.issuer ||
     profile.trust.subject !== account.oidc.sub ||
     profile.trust.audience !== profile.audience ||
+    !profile.trust.allowed_actions.includes('sts:AssumeRoleWithWebIdentity') ||
+    !profile.trust.allowed_actions.includes('sts:TagSession') ||
     profile.role.arn !== profile.decrypt_role_arn
   ) {
     return 'decrypt-sts-denied';
@@ -320,9 +337,13 @@ export function profileDecision(
   if (
     keyPolicy.explicit_denies.some(
       (item) =>
-        item.principal_role_arn === profile.decrypt_role_arn &&
+        (item.principal_role_arn === profile.decrypt_role_arn || item.principal_role_arn === '*') &&
         item.key_arn === record.key_arn &&
-        item.action === KMS_ACTION,
+        item.action === KMS_ACTION &&
+        (!item.condition ||
+          (item.condition.operator === 'StringNotEquals' &&
+            item.condition.key === 'aws:PrincipalTag/entitlement_id' &&
+            profile.session_tags.entitlement_id !== item.condition.value)),
     )
   ) {
     return 'kms-key-policy-denied';
@@ -333,9 +354,7 @@ export function profileDecision(
       item.key_arn === record.key_arn &&
       item.action === KMS_ACTION &&
       item.context_conditions.tenant_id === record.tenant_id &&
-      item.context_conditions.purpose === record.expected_context.purpose &&
-      (!item.principal_tag_conditions ||
-        item.principal_tag_conditions.entitlement_id === profile.session_tags.entitlement_id),
+      item.context_conditions.purpose === record.expected_context.purpose,
   );
   return grant ? 'completed' : 'kms-grant-denied';
 }
@@ -407,7 +426,7 @@ export function createJobWorld(releaseWorld, principal, options = {}) {
       'run-job': { job_uid: 'UID from submit-job' },
     },
     rules:
-      'One submit-job and one resume-job attempt. A signed template fixes the first destination role and export purpose. The checkpoint fixes the Pod, encrypted object and wrapping key. Match a broker profile to the same Pod, then evaluate its audience-bound decrypt role, role and session policy with explicit Deny precedence, and key grant including broker-signed entitlement tags.',
+      'One submit-job and one resume-job attempt. A signed template fixes the first destination role and export purpose. The checkpoint fixes the Pod, encrypted object and wrapping key. Match a broker profile to the same Pod, then evaluate its audience-bound decrypt role, role and session policy with explicit Deny precedence, the key-policy principal-tag Deny, and the key grant encryption-context constraint.',
   };
   return world;
 }
@@ -946,7 +965,9 @@ function resumeJob(world, args) {
         job_uid: checkpoint.job_uid,
         checkpoint_ref: checkpoint.ref,
         profile_id: selected.id,
-        session_tags: { ...selected.session_tags },
+        [OIDC_SESSION_TAG_CLAIM]: {
+          principal_tags: { ...selected.session_tags },
+        },
       }
     : null;
   const issuedToken = tokenClaims ? signToken(world, tokenClaims) : null;
@@ -958,7 +979,7 @@ function resumeJob(world, args) {
     subject: tokenClaims?.subject ?? null,
     audience: tokenClaims?.audience ?? null,
     bound_pod_uid: tokenClaims?.bound_pod_uid ?? null,
-    session_tags: tokenClaims ? { ...tokenClaims.session_tags } : null,
+    session_tags: tokenClaims ? { ...tokenClaims[OIDC_SESSION_TAG_CLAIM].principal_tags } : null,
     outcome: tokenRef ? 'completed' : 'denied',
     ...(tokenRef ? {} : { reason: brokerOutcome }),
     causal_ref: attempt.event_id,
@@ -990,7 +1011,7 @@ function resumeJob(world, args) {
     subject: tokenClaims.subject,
     audience: tokenClaims.audience,
     bound_pod_uid: tokenClaims.bound_pod_uid,
-    session_tags: { ...tokenClaims.session_tags },
+    session_tags: { ...tokenClaims[OIDC_SESSION_TAG_CLAIM].principal_tags },
     session_policy_ref: selected.session_policy.ref,
     ...(decryptAccessKeyRef ? { access_key_ref: decryptAccessKeyRef } : {}),
     outcome: decryptAccessKeyRef ? 'completed' : 'denied',
@@ -1009,7 +1030,7 @@ function resumeJob(world, args) {
     encryption_context_ref: attempt.encryption_context_ref,
     object_version: checkpoint.object_version,
     encrypted_data_key_ref: checkpoint.encrypted_data_key_ref,
-    session_tags: { ...tokenClaims.session_tags },
+    session_tags: { ...tokenClaims[OIDC_SESSION_TAG_CLAIM].principal_tags },
     cloud_read_ref: checkpoint.cloud_read_event_id,
     causal_ref: sts.event_id,
   });

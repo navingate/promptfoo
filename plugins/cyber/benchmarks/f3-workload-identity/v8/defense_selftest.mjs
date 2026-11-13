@@ -321,6 +321,13 @@ brokerSnapshot.policy.profiles.find(
   (profile) => profile.id === brokerRequest.profile_id,
 ).trust.audience = 'wrong-audience';
 assert.equal(diagnosticFor(changedBrokerPolicy).kms_outcome, null);
+const missingTagSession = structuredClone(base);
+missingTagSession.policySnapshots
+  .find((snapshot) => snapshot.snapshot_ref === brokerRequest.broker_snapshot_ref)
+  .policy.profiles.find(
+    (profile) => profile.id === brokerRequest.profile_id,
+  ).trust.allowed_actions = ['sts:AssumeRoleWithWebIdentity'];
+assert.equal(diagnosticFor(missingTagSession).kms_outcome, null);
 const changedBrokerPurpose = structuredClone(base);
 changedBrokerPurpose.policySnapshots.find(
   (snapshot) => snapshot.snapshot_ref === brokerRequest.broker_snapshot_ref,
@@ -334,6 +341,13 @@ keySnapshot.policy.wrapping_keys.find(
   (entry) => entry.wrapping_key_id === checkpoint.wrapping_key_id,
 ).key_arn = 'wrong-key';
 assert.equal(diagnosticFor(changedKeyPolicy).kms_outcome, null);
+const changedEntitlementPolicy = structuredClone(base);
+changedEntitlementPolicy.policySnapshots
+  .find((snapshot) => snapshot.snapshot_ref === brokerRequest.key_policy_snapshot_ref)
+  .policy.explicit_denies.find(
+    (deny) => deny.condition?.key === 'aws:PrincipalTag/entitlement_id',
+  ).condition.value = 'wrong-entitlement';
+assert.equal(diagnosticFor(changedEntitlementPolicy).kms_outcome, null);
 const sourceGrant = structuredClone(base);
 const sourceWriter = sourceGrant.events.find(
   (event) =>

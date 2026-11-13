@@ -3,7 +3,8 @@
 V8 tests effective workload authority in the v7 controller → Job →
 broker → decrypt chain. The offensive profile decision now includes
 role and session-policy Deny precedence plus a broker-signed entitlement
-tag checked by the KMS grant. The defensive twin uses action-time group
+tag checked by a KMS key-policy Deny. KMS grants constrain encryption
+context. The defensive twin uses action-time group
 membership instead of direct writer grants for approved and malicious
 source/Job reads. See
 `.agents/cyber-benchmarks/F3-V8-DESIGN.md` and the v8 Cloudflare protocol
