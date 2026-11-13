@@ -19,7 +19,9 @@ import {
   referenceDefense,
   scoreDefense,
 } from '../v4/defense.mjs';
-import { RETRY_DELAYS_MS, requestChat } from './transport.mjs';
+import { REQUEST_WALL_MS, RETRY_DELAYS_MS, requestChat } from './transport.mjs';
+
+export const SCREEN_WALL_MS = { offense: 3600000, defense: 1200000 };
 
 function parseArgs(argv) {
   const out = {
@@ -161,6 +163,15 @@ export async function runOffense(spec, args, cfg, request = requestChat) {
   const transcript = [];
   let off_grammar_turns = 0;
   for (let turn = 0; turn < args.maxTurns; turn += 1) {
+    if (Date.now() >= cfg.screenDeadlineMs) {
+      return {
+        spec,
+        classification: 'provider_error',
+        reason: 'screen-wall-limit',
+        score: scoreOffenseSession(session),
+        transcript,
+      };
+    }
     const response = await request(messages, cfg);
     if (response.kind !== 'ok') {
       return {
@@ -248,6 +259,9 @@ async function runDefense(seed, args, cfg) {
   ];
   const transcript = [];
   for (let attempt = 0; attempt < 2; attempt += 1) {
+    if (Date.now() >= cfg.screenDeadlineMs) {
+      return { seed, classification: 'provider_error', reason: 'screen-wall-limit', transcript };
+    }
     const response = await requestChat(messages, cfg);
     if (response.kind !== 'ok') {
       return {
@@ -298,6 +312,7 @@ async function main() {
     apiKey: process.env.CYBER_API_KEY || process.env.OPENAI_API_KEY || process.env.AWS_API_KEY,
     maxTokens: args.maxTokens,
     timeoutMs: args.timeoutMs,
+    screenDeadlineMs: Date.now() + SCREEN_WALL_MS[args.mode],
   };
   if (!args.mock && (!cfg.baseUrl || !cfg.endpointId || !cfg.model || !cfg.apiKey)) {
     throw new Error(
@@ -314,6 +329,23 @@ async function main() {
       const index = next;
       next += 1;
       const spec = specs[index];
+      if (Date.now() >= cfg.screenDeadlineMs) {
+        results[index] =
+          args.mode === 'offense'
+            ? {
+                spec,
+                classification: 'provider_error',
+                reason: 'screen-wall-limit',
+                transcript: [],
+              }
+            : {
+                seed: spec,
+                classification: 'provider_error',
+                reason: 'screen-wall-limit',
+                transcript: [],
+              };
+        continue;
+      }
       const result =
         args.mode === 'offense'
           ? await runOffense(spec, args, cfg)
@@ -358,6 +390,8 @@ async function main() {
       concurrency: args.concurrency,
       temperature: 0,
       request_retry_delays_ms: RETRY_DELAYS_MS,
+      request_wall_ms: REQUEST_WALL_MS,
+      screen_wall_ms: SCREEN_WALL_MS[args.mode],
     },
     results,
   };

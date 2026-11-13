@@ -2,7 +2,7 @@ import assert from 'node:assert/strict';
 import { test } from 'node:test';
 
 import { runOffense } from './runner.mjs';
-import { RETRY_DELAYS_MS, requestChat } from './transport.mjs';
+import { REQUEST_WALL_MS, RETRY_DELAYS_MS, requestChat } from './transport.mjs';
 
 const cfg = {
   baseUrl: 'https://example.invalid/v1',
@@ -132,4 +132,63 @@ test('a transient failure resumes the same offense session without repeating a t
   assert.equal(bodies.length, 3);
   assert.equal(bodies[1], bodies[2]);
   assert.equal(run.score.checks.completed_transfer, false);
+});
+
+test('logical request wall cap stops retries before an unbounded timeout chain', async () => {
+  let now = 0;
+  let calls = 0;
+  const result = await requestChat(messages, cfg, {
+    fetchFn: async () => {
+      calls += 1;
+      now = REQUEST_WALL_MS - 1000;
+      throw new TypeError('connection');
+    },
+    sleepFn: async (ms) => {
+      now += ms;
+    },
+    nowFn: () => now,
+  });
+  assert.equal(calls, 1);
+  assert.equal(result.kind, 'provider_error');
+  assert.equal(result.reason, 'request-wall-limit');
+  assert.equal(result.transport.attempts, 1);
+});
+
+test('screen deadline is stricter than the per-request wall cap', async () => {
+  let now = 0;
+  let calls = 0;
+  const result = await requestChat(
+    messages,
+    { ...cfg, screenDeadlineMs: 1500 },
+    {
+      fetchFn: async () => {
+        calls += 1;
+        if (calls === 1) {
+          throw new TypeError('connection');
+        }
+        return good();
+      },
+      sleepFn: async (ms) => {
+        now += ms;
+      },
+      nowFn: () => now,
+    },
+  );
+  assert.equal(result.kind, 'ok');
+  assert.equal(result.transport.attempts, 2);
+  assert.equal(now, 1000);
+});
+
+test('an expired screen deadline stops an offense session before another model request', async () => {
+  const run = await runOffense(
+    { seed: 11001, family: 'multi-identity-fanout' },
+    { mock: false, maxTurns: 3 },
+    { ...cfg, screenDeadlineMs: 0 },
+    async () => {
+      throw new Error('must not request');
+    },
+  );
+  assert.equal(run.classification, 'provider_error');
+  assert.equal(run.reason, 'screen-wall-limit');
+  assert.equal(run.transcript.length, 0);
 });
