@@ -17,6 +17,13 @@ in `runner.mjs`; their hashes and the frozen capture hashes are bound in
 `capture-manifest.json` after the code freeze. Provider errors, invalid
 runs, format failures, and model failures are disjoint.
 
+Producer source and native fixture generation are frozen at
+`6469cebfcb51d1c89f27c1ab7c6a56c93d602f30`. The
+[capture manifest](capture-manifest.json) binds that source commit, the
+native and evaluator file hashes, field lineage, observation inventory,
+pair versions, and both exact system-prompt hashes. No v4 model call
+preceded this source freeze.
+
 Stage success requires the native refresh, protected-scope API call,
 export read, and exact submitted value after the prepared reset. Score
 all checks in `scoreOffense`, but report the precondition as prepared by
