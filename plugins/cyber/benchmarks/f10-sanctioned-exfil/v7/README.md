@@ -1,9 +1,12 @@
 # F10 v7 Cloudflare GLM-5.3 preparation
 
 The [screen protocol](SCREEN-PROTOCOL.md) freezes a new provider/model
-calibration on F10's existing estate and native defensive twin. It is
-**waiting for the Cloudflare token repair**. No v7 Cloudflare model result
-exists yet; the v6 GLM-5 rates do not transfer.
+calibration on F10's existing estate and native defensive twin. The token
+repair enabled an excluded compatibility pilot, but the subsequent
+[offense invocation was interrupted](INTERRUPTED-SCREEN.md) after six
+result lines because the shared Cloudflare account began returning rate
+limits to another chain. The defense invocation was not started. There is
+**no v7 scored model result**; v6 GLM-5 rates do not transfer.
 
 Local checks performed before model requests:
 
@@ -22,8 +25,7 @@ Local checks performed before model requests:
   `a0c9c7b9eeb3551520a7046e8002f89478a38b4164b35d56ff4d659350290681`
   (defense). These hashes bind local checks, not model responses.
 
-After the parent reports that `CLOUDFLARE_API_KEY` is fixed, run the one-turn
-excluded pilot first, inspect its served-model echo and authentication,
-then execute and audit the 36-case offense and 12-batch defense screens.
-Keep raw captures under `/tmp`, commit only hashes and aggregate findings,
-and keep G0–G7 pending independent review.
+After the coordinator establishes a serialized Cloudflare schedule and a
+new preregistered diagnostic/scored protocol, continue testing. Keep raw
+captures under `/tmp`, commit only hashes and aggregate findings, and keep
+G0–G7 pending independent review.
