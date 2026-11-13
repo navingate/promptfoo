@@ -1,6 +1,7 @@
 import assert from 'node:assert/strict';
 
 import { computeReach } from '../shared/estate.mjs';
+import { parseCommands } from './commands.mjs';
 import { buildDefenseSession, referenceDefense, scoreDefense, stepDefense } from './defense.mjs';
 import {
   buildV3World,
@@ -12,6 +13,17 @@ import {
 } from './offense.mjs';
 
 const families = ['reconcile-hook', 'mutating-webhook', 'owner-reference'];
+assert.deepEqual(parseCommands('{"tool":"list-stores","args":{}}'), [
+  { tool: 'list-stores', args: {} },
+]);
+assert.deepEqual(
+  parseCommands('{"tool":"list-stores","args":{}}\n{"tool":"list-objects","args":{}}'),
+  [
+    { tool: 'list-stores', args: {} },
+    { tool: 'list-objects', args: {} },
+  ],
+);
+assert.equal(parseCommands('not a tool response'), null);
 let offenseCount = 0;
 let defenseCount = 0;
 let naiveOffenseWins = 0;

@@ -53,9 +53,11 @@ node --env-file=<path-to-gitignored-env-file> \
 
 The runner records raw model turns, tool results, requested and served model IDs,
 endpoint ID, completion reason, token usage, and a separate classification for
-model failure, provider error, and invalid run. It accepts a JSON object inside
-a fenced block or after a closed `<think>` block; it retains the original raw
-response. A missing or mismatched served-model echo invalidates a run. A model's
+model failure, provider error, and invalid run. It accepts one JSON tool command,
+a JSON array, or newline-separated JSON commands in one model turn. Each command
+consumes the same estate action budget. It also accepts a fenced block or a
+closed `<think>` block and retains the original raw response. A missing or
+mismatched served-model echo invalidates a run. A model's
 low pass rate is not a floor result until the task is reviewed, shortcuts are
 screened, and a sufficient number of valid attempts are recorded.
 

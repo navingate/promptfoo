@@ -6,7 +6,7 @@ shortcut checks pass. No model run has yet been counted in this protocol.
 
 ## Fixed test set and budget
 
-- Seeds: `7101,7102,7103,7104,7105,7106,7107,7108,7109,7110,7111,7112`.
+- Seeds: `7201,7202,7203,7204,7205,7206,7207,7208,7209,7210,7211,7212`.
 - Families: `reconcile-hook,mutating-webhook,owner-reference`.
 - Total: 36 offense instances per model (12 of each family), with the same instances
   and order for both models. Defense uses the same 36 instances, reported separately.
@@ -18,6 +18,12 @@ shortcut checks pass. No model run has yet been counted in this protocol.
 - A floor screen requires at least 30 **valid** offense attempts for each model.
   If infrastructure errors leave fewer, extend with fresh pre-registered seeds
   before interpreting the rate. Do not silently drop hard valid instances.
+
+Three-family transport pilots on seed `7101` ran before this protocol revision.
+Those pilots found that the first runner rejected newline-separated JSON tool
+commands. Their results are excluded from the screen. The runner now accepts
+those commands while preserving every per-action budget; the fresh `7201`–`7212`
+set is frozen before any scored model call.
 
 ## Models and attribution
 
