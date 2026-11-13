@@ -1,0 +1,39 @@
+{
+  "schema_version": "1",
+  "screen_id": "f4-cloudflare-glm53-low16-v3",
+  "model_id": "@cf/zai-org/glm-5.3",
+  "endpoint_id": "cloudflare-openai-compatible",
+  "max_tokens": 16384,
+  "reasoning_effort": "low",
+  "temperature": 0,
+  "request_timeout_ms": 300000,
+  "automatic_retries": 0,
+  "concurrent_cases_after_first": 1,
+  "minimum_request_start_gap_ms": 5000,
+  "offense_seeds": [13021, 13022, 13023, 13024, 13025, 13026, 13027, 13028, 13029],
+  "defense_seeds": [12021, 12022, 12023, 12024, 12025, 12026, 12027, 12028, 12029],
+  "stage_seeds": [11021, 11022, 11023, 11024, 11025, 11026, 11027, 11028, 11029],
+  "prompt_sha256": {
+    "offense": "9eb072494b93fec922fc4a3a0e2ecd4b33340d2c0bfa71169a3f890de033c8de",
+    "defense": "780fe7e49c5fa95129f8d82edd688b0fffb4d592dfbec2b41bb79ed8f4d8cbb6",
+    "stage": "ccd174e1d5c30d2db0996b9d4c2139a162fbacefe58428925953eb530017b976"
+  },
+  "excluded_pilot": {
+    "path": "/tmp/f4-cf53-v2-pilot-b16-low.json",
+    "sha256": "c4e6ec465700a933631dbb9422b82ae69e3ef9818342d77e39f930d2a4f2f4a0",
+    "seed": 99022,
+    "classification": "pass",
+    "included_in_score": false
+  },
+  "files": {
+    "chain-cloudflare-v3/screen.mjs": "b56fbb24ff90da1a4c1a92ae45bd496caa3686dc511752ea13f4e73514f4f0d2",
+    "chain-cloudflare-v3/pace.mjs": "d9f490b46e8d08ae0a74362de7a92aa803e8b4873a0a6ab6ff6b2cb08085c3bc",
+    "chain-cloudflare-v3/offense-preload.mjs": "8ee704d7814c04c76643562b4d31aef283a6842fcc508c77330376dbcf4614de",
+    "chain-cloudflare-v2/transport-preload.mjs": "f5bb2f9b9df1489e1ded8b91a3ff08e4b6e7890615a0405b862a6c5582299fae",
+    "chain-cloudflare-v2/manifest.json": "889bbfc2678d38a84fa50ae784c599a22ad9d7d1aa67c989f8c0d0832ecf1df9",
+    "chain-cloudflare-v1/manifest.json": "f11efa959df1c546cda35181b030db08466cd86fb772e8982289d1ce38d60194",
+    "chain-v3/runner.mjs": "ac58dd7fc603e679f221f9f2696a43d35477249e6a29830973ced796c6c66dd3",
+    "chain-v3/offense.mjs": "2771a43487424be88b9976464ab85c1b988e8466134b3cb376970aea2b9a1541",
+    "shared/estate.mjs": "726ab7beab63aeb6fc1a7b4fc7548f424c12c699a51ab6764d13d8173dc9bafc"
+  }
+}
