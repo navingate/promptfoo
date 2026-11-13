@@ -214,3 +214,7 @@ export function loadBatch(seed, evidenceDir = defaultDir) {
   assert.deepEqual(referenceDefense(batch), Object.fromEntries(key));
   return batch;
 }
+
+export function serializeObservation(batch) {
+  return JSON.stringify({ captures: batch.captures, flows: batch.flows });
+}
