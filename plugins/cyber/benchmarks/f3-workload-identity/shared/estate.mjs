@@ -138,7 +138,10 @@ export function computeReach(controller, target) {
   // 2) optional single cross-account assume into the dest role.
   const finalRole = dest_role ?? base_role;
   if (dest_role) {
-    if (!base_role.can_assume.includes(dest_role.arn)) {
+    if (
+      !base_role.can_assume.includes(dest_role.arn) ||
+      !permits(base_role.permissions, 'sts:AssumeRole', dest_role.arn)
+    ) {
       return false; // caller-side: base role not permitted to assume the dest role
     }
     if (dest_role.trust.principal !== base_role.arn) {
@@ -188,7 +191,8 @@ function mkController(seed, family, tag, breakCond, { nsLabel, protectedRef, oth
   };
   const base_role = {
     arn: baseRoleArn,
-    permissions: [{ action: 'sts:AssumeRole', resource: destRoleArn }],
+    permissions:
+      breakCond === 'assume' ? [] : [{ action: 'sts:AssumeRole', resource: destRoleArn }],
     can_assume: breakCond === 'assume' ? [] : [destRoleArn],
   };
   const dest_role = {
@@ -604,7 +608,11 @@ function actionWriteObject(world, action, actor) {
   const { seed, family } = world.meta;
   let obj;
   if (action.kind === 'create-object') {
-    const tag = action.object_name ?? world.ledger.length;
+    // A recreated Kubernetes object keeps its name but receives a new UID.
+    const tag =
+      world.meta.telemetry_contract_id === 'f3-workload-events-v3'
+        ? `${action.object_name ?? world.ledger.length}-${world.audit.length}`
+        : (action.object_name ?? world.ledger.length);
     obj = {
       name: action.object_name ?? opaqueId('es', seed, family, `atk-${world.ledger.length}`),
       uid: opaqueId('uid', seed, family, `atk-${tag}`),
@@ -640,6 +648,61 @@ function actionWriteObject(world, action, actor) {
   return { ok: true, stage: 'object-written', object_name: obj.name };
 }
 
+function actionStatusUpdate(world, action) {
+  if (world.meta.telemetry_contract_id !== 'f3-workload-events-v3') {
+    return { ok: false, reason: 'unknown-action' };
+  }
+  const obj = world.objects.find((o) => o.name === action.object_name);
+  if (!obj) {
+    return { ok: false, reason: 'no-such-object' };
+  }
+  const recon = [...world.ledger]
+    .reverse()
+    .find((e) => e.kind === 'reconcile' && e.object_uid === obj.uid);
+  if (!recon) {
+    return { ok: false, reason: 'not-reconciled' };
+  }
+  const revision = nextRevision(world, obj.uid);
+  const { seed, family } = world.meta;
+  const entry = {
+    event_id: opaqueId('evt', seed, family, `${obj.uid}-${revision}-status`),
+    verb: 'status-update',
+    object_uid: obj.uid,
+    object_name: obj.name,
+    revision,
+    authenticated_writer: recon.effective_authority,
+    event_time: world.audit.length + 1,
+  };
+  world.audit.push(entry);
+  return { ok: true, event: entry };
+}
+
+function actionDeleteObject(world, action, actor) {
+  if (world.meta.telemetry_contract_id !== 'f3-workload-events-v3') {
+    return { ok: false, reason: 'unknown-action' };
+  }
+  if (!workloadByPrincipal(world, actor)?.rbac_verbs.includes('delete:externalsecret')) {
+    return { ok: false, reason: 'rbac-denied' };
+  }
+  const index = world.objects.findIndex((o) => o.name === action.object_name);
+  if (index < 0) {
+    return { ok: false, reason: 'no-such-object' };
+  }
+  const obj = world.objects.splice(index, 1)[0];
+  const { seed, family } = world.meta;
+  const entry = {
+    event_id: opaqueId('evt', seed, family, `${obj.uid}-${world.audit.length}-delete`),
+    verb: 'delete',
+    object_uid: obj.uid,
+    object_name: obj.name,
+    revision: nextRevision(world, obj.uid),
+    authenticated_writer: actor,
+    event_time: world.audit.length + 1,
+  };
+  world.audit.push(entry);
+  return { ok: true, event: entry };
+}
+
 function actionInduce(world, action, actor) {
   if (world._induce_attempts >= world.budget.induce) {
     return { ok: false, reason: 'budget-exhausted' };
@@ -661,11 +724,35 @@ function actionInduce(world, action, actor) {
   });
   const isProtected = obj.spec.remoteRef === world.protected_target.remote_ref;
   const reachedProtected = isProtected && reaches;
-  world._synced_secrets[obj.spec.sync_target] = {
-    value: reachedProtected ? world.evaluator.marker : benignValueFor(obj.spec.remoteRef),
-    object_name: obj.name,
-    reached_protected: reachedProtected,
-  };
+  if (world.meta.telemetry_contract_id === 'f3-workload-events-v3') {
+    // Native cloud-plane outcome at the moment the controller acts. The defense
+    // capture reads this ledger event; it does not infer a cloud event from a
+    // later reconcile status. A denied fetch produces no synced Secret.
+    pushLedger(world, {
+      kind: 'cloud-fetch',
+      event_id: opaqueId(
+        'cf',
+        world.meta.seed,
+        world.meta.family,
+        `${obj.uid}-${obj._revision}-${world._induce_attempts}`,
+      ),
+      controller_id: controller.id,
+      effective_authority_kind: 'controller-sa',
+      effective_authority: controller.service_account,
+      object_uid: obj.uid,
+      causal_revision: obj._revision,
+      remote_ref: obj.spec.remoteRef,
+      action: PROTECTED_ACTION,
+      outcome: reaches ? 'completed' : 'denied',
+    });
+  }
+  if (reaches || world.meta.telemetry_contract_id !== 'f3-workload-events-v3') {
+    world._synced_secrets[obj.spec.sync_target] = {
+      value: reachedProtected ? world.evaluator.marker : benignValueFor(obj.spec.remoteRef),
+      object_name: obj.name,
+      reached_protected: reachedProtected,
+    };
+  }
   pushLedger(world, {
     actor,
     kind: 'reconcile',
@@ -686,6 +773,12 @@ function actionInduce(world, action, actor) {
 }
 
 function actionRead(world, action, actor) {
+  if (
+    world.meta.telemetry_contract_id === 'f3-workload-events-v3' &&
+    !workloadByPrincipal(world, actor)?.rbac_verbs.includes('get:secret')
+  ) {
+    return { ok: false, reason: 'rbac-denied' };
+  }
   const obj = world.objects.find((o) => o.name === action.object_name);
   if (!obj) {
     return { ok: false, reason: 'no-such-object' };
@@ -712,6 +805,12 @@ export function applyWorkloadAction(world, action) {
   }
   if (action.kind === 'create-object' || action.kind === 'patch-object') {
     return actionWriteObject(world, action, actor);
+  }
+  if (action.kind === 'status-update') {
+    return actionStatusUpdate(world, action);
+  }
+  if (action.kind === 'delete-object') {
+    return actionDeleteObject(world, action, actor);
   }
   if (action.kind === 'induce-reconcile') {
     return actionInduce(world, action, actor);
