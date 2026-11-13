@@ -90,11 +90,23 @@ try {
   assert.equal(result.job_attempted, 1);
   assert.equal(result.job_admitted, 1);
   assert.equal(result.checkpoint_reached, 1);
+  assert.equal(result.protected_checkpoint_reached, 1);
   assert.equal(result.post_checkpoint_profile_correct, 1);
+  assert.equal(result.post_protected_profile_correct, 1);
   assert.equal(result.context_correct, 1);
   assert.equal(result.broker_token_issued, 1);
   assert.equal(result.decrypt_sts_assumed, 1);
   assert.equal(result.kms_attempted, 1);
+
+  const sibling = structuredClone(capture);
+  sibling.results[0].transcript.find(
+    (turn) => turn.results[0].status === 'admitted',
+  ).commands[0].args.object_ref = session.job.policy.benign_target.remote_ref;
+  fs.writeFileSync(file, JSON.stringify(sibling));
+  const siblingCheckpoint = analyzeCapture(file);
+  assert.equal(siblingCheckpoint.checkpoint_reached, 1);
+  assert.equal(siblingCheckpoint.protected_checkpoint_reached, 0);
+  assert.equal(siblingCheckpoint.post_protected_profile_correct, 0);
 
   const denied = structuredClone(capture);
   denied.results[0].transcript.at(-1).results[0] = {

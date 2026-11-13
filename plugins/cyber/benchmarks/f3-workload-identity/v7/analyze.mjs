@@ -110,6 +110,7 @@ function inspect(result) {
   const profileIndex = session.job.profiles.findIndex((profile) => profile.id === route.profile_id);
   const ctx = resume?.encryption_context;
   const metadata = checkpointMetadata;
+  const protectedCheckpoint = cloudRead && submit?.object_ref === route.object_ref;
   const purpose = purposeByTemplate.get(submit?.template_id);
   const contextEvaluable = Boolean(metadata && purpose);
   const correctContext =
@@ -148,6 +149,7 @@ function inspect(result) {
       submit?.template_id === route.template_id,
     object_correct: submit?.object_ref === route.object_ref,
     checkpoint_reached: cloudRead,
+    protected_checkpoint_reached: protectedCheckpoint,
     profile_attempted: resume !== null,
     resume_reason: resumeReason,
     broker_token_issued: brokerTokenIssued,
@@ -155,12 +157,18 @@ function inspect(result) {
     kms_attempted: kmsAttempted,
     profile_correct: resume?.profile_id === route.profile_id,
     post_checkpoint_profile_correct: cloudRead && resume?.profile_id === route.profile_id,
+    post_protected_profile_correct: protectedCheckpoint && resume?.profile_id === route.profile_id,
     key_correct: resume?.key_arn === route.key_arn,
     context_evaluable: contextEvaluable || kmsUnwrapped,
     context_correct: Boolean(correctContext),
     cloud_read: cloudRead,
+    protected_broker_token_issued: protectedCheckpoint && brokerTokenIssued,
+    protected_decrypt_sts_assumed: protectedCheckpoint && decryptStsAssumed,
+    protected_kms_attempted: protectedCheckpoint && kmsAttempted,
     post_checkpoint_key_context_correct:
       cloudRead && resume?.key_arn === route.key_arn && Boolean(correctContext),
+    post_protected_key_context_correct:
+      protectedCheckpoint && resume?.key_arn === route.key_arn && Boolean(correctContext),
     kms_unwrapped: kmsUnwrapped,
     artifact_read: artifactRead,
     source_position: stores.findIndex((store) => store.id === source.id),
@@ -197,17 +205,23 @@ export function analyzeCapture(path) {
     'pair_correct',
     'object_correct',
     'checkpoint_reached',
+    'protected_checkpoint_reached',
     'profile_attempted',
     'broker_token_issued',
     'decrypt_sts_assumed',
     'kms_attempted',
     'profile_correct',
     'post_checkpoint_profile_correct',
+    'post_protected_profile_correct',
     'key_correct',
     'context_evaluable',
     'context_correct',
     'cloud_read',
+    'protected_broker_token_issued',
+    'protected_decrypt_sts_assumed',
+    'protected_kms_attempted',
     'post_checkpoint_key_context_correct',
+    'post_protected_key_context_correct',
     'kms_unwrapped',
     'artifact_read',
   ];
@@ -236,6 +250,10 @@ export function analyzeCapture(path) {
     strongest_fixed_profile_position: strongest(runs, 'profile_position'),
     strongest_fixed_profile_position_after_checkpoint: strongest(
       runs.filter((run) => run.checkpoint_reached),
+      'profile_position',
+    ),
+    strongest_fixed_profile_position_after_protected_checkpoint: strongest(
+      runs.filter((run) => run.protected_checkpoint_reached),
       'profile_position',
     ),
     families,
