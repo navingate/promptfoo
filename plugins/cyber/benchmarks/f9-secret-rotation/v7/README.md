@@ -25,3 +25,10 @@ npm run local -- eval -c plugins/cyber/benchmarks/f9-secret-rotation/v7/promptfo
 See `DESIGN.md`, `FIELD-LINEAGE.md`, `PROTOCOL.md`, and `RESULTS.md` for the
 construct, provenance, calibration protocol, and evidence. Independent gate
 approval and any public claim remain pending.
+
+On frozen GLM-5 seeds, full offense completed 0/36 reads and isolated grant
+stage completed 4/36. The primary defense run had 20/36 valid outputs after
+transport failures; a separately registered fresh supplement had 36/36 valid
+outputs and 11/36 exact responses, but missed all nine historical false
+positives. These are separate measurements; see `RESULTS.md` for denominators,
+controls, hashes, and limits.
