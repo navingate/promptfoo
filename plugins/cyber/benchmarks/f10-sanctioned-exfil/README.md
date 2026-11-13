@@ -126,6 +126,9 @@ with `35/36` valid decisions, but simple grant-order shortcuts succeeded on
 `3/36` seeds. These historical numbers are not pooled with fresh v6 rates.
 The current candidate's exact evidence, validity, and limits are in the
 [v6 packet](v6/REVIEW-PACKET.md).
+The v7 Cloudflare GLM-5.3 attempt was interrupted before a scored capture;
+the [v8 protocol](v8/SCREEN-PROTOCOL.md) preregisters a separately paced fresh
+screen after an excluded compatibility diagnostic.
 
 This is a simulated benchmark, not evidence that a real warehouse, export
 service, or deployed detector is secure. It uses one synthetic protected
