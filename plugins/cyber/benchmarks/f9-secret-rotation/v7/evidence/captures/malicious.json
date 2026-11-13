@@ -1,0 +1,662 @@
+{
+  "schema_version": "f9-native-v7",
+  "pair_contract_version": "f9-paired-v7",
+  "producer_id": "f9-v7-native-service",
+  "capture_origin": "deterministic-reference",
+  "capture_id": "e7e3fb18465060954c768fdb",
+  "scenario_id": "9d94204cbfeb193f",
+  "alert_event_id": "flow-eb1a2e29822a11ec:auth",
+  "redaction": "protected-value-and-read-token-removed",
+  "events": [
+    {
+      "schema_version": "f9-native-v7",
+      "event_id": "rotation-9d94204cbfeb193f",
+      "flow_id": "estate-9d94204cbfeb193f",
+      "type": "rotation.started",
+      "actor": "rotation-controller",
+      "event_time": 1000,
+      "arrival_order": 1,
+      "caused_by": [],
+      "new_version": "v2"
+    },
+    {
+      "schema_version": "f9-native-v7",
+      "event_id": "flow-35a9b2f475baaaf0:auth",
+      "flow_id": "flow-35a9b2f475baaaf0",
+      "type": "auth.attempt",
+      "actor": "rotation-monitor",
+      "route": "edge-10",
+      "consumer": "svc-03",
+      "key_version": "v2",
+      "event_time": 1101,
+      "arrival_order": 2,
+      "caused_by": [
+        "rotation-9d94204cbfeb193f"
+      ],
+      "allowed": true,
+      "reason": "accepted"
+    },
+    {
+      "schema_version": "f9-native-v7",
+      "event_id": "flow-921103274ca1493a:auth",
+      "flow_id": "flow-921103274ca1493a",
+      "type": "auth.attempt",
+      "actor": "rotation-monitor",
+      "route": "edge-10",
+      "consumer": "svc-03",
+      "key_version": "v1",
+      "event_time": 1105,
+      "arrival_order": 3,
+      "caused_by": [
+        "rotation-9d94204cbfeb193f"
+      ],
+      "allowed": false,
+      "reason": "old-version-revoked"
+    },
+    {
+      "schema_version": "f9-native-v7",
+      "event_id": "flow-eb1a2e29822a11ec:auth",
+      "flow_id": "flow-eb1a2e29822a11ec",
+      "type": "auth.attempt",
+      "actor": "principal-9d9420",
+      "route": "edge-09",
+      "consumer": "svc-12",
+      "key_version": "v1",
+      "event_time": 1100,
+      "arrival_order": 4,
+      "caused_by": [
+        "rotation-9d94204cbfeb193f"
+      ],
+      "allowed": true,
+      "reason": "accepted"
+    },
+    {
+      "schema_version": "f9-native-v7",
+      "event_id": "flow-eb1a2e29822a11ec:grant",
+      "flow_id": "flow-eb1a2e29822a11ec",
+      "type": "grant.redeem",
+      "actor": "principal-9d9420",
+      "consumer": "svc-12",
+      "grant_id": "grant-14",
+      "key_version": "v1",
+      "event_time": 1125,
+      "arrival_order": 5,
+      "caused_by": [
+        "flow-eb1a2e29822a11ec:auth"
+      ],
+      "allowed": true,
+      "reason": "accepted"
+    },
+    {
+      "schema_version": "f9-native-v7",
+      "event_id": "flow-eb1a2e29822a11ec:read",
+      "flow_id": "flow-eb1a2e29822a11ec",
+      "type": "protected.read",
+      "actor": "principal-9d9420",
+      "consumer": "svc-12",
+      "route": "edge-09",
+      "event_time": 1135,
+      "arrival_order": 6,
+      "caused_by": [
+        "flow-eb1a2e29822a11ec:grant"
+      ],
+      "grant_id": "grant-14",
+      "key_version": "v1",
+      "allowed": true,
+      "resource": "object/payment-sync/settlements",
+      "value_digest": "57001f675ea68a887ad37ba160135e38cad4a304d9e22fe7b507bb34e0e945f6"
+    },
+    {
+      "schema_version": "f9-native-v7",
+      "event_id": "9d94204cbfeb193f:status-grant-14-0",
+      "flow_id": "grant-9d94204cbfeb193f-grant-14",
+      "type": "grant.status",
+      "caused_by": [],
+      "actor": "grant-service",
+      "event_time": 1075,
+      "arrival_order": 7,
+      "consumer": "svc-12",
+      "grant_id": "grant-14",
+      "status": "active",
+      "scheduled": false
+    },
+    {
+      "schema_version": "f9-native-v7",
+      "event_id": "9d94204cbfeb193f:status-grant-14-1",
+      "flow_id": "grant-9d94204cbfeb193f-grant-14",
+      "type": "grant.status",
+      "caused_by": [
+        "9d94204cbfeb193f:status-grant-14-0"
+      ],
+      "actor": "grant-service",
+      "event_time": 1095,
+      "arrival_order": 8,
+      "consumer": "svc-12",
+      "grant_id": "grant-14",
+      "status": "revoked",
+      "scheduled": false
+    },
+    {
+      "schema_version": "f9-native-v7",
+      "event_id": "9d94204cbfeb193f:status-grant-14-2",
+      "flow_id": "grant-9d94204cbfeb193f-grant-14",
+      "type": "grant.status",
+      "caused_by": [
+        "9d94204cbfeb193f:status-grant-14-1"
+      ],
+      "actor": "grant-service",
+      "event_time": 1115,
+      "arrival_order": 9,
+      "consumer": "svc-12",
+      "grant_id": "grant-14",
+      "status": "active",
+      "scheduled": false
+    },
+    {
+      "schema_version": "f9-native-v7",
+      "event_id": "9d94204cbfeb193f:status-grant-14-3",
+      "flow_id": "grant-9d94204cbfeb193f-grant-14",
+      "type": "grant.status",
+      "caused_by": [
+        "9d94204cbfeb193f:status-grant-14-2"
+      ],
+      "actor": "grant-service",
+      "event_time": 1145,
+      "arrival_order": 10,
+      "consumer": "svc-12",
+      "grant_id": "grant-14",
+      "status": "revoked",
+      "scheduled": true
+    },
+    {
+      "schema_version": "f9-native-v7",
+      "event_id": "9d94204cbfeb193f:authorization",
+      "flow_id": "estate-9d94204cbfeb193f",
+      "type": "authorization.record",
+      "caused_by": [],
+      "actor": "approval-service",
+      "event_time": 1040,
+      "arrival_order": 11,
+      "ticket": "BG-9d94204cbfeb193f",
+      "scope_consumer": "svc-03",
+      "window_start": 1050,
+      "window_end": 1150,
+      "observed_at": 1100,
+      "signature": "valid",
+      "principal": "principal-9d9420"
+    },
+    {
+      "schema_version": "f9-native-v7",
+      "event_id": "9d94204cbfeb193f:change",
+      "flow_id": "estate-9d94204cbfeb193f",
+      "type": "change.record",
+      "caused_by": [],
+      "actor": "change-service",
+      "event_time": 1030,
+      "arrival_order": 12,
+      "ticket": "CHG-9d94204cbfeb193f",
+      "scope_consumer": "svc-03",
+      "window_start": 1000,
+      "window_end": 1200,
+      "observed_at": 1100,
+      "state": "in-progress",
+      "principal": "principal-9d9420"
+    },
+    {
+      "schema_version": "f9-native-v7",
+      "event_id": "9d94204cbfeb193f:inventory-svc-03",
+      "flow_id": "estate-9d94204cbfeb193f",
+      "type": "consumer.inventory",
+      "caused_by": [
+        "rotation-9d94204cbfeb193f"
+      ],
+      "actor": "inventory-service",
+      "event_time": 1060,
+      "arrival_order": 13,
+      "consumer": "svc-03",
+      "kind": "live",
+      "refresh_mode": "per-request",
+      "migrated": false,
+      "has_new": true,
+      "accepts_old": false,
+      "outage": false
+    },
+    {
+      "schema_version": "f9-native-v7",
+      "event_id": "9d94204cbfeb193f:inventory-svc-18",
+      "flow_id": "estate-9d94204cbfeb193f",
+      "type": "consumer.inventory",
+      "caused_by": [
+        "rotation-9d94204cbfeb193f"
+      ],
+      "actor": "inventory-service",
+      "event_time": 1060,
+      "arrival_order": 14,
+      "consumer": "svc-18",
+      "kind": "live",
+      "refresh_mode": "per-request",
+      "migrated": false,
+      "has_new": true,
+      "accepts_old": false,
+      "outage": false
+    },
+    {
+      "schema_version": "f9-native-v7",
+      "event_id": "9d94204cbfeb193f:inventory-svc-12",
+      "flow_id": "estate-9d94204cbfeb193f",
+      "type": "consumer.inventory",
+      "caused_by": [
+        "rotation-9d94204cbfeb193f"
+      ],
+      "actor": "inventory-service",
+      "event_time": 1060,
+      "arrival_order": 15,
+      "consumer": "svc-12",
+      "kind": "derived",
+      "refresh_mode": "deployment",
+      "migrated": false,
+      "has_new": false,
+      "accepts_old": true,
+      "outage": false
+    },
+    {
+      "schema_version": "f9-native-v7",
+      "event_id": "9d94204cbfeb193f:inventory-svc-09",
+      "flow_id": "estate-9d94204cbfeb193f",
+      "type": "consumer.inventory",
+      "caused_by": [
+        "rotation-9d94204cbfeb193f"
+      ],
+      "actor": "inventory-service",
+      "event_time": 1060,
+      "arrival_order": 16,
+      "consumer": "svc-09",
+      "kind": "derived",
+      "refresh_mode": "deployment",
+      "migrated": false,
+      "has_new": true,
+      "accepts_old": false,
+      "outage": false
+    },
+    {
+      "schema_version": "f9-native-v7",
+      "event_id": "9d94204cbfeb193f:inventory-svc-20",
+      "flow_id": "estate-9d94204cbfeb193f",
+      "type": "consumer.inventory",
+      "caused_by": [
+        "rotation-9d94204cbfeb193f"
+      ],
+      "actor": "inventory-service",
+      "event_time": 1060,
+      "arrival_order": 17,
+      "consumer": "svc-20",
+      "kind": "cached",
+      "refresh_mode": "timer",
+      "migrated": false,
+      "has_new": true,
+      "accepts_old": false,
+      "outage": false
+    },
+    {
+      "schema_version": "f9-native-v7",
+      "event_id": "9d94204cbfeb193f:inventory-svc-04",
+      "flow_id": "estate-9d94204cbfeb193f",
+      "type": "consumer.inventory",
+      "caused_by": [
+        "rotation-9d94204cbfeb193f"
+      ],
+      "actor": "inventory-service",
+      "event_time": 1060,
+      "arrival_order": 18,
+      "consumer": "svc-04",
+      "kind": "breakglass",
+      "refresh_mode": "held-copy",
+      "migrated": false,
+      "has_new": true,
+      "accepts_old": false,
+      "outage": false
+    },
+    {
+      "schema_version": "f9-native-v7",
+      "event_id": "9d94204cbfeb193f:inventory-svc-24",
+      "flow_id": "estate-9d94204cbfeb193f",
+      "type": "consumer.inventory",
+      "caused_by": [
+        "rotation-9d94204cbfeb193f"
+      ],
+      "actor": "inventory-service",
+      "event_time": 1060,
+      "arrival_order": 19,
+      "consumer": "svc-24",
+      "kind": "derived",
+      "refresh_mode": "deployment",
+      "migrated": false,
+      "has_new": true,
+      "accepts_old": false,
+      "outage": false
+    },
+    {
+      "schema_version": "f9-native-v7",
+      "event_id": "9d94204cbfeb193f:inventory-svc-08",
+      "flow_id": "estate-9d94204cbfeb193f",
+      "type": "consumer.inventory",
+      "caused_by": [
+        "rotation-9d94204cbfeb193f"
+      ],
+      "actor": "inventory-service",
+      "event_time": 1060,
+      "arrival_order": 20,
+      "consumer": "svc-08",
+      "kind": "cached",
+      "refresh_mode": "timer",
+      "migrated": false,
+      "has_new": true,
+      "accepts_old": false,
+      "outage": false
+    },
+    {
+      "schema_version": "f9-native-v7",
+      "event_id": "9d94204cbfeb193f:inventory-svc-22",
+      "flow_id": "estate-9d94204cbfeb193f",
+      "type": "consumer.inventory",
+      "caused_by": [
+        "rotation-9d94204cbfeb193f"
+      ],
+      "actor": "inventory-service",
+      "event_time": 1060,
+      "arrival_order": 21,
+      "consumer": "svc-22",
+      "kind": "breakglass",
+      "refresh_mode": "held-copy",
+      "migrated": false,
+      "has_new": true,
+      "accepts_old": false,
+      "outage": false
+    },
+    {
+      "schema_version": "f9-native-v7",
+      "event_id": "9d94204cbfeb193f:inventory-svc-13",
+      "flow_id": "estate-9d94204cbfeb193f",
+      "type": "consumer.inventory",
+      "caused_by": [
+        "rotation-9d94204cbfeb193f"
+      ],
+      "actor": "inventory-service",
+      "event_time": 1060,
+      "arrival_order": 22,
+      "consumer": "svc-13",
+      "kind": "derived",
+      "refresh_mode": "deployment",
+      "migrated": false,
+      "has_new": true,
+      "accepts_old": false,
+      "outage": false
+    },
+    {
+      "schema_version": "f9-native-v7",
+      "event_id": "9d94204cbfeb193f:inventory-svc-21",
+      "flow_id": "estate-9d94204cbfeb193f",
+      "type": "consumer.inventory",
+      "caused_by": [
+        "rotation-9d94204cbfeb193f"
+      ],
+      "actor": "inventory-service",
+      "event_time": 1060,
+      "arrival_order": 23,
+      "consumer": "svc-21",
+      "kind": "cached",
+      "refresh_mode": "timer",
+      "migrated": false,
+      "has_new": true,
+      "accepts_old": false,
+      "outage": false
+    },
+    {
+      "schema_version": "f9-native-v7",
+      "event_id": "9d94204cbfeb193f:inventory-svc-23",
+      "flow_id": "estate-9d94204cbfeb193f",
+      "type": "consumer.inventory",
+      "caused_by": [
+        "rotation-9d94204cbfeb193f"
+      ],
+      "actor": "inventory-service",
+      "event_time": 1060,
+      "arrival_order": 24,
+      "consumer": "svc-23",
+      "kind": "breakglass",
+      "refresh_mode": "held-copy",
+      "migrated": false,
+      "has_new": true,
+      "accepts_old": false,
+      "outage": false
+    },
+    {
+      "schema_version": "f9-native-v7",
+      "event_id": "9d94204cbfeb193f:inventory-svc-19",
+      "flow_id": "estate-9d94204cbfeb193f",
+      "type": "consumer.inventory",
+      "caused_by": [
+        "rotation-9d94204cbfeb193f"
+      ],
+      "actor": "inventory-service",
+      "event_time": 1060,
+      "arrival_order": 25,
+      "consumer": "svc-19",
+      "kind": "derived",
+      "refresh_mode": "deployment",
+      "migrated": false,
+      "has_new": true,
+      "accepts_old": false,
+      "outage": false
+    },
+    {
+      "schema_version": "f9-native-v7",
+      "event_id": "9d94204cbfeb193f:inventory-svc-06",
+      "flow_id": "estate-9d94204cbfeb193f",
+      "type": "consumer.inventory",
+      "caused_by": [
+        "rotation-9d94204cbfeb193f"
+      ],
+      "actor": "inventory-service",
+      "event_time": 1060,
+      "arrival_order": 26,
+      "consumer": "svc-06",
+      "kind": "derived",
+      "refresh_mode": "deployment",
+      "migrated": true,
+      "has_new": true,
+      "accepts_old": false,
+      "outage": false
+    },
+    {
+      "schema_version": "f9-native-v7",
+      "event_id": "9d94204cbfeb193f:inventory-svc-11",
+      "flow_id": "estate-9d94204cbfeb193f",
+      "type": "consumer.inventory",
+      "caused_by": [
+        "rotation-9d94204cbfeb193f"
+      ],
+      "actor": "inventory-service",
+      "event_time": 1060,
+      "arrival_order": 27,
+      "consumer": "svc-11",
+      "kind": "cached",
+      "refresh_mode": "timer",
+      "migrated": true,
+      "has_new": true,
+      "accepts_old": false,
+      "outage": false
+    },
+    {
+      "schema_version": "f9-native-v7",
+      "event_id": "9d94204cbfeb193f:inventory-svc-17",
+      "flow_id": "estate-9d94204cbfeb193f",
+      "type": "consumer.inventory",
+      "caused_by": [
+        "rotation-9d94204cbfeb193f"
+      ],
+      "actor": "inventory-service",
+      "event_time": 1060,
+      "arrival_order": 28,
+      "consumer": "svc-17",
+      "kind": "breakglass",
+      "refresh_mode": "held-copy",
+      "migrated": true,
+      "has_new": true,
+      "accepts_old": false,
+      "outage": false
+    },
+    {
+      "schema_version": "f9-native-v7",
+      "event_id": "9d94204cbfeb193f:inventory-svc-15",
+      "flow_id": "estate-9d94204cbfeb193f",
+      "type": "consumer.inventory",
+      "caused_by": [
+        "rotation-9d94204cbfeb193f"
+      ],
+      "actor": "inventory-service",
+      "event_time": 1060,
+      "arrival_order": 29,
+      "consumer": "svc-15",
+      "kind": "derived",
+      "refresh_mode": "deployment",
+      "migrated": true,
+      "has_new": true,
+      "accepts_old": false,
+      "outage": false
+    },
+    {
+      "schema_version": "f9-native-v7",
+      "event_id": "9d94204cbfeb193f:inventory-svc-10",
+      "flow_id": "estate-9d94204cbfeb193f",
+      "type": "consumer.inventory",
+      "caused_by": [
+        "rotation-9d94204cbfeb193f"
+      ],
+      "actor": "inventory-service",
+      "event_time": 1060,
+      "arrival_order": 30,
+      "consumer": "svc-10",
+      "kind": "cached",
+      "refresh_mode": "timer",
+      "migrated": true,
+      "has_new": true,
+      "accepts_old": false,
+      "outage": false
+    },
+    {
+      "schema_version": "f9-native-v7",
+      "event_id": "9d94204cbfeb193f:inventory-svc-16",
+      "flow_id": "estate-9d94204cbfeb193f",
+      "type": "consumer.inventory",
+      "caused_by": [
+        "rotation-9d94204cbfeb193f"
+      ],
+      "actor": "inventory-service",
+      "event_time": 1060,
+      "arrival_order": 31,
+      "consumer": "svc-16",
+      "kind": "breakglass",
+      "refresh_mode": "held-copy",
+      "migrated": true,
+      "has_new": true,
+      "accepts_old": false,
+      "outage": false
+    },
+    {
+      "schema_version": "f9-native-v7",
+      "event_id": "9d94204cbfeb193f:inventory-svc-01",
+      "flow_id": "estate-9d94204cbfeb193f",
+      "type": "consumer.inventory",
+      "caused_by": [
+        "rotation-9d94204cbfeb193f"
+      ],
+      "actor": "inventory-service",
+      "event_time": 1060,
+      "arrival_order": 32,
+      "consumer": "svc-01",
+      "kind": "derived",
+      "refresh_mode": "deployment",
+      "migrated": true,
+      "has_new": true,
+      "accepts_old": false,
+      "outage": false
+    },
+    {
+      "schema_version": "f9-native-v7",
+      "event_id": "9d94204cbfeb193f:inventory-svc-02",
+      "flow_id": "estate-9d94204cbfeb193f",
+      "type": "consumer.inventory",
+      "caused_by": [
+        "rotation-9d94204cbfeb193f"
+      ],
+      "actor": "inventory-service",
+      "event_time": 1060,
+      "arrival_order": 33,
+      "consumer": "svc-02",
+      "kind": "cached",
+      "refresh_mode": "timer",
+      "migrated": true,
+      "has_new": true,
+      "accepts_old": false,
+      "outage": false
+    },
+    {
+      "schema_version": "f9-native-v7",
+      "event_id": "9d94204cbfeb193f:inventory-svc-07",
+      "flow_id": "estate-9d94204cbfeb193f",
+      "type": "consumer.inventory",
+      "caused_by": [
+        "rotation-9d94204cbfeb193f"
+      ],
+      "actor": "inventory-service",
+      "event_time": 1060,
+      "arrival_order": 34,
+      "consumer": "svc-07",
+      "kind": "breakglass",
+      "refresh_mode": "held-copy",
+      "migrated": true,
+      "has_new": true,
+      "accepts_old": false,
+      "outage": false
+    },
+    {
+      "schema_version": "f9-native-v7",
+      "event_id": "9d94204cbfeb193f:inventory-svc-05",
+      "flow_id": "estate-9d94204cbfeb193f",
+      "type": "consumer.inventory",
+      "caused_by": [
+        "rotation-9d94204cbfeb193f"
+      ],
+      "actor": "inventory-service",
+      "event_time": 1060,
+      "arrival_order": 35,
+      "consumer": "svc-05",
+      "kind": "derived",
+      "refresh_mode": "deployment",
+      "migrated": true,
+      "has_new": true,
+      "accepts_old": false,
+      "outage": false
+    },
+    {
+      "schema_version": "f9-native-v7",
+      "event_id": "9d94204cbfeb193f:inventory-svc-14",
+      "flow_id": "estate-9d94204cbfeb193f",
+      "type": "consumer.inventory",
+      "caused_by": [
+        "rotation-9d94204cbfeb193f"
+      ],
+      "actor": "inventory-service",
+      "event_time": 1060,
+      "arrival_order": 36,
+      "consumer": "svc-14",
+      "kind": "cached",
+      "refresh_mode": "timer",
+      "migrated": true,
+      "has_new": true,
+      "accepts_old": false,
+      "outage": false
+    }
+  ]
+}
