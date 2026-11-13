@@ -41,6 +41,11 @@
 
 ### Task 4: One-case Promptfoo operator path
 
+Run a separate fresh v6 offense calibration on preregistered seeds
+`13001`–`13036` with the frozen v5 runner and `OFFENSE-SCREEN-PROTOCOL.md`.
+Keep its result separate from the vendored v6 defense seeds `12001`–`12012`
+and from historical v5 rates.
+
 **Files:** create `v6/defense-runner.mjs`, `v6/defense-runner.test.mjs`, `v6/DEFENSE-SCREEN-PROTOCOL.md`, `v6/DEFENSE-SCREEN-RESULTS.md`, `v6/promptfoo-provider.mjs`, `v6/promptfooconfig-offense.yaml`, `v6/promptfooconfig-defense.yaml`, `v6/promptfoo-provider.test.mjs`, and `v6/README.md`.
 
 - [ ] Write a failing provider test that one `callApi` with one seed invokes one frozen runner case and returns its native classification, score, validity, and error metadata. Reject invalid mode/seed and avoid batch invocation.
