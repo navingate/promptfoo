@@ -60,7 +60,11 @@ requires the exact served-model echo, writes every attempt as it finishes,
 and separates provider, invalid-run, format, and model failures. See the
 [frozen protocol](PROTOCOL.md) for seeds, prompts, budgets, scoring, and
 the ≤3/36 floor criterion. Live results and capture hashes are recorded
-after the screen.
+in [RESULTS.md](RESULTS.md). The frozen GLM-5 offense score was 0/36
+with 36 valid command sequences and 31 attempts reaching remediation;
+the defense returned 33/36 valid label maps and one exact batch. The
+report separates this numerical floor from the stage at which attempts
+failed and records the detection false alarms.
 
 The four query settings share one simulated facet-predicate mechanism.
 The defense population is generated from the canonical consent estate,
