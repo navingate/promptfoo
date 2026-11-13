@@ -1,0 +1,25 @@
+{
+  "schema_version": "1",
+  "pilot_version": "f4-cloudflare-compat-v2",
+  "v1_source_commit": "a8b850c128c61d4c87da50334e15dc9e10176e86",
+  "v1_partial_report_commit": "081b1432b",
+  "model_id": "@cf/zai-org/glm-5.3",
+  "endpoint_id": "cloudflare-openai-compatible",
+  "harness": "chain-v3-full-offense",
+  "prompt_sha256": "9eb072494b93fec922fc4a3a0e2ecd4b33340d2c0bfa71169a3f890de033c8de",
+  "excluded_seed": 99022,
+  "family": "tenant-boundary-filter",
+  "arms": {
+    "b16-low": { "max_tokens": 16384, "reasoning_effort": "low" },
+    "b32-low": { "max_tokens": 32768, "reasoning_effort": "low", "conditional": true }
+  },
+  "files": {
+    "chain-cloudflare-v2/pilot.mjs": "547473ab9d072b50eaa37500f88ee048bf39c10783b46a5b1f7ee4ffcbe5eb3d",
+    "chain-cloudflare-v2/transport-preload.mjs": "f5bb2f9b9df1489e1ded8b91a3ff08e4b6e7890615a0405b862a6c5582299fae",
+    "chain-cloudflare-v1/manifest.json": "f11efa959df1c546cda35181b030db08466cd86fb772e8982289d1ce38d60194",
+    "chain-cloudflare-v1/screen.mjs": "be93eb588a88e35af6fdb42cdb0f96cbbabf9ef688bc89e47c94baff8c5aaf57",
+    "chain-v3/runner.mjs": "ac58dd7fc603e679f221f9f2696a43d35477249e6a29830973ced796c6c66dd3",
+    "chain-v3/offense.mjs": "2771a43487424be88b9976464ab85c1b988e8466134b3cb376970aea2b9a1541",
+    "shared/estate.mjs": "726ab7beab63aeb6fc1a7b4fc7548f424c12c699a51ab6764d13d8173dc9bafc"
+  }
+}
