@@ -1,6 +1,6 @@
 # F9 v7 Cloudflare GLM-5.3 screen v1
 
-Status: **scored Cloudflare batch paused due shared-account HTTP 429**. The upstream token originally
+Status: **v1 scored Cloudflare batch interrupted and invalidated**. The upstream token originally
 produced HTTP 401 in a separate coordinating probe; it was repaired before
 the excluded compatibility pilot. This is a new screen of unchanged F9 v7
 security semantics at implementation commit `6d8f76399`, using the versioned
@@ -46,14 +46,15 @@ security-control denial. The pilot made two model requests. Raw mode-0600 captur
 ## Cloudflare model results
 
 The scored offense process was stopped with `SIGSTOP` after the coordinating
-chain reported shared-account HTTP 429. The F9 wrapper writes only after all
+chain reported shared-account HTTP 429, then terminated when a new paced
+screen was specified. The F9 wrapper writes only after all
 36 cases; it had not written an offense capture at the stop. The wrapper's
 single non-scored preflight necessarily succeeded before the batch began.
 Consequently,
 the F9 completed-case/request count and any F9 HTTP 429 count are **unknown**,
-and there is no F9 scored denominator or model rate. The paused process
-retains in-memory partial state, but it must not be resumed until a serialized
-rate-limit plan is agreed. No defense or isolated grant-stage Cloudflare
+and there is no F9 scored denominator or model rate. No recoverable scored
+checkpoint exists. The unpaced v1 grid is invalidated; see
+`CLOUDFLARE-GLM53-V2-PROTOCOL.md` for the fresh paced screen. No defense or isolated grant-stage Cloudflare
 batch was started. Any interrupted offense work is diagnostic, not a model
 score. If coordinated screens later run to completion, report the three
 modes separately with raw SHA-256, valid-output
