@@ -107,7 +107,16 @@ function argsOf(argv) {
   return args;
 }
 
+let lastModelRequestAt = 0;
+
 async function callModel(messages, cfg) {
+  if (cfg.minRequestIntervalMs) {
+    const waitMs = Math.max(0, lastModelRequestAt + cfg.minRequestIntervalMs - Date.now());
+    if (waitMs > 0) {
+      await new Promise((resolve) => setTimeout(resolve, waitMs));
+    }
+  }
+  lastModelRequestAt = Date.now();
   let response;
   try {
     // biome-ignore lint/style/noRestrictedGlobals: standalone dependency-free eval runner; the app fetch wrapper is unavailable on the run box
@@ -364,6 +373,20 @@ async function runOne(spec, args, cfg) {
   };
 }
 
+function summarize(results, args, cfg) {
+  return {
+    mode: args.mode,
+    version: args.version,
+    model: args.mock ? 'reference' : cfg.model,
+    endpoint_id: args.mock ? 'local-reference' : cfg.endpointId,
+    total: results.length,
+    pass: results.filter((result) => result.classification === 'pass').length,
+    model_fail: results.filter((result) => result.classification === 'model_fail').length,
+    provider_error: results.filter((result) => result.classification === 'provider_error').length,
+    invalid_run: results.filter((result) => result.classification === 'invalid_run').length,
+  };
+}
+
 async function main() {
   const args = argsOf(process.argv.slice(2));
   const cfg = {
@@ -373,6 +396,7 @@ async function main() {
     apiKey: process.env.CYBER_API_KEY || process.env.OPENAI_API_KEY || process.env.AWS_API_KEY,
     model: process.env.CYBER_MODEL,
     reasoningEffort: process.env.CYBER_REASONING_EFFORT || null,
+    minRequestIntervalMs: Number(process.env.CYBER_MIN_REQUEST_INTERVAL_MS || 0),
     maxTokens: args.maxTokens,
     timeoutMs: args.timeoutMs,
   };
@@ -385,27 +409,31 @@ async function main() {
   if (cfg.reasoningEffort && !['low', 'high', 'max'].includes(cfg.reasoningEffort)) {
     throw new Error('CYBER_REASONING_EFFORT must be low, high, or max');
   }
+  if (
+    !Number.isSafeInteger(cfg.minRequestIntervalMs) ||
+    cfg.minRequestIntervalMs < 0 ||
+    cfg.minRequestIntervalMs > 60000
+  ) {
+    throw new Error('CYBER_MIN_REQUEST_INTERVAL_MS must be an integer from 0 to 60000');
+  }
   const results = [];
   for (const seed of args.seeds) {
     for (const family of args.families) {
       const result = await runOne({ seed, family }, args, cfg);
       results.push(result);
+      if (args.output) {
+        fs.writeFileSync(
+          args.output,
+          `${JSON.stringify({ summary: summarize(results, args, cfg), results }, null, 2)}\n`,
+          { mode: 0o600 },
+        );
+      }
       process.stdout.write(
         `${args.mode} ${seed}/${family}: ${result.classification}${result.reason ? ` (${result.reason})` : ''}\n`,
       );
     }
   }
-  const summary = {
-    mode: args.mode,
-    version: args.version,
-    model: args.mock ? 'reference' : cfg.model,
-    endpoint_id: args.mock ? 'local-reference' : cfg.endpointId,
-    total: results.length,
-    pass: results.filter((r) => r.classification === 'pass').length,
-    model_fail: results.filter((r) => r.classification === 'model_fail').length,
-    provider_error: results.filter((r) => r.classification === 'provider_error').length,
-    invalid_run: results.filter((r) => r.classification === 'invalid_run').length,
-  };
+  const summary = summarize(results, args, cfg);
   const out = { summary, results };
   if (args.output) {
     fs.writeFileSync(args.output, `${JSON.stringify(out, null, 2)}\n`);
