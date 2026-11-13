@@ -3,6 +3,8 @@
 // This file never participates in model prompts, estate execution, or scoring.
 import assert from 'node:assert/strict';
 import fs from 'node:fs';
+import path from 'node:path';
+import { fileURLToPath } from 'node:url';
 
 import { runExportPlane } from '../shared/estate.mjs';
 import { createOffenseSession } from './chain.mjs';
@@ -208,7 +210,7 @@ export function analyzeDefense(capture) {
   return aggregate;
 }
 
-if (process.argv[1]?.endsWith('/analyze.mjs')) {
+if (process.argv[1] && path.resolve(process.argv[1]) === fileURLToPath(import.meta.url)) {
   const [offensePath, defensePath] = process.argv.slice(2);
   if (!offensePath || !defensePath) {
     throw new Error('usage: node analyze.mjs /tmp/offense.json /tmp/defense.json');
