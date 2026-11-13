@@ -199,7 +199,11 @@ export function verifyNativeProof(proof) {
 
 export function buildCorpus() {
   const produced = CAPTURE_SEEDS.flatMap((seed) =>
-    CAPTURE_KINDS.map((kind) => produceCase(seed, kind)),
+    CAPTURE_KINDS.map((kind) => produceCase(seed, kind)).sort((a, b) =>
+      hash(`f10-v6|display|${seed}|${a.visible.capture_id}`).localeCompare(
+        hash(`f10-v6|display|${seed}|${b.visible.capture_id}`),
+      ),
+    ),
   );
   return {
     captures: {

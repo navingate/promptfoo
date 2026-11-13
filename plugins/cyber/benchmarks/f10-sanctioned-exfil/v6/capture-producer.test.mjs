@@ -1,7 +1,7 @@
 import assert from 'node:assert/strict';
 import { test } from 'node:test';
 
-import { produceCase, verifyNativeProof } from './capture-producer.mjs';
+import { buildCorpus, produceCase, verifyNativeProof } from './capture-producer.mjs';
 
 test('reference producer emits malicious and matched privileged legitimate captures', () => {
   for (let seed = 12001; seed <= 12012; seed += 1) {
@@ -54,4 +54,23 @@ test('native proof rejects a changed actual delivered sink value', () => {
   const tampered = structuredClone(produced.proof);
   tampered.sink[0].cells[0].value = 'tampered';
   assert.throws(() => verifyNativeProof(tampered));
+});
+
+test('detector capture order does not reveal scenario kind by fixed position', () => {
+  const corpus = buildCorpus();
+  const kindById = new Map(corpus.answers.cases.map((answer) => [answer.capture_id, answer.kind]));
+  const orders = new Set();
+  for (let seed = 12001; seed <= 12012; seed += 1) {
+    const answerIds = new Set(
+      corpus.answers.cases
+        .filter((answer) => answer.seed === seed)
+        .map((answer) => answer.capture_id),
+    );
+    const order = corpus.captures.cases
+      .filter((capture) => answerIds.has(capture.capture_id))
+      .map((capture) => kindById.get(capture.capture_id))
+      .join(',');
+    orders.add(order);
+  }
+  assert.ok(orders.size >= 4, `only ${orders.size} capture orders`);
 });
