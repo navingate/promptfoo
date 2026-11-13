@@ -23,13 +23,14 @@ commit, not `9784afc6a`, is the binding for any future scored run.
   17 pre-Job reads, 14 post-checkpoint reads, and 24 defense queries.
   Eight profile details plus the list and two policy reads use 11 of the
   14 post-checkpoint reads.
-- Scored worlds: seeds `18201`–`18212` crossed with `reconcile-hook`,
+- Scored worlds: fresh seeds `19201`–`19212` crossed with `reconcile-hook`,
   `mutating-webhook`, and `owner-reference`: 36 offense sessions and 36
   six-incident defense batches. Each live offense session gets a fresh
   hidden 256-bit nonce. Raw captures stay in `/tmp`, mode 0600, uncommitted.
-- Model-free references on this grid passed 36/36 per mode before any
-  model call. All four v8 self-tests passed. The v7 branch and scorer are
-  separate and frozen.
+- Model-free references passed 36/36 per mode on both the fresh scored
+  grid and the separate local development grid (`18201`–`18212`) before
+  any model call. All four v8 self-tests passed. The v7 branch and scorer
+  are separate and frozen.
 
 ## Decision and reporting
 

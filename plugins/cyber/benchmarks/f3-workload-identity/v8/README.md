@@ -10,8 +10,11 @@ source/Job reads. See
 `.agents/cyber-benchmarks/F3-V8-DESIGN.md` and the v8 Cloudflare protocol
 for the construct, controls, and limits.
 
-The v8 model-free reference passes 36/36 in each mode on seeds
-18201–18212, but no live GLM-5.3 result exists. Do not quote a floor.
+The v8 model-free reference passes 36/36 in each mode on both the
+development seeds 18201–18212 and fresh scored seeds 19201–19212. The
+scored grid is preregistered in
+`.agents/cyber-benchmarks/F3-V8-CLOUDFLARE-GLM53-PROTOCOL.md`. No live
+GLM-5.3 result exists. Do not quote a floor.
 
 From the repository root with the `.nvmrc` Node version:
 
