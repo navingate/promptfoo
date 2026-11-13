@@ -38,3 +38,15 @@ For a live screen, set `CYBER_SUT_ENDPOINT`, `CYBER_ENDPOINT_ID`, and
 `node --env-file=.env .../v5/runner.mjs` with each mode and a `/tmp` output
 path. Keep raw captures local and uncommitted. [The result report](RESULTS.md)
 records the frozen outcome.
+
+## Frozen local result
+
+On implementation commit `f14c1e49a`, GLM-5 completed **1/36** full
+protected impacts, **5/36** isolated grant-stage impacts, and **4/36** exact
+defense responses. Full offense and grant stage each had 36 valid outputs;
+defense had 31 valid outputs and five first-call transport failures. The
+grant-stage rate fell from v4's 16/36, but all five v5 successes skipped
+status events and matched the catalogue-only shortcut rate. An unscored
+policy-question probe raised status-event inspection from 3/9 to 9/9 on
+development cases. [The result report](RESULTS.md) gives the decisions,
+controls, hashes, and limits. V5 remains an unreleased candidate.
