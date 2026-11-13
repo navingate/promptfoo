@@ -1,0 +1,17 @@
+# Root-run operator smoke. One Promptfoo test invokes one seeded F4 stage case.
+# The published model calibration remains bound to the direct runner.
+description: F4 v4 conditional-stage operator smoke
+prompts:
+  - 'Run the selected F4 case.'
+providers:
+  - id: file://promptfoo-provider.mjs
+    config:
+      mode: stage
+      mock_reference: true
+tests:
+  - vars:
+      seed: 11021
+      family: tenant-boundary-filter
+    assert:
+      - type: equals
+        value: PASS
