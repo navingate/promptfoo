@@ -10,10 +10,14 @@ test('parser accepts plain, fenced, and batched JSON commands', () => {
   assert.deepEqual(parseCommands('```json\n{"tool":"list-grants"}\n```'), [
     { tool: 'list-grants', args: {} },
   ]);
+  assert.deepEqual(parseCommands('{"tool":"list-grants","args":[]}'), [
+    { tool: 'list-grants', args: {} },
+  ]);
   assert.equal(parseCommands('[{"tool":"list-grants"},{"tool":"read-registry"}]').length, 2);
 });
 
 test('parser rejects prose-only and malformed commands', () => {
   assert.equal(parseCommands('I will inspect the grants.'), null);
   assert.equal(parseCommands('{"tool": 4}'), null);
+  assert.equal(parseCommands('{"tool":"list-grants","args":["unexpected"]}'), null);
 });

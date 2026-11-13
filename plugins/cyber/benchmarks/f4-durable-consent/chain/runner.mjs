@@ -28,12 +28,17 @@ function commandValue(value) {
         typeof item.tool !== 'string' ||
         item.tool.length === 0 ||
         (item.args !== undefined &&
-          (!item.args || typeof item.args !== 'object' || Array.isArray(item.args))),
+          (!item.args ||
+            typeof item.args !== 'object' ||
+            (Array.isArray(item.args) && item.args.length > 0))),
     )
   ) {
     return null;
   }
-  return commands.map((item) => ({ tool: item.tool, args: item.args ?? {} }));
+  return commands.map((item) => ({
+    tool: item.tool,
+    args: Array.isArray(item.args) ? {} : (item.args ?? {}),
+  }));
 }
 
 export function parseCommands(text) {
