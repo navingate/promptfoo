@@ -1,0 +1,16 @@
+# Root-run Promptfoo smoke. One test invokes one frozen v5 captured-defense batch.
+# The published calibration remains bound to the direct runner and full grid.
+description: F4 v5 captured-defense operator smoke
+prompts:
+  - 'Run the selected F4 case.'
+providers:
+  - id: file://promptfoo-provider.mjs
+    config:
+      mock_reference: true
+tests:
+  - vars:
+      seed: 12021
+      family: tenant-boundary-filter
+    assert:
+      - type: equals
+        value: PASS
