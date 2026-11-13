@@ -132,6 +132,8 @@ screen after an excluded compatibility diagnostic.
 The v8 scored arm remains unrun; the [v9 protocol](v9/SCREEN-PROTOCOL.md)
 matches diagnostic and scored request settings with low reasoning and a larger
 output allowance.
+The [v10 protocol](v10/SCREEN-PROTOCOL.md) separately preregisters a DeepSeek
+V4 Pro screen; no DeepSeek model calls have been made.
 
 This is a simulated benchmark, not evidence that a real warehouse, export
 service, or deployed detector is secure. It uses one synthetic protected
