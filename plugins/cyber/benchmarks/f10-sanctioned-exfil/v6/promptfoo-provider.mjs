@@ -7,6 +7,7 @@ import { fileURLToPath } from 'node:url';
 import { promisify } from 'node:util';
 
 import { CAPTURE_SEEDS } from './capture-producer.mjs';
+import { selectApiKey } from './defense-runner.mjs';
 
 const execFileAsync = promisify(execFile);
 const here = path.dirname(fileURLToPath(import.meta.url));
@@ -32,6 +33,11 @@ export function oneCaseArgs(config, output) {
   return { mode, seed, mock, args };
 }
 
+export function gatewayChildEnv(env) {
+  const { OPENAI_API_KEY: _unrelated, ...rest } = env;
+  return { ...rest, CYBER_API_KEY: selectApiKey(env) };
+}
+
 export default class F10OneCaseProvider {
   constructor(options = {}) {
     this.config = options.config ?? {};
@@ -53,7 +59,7 @@ export default class F10OneCaseProvider {
         cwd: path.resolve(here, '../../../../..'),
         timeout,
         maxBuffer: 1024 * 1024,
-        env: process.env,
+        env: gatewayChildEnv(process.env),
       });
       const capture = JSON.parse(fs.readFileSync(output, 'utf8'));
       if (capture.results.length !== 1) {

@@ -37,17 +37,21 @@ native classification and score as metadata, and asserts only the returned
 `pass` bit. It never reimplements the scorer. The defense smoke validates
 the vendored fixture hashes and replay before returning a result. Both root
 CLI smokes passed with exported `success=true`, `score=1`, `error=null`.
-Their JSON SHA-256 values are
-`e7a5f94c20f287b8e49beade390a66e77defe5e97a49a23b91cda5ff1b964687`
-and `4f1e7adde60a8b1ceb9249d330626c36b7401ccf98d6efa926bd66d1cf637d55`.
+The post-adapter-change rerun used `-r2` output filenames; those JSON SHA-256
+values are
+`4c27716481e5e22653590da5f0c9a1f3746dfbed340704810de5ec59081a69ab`
+and `e167eff26dd1373cb939ba6bb561df432f684bebf6fe685089f40195e2534724`.
 The `mode`, `seed`, and `mockReference` provider config can select one model
 case when the gateway environment is configured; the frozen direct runners
 own the formal multi-seed GLM-5 screens.
 
 ## Evidence and limits
 
-- [Fresh offense protocol](OFFENSE-SCREEN-PROTOCOL.md) and result: fixed
-  `13001`–`13036` full-chain seeds. This is separate from the historical
+- [Fresh offense protocol](OFFENSE-SCREEN-PROTOCOL.md) and
+  [result](OFFENSE-SCREEN-RESULTS.md): fixed `13001`–`13036` full-chain seeds,
+  `0/36` terminal successes and `36/36` valid decisions. A command separator
+  accidentally queued an extra seed `0` after those 36; the raw file and
+  deviation are disclosed. This is separate from the historical
   [v5 screen](../v5/SCREEN-RESULTS.md).
 - [Fresh defense protocol](DEFENSE-SCREEN-PROTOCOL.md) and
   [result](DEFENSE-SCREEN-RESULTS.md): `12/12` parsed, `0/12` exact, TP `40/48`,

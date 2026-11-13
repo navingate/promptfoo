@@ -1,7 +1,7 @@
 import assert from 'node:assert/strict';
 import { test } from 'node:test';
 
-import F10OneCaseProvider, { oneCaseArgs } from './promptfoo-provider.mjs';
+import F10OneCaseProvider, { gatewayChildEnv, oneCaseArgs } from './promptfoo-provider.mjs';
 
 test('one provider invocation delegates exactly one offense seed', async () => {
   const provider = new F10OneCaseProvider({
@@ -36,4 +36,10 @@ test('invalid mode or seed cannot turn into a batch run', () => {
     /one positive/,
   );
   assert.throws(() => oneCaseArgs({ mode: 'other', seed: 1 }, '/tmp/capture.json'), /one positive/);
+});
+
+test('one-case model subprocess never receives an unrelated OpenAI key', () => {
+  const env = gatewayChildEnv({ OPENAI_API_KEY: 'unrelated', AWS_API_KEY: 'gateway' });
+  assert.equal(env.OPENAI_API_KEY, undefined);
+  assert.equal(env.CYBER_API_KEY, 'gateway');
 });
