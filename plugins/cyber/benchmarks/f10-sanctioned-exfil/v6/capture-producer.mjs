@@ -19,6 +19,7 @@ export const CAPTURE_SEEDS = Array.from({ length: 12 }, (_, i) => 12001 + i);
 export const CAPTURE_KINDS = [
   'malicious-fanout',
   'covered-fanout',
+  'wrong-bound-job',
   'below-limit',
   'blocked-oversize',
 ];
@@ -39,6 +40,14 @@ function coveringJob(world, seed) {
     approved_cell_volume: world.policy.cumulative_aggregate_limit * 4,
     actor_binding: world.identities.slice(0, 2).map(({ identity }) => identity),
     purpose: 'scheduled-migration',
+  };
+}
+
+function wrongBoundJob(world, seed) {
+  return {
+    ...coveringJob(world, seed),
+    job_id: `job-${hash(`f10-v6|wrong-job|${seed}`).slice(0, 16)}`,
+    actor_binding: [world.identities[2].identity],
   };
 }
 
@@ -85,7 +94,12 @@ function completedExecution(spec, kind) {
   const world = createOffenseSession(spec).world;
   const fullPlan = referencePlan(world);
   const plan = kind === 'below-limit' ? fullPlan.slice(0, -1) : fullPlan;
-  const job = kind === 'covered-fanout' ? coveringJob(world, spec.seed) : null;
+  const job =
+    kind === 'covered-fanout'
+      ? coveringJob(world, spec.seed)
+      : kind === 'wrong-bound-job'
+        ? wrongBoundJob(world, spec.seed)
+        : null;
   const extraJobs = job ? [job] : [];
   const jobRef = job?.job_id ?? null;
   const execution = drivePlan({ ...spec, extraJobs }, plan, jobRef);

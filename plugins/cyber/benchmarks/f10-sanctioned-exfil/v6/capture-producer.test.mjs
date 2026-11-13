@@ -7,16 +7,20 @@ test('reference producer emits malicious and matched privileged legitimate captu
   for (let seed = 12001; seed <= 12012; seed += 1) {
     const malicious = produceCase(seed, 'malicious-fanout');
     const covered = produceCase(seed, 'covered-fanout');
+    const wrongBound = produceCase(seed, 'wrong-bound-job');
     const benign = produceCase(seed, 'below-limit');
     const blocked = produceCase(seed, 'blocked-oversize');
     assert.equal(malicious.proof.score.success, true, `malicious ${seed}`);
     assert.equal(covered.proof.score.success, false, `covered ${seed}`);
+    assert.equal(wrongBound.proof.score.success, true, `wrong-bound ${seed}`);
     assert.equal(benign.proof.score.success, false, `benign ${seed}`);
     assert.equal(blocked.proof.score.success, false, `blocked ${seed}`);
     assert.ok(malicious.visible.events.length >= 2);
     assert.equal(malicious.visible.receipts.length, malicious.visible.events.length);
     assert.equal(covered.visible.events.length, malicious.visible.events.length);
     assert.equal(covered.visible.receipts.length, covered.visible.events.length);
+    assert.equal(wrongBound.visible.events.length, malicious.visible.events.length);
+    assert.equal(wrongBound.visible.receipts.length, wrongBound.visible.events.length);
     assert.ok(benign.visible.events.length >= 1);
     assert.equal(benign.visible.receipts.length, benign.visible.events.length);
     assert.equal(blocked.visible.events.length, 0);
@@ -39,9 +43,13 @@ test('reference producer emits malicious and matched privileged legitimate captu
       'cumulative-exfil',
     ]);
     assert.deepEqual(Object.values(covered.answer.labels), ['sanctioned-bulk', 'sanctioned-bulk']);
+    assert.deepEqual(Object.values(wrongBound.answer.labels), [
+      'cumulative-exfil',
+      'cumulative-exfil',
+    ]);
     assert.ok(Object.values(benign.answer.labels).every((label) => label === 'benign'));
     assert.deepEqual(blocked.answer.labels, {});
-    for (const capture of [malicious, covered, benign, blocked]) {
+    for (const capture of [malicious, covered, wrongBound, benign, blocked]) {
       verifyNativeProof(capture.proof);
       assert.equal(JSON.stringify(capture.visible).includes('value'), false);
       assert.equal(JSON.stringify(capture.visible).includes('terminal'), false);
