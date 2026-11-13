@@ -5,9 +5,11 @@ Each line is one 13-capture batch. `producer_kind` is
 `reference-produced-estate`: the producer drove the same native
 registration, consent, reset, refresh, protected API, and export actions
 used by the stateful offense. The eleven authorized same-user captures
-continue after v3's _offense scoring cutoff_ at remediation; that cutoff
-is not a control-plane denial. Their actual downstream actions are
-emitted by `stepOffense`, not forged by the detection adapter. One
+continue through an explicit v4 `authorized-continuation` producer
+service after v3's _offense scoring cutoff_ at remediation. That service
+checks the retained credential, revocation, protected scope, access
+token, and export reference and emits native events. It never clears
+or reopens v3's terminal offense state. One
 unauthorized revoked grant has no post-reset access events.
 
 `evaluator/labels-v4.jsonl` is a separate answer-key sidecar. It is

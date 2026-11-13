@@ -34,6 +34,10 @@ task. The [runner](runner.mjs) calls the exact model and classifies
 provider, invalid-run, format, and model outcomes separately. The
 [Promptfoo provider](promptfoo-provider.mjs) invokes one case through
 that runner; it does not duplicate the scorer or spawn the 36-case run.
+The v3 offense remains terminal for an authorized survivor; the v4
+producer's separately named authorized-continuation mode is the native
+legitimate path. It does not clear v3's `finished` flag. Review its
+control checks against the attack path before accepting paired grounding.
 
 ## Evidence for a reviewer to reproduce
 

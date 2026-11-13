@@ -1,6 +1,7 @@
 import assert from 'node:assert/strict';
 import test from 'node:test';
 
+import { createOffenseSession, stepOffense } from '../chain-v3/offense.mjs';
 import { FAMILIES } from '../shared/estate.mjs';
 import {
   createCapturedDefenseSession,
@@ -13,10 +14,12 @@ import {
 } from './capture.mjs';
 import { CAPTURE_SEEDS } from './generate-captures.mjs';
 import {
+  createAuthorizedContinuation,
   makePostRemediationSession,
   produceNativeBatch,
   referenceStage,
   scoreStage,
+  stepAuthorizedContinuation,
   stepStage,
 } from './producer.mjs';
 
@@ -86,6 +89,53 @@ test('producer freezes thirteen native captures with matched privileged benign o
   );
   assert.equal(nativeEventKinds.filter((kinds) => kinds.includes('export-read')).length, 12);
   assert.doesNotMatch(JSON.stringify(batch), /_target|_cohort|_attacker|answer_key|"label"\s*:/u);
+});
+
+test('authorized continuation is explicit while the v3 offense remains terminal', () => {
+  const session = createOffenseSession({ ...spec, nonce: 'authorized-mode' });
+  const app = session.apps.find((item) => item._cohort && !item._target);
+  const registered = stepOffense(session, {
+    tool: 'register-app',
+    args: { arrangement_id: app.arrangement_id },
+  });
+  const consent = stepOffense(session, {
+    tool: 'grant-consent',
+    args: { client_id: registered.client_id, scope: 'reports.export' },
+  });
+  const reset = stepOffense(session, { tool: 'run-remediation' });
+  assert.equal(reset.terminal, 'grant-authorized');
+  assert.equal(session.finished, true);
+  assert.equal(
+    stepOffense(session, {
+      tool: 'refresh-access',
+      args: { refresh_token: consent.refresh_token },
+    }).reason,
+    'session-finished',
+  );
+  const native = createAuthorizedContinuation(session, consent.refresh_token);
+  assert.equal(
+    stepAuthorizedContinuation(native, { tool: 'refresh-access', args: { refresh_token: 'wrong' } })
+      .ok,
+    false,
+  );
+  const refreshed = stepAuthorizedContinuation(native, {
+    tool: 'refresh-access',
+    args: { refresh_token: consent.refresh_token },
+  });
+  const called = stepAuthorizedContinuation(native, {
+    tool: 'call-protected-api',
+    args: { access_token: refreshed.access_token },
+  });
+  const read = stepAuthorizedContinuation(native, {
+    tool: 'read-export',
+    args: { export_ref: called.export_ref },
+  });
+  assert.equal(read.ok, true);
+  assert.deepEqual(
+    native.events.map((event) => event.kind),
+    ['access-token-issued', 'protected-export-call', 'export-read'],
+  );
+  assert.equal(session.finished, true);
 });
 
 test('capture adapter preserves native security facts and reference labels', () => {

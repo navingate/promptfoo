@@ -1,12 +1,16 @@
 import assert from 'node:assert/strict';
+import fs from 'node:fs';
+import path from 'node:path';
 import test from 'node:test';
+import { fileURLToPath } from 'node:url';
 
 import { FAMILIES } from '../shared/estate.mjs';
-import { loadFrozenCases, modelCall, runCase } from './runner.mjs';
+import { loadFrozenCases, modelCall, runCase, verifyCaptureBindings } from './runner.mjs';
 
 const spec = { seed: 11021, family: FAMILIES[0] };
 const config = { endpoint: 'https://example.invalid', endpointId: 'test', model: 'zai.glm-5' };
 const frozenCases = loadFrozenCases();
+const here = path.dirname(fileURLToPath(import.meta.url));
 const response = (content) => ({
   ok: true,
   status: 200,
@@ -37,6 +41,16 @@ test('transport and served-model errors are separate and never retried silently'
     }),
   }));
   assert.equal(mismatch.issue, 'invalid_run');
+});
+
+test('frozen capture and evaluator files are hash-bound before use', () => {
+  const native = fs.readFileSync(path.join(here, 'capture/native-v4.jsonl'));
+  const labels = fs.readFileSync(path.join(here, 'evaluator/labels-v4.jsonl'));
+  const manifest = JSON.parse(fs.readFileSync(path.join(here, 'capture-manifest.json'), 'utf8'));
+  assert.equal(verifyCaptureBindings(native, labels, manifest), true);
+  const changed = Buffer.from(native);
+  changed[0] ^= 1;
+  assert.equal(verifyCaptureBindings(changed, labels, manifest), false);
 });
 
 test('a denied credential attempt can recover before exact native export', async () => {

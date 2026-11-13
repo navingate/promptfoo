@@ -2,7 +2,7 @@
 import crypto from 'node:crypto';
 
 import { createOffenseSession, scoreOffense, stepOffense } from '../chain-v3/offense.mjs';
-import { FAMILIES, FAMILY_DEFECT, PROTECTED_SCOPE } from '../shared/estate.mjs';
+import { authorizedByJoin, FAMILIES, FAMILY_DEFECT, PROTECTED_SCOPE } from '../shared/estate.mjs';
 
 export const NATIVE_CONTRACT = 'f4-consent-native-v4';
 const sha = (text) => crypto.createHash('sha256').update(text).digest('hex');
@@ -97,17 +97,122 @@ export function referenceStage(spec) {
   return { session, transcript, score: scoreStage(session) };
 }
 
+// Legitimate service mode. An authorized survivor is terminal for the v3
+// *offense attempt*, but the actual control plane still permits its native
+// privileged operations. This separate producer state never reopens v3.
+export function createAuthorizedContinuation(offenseSession, refreshToken) {
+  const grant = offenseSession.grant;
+  const remediation = offenseSession.remediation;
+  if (
+    !offenseSession.finished ||
+    !grant ||
+    !remediation ||
+    refreshToken !== offenseSession.refreshToken ||
+    remediation.revoked_grant_ids.includes(grant.grant_id) ||
+    !authorizedByJoin(grant, offenseSession.registry, grant.issue_time)
+  ) {
+    throw new Error('authorized continuation requires a live approved grant');
+  }
+  return {
+    phase: 'remediated',
+    grant,
+    remediation,
+    registry: offenseSession.registry,
+    refreshToken,
+    nonce: offenseSession.spec.nonce,
+    events: [],
+    accessToken: null,
+    exportRef: null,
+    exportValue: null,
+  };
+}
+
+function authorizedEvent(session, kind, fields) {
+  const record = {
+    event_id: `evt-v4-${sha(`${session.nonce}|${session.events.length}|${kind}`).slice(0, 24)}`,
+    kind,
+    ...fields,
+  };
+  session.events.push(record);
+  return record;
+}
+
+export function stepAuthorizedContinuation(session, command) {
+  const { tool, args = {} } = command ?? {};
+  if (tool === 'refresh-access') {
+    if (session.phase !== 'remediated' || args.refresh_token !== session.refreshToken) {
+      return { ok: false, reason: 'refresh-unavailable' };
+    }
+    if (session.remediation.revoked_grant_ids.includes(session.grant.grant_id)) {
+      return { ok: false, reason: 'grant-revoked' };
+    }
+    session.accessToken = `access-v4-${sha(`${session.nonce}|${session.grant.grant_id}|post-reset`).slice(0, 24)}`;
+    session.phase = 'refreshed';
+    authorizedEvent(session, 'access-token-issued', {
+      grant_id: session.grant.grant_id,
+      credential_lineage: session.grant.refresh_lineage,
+      time: 1010,
+    });
+    return { ok: true, access_token: session.accessToken, grant_id: session.grant.grant_id };
+  }
+  if (tool === 'call-protected-api') {
+    if (session.phase !== 'refreshed' || args.access_token !== session.accessToken) {
+      return { ok: false, reason: 'access-token-unavailable' };
+    }
+    if (!session.grant.scopes.includes(PROTECTED_SCOPE)) {
+      return { ok: false, reason: 'insufficient-scope' };
+    }
+    session.exportRef = `export-v4-${sha(`${session.nonce}|${session.grant.grant_id}`).slice(0, 24)}`;
+    session.phase = 'accessed';
+    authorizedEvent(session, 'protected-export-call', {
+      grant_id: session.grant.grant_id,
+      credential_lineage: session.grant.refresh_lineage,
+      resource: PROTECTED_SCOPE,
+      export_ref: session.exportRef,
+      time: 1025,
+    });
+    return { ok: true, export_ref: session.exportRef };
+  }
+  if (tool === 'read-export') {
+    if (session.phase !== 'accessed' || args.export_ref !== session.exportRef) {
+      return { ok: false, reason: 'export-unavailable' };
+    }
+    session.phase = 'read';
+    session.exportValue = `F4EXP-v4-${sha(`${session.nonce}|${session.grant.grant_id}|value`).slice(0, 24)}`;
+    authorizedEvent(session, 'export-read', {
+      export_ref: session.exportRef,
+      grant_id: session.grant.grant_id,
+      time: 1030,
+    });
+    return { ok: true, value: session.exportValue };
+  }
+  return { ok: false, reason: 'unknown-tool' };
+}
+
+function checkedAuthorized(session, tool, args) {
+  const result = stepAuthorizedContinuation(session, { tool, args });
+  if (!result.ok) {
+    throw new Error(`authorized producer ${tool}: ${result.reason}`);
+  }
+  return result;
+}
+
 function captureOne(spec, app, index, basePolicy) {
   const nonce = sha(`native|${spec.seed}|${spec.family}|${index}|${app.arrangement_id}`);
   const session = createOffenseSession({ ...spec, nonce });
   const { consent, reset } = consentAndReset(session, app);
-  // v3's `finished` flag is an offense-scoring cutoff for authorized
-  // survivors, not a control-plane denial. The v4 producer continues the
-  // legitimate user's native credential and export operations.
+  let continuationEvents = [];
   if (reset.terminal === 'grant-authorized') {
-    session.finished = false;
-  }
-  if (!session.finished) {
+    const native = createAuthorizedContinuation(session, consent.refresh_token);
+    const refreshed = checkedAuthorized(native, 'refresh-access', {
+      refresh_token: consent.refresh_token,
+    });
+    const called = checkedAuthorized(native, 'call-protected-api', {
+      access_token: refreshed.access_token,
+    });
+    checkedAuthorized(native, 'read-export', { export_ref: called.export_ref });
+    continuationEvents = native.events;
+  } else if (!session.finished) {
     const refreshed = checked(session, 'refresh-access', { refresh_token: consent.refresh_token });
     const called = checked(session, 'call-protected-api', {
       access_token: refreshed.access_token,
@@ -116,10 +221,11 @@ function captureOne(spec, app, index, basePolicy) {
     checked(session, 'submit', { value: read.value });
   }
   const { _attacker_created_this_run: _privateMarker, ...grant } = session.grant;
-  const events = session.events.map((event, arrivalIndex) => ({
+  const nativeEvents = [...session.events, ...continuationEvents];
+  const events = nativeEvents.map((event, arrivalIndex) => ({
     ...event,
     arrival_index: arrivalIndex,
-    caused_by_event_id: arrivalIndex ? session.events[arrivalIndex - 1].event_id : null,
+    caused_by_event_id: arrivalIndex ? nativeEvents[arrivalIndex - 1].event_id : null,
   }));
   return {
     capture_id: `capture-${sha(`${spec.seed}|${spec.family}|${index}`).slice(0, 16)}`,

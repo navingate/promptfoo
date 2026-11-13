@@ -28,6 +28,11 @@ facet-predicate mechanism; they are not four independent OAuth bugs.
   The detector reads normalized grant, registry, policy, remediation,
   and event facts; the answer key is a separate evaluator sidecar.
 
+The v3 offense stops on an authorized grant. V4's explicit
+`authorized-continuation` producer service independently enforces the
+legitimate post-reset operations and emits its own native events;
+it never reopens or mutates the terminal v3 offense session.
+
 The frozen malicious and authorized captures are **reference-produced,
 estate-generated** executions. They are not successful GLM-5 attack
 traces. The full v3 model screen produced no post-reset refresh, and no
