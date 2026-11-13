@@ -245,6 +245,8 @@ for (let seed = 4100; seed < 4200; seed += 1) {
     }
     stepDefense(det, { tool: 'submit', args: { labels } });
     assert.equal(scoreDefense(det).success, true);
+    const malformed = buildDefenseSession(spec);
+    assert.equal(scoreDefense(malformed).fn, 1, 'off-grammar response misses the malicious fetch');
     defenseCount += 1;
     const naiveDet = buildDefenseSession(spec);
     const guess = referenceDefense(naiveDet);

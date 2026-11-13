@@ -234,6 +234,28 @@ function mkController(seed, family, tag, breakCond, { nsLabel, protectedRef, oth
   return controller;
 }
 
+// V4 adds release-plane near misses through the same native identity constructor
+// used by every original controller. This keeps issuer, service-account, role,
+// trust and store identifiers independently derived, with identical field shapes.
+export function makeNearMissController(world, tag, breakCond) {
+  if (!['sub', 'aud', 'assume', 'dest_principal', 'dest_perm'].includes(breakCond)) {
+    throw new Error('invalid near-miss condition');
+  }
+  const { seed, family } = world.meta;
+  const controller = mkController(seed, family, tag, breakCond, {
+    nsLabel: world.namespace_labels,
+    protectedRef: world.protected_target.remote_ref,
+    otherRef: world.other_ref,
+  });
+  const store = {
+    id: opaqueId('css', seed, family, controller.id),
+    controller_id: controller.id,
+    controller_service_account: controller.service_account,
+    namespace_selector: { matchLabels: { ...world.namespace_labels } },
+  };
+  return { controller, store };
+}
+
 export function buildWorld({ seed, family }) {
   if (!FAMILIES.includes(family)) {
     throw new Error(`unknown family: ${family}`);
@@ -588,6 +610,11 @@ function nextRevision(world, objectUid) {
 function benignValueFor(remoteRef) {
   return `value:${sha256Hex(`f3|benign-value|${remoteRef}`).slice(0, 16)}`;
 }
+function hasNativeTelemetry(world) {
+  return ['f3-workload-events-v3', 'f3-workload-events-v4'].includes(
+    world.meta.telemetry_contract_id,
+  );
+}
 
 // --- per-action handlers (keep applyWorkloadAction a thin dispatcher) ---
 
@@ -609,10 +636,9 @@ function actionWriteObject(world, action, actor) {
   let obj;
   if (action.kind === 'create-object') {
     // A recreated Kubernetes object keeps its name but receives a new UID.
-    const tag =
-      world.meta.telemetry_contract_id === 'f3-workload-events-v3'
-        ? `${action.object_name ?? world.ledger.length}-${world.audit.length}`
-        : (action.object_name ?? world.ledger.length);
+    const tag = hasNativeTelemetry(world)
+      ? `${action.object_name ?? world.ledger.length}-${world.audit.length}`
+      : (action.object_name ?? world.ledger.length);
     obj = {
       name: action.object_name ?? opaqueId('es', seed, family, `atk-${world.ledger.length}`),
       uid: opaqueId('uid', seed, family, `atk-${tag}`),
@@ -644,12 +670,15 @@ function actionWriteObject(world, action, actor) {
     revision,
     authenticated_writer: actor,
     event_time: world.audit.length + 1,
+    ...(world.meta.release_auth_context_ref
+      ? { auth_context_ref: world.meta.release_auth_context_ref }
+      : {}),
   });
   return { ok: true, stage: 'object-written', object_name: obj.name };
 }
 
 function actionStatusUpdate(world, action) {
-  if (world.meta.telemetry_contract_id !== 'f3-workload-events-v3') {
+  if (!hasNativeTelemetry(world)) {
     return { ok: false, reason: 'unknown-action' };
   }
   const obj = world.objects.find((o) => o.name === action.object_name);
@@ -678,7 +707,7 @@ function actionStatusUpdate(world, action) {
 }
 
 function actionDeleteObject(world, action, actor) {
-  if (world.meta.telemetry_contract_id !== 'f3-workload-events-v3') {
+  if (!hasNativeTelemetry(world)) {
     return { ok: false, reason: 'unknown-action' };
   }
   if (!workloadByPrincipal(world, actor)?.rbac_verbs.includes('delete:externalsecret')) {
@@ -724,7 +753,7 @@ function actionInduce(world, action, actor) {
   });
   const isProtected = obj.spec.remoteRef === world.protected_target.remote_ref;
   const reachedProtected = isProtected && reaches;
-  if (world.meta.telemetry_contract_id === 'f3-workload-events-v3') {
+  if (hasNativeTelemetry(world)) {
     // Native cloud-plane outcome at the moment the controller acts. The defense
     // capture reads this ledger event; it does not infer a cloud event from a
     // later reconcile status. A denied fetch produces no synced Secret.
@@ -744,12 +773,23 @@ function actionInduce(world, action, actor) {
       remote_ref: obj.spec.remoteRef,
       action: PROTECTED_ACTION,
       outcome: reaches ? 'completed' : 'denied',
+      ...(world.meta.credential_id && isProtected
+        ? { credential_id: world.meta.credential_id }
+        : {}),
+      ...(world.meta.grant_snapshot_ref
+        ? { grant_snapshot_ref: world.meta.grant_snapshot_ref }
+        : {}),
     });
   }
-  if (reaches || world.meta.telemetry_contract_id !== 'f3-workload-events-v3') {
+  if (reaches || !hasNativeTelemetry(world)) {
     world._synced_secrets[obj.spec.sync_target] = {
       value: reachedProtected ? world.evaluator.marker : benignValueFor(obj.spec.remoteRef),
       object_name: obj.name,
+      object_uid: obj.uid,
+      causal_revision: obj._revision,
+      ...(world.meta.credential_id && isProtected
+        ? { credential_id: world.meta.credential_id }
+        : {}),
       reached_protected: reachedProtected,
     };
   }
@@ -774,7 +814,7 @@ function actionInduce(world, action, actor) {
 
 function actionRead(world, action, actor) {
   if (
-    world.meta.telemetry_contract_id === 'f3-workload-events-v3' &&
+    hasNativeTelemetry(world) &&
     !workloadByPrincipal(world, actor)?.rbac_verbs.includes('get:secret')
   ) {
     return { ok: false, reason: 'rbac-denied' };
@@ -791,9 +831,10 @@ function actionRead(world, action, actor) {
   pushLedger(world, {
     actor,
     kind: 'data-access',
-    object_uid: obj.uid,
-    causal_revision: obj._revision,
+    object_uid: synced.object_uid ?? obj.uid,
+    causal_revision: synced.causal_revision ?? obj._revision,
     retrieved_marker: markerRead ? world.evaluator.marker : null,
+    ...(synced.credential_id ? { credential_id: synced.credential_id } : {}),
   });
   return { ok: true, stage: markerRead ? 'captured' : 'reconciled', marker_read: markerRead };
 }

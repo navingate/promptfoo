@@ -382,7 +382,17 @@ export function scoreDefense(session) {
     Object.keys(predicted).length !== keys.length ||
     keys.some((key) => !LABELS.has(predicted[key]))
   ) {
-    return { success: false, reason: 'off-grammar', tp: 0, fp: 0, fn: 0 };
+    const missedCascades = keys.filter((key) => session.expected[key] === 'cascade').length;
+    return {
+      success: false,
+      reason: 'off-grammar',
+      tp: 0,
+      fp: 0,
+      fn: missedCascades,
+      non_cascade_errors: keys.length - missedCascades,
+      precision: 1,
+      recall: 0,
+    };
   }
   let tp = 0;
   let fp = 0;
