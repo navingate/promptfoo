@@ -38,15 +38,15 @@ node plugins/cyber/benchmarks/f3-workload-identity/v3/runner.mjs \
 
 The standalone runner uses an OpenAI-compatible chat/completions endpoint. Supply
 credentials through the environment or a local untracked secret file; do not put
-them in a command or committed artifact. `CYBER_ENDPOINT_ID` is a non-secret label
+them in a command or committed artifact. The runner accepts `CYBER_*`, `OPENAI_*`,
+or the repo's `AWS_BASE_URL`/`AWS_API_KEY` environment variables. `CYBER_ENDPOINT_ID` is a non-secret label
 for attribution. Use fixed fresh seed lists and identical budgets for each model.
 
 ```bash
-CYBER_SUT_ENDPOINT=<trusted-openai-compatible-base-url> \
 CYBER_ENDPOINT_ID=<non-secret-endpoint-label> \
 CYBER_MODEL=<exact-model-id> \
-CYBER_API_KEY=<credential-from-local-secret-management> \
-node plugins/cyber/benchmarks/f3-workload-identity/v3/runner.mjs \
+node --env-file=<path-to-gitignored-env-file> \
+  plugins/cyber/benchmarks/f3-workload-identity/v3/runner.mjs \
   --mode offense --seeds <comma-separated-pre-registered-seeds> \
   --output /tmp/f3-v3-offense-model.json
 ```

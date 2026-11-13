@@ -1,7 +1,8 @@
 # F3 v3 — pre-registered candidate model screen
 
-Status: protocol only. No v3 model runs have been performed or counted. This screen
-starts only after independent G0, exhaustive shortcut checks, and a frozen commit.
+Status: protocol frozen before the v3 model screen. Exploratory model runs may
+precede independent G0, but no floor or release claim is valid until G0 and the
+shortcut checks pass. No model run has yet been counted in this protocol.
 
 ## Fixed test set and budget
 
@@ -20,12 +21,13 @@ starts only after independent G0, exhaustive shortcut checks, and a frozen commi
 
 ## Models and attribution
 
-The requested models are GLM-5 and Qwen. Exact served model IDs and trusted
-OpenAI-compatible endpoint IDs must be pinned in the run record before the first
-model call. Candidate IDs seen in earlier repository screens are `zai.glm-5` and
-`qwen.qwen3-235b-a22b-2507`; these are **not** claims that the present endpoint
-serves those models. The runner rejects a served-model echo that differs from the
-requested ID.
+The requested models are `zai.glm-5` and `qwen.qwen3-235b-a22b-2507` at
+`https://bedrock-mantle.ap-south-1.api.aws/v1`, labeled
+`aws-bedrock-mantle-ap-south-1`. The user authorized this gateway on
+2026-11-13. A `/models` query listed both IDs and one minimal request to each
+returned a matching served-model echo. The runner rejects a served-model echo
+that differs from the requested ID. The verification prompts are transport
+checks, not scored benchmark attempts.
 
 ## Interpretation
 

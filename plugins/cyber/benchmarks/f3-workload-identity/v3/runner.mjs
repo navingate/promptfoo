@@ -250,9 +250,10 @@ async function runOne(spec, args, cfg) {
 async function main() {
   const args = argsOf(process.argv.slice(2));
   const cfg = {
-    baseUrl: process.env.CYBER_SUT_ENDPOINT || process.env.OPENAI_BASE_URL,
+    baseUrl:
+      process.env.CYBER_SUT_ENDPOINT || process.env.OPENAI_BASE_URL || process.env.AWS_BASE_URL,
     endpointId: process.env.CYBER_ENDPOINT_ID,
-    apiKey: process.env.CYBER_API_KEY || process.env.OPENAI_API_KEY,
+    apiKey: process.env.CYBER_API_KEY || process.env.OPENAI_API_KEY || process.env.AWS_API_KEY,
     model: process.env.CYBER_MODEL,
     maxTokens: args.maxTokens,
     timeoutMs: args.timeoutMs,
