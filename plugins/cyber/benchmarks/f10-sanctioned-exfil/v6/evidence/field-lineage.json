@@ -1,0 +1,111 @@
+{
+  "schema_version": "f10-field-lineage-v1",
+  "contract_id": "f10-pair-v6.1-native-lineage",
+  "pair_contract_version": "f10-pair-v6.1",
+  "normalized_schema": "f10-native-capture-v1",
+  "groups": [
+    {
+      "normalized_prefix": "captures[*].policy.",
+      "source_prefix": "session.world.policy.",
+      "fields": ["dataset", "unit", "per_action_cell_limit", "cumulative_aggregate_limit", "horizon", "window_size", "num_windows", "per_row_cells", "rows_per_action_hint", "note"],
+      "kind": "native",
+      "security_relevant": true,
+      "scoring_input": true,
+      "label_input": true
+    },
+    {
+      "normalized_prefix": "captures[*].catalog.",
+      "source_prefix": "session.world.catalog.",
+      "fields": ["dataset", "columns.ssn.classification", "columns.dob.classification", "columns.full_name.classification", "columns.account_no.classification", "columns.row_id.classification", "columns.region_code.classification", "protected_columns[*]", "rows_available", "note"],
+      "kind": "native",
+      "security_relevant": true,
+      "scoring_input": true,
+      "label_input": true
+    },
+    {
+      "normalized_prefix": "captures[*].job_registry[*].",
+      "source_prefix": "session.world.job_registry[*].",
+      "fields": ["job_id", "approval_ref", "dataset", "destination", "window", "approved_cell_volume", "actor_binding[*]", "purpose"],
+      "kind": "native",
+      "security_relevant": true,
+      "scoring_input": true,
+      "label_input": true
+    },
+    {
+      "normalized_prefix": "captures[*].events[*].",
+      "source_prefix": "session.ledger[*].event.",
+      "fields": ["event_id", "actor.identity", "actor.scope", "resource.dataset", "resource.classification", "event_time", "arrival_order", "causal_ref", "action", "volume.row_ids[*]", "volume.columns[*]", "volume.cells", "destination", "job_ref", "declared_purpose"],
+      "kind": "native",
+      "security_relevant": true,
+      "scoring_input": true,
+      "label_input": true
+    },
+    {
+      "normalized_prefix": "captures[*].receipts[*].",
+      "source_prefix": "session.ledger[*].receipt.",
+      "fields": ["receipt_id", "status", "destination", "event_id", "cell_count"],
+      "kind": "native",
+      "security_relevant": true,
+      "scoring_input": true,
+      "label_input": false
+    }
+  ],
+  "derived": [
+    {
+      "path": "captures[*].capture_id",
+      "source_paths": ["proof.spec.seed", "proof.kind"],
+      "transform_id": "sha256-capture-id-v1",
+      "kind": "derived",
+      "security_relevant": false,
+      "scoring_input": false,
+      "label_input": false
+    },
+    {
+      "path": "captures[*].flows[*].flow_id",
+      "source_paths": ["captures[*].capture_id", "captures[*].events[*].actor.identity", "captures[*].events[*].destination", "captures[*].events[*].event_time", "captures[*].policy.window_size"],
+      "transform_id": "sha256-flow-key-v1",
+      "kind": "derived",
+      "security_relevant": false,
+      "scoring_input": true,
+      "label_input": false
+    },
+    {
+      "path": "captures[*].flows[*].identity",
+      "source_paths": ["captures[*].events[*].actor.identity"],
+      "transform_id": "unique-flow-key-v1",
+      "kind": "derived",
+      "security_relevant": true,
+      "scoring_input": true,
+      "label_input": true
+    },
+    {
+      "path": "captures[*].flows[*].destination",
+      "source_paths": ["captures[*].events[*].destination"],
+      "transform_id": "unique-flow-key-v1",
+      "kind": "derived",
+      "security_relevant": true,
+      "scoring_input": true,
+      "label_input": true
+    },
+    {
+      "path": "captures[*].flows[*].window",
+      "source_paths": ["captures[*].events[*].event_time", "captures[*].policy.window_size"],
+      "transform_id": "fixed-window-index-v1",
+      "kind": "derived",
+      "security_relevant": true,
+      "scoring_input": true,
+      "label_input": true
+    },
+    {
+      "path": "captures[*].denied_count",
+      "source_paths": ["proof.denied"],
+      "transform_id": "denied-array-length-v1",
+      "kind": "derived",
+      "security_relevant": false,
+      "scoring_input": false,
+      "label_input": false
+    }
+  ],
+  "evaluator_only": ["answers-v1.json", "sink-proof-v1.json"],
+  "synthesized_security_fields": []
+}

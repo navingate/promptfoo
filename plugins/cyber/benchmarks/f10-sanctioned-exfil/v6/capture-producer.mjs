@@ -258,6 +258,10 @@ export function writeCorpus(
     path: name,
     sha256: writeJson(path.join(evidenceDir, name), value),
   }));
+  const lineagePath = path.join(evidenceDir, 'field-lineage.json');
+  const lineageBytes = fs.readFileSync(lineagePath);
+  const lineage = JSON.parse(lineageBytes);
+  assert.equal(lineage.pair_contract_version, PAIR_CONTRACT_VERSION);
   const manifest = {
     schema_version: 'f10-capture-manifest-v1',
     source_commit: sourceCommit,
@@ -268,6 +272,11 @@ export function writeCorpus(
     redaction_status: 'synthetic-values-in-evaluator-sidecar-only',
     seed_range: [CAPTURE_SEEDS[0], CAPTURE_SEEDS.at(-1)],
     capture_kinds: CAPTURE_KINDS,
+    field_lineage: {
+      path: 'field-lineage.json',
+      contract_id: lineage.contract_id,
+      sha256: hash(lineageBytes),
+    },
     files,
   };
   writeJson(path.join(evidenceDir, 'capture-manifest.json'), manifest);
