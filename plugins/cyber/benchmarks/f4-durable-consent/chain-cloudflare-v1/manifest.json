@@ -1,0 +1,42 @@
+{
+  "schema_version": "1",
+  "screen_id": "f4-cloudflare-glm53-v1",
+  "base_commit": "de1c20f12977e83ec6fe03a6a0e91fa498bcd6e3",
+  "model_provider": "cloudflare",
+  "model_id": "@cf/zai-org/glm-5.3",
+  "endpoint_id": "cloudflare-openai-compatible",
+  "modes": {
+    "offense": {
+      "harness": "chain-v3",
+      "seeds": [10021, 10022, 10023, 10024, 10025, 10026, 10027, 10028, 10029],
+      "prompt_sha256": "9eb072494b93fec922fc4a3a0e2ecd4b33340d2c0bfa71169a3f890de033c8de"
+    },
+    "defense": {
+      "harness": "chain-v5-captured-defense",
+      "seeds": [12021, 12022, 12023, 12024, 12025, 12026, 12027, 12028, 12029],
+      "prompt_sha256": "780fe7e49c5fa95129f8d82edd688b0fffb4d592dfbec2b41bb79ed8f4d8cbb6"
+    },
+    "stage": {
+      "harness": "chain-v4-conditional-post-reset",
+      "seeds": [11021, 11022, 11023, 11024, 11025, 11026, 11027, 11028, 11029],
+      "prompt_sha256": "ccd174e1d5c30d2db0996b9d4c2139a162fbacefe58428925953eb530017b976"
+    }
+  },
+  "files": {
+    "chain-cloudflare-v1/screen.mjs": "be93eb588a88e35af6fdb42cdb0f96cbbabf9ef688bc89e47c94baff8c5aaf57",
+    "shared/estate.mjs": "726ab7beab63aeb6fc1a7b4fc7548f424c12c699a51ab6764d13d8173dc9bafc",
+    "chain-v3/offense.mjs": "2771a43487424be88b9976464ab85c1b988e8466134b3cb376970aea2b9a1541",
+    "chain-v3/defense.mjs": "367f5cbb6bd958bbce590a6c3f9e129a9afacc27918773204372f550e0566e69",
+    "chain-v3/runner.mjs": "ac58dd7fc603e679f221f9f2696a43d35477249e6a29830973ced796c6c66dd3",
+    "chain-v4/producer.mjs": "aa57e8fcaad2d7d4ade887888186f2e437bea914727a90a222b6c3deadb14d36",
+    "chain-v4/capture.mjs": "22e50f1def3e829252b4f66de76032a6c568a73f87c39866e9d7d3af273e84a0",
+    "chain-v4/runner.mjs": "2a41c5d50ada937b4c89b4216f9460fdcbc6eeca11e92e7cb97e8f5b797d0362",
+    "chain-v4/generate-captures.mjs": "b0129cc6afab77a0ec3fc5c568ee53c4b6a9b1f33f77e63e8e857349669c1ab2",
+    "chain-v4/capture/native-v4.jsonl": "4050fd6709a45703ad1c216f7c974b058e4ef72155c384403f7fddfe4f2c49b3",
+    "chain-v4/evaluator/labels-v4.jsonl": "206de8667c11830f0a20ea44040105f4b9acac12badc094879ee8ba2fe58cf8e",
+    "chain-v5/runner.mjs": "ac4cf4ed8d656d11a6777b19d7f15f2280cc5ab63ac67307a46a8070b5e6816d",
+    "chain-v5/generate-captures.mjs": "66ec95c9e3fe1722c598361d5091491d9b15aeda9849bad510f313c53a36a64c",
+    "chain-v5/capture/native-v5.jsonl": "c56a3c965c5b8552ef74b1d08e2f095517b0da081b3a40026b6da0caf75886bd",
+    "chain-v5/evaluator/labels-v5.jsonl": "44a4407a96b52216bbe1dd1164da5d7f6d13980f2e936eeefb105b4b232b3c51"
+  }
+}
