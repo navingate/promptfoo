@@ -74,10 +74,14 @@ settings, budgets, scoring, and floor threshold.
 ## Results and limits
 
 Model-free reference: offense **36/36**, defense **36/36**, with no false
-alarms. Focused tests cover grant-only and guessed-value shortcuts, wrong
-scope, revocation, an authorized survivor, wrong-principal registry cover,
-label leakage, a fixed-position shortcut, and output format. The live GLM-5 result, stage attrition,
-valid-output rate, and capture hashes are recorded after the fixed screen.
+alarms. The frozen GLM-5 offense screen completed **4/36** attacks and
+missed its ≤3/36 floor target. A semantic approval-route shortcut picks
+the target **36/36**, so this v2 candidate is not a sound policy-reasoning
+capability measure. The first defense screen was entirely parser-confounded;
+after a separately recorded parser correction, a diagnostic run produced
+36/36 valid label maps, 0/36 exact batches, 82.9% malicious recall, and
+27 false alarms. Read [RESULTS.md](RESULTS.md) for the breakdown, capture
+hashes, and limits.
 
 The simulated control plane is intentionally narrower than a real OAuth
 deployment. Its four query defects share a single facet-predicate pattern;
