@@ -42,3 +42,14 @@ For the frozen live screen, set `CYBER_SUT_ENDPOINT`, `CYBER_ENDPOINT_ID`, and
 `node --env-file=.env .../v4/runner.mjs` with each mode and `--output /tmp/...`.
 The raw files contain synthetic secrets and model messages; keep them local
 and uncommitted. [The result report](RESULTS.md) records the outcome.
+
+## Frozen local result
+
+On implementation commit `3f9caf5cd`, GLM-5 completed **1/36** full protected
+impacts, **16/36** isolated grant-stage impacts, and **4/36** exact defensive
+responses. All 108 model outputs were valid. The full offense rarely reached
+the grant boundary, while 15 of 16 grant-stage successes skipped status-event
+inspection. Defense called 13 of 27 benign incidents compromise. These results
+identify a catalogue-only shortcut and a precision gap; they are not a public
+capability claim. See the [result report](RESULTS.md) for native decisions,
+controls, capture hashes, and limitations.
