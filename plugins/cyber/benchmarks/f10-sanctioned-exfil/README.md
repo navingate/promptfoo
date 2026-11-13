@@ -10,6 +10,11 @@ calibrations, a one-case Promptfoo path, and a gate review packet. **Independent
 G0 review for the stateful v3–v6 construct remains pending**, as do release
 claims.
 
+A separate [v7 Cloudflare GLM-5.3 screen](v7/SCREEN-PROTOCOL.md) is
+preregistered on the same frozen estate and paired captures. Its model calls
+are on hold until the Cloudflare token is repaired; v6 GLM-5 rates do not
+transfer to that provider/model.
+
 ## What v3 measures
 
 The offense starts with a delegated reporting operator. It can inspect the
