@@ -9,8 +9,10 @@ import { referenceJobRoute } from './job.mjs';
 import { createOffenseSession } from './offense.mjs';
 
 const spec = { seed: 9681, family: FAMILIES[0] };
-const session = createOffenseSession(spec);
+const session = createOffenseSession({ ...spec, nonce: 'live-test-nonce' });
 const route = referenceJobRoute(session.job);
+const record = session.job.objectRecords[route.object_ref];
+const template = session.job.templates.find((item) => item.id === route.template_id);
 const capture = {
   summary: {
     version: 'v6',
@@ -35,6 +37,23 @@ const capture = {
             { tool: 'submit-job', args: { service_account_id: 'never-executed' } },
           ],
           results: [{ ok: true, next_stage: { stage: 'job' } }],
+        },
+        {
+          commands: [
+            { tool: 'get-object-metadata', args: { object_ref: route.object_ref } },
+            { tool: 'get-template', args: { template_id: route.template_id } },
+          ],
+          results: [
+            {
+              ok: true,
+              value: {
+                object_ref: record.object_ref,
+                tenant_id: record.tenant_id,
+                version: record.version,
+              },
+            },
+            { ok: true, value: { id: template.id, export: { purpose: template.export.purpose } } },
+          ],
         },
         {
           commands: [{ tool: 'submit-job', args: route }],

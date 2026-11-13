@@ -18,6 +18,8 @@ function executedSteps(result) {
 function observed(result) {
   const steps = executedSteps(result);
   const written = new Map();
+  const metadataByRef = new Map();
+  const purposeByTemplate = new Map();
   let sourceId = null;
   let tokenRedeemed = false;
   let submit = null;
@@ -35,6 +37,12 @@ function observed(result) {
     if (command.tool === 'redeem-release-token' && response.next_stage?.stage === 'job') {
       tokenRedeemed = true;
     }
+    if (tokenRedeemed && command.tool === 'get-object-metadata' && response.ok) {
+      metadataByRef.set(response.value?.object_ref, response.value);
+    }
+    if (tokenRedeemed && command.tool === 'get-template' && response.ok) {
+      purposeByTemplate.set(response.value?.id, response.value?.export?.purpose);
+    }
     if (tokenRedeemed && command.tool === 'submit-job' && submit === null) {
       submit = command.args ?? {};
       admission = response.status === 'admitted';
@@ -47,7 +55,17 @@ function observed(result) {
       artifactRead = true;
     }
   }
-  return { sourceId, tokenRedeemed, submit, admission, cloudRead, kmsUnwrapped, artifactRead };
+  return {
+    sourceId,
+    tokenRedeemed,
+    submit,
+    admission,
+    cloudRead,
+    kmsUnwrapped,
+    artifactRead,
+    metadataByRef,
+    purposeByTemplate,
+  };
 }
 
 function inspect(result) {
@@ -58,8 +76,17 @@ function inspect(result) {
   );
   const source = referenceRoute(session.source.world);
   const route = referenceJobRoute(session.job);
-  const { sourceId, tokenRedeemed, submit, admission, cloudRead, kmsUnwrapped, artifactRead } =
-    observed(result);
+  const {
+    sourceId,
+    tokenRedeemed,
+    submit,
+    admission,
+    cloudRead,
+    kmsUnwrapped,
+    artifactRead,
+    metadataByRef,
+    purposeByTemplate,
+  } = observed(result);
   const saIndex = session.job.serviceAccounts.findIndex(
     (account) => account.id === route.service_account_id,
   );
@@ -70,12 +97,17 @@ function inspect(result) {
     grant.key_arn === route.key_arn ? [index] : [],
   );
   const ctx = submit?.encryption_context;
+  const metadata = metadataByRef.get(submit?.object_ref);
+  const purpose = purposeByTemplate.get(submit?.template_id);
+  const contextEvaluable = Boolean(metadata && purpose);
   const correctContext =
-    ctx &&
-    Object.keys(route.encryption_context).every(
-      (key) => ctx[key] === route.encryption_context[key],
-    ) &&
-    Object.keys(ctx).length === Object.keys(route.encryption_context).length;
+    kmsUnwrapped ||
+    (ctx &&
+      contextEvaluable &&
+      Object.keys(ctx).sort().join(',') === 'object_version,purpose,tenant_id' &&
+      ctx.tenant_id === metadata.tenant_id &&
+      ctx.object_version === metadata.version &&
+      ctx.purpose === purpose);
   return {
     family: result.spec.family,
     success: result.classification === 'pass',
@@ -89,6 +121,7 @@ function inspect(result) {
       submit?.template_id === route.template_id,
     object_correct: submit?.object_ref === route.object_ref,
     key_correct: submit?.key_arn === route.key_arn,
+    context_evaluable: contextEvaluable || kmsUnwrapped,
     context_correct: Boolean(correctContext),
     cloud_read: cloudRead,
     post_cloud_key_context_correct:
@@ -139,6 +172,7 @@ export function analyzeCapture(path) {
     'pair_correct',
     'object_correct',
     'key_correct',
+    'context_evaluable',
     'context_correct',
     'cloud_read',
     'post_cloud_key_context_correct',
