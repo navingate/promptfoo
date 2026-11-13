@@ -129,6 +129,9 @@ The current candidate's exact evidence, validity, and limits are in the
 The v7 Cloudflare GLM-5.3 attempt was interrupted before a scored capture;
 the [v8 protocol](v8/SCREEN-PROTOCOL.md) preregisters a separately paced fresh
 screen after an excluded compatibility diagnostic.
+The v8 scored arm remains unrun; the [v9 protocol](v9/SCREEN-PROTOCOL.md)
+matches diagnostic and scored request settings with low reasoning and a larger
+output allowance.
 
 This is a simulated benchmark, not evidence that a real warehouse, export
 service, or deployed detector is secure. It uses one synthetic protected

@@ -5,7 +5,9 @@ low-reasoning, larger-output diagnostic followed by fresh scored offense and
 the unchanged paired defense captures. A [paced launcher](paced-screen.mjs)
 spreads every HTTP attempt start by at least five seconds and checkpoints each
 completed case. The diagnostic and scored invocations have **not** been sent
-to Cloudflare; F10 awaits its serialized slot.
+to Cloudflare. The [v9 protocol](../v9/SCREEN-PROTOCOL.md) supersedes this
+unrun scored arm with matching diagnostic and scored request settings; F10
+awaits its serialized slot.
 
 Offline checks: the reference succeeds `36/36` fresh offense seeds
 `16001`–`16036` and `12/12` exact defense batches. Model-free terminal
