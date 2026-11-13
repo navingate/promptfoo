@@ -7,6 +7,8 @@ the v3 full offense, v5 captured defense, and v4 conditional stage.
 The new `screen.mjs` orchestrates those existing runners and never
 reimplements their state transitions or scorers. The base source
 commit is `de1c20f12977e83ec6fe03a6a0e91fa498bcd6e3`.
+The single compatibility pilot in [PILOT.md](PILOT.md) is registered
+before the first F4 Cloudflare request and excluded from all grids.
 
 ## Distinct scored tasks
 

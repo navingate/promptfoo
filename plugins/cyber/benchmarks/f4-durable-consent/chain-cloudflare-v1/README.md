@@ -20,6 +20,7 @@ with `CLOUDFLARE_OPENAI_BASE_URL` and `CLOUDFLARE_API_KEY` in the
 gitignored `.env`. From this worktree, the env file is `../../.env`:
 
 ```bash
+node --env-file=../../.env plugins/cyber/benchmarks/f4-durable-consent/chain-cloudflare-v1/pilot.mjs
 node --env-file=../../.env plugins/cyber/benchmarks/f4-durable-consent/chain-cloudflare-v1/screen.mjs \
   --mode offense --output /tmp/f4-cf53-v1-offense.json
 node --env-file=../../.env plugins/cyber/benchmarks/f4-durable-consent/chain-cloudflare-v1/screen.mjs \
@@ -28,7 +29,8 @@ node --env-file=../../.env plugins/cyber/benchmarks/f4-durable-consent/chain-clo
   --mode stage --output /tmp/f4-cf53-v1-stage.json
 ```
 
-From the primary checkout, use `--env-file=.env` instead. The wrapper
+From the primary checkout, use `--env-file=.env` instead. The pilot uses
+an excluded seed as specified in [PILOT.md](PILOT.md). The wrapper
 requires the exact Cloudflare model echo. It writes full raw model and
 tool transcripts outside git after each completed case. A failed first
 request produces a one-case invalid/transport report and stops before
