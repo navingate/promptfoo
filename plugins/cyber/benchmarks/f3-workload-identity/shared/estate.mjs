@@ -616,6 +616,7 @@ function hasNativeTelemetry(world) {
     'f3-workload-events-v4',
     'f3-workload-events-v5',
     'f3-workload-events-v6',
+    'f3-workload-events-v7',
   ].includes(world.meta.telemetry_contract_id);
 }
 
