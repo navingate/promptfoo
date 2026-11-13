@@ -77,6 +77,10 @@ classified only four of nine false positives as uncorroborated. No case
 recorded an avoidable outage. Residual old access in six authorized
 breakglass cases is an intended policy outcome, not counted as an
 unintended security bypass.
+Malicious compromise recall was **9/9**. Compromise precision was
+**9/18**: the model also called compromise on **9/27** benign cases
+(two breakglass, six planned delay, one false positive). Exact benign
+responses were **12/27**.
 
 Private raw capture:
 `/tmp/f9-v7-cloudflare-glm53-v3-low16-defense-22001-22003.json`;
