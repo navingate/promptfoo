@@ -8,7 +8,7 @@ import {
 } from '../v4/offense.mjs';
 import { authorizeJobWorld, createJobWorld, jobIdentityCanRead, stepJob } from './job.mjs';
 
-function sourceSnapshot(session) {
+export function sourceSnapshot(session) {
   const world = session.source.world;
   const ref = `srcsnap-${sha256Hex(`f3v5|${world.meta.credential_id}|${session.spec.seed}|${session.spec.family}|${world.ledger.length}|${world.audit.length}`).slice(0, 16)}`;
   session.sourceGrantSnapshots[ref] = structuredClone(world.grants);
@@ -105,7 +105,7 @@ function covers(grants, principal, task) {
   );
 }
 
-function sourceProof(session) {
+export function sourceProof(session) {
   const { world } = session.source;
   const attacker = session.source.initial.principal;
   const target = world.protected_target;

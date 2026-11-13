@@ -611,9 +611,12 @@ function benignValueFor(remoteRef) {
   return `value:${sha256Hex(`f3|benign-value|${remoteRef}`).slice(0, 16)}`;
 }
 function hasNativeTelemetry(world) {
-  return ['f3-workload-events-v3', 'f3-workload-events-v4', 'f3-workload-events-v5'].includes(
-    world.meta.telemetry_contract_id,
-  );
+  return [
+    'f3-workload-events-v3',
+    'f3-workload-events-v4',
+    'f3-workload-events-v5',
+    'f3-workload-events-v6',
+  ].includes(world.meta.telemetry_contract_id);
 }
 
 // --- per-action handlers (keep applyWorkloadAction a thin dispatcher) ---
