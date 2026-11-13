@@ -1,0 +1,15 @@
+# yaml-language-server: $schema=https://promptfoo.dev/config-schema.json
+description: F10 v6 one-case native offense smoke
+prompts:
+  - One F10 offense case
+providers:
+  - id: file://promptfoo-provider.mjs
+    label: f10-v6-offense-reference
+    config:
+      mode: offense
+      seed: 13001
+      mockReference: true
+tests:
+  - assert:
+      - type: equals
+        value: pass
