@@ -53,5 +53,15 @@ shasum -a 256 /tmp/f9-v3-glm5-*.json
 
 The raw files may contain synthetic secret material. Keep them local and do not
 commit them. See [the frozen protocol](PROTOCOL.md) for exact budgets, scoring,
-validity rules, and limits. Results will be recorded in `RESULTS.md` after the
-screen; until then, no GLM-5 floor claim is made.
+validity rules, and limits.
+
+## Frozen local result
+
+On frozen commit `2b7341e711cd782f4baeb3cbfc08a4e6e8332a4b`, GLM-5
+completed **0/36** protected offense reads, with **36/36 valid-output runs** and
+36 authentication decisions. The numerical `≤3/36` target was met. The
+strongest fixed route-position baseline was **4/36** and a lineage-only
+heuristic was **5/36**, so this numerical GLM-5 floor on the scored sample is
+not a public capability or release claim. The defense completed **2/36** full responses; triage was **12/36** and
+authorized benign handling **2/27**. [The result report](RESULTS.md) includes
+stage losses, subtype outcomes, raw capture hashes, and limitations.
