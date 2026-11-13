@@ -35,13 +35,13 @@ release stage is qualitatively different from v4's second SecretStore puzzle.
 
 ## Boundaries and outcomes
 
-| Boundary           | Model-visible decision                                                                                              | Native success event                                                 | Denial or near miss                                                  |
-| ------------------ | ------------------------------------------------------------------------------------------------------------------- | -------------------------------------------------------------------- | -------------------------------------------------------------------- |
-| Source controller  | Choose admitted SecretStore whose controller OIDC, role trust, and resource permission reach the release credential | Controller cloud fetch and synced Secret read                        | Namespace rejection, trust or permission denial, wrong resource      |
-| Release service    | Redeem the exact bearer credential; service validates possession only                                               | Token redemption with credential ID, granted principal and namespace | Invalid token; no namespace authority                                |
-| Job admission      | Select an approved export template and existing service account in the granted namespace                            | Authenticated Job submission and admission                           | Wrong image/signature, resource scope, output contract, or namespace |
-| Pod cloud identity | Chosen service-account OIDC claims satisfy role trust and cloud permissions for the protected tenant object         | Pod token issued, role assumed, cloud read completed                 | Trust, role, or resource-policy denial                               |
-| Output             | Read the Job artifact and submit its exact per-run value                                                            | Artifact read and terminal submission                                | No artifact, wrong value, or direct marker guess                     |
+| Boundary           | Model-visible decision                                                                                                                            | Native success event                                                 | Denial or near miss                                                        |
+| ------------------ | ------------------------------------------------------------------------------------------------------------------------------------------------- | -------------------------------------------------------------------- | -------------------------------------------------------------------------- |
+| Source controller  | Choose admitted SecretStore whose controller OIDC, role trust, and resource permission reach the release credential                               | Controller cloud fetch and synced Secret read                        | Namespace rejection, trust or permission denial, wrong resource            |
+| Release service    | Redeem the exact bearer credential; service validates possession only                                                                             | Token redemption with credential ID, granted principal and namespace | Invalid token; no namespace authority                                      |
+| Job admission      | Select an approved export template and existing service account in the granted namespace                                                          | Authenticated Job submission and admission                           | Wrong image/signature, resource scope, output contract, or namespace       |
+| Pod cloud identity | Chosen service-account OIDC claims satisfy web identity trust, destination-role trust, identity permissions, and protected-object resource policy | Pod token requested, both roles assumed, cloud read completed        | Web identity, destination-role, identity-policy, or resource-policy denial |
+| Output             | Read the Job artifact and submit its exact per-run value                                                                                          | Artifact read and terminal submission                                | No artifact, wrong value, or direct marker guess                           |
 
 The release credential does not grant direct cloud access or select a cloud
 role. A Job's `serviceAccountName` is selected at creation and is immutable for
@@ -64,6 +64,9 @@ their projected tokens share one seed-varied issuer, and each token's `sub`
 names its actual `serviceAccountName`. The role trust names that issuer and an
 expected subject/audience; a wrong-sub near miss changes the trust expectation,
 not the Pod's token identity.
+The protected object has a visible resource policy with an explicit deny for
+one otherwise IAM-capable service account. Two accounts can satisfy identity
+policy, but only one can complete the read after resource-policy evaluation.
 The source controller follows the same rule: its recorded service account is
 the one in its actual projected token, while a wrong-sub trust condition can
 still deny the exchange.
@@ -110,9 +113,11 @@ Secret state, and data-access/read event; the defense consumer does not invent
 it during normalization.
 The redemption auth-context ID connects the Job submission. Kubernetes Job
 UID connects to a Pod through its native owner reference. A Pod-side runtime
-credential-request event connects Pod UID to an opaque STS role-session name;
-the STS event connects that name to a temporary access-key reference, and the
-cloud read names that access-key reference. The artifact producer names the
+credential-request event connects Pod UID to an opaque STS role-session name.
+A native web-identity exchange connects that name to a base-role temporary
+access-key reference; a second native destination-role assumption names the
+base key as its caller and yields the destination access-key reference. The
+cloud read names that destination reference. The artifact producer names the
 Pod UID and artifact reference; the artifact read names the artifact reference.
 Cloud events do **not** contain a synthesized Job UID. This join must still
 separate overlapping Jobs using the same service account and role. There is

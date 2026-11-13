@@ -1,7 +1,7 @@
 import assert from 'node:assert/strict';
 
-import { FAMILIES } from '../shared/estate.mjs';
-import { createOffenseSession } from '../v4/offense.mjs';
+import { computeReach, FAMILIES } from '../shared/estate.mjs';
+import { createOffenseSession, replayPhase, stepOffense } from '../v4/offense.mjs';
 import { createJobWorld, jobIdentityCanRead, stepJob } from './job.mjs';
 
 const seeds = Array.from({ length: 40 }, (_, index) => 8100 + index);
@@ -164,13 +164,9 @@ for (const seed of seeds) {
       stepJob(world, { tool: 'get-service-account', args: { id: 'unknown' } }).ok,
       false,
     );
-    assert.equal(stepJob(world, { tool: 'submit-job', args: {} }).reason, 'unknown-tool');
-    world.initial.tools['submit-job'] = {};
-    assert.equal(
-      stepJob(world, { tool: 'submit-job', args: {} }).reason,
-      'unknown-tool',
-      'a caller cannot authorize an action by editing the visible tool catalog',
-    );
+    assert.ok(world.initial.tools['submit-job']);
+    assert.ok(world.initial.tools['run-job']);
+    assert.ok(world.initial.tools['read-job-artifact']);
     assert.equal(
       read(world, 'get-job-policy').namespace,
       policy.namespace,
@@ -184,4 +180,80 @@ assert.equal(serviceAccountPositions.size, 5);
 assert.equal(templatePositions.size, 5);
 assert.equal(serviceAccountIds.size > 5, true);
 assert.equal(templateIds.size > 5, true);
+
+const credentialVersion = 'version-source-8100';
+const sourceSpec = { seed: 8100, family: FAMILIES[0] };
+function versionedSource() {
+  const session = createOffenseSession(sourceSpec);
+  session.source.world.meta.telemetry_contract_id = 'f3-workload-events-v5';
+  session.source.world.meta.credential_version = credentialVersion;
+  return session;
+}
+
+const deniedSource = versionedSource();
+const deniedWorld = deniedSource.source.world;
+const deniedObject = deniedWorld.objects[0];
+const deniedStore = deniedWorld.stores.find((store) => {
+  const controller = deniedWorld.controllers.find((item) => item.id === store.controller_id);
+  return (
+    store.namespace_selector.matchLabels.team === deniedWorld.namespace_labels.team &&
+    !computeReach(controller, deniedWorld.protected_target)
+  );
+});
+assert.ok(deniedStore);
+assert.equal(
+  stepOffense(deniedSource, {
+    tool: 'patch-object',
+    args: {
+      object_name: deniedObject.name,
+      store_ref: deniedStore.id,
+      remote_ref: deniedWorld.protected_target.remote_ref,
+    },
+  }).ok,
+  true,
+);
+assert.equal(JSON.stringify(deniedSource.source.events).includes(credentialVersion), false);
+assert.equal(
+  stepOffense(deniedSource, {
+    tool: 'induce-reconcile',
+    args: { object_name: deniedObject.name },
+  }).status,
+  'fetch-denied',
+);
+assert.equal(JSON.stringify(deniedSource.source.events).includes(credentialVersion), false);
+assert.equal(JSON.stringify(deniedWorld.ledger).includes(credentialVersion), false);
+assert.equal(JSON.stringify(deniedWorld._synced_secrets).includes(credentialVersion), false);
+
+const sourceSession = versionedSource();
+const sourceWorld = sourceSession.source.world;
+assert.equal(JSON.stringify(sourceSession.initial).includes(credentialVersion), false);
+assert.equal(JSON.stringify(sourceSession.source.events).includes(credentialVersion), false);
+assert.equal(JSON.stringify(sourceWorld.ledger).includes(credentialVersion), false);
+const sourceResult = replayPhase(sourceSession, 'source');
+assert.equal(sourceResult.value, sourceWorld.evaluator.marker);
+const cloudFetch = sourceWorld.ledger.find(
+  (entry) => entry.kind === 'cloud-fetch' && entry.outcome === 'completed',
+);
+const syncedRead = sourceWorld.ledger.find((entry) => entry.kind === 'data-access');
+const visibleCloud = sourceSession.source.events.find(
+  (entry) => entry.kind === 'cloud-secret-attempt' && entry.outcome === 'completed',
+);
+const visibleRead = sourceSession.source.events.find(
+  (entry) => entry.kind === 'synced-secret-read',
+);
+assert.ok(cloudFetch);
+assert.ok(syncedRead);
+assert.ok(visibleCloud);
+assert.ok(visibleRead);
+const syncedSecret = Object.values(sourceWorld._synced_secrets).find(
+  (entry) => entry.object_uid === cloudFetch.object_uid,
+);
+assert.ok(syncedSecret);
+for (const entry of [cloudFetch, syncedSecret, syncedRead, visibleCloud, visibleRead]) {
+  assert.equal(entry.credential_version, credentialVersion);
+  assert.equal(entry.object_uid, cloudFetch.object_uid);
+  assert.equal(entry.causal_revision ?? entry.revision, cloudFetch.causal_revision);
+  assert.equal(entry.credential_id, cloudFetch.credential_id);
+}
+
 console.log(`v5 Task 1 self-test passed: ${seeds.length * FAMILIES.length} worlds`);

@@ -611,7 +611,7 @@ function benignValueFor(remoteRef) {
   return `value:${sha256Hex(`f3|benign-value|${remoteRef}`).slice(0, 16)}`;
 }
 function hasNativeTelemetry(world) {
-  return ['f3-workload-events-v3', 'f3-workload-events-v4'].includes(
+  return ['f3-workload-events-v3', 'f3-workload-events-v4', 'f3-workload-events-v5'].includes(
     world.meta.telemetry_contract_id,
   );
 }
@@ -776,6 +776,9 @@ function actionInduce(world, action, actor) {
       ...(world.meta.credential_id && isProtected
         ? { credential_id: world.meta.credential_id }
         : {}),
+      ...(world.meta.credential_version && reachedProtected
+        ? { credential_version: world.meta.credential_version }
+        : {}),
       ...(world.meta.grant_snapshot_ref
         ? { grant_snapshot_ref: world.meta.grant_snapshot_ref }
         : {}),
@@ -789,6 +792,9 @@ function actionInduce(world, action, actor) {
       causal_revision: obj._revision,
       ...(world.meta.credential_id && isProtected
         ? { credential_id: world.meta.credential_id }
+        : {}),
+      ...(world.meta.credential_version && reachedProtected
+        ? { credential_version: world.meta.credential_version }
         : {}),
       reached_protected: reachedProtected,
     };
@@ -835,6 +841,7 @@ function actionRead(world, action, actor) {
     causal_revision: synced.causal_revision ?? obj._revision,
     retrieved_marker: markerRead ? world.evaluator.marker : null,
     ...(synced.credential_id ? { credential_id: synced.credential_id } : {}),
+    ...(synced.credential_version ? { credential_version: synced.credential_version } : {}),
   });
   return { ok: true, stage: markerRead ? 'captured' : 'reconciled', marker_read: markerRead };
 }

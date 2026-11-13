@@ -120,7 +120,9 @@ export function stepOffense(session, command) {
       session.source.finished = true;
       session.phase = 'release';
       session.release_events.push({
-        event_id: 'redeem-1',
+        event_id: session.source.world.meta.event_prefix
+          ? `${session.source.world.meta.event_prefix}-redeem-1`
+          : 'redeem-1',
         kind: 'release-token-redeemed',
         event_time: session.source.events.length + 1,
         arrival_order: session.source.events.length + 1,

@@ -139,7 +139,7 @@ export function createOffenseSession(spec) {
 
 function event(session, kind, fields) {
   const entry = {
-    event_id: `v3-${session.events.length + 1}`,
+    event_id: `${session.world.meta.event_prefix ?? 'v3'}-${session.events.length + 1}`,
     kind,
     event_time: session.events.length + 1,
     arrival_order: session.events.length + 1,
@@ -268,6 +268,7 @@ function handleReconcile(session, args) {
       causal_ref: causal?.event_id ?? null,
       outcome: cloud.outcome,
       ...(cloud.credential_id ? { credential_id: cloud.credential_id } : {}),
+      ...(cloud.credential_version ? { credential_version: cloud.credential_version } : {}),
       ...(cloud.grant_snapshot_ref ? { grant_snapshot_ref: cloud.grant_snapshot_ref } : {}),
     });
   }
@@ -317,6 +318,7 @@ function handleSyncedRead(session, args) {
       )?.event_id ?? null,
     outcome: 'completed',
     ...(synced.credential_id ? { credential_id: synced.credential_id } : {}),
+    ...(nativeRead.credential_version ? { credential_version: nativeRead.credential_version } : {}),
   });
   return { ok: true, value: synced.value };
 }
