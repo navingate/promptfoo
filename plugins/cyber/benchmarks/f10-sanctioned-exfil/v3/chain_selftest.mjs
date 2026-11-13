@@ -378,3 +378,16 @@ test('defense needs coverage and a cumulative across actors, not one label or on
     );
   }
 });
+
+test('model-facing catalog observations omit the scored seed and answer fields', () => {
+  const session = chain.createOffenseSession({ seed: 9901, family: 'multi-identity-fanout' });
+  const catalog = chain.stepOffense(session, { tool: 'catalog', args: [] }).catalog;
+  assert.equal(Object.hasOwn(catalog, 'instance_seed'), false);
+  const batch = defense.buildDefenseBatch(9901);
+  for (const capture of batch.captures) {
+    assert.equal(Object.hasOwn(capture.catalog, 'instance_seed'), false);
+    assert.equal(JSON.stringify(capture).includes('F10EXP-'), false);
+    assert.equal(JSON.stringify(capture).includes('uncovered_cells'), false);
+    assert.equal(JSON.stringify(capture).includes('crossing'), false);
+  }
+});

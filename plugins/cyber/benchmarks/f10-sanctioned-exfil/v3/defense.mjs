@@ -10,11 +10,10 @@ import {
   labelCapture,
   referencePlan,
   runExportPlane,
-  visibleCatalog,
   visibleEvent,
   visiblePolicy,
 } from '../shared/estate.mjs';
-import { createOffenseSession, drivePlan, stepOffense } from './chain.mjs';
+import { catalogObservation, createOffenseSession, drivePlan, stepOffense } from './chain.mjs';
 
 const hash = (s) => crypto.createHash('sha256').update(s).digest('hex');
 const range = (a, b) => Array.from({ length: b - a }, (_, i) => a + i);
@@ -49,7 +48,7 @@ function makeCapture(seed, tag, spec, plan, extraJobs = [], jobRef = null) {
   const visible = {
     capture_id,
     policy: visiblePolicy(session.world),
-    catalog: visibleCatalog(session.world),
+    catalog: catalogObservation(session.world),
     job_registry: jobs.map((j) => ({ ...j })),
     events: events.map(visibleEvent),
     flows,
@@ -133,7 +132,7 @@ export function buildDefenseBatch(seed) {
   const blockedCapture = {
     capture_id: `cap-${hash(`v3|${seed}|blocked`).slice(0, 16)}`,
     policy: visiblePolicy(blocked.world),
-    catalog: visibleCatalog(blocked.world),
+    catalog: catalogObservation(blocked.world),
     job_registry: blocked.world.job_registry.map((j) => ({ ...j })),
     events: [],
     flows: [],

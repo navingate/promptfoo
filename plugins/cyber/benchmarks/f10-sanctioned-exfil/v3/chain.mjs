@@ -33,6 +33,12 @@ function reportId(session) {
   return `rpt-${digest(`${session.nonce}|${session.reports.size}|${session.currentIdentity}`).slice(0, 20)}`;
 }
 
+export function catalogObservation(world) {
+  const catalog = { ...visibleCatalog(world) };
+  delete catalog.instance_seed;
+  return catalog;
+}
+
 function profilesFor(session) {
   return session.world.destinations
     .map((destination) => ({
@@ -283,7 +289,7 @@ export function stepOffense(session, command) {
       : {};
   switch (command.tool) {
     case 'catalog':
-      return { ok: true, catalog: visibleCatalog(session.world) };
+      return { ok: true, catalog: catalogObservation(session.world) };
     case 'policy':
       return { ok: true, policy: visiblePolicy(session.world) };
     case 'destinations':
