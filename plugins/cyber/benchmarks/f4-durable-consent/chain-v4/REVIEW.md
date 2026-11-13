@@ -49,7 +49,15 @@ control checks against the attack path before accepting paired grounding.
   seeds 11021–11029 × four settings. The native file has 36 batches,
   468 captures, 13 grants per batch. The answer key is a separate
   evaluator file. Capture SHA-256 and producer source commit are bound
-  in `capture-manifest.json` after freeze.
+  in `capture-manifest.json`.
+- Frozen v4 GLM-5: the conditional post-reset stage passed 36/36 in
+  exactly four native actions per case. Captured defense was 1/36 exact,
+  with 20 valid maps and 16 parser/interface format failures after
+  `list-grants`; on valid maps, precision was 14/137 and recall 14/20,
+  with 123 false alarms on authorized same-user survivors. The
+  [result report](RESULTS.md) preserves raw hashes and the cause of
+  the invalid label maps. This does not rescue the full-chain 0/36
+  into a deep-chain floor or support a pure 1/36 detection claim.
 - Native mutations: wrong refresh credential, wrong access token,
   wrong export reference, guessed exact value, missing principal,
   duplicate event ID, forged credential lineage, wrong protected
@@ -71,7 +79,7 @@ control checks against the attack path before accepting paired grounding.
 
 Commands and expected output paths are in [README.md](README.md).
 All live GLM-5 raw output is written outside git and hashed in the
-result report after calibration. The direct runner, not Promptfoo, is
+result [report](RESULTS.md). The direct runner, not Promptfoo, is
 the frozen measurement harness.
 
 ## Gate status and claim boundary

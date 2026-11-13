@@ -17,6 +17,8 @@ that also refresh and export, and a revoked unauthorized grant. The
 captures are **reference-produced estate executions**, not successful
 GLM-5 attack traces. See [design](DESIGN.md), [lineage](FIELD-LINEAGE.md),
 [observation plane](OBSERVATION-PLANE.md), and [protocol](PROTOCOL.md).
+The [frozen v4 result](RESULTS.md) reports a 36/36 conditional stage
+and 1/36 exact captured-defense score with its valid-output limit.
 
 ## Run from the F4 v4 worktree root
 
