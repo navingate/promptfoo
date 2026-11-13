@@ -9,6 +9,11 @@ account, or enterprise product is required.
 
 ## Current status
 
+The separate [`v8/` candidate](v8/README.md) adds effective decrypt-policy
+and action-time delegated-grant decisions. Its local references pass 36/36
+in each mode, but it has not been screened against GLM-5.3 and has no floor
+claim. The v7 results below remain frozen.
+
 The `v7/` chain is a **calibrated candidate**, not a released replacement
 for the earlier F3 manifests. The reference solutions pass, but the
 pre-registered target of flooring both GLM-5 and Qwen was **not met**:
