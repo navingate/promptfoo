@@ -32,6 +32,14 @@ commit, not `9784afc6a`, is the binding for any future scored run.
   any model call. All four v8 self-tests passed. The v7 branch and scorer
   are separate and frozen.
 
+Before the scored grid, run one excluded compatibility pilot in each mode
+at seed `19199` / `reconcile-hook` under the exact settings above. Inspect
+only transport, served-model echo, grammar, truncation, and capture
+integrity. Do not use pilot task outcomes to tune the candidate or include
+them in either denominator. If the 8,192-token setting prevents a usable
+answer or the transport contract fails, record the pilot and freeze a new
+protocol with fresh scored seeds before further model calls.
+
 ## Decision and reporting
 
 Offense primary: exact terminal artifact recovery with complete native
