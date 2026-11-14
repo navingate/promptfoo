@@ -10,10 +10,11 @@ calibrations, a one-case Promptfoo path, and a gate review packet. **Independent
 G0 review for the stateful v3–v6 construct remains pending**, as do release
 claims.
 
-A separate [v7 Cloudflare GLM-5.3 screen](v7/SCREEN-PROTOCOL.md) is
-preregistered on the same frozen estate and paired captures. Its model calls
-are on hold until the Cloudflare token is repaired; v6 GLM-5 rates do not
-transfer to that provider/model.
+The latest Cloudflare GLM-5.3 offense and defense screen results are indexed
+separately in [scorecard.json](scorecard.json), with their candidate versions,
+denominators, validity counts, report paths, and raw-output hashes. The
+historical [v7 attempt](v7/INTERRUPTED-SCREEN.md) did not produce a scored
+result; v6 GLM-5 rates do not transfer to this provider/model.
 
 ## What v3 measures
 
