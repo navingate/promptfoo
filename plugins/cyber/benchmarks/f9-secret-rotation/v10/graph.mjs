@@ -167,7 +167,8 @@ export function validateTwin(capture) {
   requireGraph(
     policy.actor === 'approval-service' &&
       policy.signature === 'valid' &&
-      policy.caused_by?.length === 0 &&
+      Array.isArray(policy.caused_by) &&
+      policy.caused_by.length === 0 &&
       typeof policy.principal === 'string' &&
       policy.principal.length > 0 &&
       typeof policy.resource === 'string' &&
@@ -201,7 +202,8 @@ export function validateTwin(capture) {
   };
   for (const auth of auths) {
     requireGraph(
-      auth.caused_by?.length === 0 &&
+      Array.isArray(auth.caused_by) &&
+        auth.caused_by.length === 0 &&
         typeof auth.actor === 'string' &&
         auth.actor.length > 0 &&
         auth.allowed === true &&

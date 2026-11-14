@@ -192,3 +192,13 @@ test('null native events fail with a controlled graph error', () => {
   capture.events[0] = null;
   assert.throws(() => validateTwin(capture), /^Error: invalid native graph:/);
 });
+
+test('root policy and auth causal fields must be empty arrays', () => {
+  const capture = buildTwin({ ...spec, malicious: false });
+  for (const native of capture.events.filter((item) =>
+    ['authorization.record', 'auth.attempt'].includes(item.type),
+  )) {
+    native.caused_by = '';
+  }
+  assert.throws(() => validateTwin(capture), /^Error: invalid native graph:/);
+});
