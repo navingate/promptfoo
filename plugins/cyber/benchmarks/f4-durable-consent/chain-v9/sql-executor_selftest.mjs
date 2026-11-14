@@ -36,13 +36,14 @@ const tables = {
 };
 
 let preflightFailure;
-const executorReady = await preflightSqlExecutor().then(
-  () => true,
+const preflightResult = await preflightSqlExecutor().then(
+  (result) => result,
   (error) => {
     preflightFailure = error;
-    return false;
+    return null;
   },
 );
+const executorReady = preflightResult !== null;
 const hostPythonSupportsSQLiteLimits =
   spawnSync('python3', ['-c', 'import sqlite3; print(hasattr(sqlite3.Connection, "setlimit"))'], {
     encoding: 'utf8',
@@ -81,7 +82,7 @@ function query(sql, overrides = {}) {
 
 test('preflight verifies process and container controls or fails closed', async () => {
   if (executorReady) {
-    const result = await preflightSqlExecutor();
+    const result = preflightResult;
     assert.equal(result.memoryLimitEnforced, true);
     assert.equal(result.memoryPressureDenied, true);
     assert.equal(result.jsonFunctionsAvailable, true);
@@ -98,7 +99,7 @@ test('preflight verifies process and container controls or fails closed', async 
     if (process.platform === 'linux') {
       throw preflightFailure;
     }
-    await assert.rejects(preflightSqlExecutor());
+    assert.ok(preflightFailure);
     if (process.platform !== 'linux') {
       await assert.rejects(query('SELECT grant_id FROM grants'));
     }

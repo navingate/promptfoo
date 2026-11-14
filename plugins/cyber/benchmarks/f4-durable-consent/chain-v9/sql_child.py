@@ -238,6 +238,11 @@ def preflight(limit):
 def run(request, limit):
     if request.get("mode") == "preflight":
         return preflight(limit)
+    if request.get("mode") == "timeout_probe":
+        sys.stdout.write("F4_SQL_READY\n")
+        sys.stdout.flush()
+        time.sleep(30)
+        return {"timeoutProbeCompleted": True}
     batches = request.get("batches")
     if batches is None:
         batches = [request["tables"]]

@@ -78,7 +78,11 @@ export async function verifyContainerExit(
 
 async function invokeChild(
   request,
-  { timeoutMs = DEFAULT_TIMEOUT_MS, memoryLimitBytes = DEFAULT_MEMORY_BYTES } = {},
+  {
+    timeoutMs = DEFAULT_TIMEOUT_MS,
+    timeoutAfterReadyMs,
+    memoryLimitBytes = DEFAULT_MEMORY_BYTES,
+  } = {},
 ) {
   verifyDockerConfig();
   if (!Number.isInteger(timeoutMs) || timeoutMs < 1 || timeoutMs > 180000) {
@@ -143,6 +147,7 @@ async function invokeChild(
     let stdout = '';
     let stderr = '';
     let settled = false;
+    let readyReceived = false;
     const fail = async (error) => {
       if (settled) {
         return;
@@ -161,9 +166,18 @@ async function invokeChild(
         reject(cleanupError);
       }
     };
-    const timer = setTimeout(() => void fail(new Error('SQL child hard timeout')), timeoutMs);
+    let timer = setTimeout(() => void fail(new Error('SQL child hard timeout')), timeoutMs);
     child.stdout.on('data', (chunk) => {
       stdout += chunk;
+      if (timeoutAfterReadyMs && !readyReceived && stdout.includes('F4_SQL_READY\n')) {
+        readyReceived = true;
+        stdout = stdout.replace('F4_SQL_READY\n', '');
+        clearTimeout(timer);
+        timer = setTimeout(
+          () => void fail(new Error('SQL child hard timeout')),
+          timeoutAfterReadyMs,
+        );
+      }
       if (Buffer.byteLength(stdout) > 1024 * 1024) {
         void fail(new Error('SQL child output exceeded limit'));
       }
@@ -281,7 +295,7 @@ export async function preflightSqlExecutor() {
     throw new Error('SQL executor preflight failed');
   }
   try {
-    await invokeChild({ mode: 'preflight' }, { timeoutMs: 1 });
+    await invokeChild({ mode: 'timeout_probe' }, { timeoutAfterReadyMs: 1000 });
   } catch (error) {
     if (!String(error).includes('hard timeout')) {
       throw new Error('SQL hard-timeout preflight failed', { cause: error });
