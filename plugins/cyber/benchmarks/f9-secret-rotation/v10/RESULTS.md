@@ -1,0 +1,17 @@
+# F9 v10 offline candidate evidence
+
+Status: **pre-call; no v10 model traffic**. This document will bind the reviewed source commit and model-free audit before any pilot or scored call. The v9 screen remains separate: GLM-5.3 achieved 8/36 full-chain offense, 25/36 exact defense, and 33/36 isolated grant-stage successes with all scored cases valid and no retries. V10 changes the construct, so those rates are context, not a pooled baseline.
+
+The fresh offline grid is `26001`–`26012` for offense and isolated grant stage, with `26001`–`26003` for defense. The excluded pilot is `25901/cached-interval`. V10 source is bound at commit `ac160d8507c6ba3fa4968f22c7b7e8c2bdd1e571` on `codex/f9-v10-causal`; v8/v9 files were not changed. The v10 screen version is `f9-v10-causal-cloudflare-glm53-low16`. No pilot or scored v10 model call has been sent.
+
+## Model-free gates
+
+The independent native reference passes **36/36 offense**, **36/36 isolated grant stage**, and **36/36 defense**, with **9/9** in each of malicious, breakglass, planned, and false-positive. Native opportunity counts are **36** offense auth decisions, **36** grant redemptions, and **36** pre-decision grant-event reads. All four graph link mutations and all eight offense decision mutations reject **36/36** instances each. The observed maxima are **29 native events**, **4 flows**, **11 offense actions**, **4 grant-stage actions**, and **9 defense actions**, all below the registered caps. Fully staged output checking covered 36 instances in each mode, including 396 offense, 144 grant-stage, and 234 defense tool responses. No undeclared native field or sentinel evaluator value reached the checked observation plane.
+
+The model-free controls on the 36-instance grids are actor A **18/36**, actor B **18/36**, first displayed flow **17/36**, lowest identifier **17/36**, event count **9/36**, timing **9/36**, and static lease **18/36**. Retrospective best fixed route position **11/36** and grant position **15/36** are **posthoc envelopes**. These controls are imperfect but nonzero; they do not establish GLM hardness or a capability floor. The private mode-0600 audit is `/tmp/f9-v10-precall-audit.json`, SHA-256 `168b2e15347980704ed5c3fb4a58c99df327bb5e43522ca87d7c33933cebb293`.
+
+Focused Node 24 tests pass **103/103** across the frozen v8 core, v9 transport, and v10 candidate (55 v10). This includes fake-transport checks for exact model echo, low/16k body, request pacing and retries, private atomic checkpoint, pilot separation, provider/invalid stop, 20-minute case timeout accounting, late-response cancellation, backoff cancellation, preservation of completed request outcomes, and private capture reconstruction after a no-evidence failure. Targeted Biome checks pass on v10 source. This is offline verification, not a real model calibration.
+
+Source SHA-256: `graph.mjs` `b3851311058dd8df6e2ced24dcf94f7e999bc5afad75c1ce7a75d64054742b30`; `offense.mjs` `f19b68f186b507a1ef48bb1ae1c653337a83a90493106106adcb01bf50ca2c6c`; `defense.mjs` `c8f6c8d93efd6bec939aefcb922fb1095df544c711951968eb10e23846e41e50`; `audit.mjs` `49145891eb6f45c0bf62a56e855f74f20ff8ccc69fbb470ac64e6483f2039361`; `screen.mjs` `50fdf00a72caf275838079446c409914da5e204109c8b59386fd818dd89422c4`.
+
+There are no v10 model outcomes, capability rates, G0–G7 approvals, product-fidelity claims, or deployment claims. The descriptive ≤6/36 aims remain untested. Live calibration waits for review and a released Cloudflare slot; no DeepSeek call is planned.
