@@ -6,7 +6,6 @@ export const SUBTYPES = Object.freeze(['malicious', 'breakglass', 'planned', 'fa
 const SCHEMA = 'f9-native-v10.0';
 const RESOURCE = 'object/payment-sync/settlements';
 const BENIGN_DISPOSITIONS = {
-  malicious: 'authorized',
   breakglass: 'authorized-exercise',
   planned: 'planned-delay',
   'false-positive': 'uncorroborated',
@@ -93,6 +92,7 @@ export function buildTwin({ seed, family, subtype, malicious = false, nonce = 'r
     caused_by: [],
     principal: authorized,
     resource: RESOURCE,
+    policy_kind: subtype === 'malicious' ? 'breakglass' : subtype,
     signature: 'valid',
     window_start: 995,
     window_end: 1025,
@@ -120,7 +120,6 @@ export function buildTwin({ seed, family, subtype, malicious = false, nonce = 'r
 /** Validate producer-native links before classifying the read against the policy. */
 export function validateTwin(capture) {
   requireGraph(capture?.schema_version === SCHEMA && Array.isArray(capture.events), 'capture');
-  requireGraph(SUBTYPES.includes(capture.evaluator?.subtype), 'evaluator subtype');
   const { events } = capture;
   requireGraph(events.length === 8 && events.length <= 72, 'event count');
   const byId = new Map(events.map((event) => [event.event_id, event]));
@@ -135,7 +134,8 @@ export function validateTwin(capture) {
       (event) =>
         event.schema_version === SCHEMA &&
         Number.isSafeInteger(event.event_time) &&
-        typeof event.flow_id === 'string',
+        typeof event.flow_id === 'string' &&
+        event.flow_id.length > 0,
     ),
     'event fields',
   );
@@ -161,6 +161,7 @@ export function validateTwin(capture) {
       policy.caused_by?.length === 0 &&
       typeof policy.resource === 'string' &&
       policy.resource.length > 0 &&
+      Object.hasOwn(BENIGN_DISPOSITIONS, policy.policy_kind) &&
       Number.isSafeInteger(policy.window_start) &&
       Number.isSafeInteger(policy.window_end),
     'authorization policy',
@@ -230,7 +231,7 @@ export function validateTwin(capture) {
   return {
     valid: true,
     compromised,
-    disposition: compromised ? 'compromise' : BENIGN_DISPOSITIONS[capture.evaluator.subtype],
+    disposition: compromised ? 'compromise' : BENIGN_DISPOSITIONS[policy.policy_kind],
     actor: auth.actor,
   };
 }

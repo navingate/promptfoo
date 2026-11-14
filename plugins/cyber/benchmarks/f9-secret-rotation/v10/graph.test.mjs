@@ -25,7 +25,7 @@ test('deterministic paired native captures differ only at protected read lineage
       assert.equal(
         validateTwin(benign).disposition,
         {
-          malicious: 'authorized',
+          malicious: 'authorized-exercise',
           breakglass: 'authorized-exercise',
           planned: 'planned-delay',
           'false-positive': 'uncorroborated',
@@ -36,6 +36,17 @@ test('deterministic paired native captures differ only at protected read lineage
       assert.ok(benign.events.length <= 72);
       assert.ok(new Set(benign.events.map((item) => item.flow_id)).size <= 4);
     }
+  }
+});
+
+test('native policy kind determines benign disposition independently of evaluator metadata', () => {
+  for (const subtype of SUBTYPES) {
+    const capture = buildTwin({ ...spec, subtype, malicious: false });
+    const native = event(capture, 'authorization.record');
+    assert.equal(native.policy_kind, subtype === 'malicious' ? 'breakglass' : subtype);
+    const expected = validateTwin(capture).disposition;
+    capture.evaluator.subtype = subtype === 'planned' ? 'breakglass' : 'planned';
+    assert.equal(validateTwin(capture).disposition, expected);
   }
 });
 
@@ -109,6 +120,15 @@ test('rejects missing, cross-flow, and time-inverted causal edges', () => {
     },
     (capture) => {
       event(capture, 'protected.read').flow_id = auth.flow_id;
+    },
+    (capture) => {
+      event(capture, 'protected.read').flow_id = '';
+    },
+    (capture) => {
+      capture.events.find((item) => item.event_id === auth.event_id).flow_id = '';
+    },
+    (capture) => {
+      delete event(capture, 'authorization.record').policy_kind;
     },
     (capture) => {
       for (const item of capture.events) {
