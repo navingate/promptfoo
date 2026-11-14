@@ -118,14 +118,17 @@ unauthorized actions. Source-side queued controller observations advance
 the producer's event clock before the protected reconcile. Each Job
 world also waits in its own execution queue between admission and Pod
 start; the background world has a separate, approved schedule. These
-waits occur before the native events are emitted. They move the actual
-cloud action across a membership window that was scheduled from the
-phase clock in advance. Target and background S3 reads can each be
-earlier by event time, for both target authorization states within a
-six-incident world. The additional source queue observations use the
-existing reconcile event kind, so the 24-query catalogue remains
-unchanged. Tests bound simple event-time and audit-only shortcuts using
-balanced accuracy, because each batch has four approved and two
+waits occur before native events are emitted. Source queue timing
+moves its action across a pre-scheduled membership window. Target and
+background Job queue durations have the same distribution for both
+target authorization states; the target's membership window is
+scheduled before run at a different position relative to the planned
+action. Target and background S3 reads can each be earlier by event
+time for both states within a six-incident world. The additional source
+queue observations use the existing reconcile event kind, so the
+24-query catalogue remains unchanged. Tests bound signed cloud-read
+time differences, queue durations, event-time and audit-only shortcuts
+using balanced accuracy, because each batch has four approved and two
 unauthorized Job actions.
 
 ## Alternatives considered

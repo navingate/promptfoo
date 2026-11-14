@@ -495,15 +495,15 @@ function producerIncident(spec, variant, index) {
     throw new Error('delegated Job grant inputs missing');
   }
   const jobClock = job.eventOffset + job.events.length;
-  const commonQueueDelay = ((Math.floor(spec.seed / 2) + familyIndex + index) % 16) * 2;
-  const targetQueueDelay = commonQueueDelay + (variant.jobAllowed ? 0 : 4);
+  const commonQueueDelay = ((Math.floor(spec.seed / 2) + familyIndex + index) % 18) * 2;
+  const targetQueueDelay = commonQueueDelay;
   // run-job emits Pod, credential request, web STS, role STS, then cloud read.
   const jobPlannedActionTime = jobClock + targetQueueDelay + 5;
   job.membershipLedger = membershipAuditEvents(
     jobGroup,
     job.principal,
     otherJobPrincipal,
-    jobClock + commonQueueDelay + 5,
+    jobPlannedActionTime - (variant.jobAllowed ? 0 : 2),
     spec.seed,
     spec.family,
     index,
@@ -551,8 +551,9 @@ function producerIncident(spec, variant, index) {
   if (!jobCapture || jobCapture.action_time !== jobCloud.event_time) {
     throw new Error('native Job action capture missing');
   }
+  const backgroundOrderBit = (index + Math.floor(index / 4)) % 2;
   const backgroundSlow =
-    ((Number(index >= 2 && index <= 4) + Math.floor(spec.seed / 2) + familyIndex) % 2) === 0;
+    ((Math.floor(spec.seed / 2) + familyIndex + index + backgroundOrderBit) % 2) === 0;
   const background = producerBackgroundRead(
     session,
     spec,
