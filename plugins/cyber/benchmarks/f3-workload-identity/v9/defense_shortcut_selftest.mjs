@@ -259,7 +259,7 @@ for (const family of FAMILIES) {
         authorized: records.job.captured.authorized,
       });
       sourceQueueSamples.push({
-        signature: String(sourceCloud.event_time - 4),
+        signature: String(sourceReconcile.event_time - 3),
         authorized: records.source.captured.authorized,
       });
     }
@@ -295,6 +295,7 @@ const sourceQueueBalancedAccuracy = bestBalancedLookup(sourceQueueSamples);
 assertSameConditionalDistribution(signedReadDeltaSamples, 'signed read delta');
 assertSameConditionalDistribution(jobQueueSamples, 'target queue duration');
 assertSameConditionalDistribution(backgroundQueueSamples, 'background queue duration');
+assertSameConditionalDistribution(sourceQueueSamples, 'source queue duration');
 const shiftedJobQueueSamples = [];
 for (let seed = 10401; seed < 10437; seed += 1) {
   const session = buildDefenseSession({ seed, family: FAMILIES[0] });

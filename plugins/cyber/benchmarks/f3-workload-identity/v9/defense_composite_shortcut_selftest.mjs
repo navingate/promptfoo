@@ -88,7 +88,7 @@ function samplesForGrid(firstSeed, seedCount) {
         for (const [feature, signature] of [
           ['source-audit-only', `${sourceAudit.added}/${sourceAudit.removed}`],
           ['source-cloud-time', String(sourceCloud.event_time)],
-          ['source-queue-duration', String(sourceCloud.event_time - 4)],
+          ['source-queue-duration', String(reconcile.event_time - 3)],
           ['source-reconcile/audit', String(reconcile.event_time - sourceAdd)],
           ['source-synced-read/audit', String(sourceRead.event_time - sourceAdd)],
         ]) {

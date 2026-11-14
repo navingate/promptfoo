@@ -409,7 +409,7 @@ function producerIncident(spec, variant, index) {
   const sourceClock = session.source.events.length;
   const familyIndex = FAMILIES.indexOf(spec.family);
   const sourceJitter = (spec.seed + familyIndex + index) % 12;
-  const sourceQueueDelay = sourceJitter + (variant.sourceAllowed ? 0 : 2);
+  const sourceQueueDelay = sourceJitter;
   const sourceCloudLatency = producerLatency(spec, index, 'source-cloud');
   const sourceReadLatency = producerLatency(spec, index, 'source-read');
   session.source.producerLatencies = {
@@ -422,7 +422,7 @@ function producerIncident(spec, variant, index) {
     sourceGroup,
     actor,
     firstWriter,
-    sourceClock + sourceJitter + 4 + sourceCloudLatency,
+    sourcePlannedActionTime - (variant.sourceAllowed ? 0 : 2),
     spec.seed,
     spec.family,
     index,

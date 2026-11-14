@@ -118,12 +118,14 @@ unauthorized actions. Source-side queued controller observations advance
 the producer's event clock before the protected reconcile. Each Job
 world also waits in its own execution queue between admission and Pod
 start; the background world has a separate, approved schedule. These
-waits occur before native events are emitted. Source queue timing
-moves its action across a pre-scheduled membership window. Target and
-background Job queue durations have the same distribution for both
-target authorization states; the target's membership window is
-scheduled before run at a different position relative to the planned
-action. Independent opt-in producer latencies also separate source
+waits occur before native events are emitted. Source queue duration
+has the same distribution for both authorization states; its
+membership window is scheduled before replay at a different position
+relative to the planned action. Target and background Job queue
+durations have the same distribution for both target authorization
+states; the target's membership window is scheduled before run at a
+different position relative to the planned action. Independent opt-in
+producer latencies also separate source
 reconcile from the cloud fetch, the cloud fetch from the synced read,
 destination STS from the S3 read, and the S3 read from its checkpoint.
 Each stage draws from a separate deterministic SHA-256 stream keyed by
