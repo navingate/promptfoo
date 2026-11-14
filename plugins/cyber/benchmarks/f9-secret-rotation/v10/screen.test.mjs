@@ -437,3 +437,37 @@ test('default retry delay releases its real timer when case deadline aborts', ()
     fs.rmSync(directory, { recursive: true, force: true });
   }
 });
+
+test('case timeout preserves completed turn outcomes and marks only pending request', async () => {
+  let calls = 0;
+  let resolveTimeout;
+  const report = await capture(
+    'offense',
+    async () => {
+      calls += 1;
+      if (calls === 1) {
+        return reply('PONG');
+      }
+      if (calls === 2) {
+        return reply('{"tool":"routes"}');
+      }
+      resolveTimeout();
+      return new Promise(() => {});
+    },
+    {
+      caseTimer: () => ({
+        promise: new Promise((resolve) => {
+          resolveTimeout = resolve;
+        }),
+        cancel() {},
+      }),
+      maxCases: 1,
+    },
+  );
+  assert.equal(report.results[0].classification, 'timed_out');
+  assert.equal(report.results[0].transcript.length, 1);
+  assert.deepEqual(
+    report.transport_requests.map((request) => request.outcome),
+    ['ok', 'ok', 'case-wall-limit'],
+  );
+});

@@ -394,10 +394,11 @@ export async function runPacedScreen(
     timer.cancel();
     if (finished.classification === 'timed_out') {
       for (const request of transport.requests.filter((item) => item.slot === currentSlot)) {
-        frozenRequests.set(request.logical_request_index, {
-          ...structuredClone(request),
-          outcome: 'case-wall-limit',
-        });
+        const frozen = structuredClone(request);
+        if (frozen.outcome === 'running') {
+          frozen.outcome = 'case-wall-limit';
+        }
+        frozenRequests.set(request.logical_request_index, frozen);
         frozenStartLimits.set(request.logical_request_index, request.attempts);
       }
       syncTransport();
