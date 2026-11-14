@@ -92,6 +92,16 @@ function makeEstate({ seed, family }) {
         key_version: roles[index].v1 ? 'v1' : 'v2',
         event_time: 1040,
       },
+      {
+        type: 'deployment.attest',
+        event_id: id('event', `${index}-shadow-deploy`),
+        service: slot.service,
+        principal: id('principal', `${index}-shadow`),
+        deployment: id('deployment', `${index}-shadow`),
+        mount_ref: slot.mount_ref,
+        key_version: 'v1',
+        event_time: 1040,
+      },
     ]),
     random,
   );

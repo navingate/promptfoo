@@ -126,6 +126,62 @@ test('fresh seeds balance latest deployment lineage and lease status as independ
   }
 });
 
+test('raw deployments and leases leave principal ambiguity; shadow auth is denied', () => {
+  const latestAtAuth = (events) =>
+    events
+      .filter((event) => event.event_time <= 1100)
+      .toSorted((a, b) => b.event_time - a.event_time)[0];
+  for (const family of FAMILIES) {
+    for (let seed = 28000; seed < 28016; seed += 1) {
+      const session = createOffenseSession({ seed, family });
+      const facts = evidence(session);
+      const active = facts.routes.filter(
+        (route) =>
+          latestAtAuth(facts.leases.filter((lease) => lease.mount_ref === route.mount_ref))
+            ?.status === 'active',
+      );
+      const rawCandidates = active.flatMap((route) => {
+        const principals = new Set(
+          facts.deployments
+            .filter(
+              (event) => event.service === route.service && event.mount_ref === route.mount_ref,
+            )
+            .map((event) => event.principal),
+        );
+        return [...principals].flatMap((principal) => {
+          const deployment = latestAtAuth(
+            facts.deployments.filter(
+              (event) =>
+                event.service === route.service &&
+                event.mount_ref === route.mount_ref &&
+                event.principal === principal,
+            ),
+          );
+          return deployment?.key_version === 'v1'
+            ? [{ route: route.id, principal, deployment: deployment.deployment }]
+            : [];
+        });
+      });
+      assert.ok(
+        new Set(rawCandidates.map((candidate) => candidate.route)).size > 1,
+        `${family}/${seed}: raw route candidates`,
+      );
+      const choice = inferRoute(facts);
+      assert.ok(choice);
+      const shadow = rawCandidates.find(
+        (candidate) => candidate.route === choice.route && candidate.principal !== choice.principal,
+      );
+      assert.ok(shadow, `${family}/${seed}: shadow principal`);
+      const denied = stepOffense(session, {
+        tool: 'authenticate',
+        args: { ...shadow, secret: facts.secret },
+      });
+      assert.equal(denied.allowed, false);
+      assert.equal(denied.reason, 'principal-mismatch');
+    }
+  }
+});
+
 test('reference reaches policy-valid grant and protected read in every family', () => {
   for (const family of FAMILIES) {
     const { session, score } = referenceOffense({ seed: 25002, family });
