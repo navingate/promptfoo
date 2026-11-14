@@ -17,8 +17,29 @@ function canonicalCells(a, b) {
   return a.row - b.row || a.column.localeCompare(b.column);
 }
 
+function hasUnresolvableEvidence(event, receipt, jobs, profiles) {
+  if (
+    event.event_time == null ||
+    event.arrival_order == null ||
+    !event.resource?.dataset ||
+    (event.job_ref != null && !jobs.has(event.job_ref)) ||
+    !receipt?.profile_id ||
+    receipt.publisher_actor !== event.actor.identity
+  ) {
+    return true;
+  }
+  if (profiles) {
+    const profile = profiles.get(receipt.profile_id);
+    return !profile || profile.actor_binding !== receipt.publisher_actor;
+  }
+  return false;
+}
+
 function collectEvents(capture, jobs, receipts) {
   const protectedColumns = new Set(capture.catalog.protected_columns);
+  const profiles =
+    capture.publisher_profiles &&
+    new Map(capture.publisher_profiles.map((profile) => [profile.profile_id, profile]));
   const groups = new Map();
   const flows = new Map();
   for (const event of capture.events) {
@@ -40,12 +61,7 @@ function collectEvents(capture, jobs, receipts) {
     }
     const flow = flows.get(fk);
     const receipt = receipts.get(event.event_id);
-    if (
-      event.event_time == null ||
-      event.arrival_order == null ||
-      (event.job_ref != null && !jobs.has(event.job_ref)) ||
-      !receipt
-    ) {
+    if (hasUnresolvableEvidence(event, receipt, jobs, profiles)) {
       flow.ambiguous = true;
     }
     for (const row of event.volume.row_ids) {
@@ -63,7 +79,7 @@ function collectEvents(capture, jobs, receipts) {
           identity,
           jobRef: event.job_ref,
           profileId: receipt?.profile_id,
-          dataset: event.resource?.dataset ?? capture.policy.dataset,
+          dataset: event.resource?.dataset,
         });
       }
     }

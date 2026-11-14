@@ -16,6 +16,7 @@ function fixture({
   const events = cells.map(([row, column], i) => ({
     event_id: `event-${i}`,
     actor: { identity: i === 2 ? 'bob' : 'alice' },
+    resource: { dataset: 'warehouse.customers_pii' },
     destination: 'approved',
     event_time: 1,
     arrival_order: i,
@@ -57,6 +58,32 @@ function fixture({
 
 test('actual receipt profile controls coverage', () => {
   assert.deepEqual(detect(fixture({ profile: 'alternate' })), { alice: 'cumulative-exfil' });
+});
+
+test('missing event dataset is ambiguous rather than covered by policy fallback', () => {
+  const capture = fixture();
+  delete capture.events[0].resource.dataset;
+  assert.deepEqual(detect(capture), { alice: 'ambiguous' });
+});
+
+test('missing receipt profile or publisher actor is ambiguous', () => {
+  const missingProfile = fixture();
+  delete missingProfile.receipts[0].profile_id;
+  assert.deepEqual(detect(missingProfile), { alice: 'ambiguous' });
+
+  const missingActor = fixture();
+  delete missingActor.receipts[0].publisher_actor;
+  assert.deepEqual(detect(missingActor), { alice: 'ambiguous' });
+});
+
+test('contradictory receipt publisher actor and profile binding are ambiguous', () => {
+  const wrongActor = fixture();
+  wrongActor.receipts[0].publisher_actor = 'bob';
+  assert.deepEqual(detect(wrongActor), { alice: 'ambiguous' });
+
+  const wrongProfile = fixture();
+  wrongProfile.publisher_profiles = [{ profile_id: 'scheduled', actor_binding: 'bob' }];
+  assert.deepEqual(detect(wrongProfile), { alice: 'ambiguous' });
 });
 
 test('job cap covers only canonical distinct cells', () => {
