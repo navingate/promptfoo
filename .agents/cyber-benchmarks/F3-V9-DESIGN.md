@@ -118,14 +118,14 @@ unauthorized actions. Source-side queued controller observations advance
 the producer's event clock before the protected reconcile. Each Job
 world also waits in its own execution queue between admission and Pod
 start; the background world has a separate, approved schedule. These
-waits occur before native events are emitted. Source queue duration
-has the same distribution for both authorization states; its
-membership window is scheduled before replay at a different position
-relative to the planned action. Target and background Job queue
-durations have the same distribution for both target authorization
-states; the target's membership window is scheduled before run at a
-different position relative to the planned action. Independent opt-in
-producer latencies also separate source
+waits occur before native events are emitted. Source and Job queue
+durations draw from separate per-incident keyed hash streams, without
+using the fixed variant index as an arithmetic rotation. Their draws
+do not depend on authorization state. The source membership window is
+scheduled before replay at a different position relative to the
+planned action; the target Job window is scheduled before run in the
+same way. The background Job has a separate, approved schedule.
+Independent opt-in producer latencies also separate source
 reconcile from the cloud fetch, the cloud fetch from the synced read,
 destination STS from the S3 read, and the S3 read from its checkpoint.
 Each stage draws from a separate deterministic SHA-256 stream keyed by
@@ -146,7 +146,13 @@ source reconcile plus synced read, target Pod or role STS plus
 checkpoint, each paired with audit add time, as well as adjacent-event,
 event-time, and audit-only single features. The test reports signature
 coverage alongside balanced accuracy, because each batch has four
-approved and two unauthorized Job actions.
+approved and two unauthorized Job actions. A separate visible-only
+batch shortcut checks whether six source or Job queue durations form
+an index-revealing consecutive run. Its classifier always emits six
+labels, using queue rank when the run is absent, and scores exact
+batches on a disjoint 36-seed holdout for each family. The queue
+single-feature and shifted-grid baselines use the same disjoint
+train/holdout method as the timestamp features.
 
 ## Alternatives considered
 

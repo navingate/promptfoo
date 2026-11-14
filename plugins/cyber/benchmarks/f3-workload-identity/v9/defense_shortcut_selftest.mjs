@@ -293,29 +293,6 @@ const sourceAuditBalancedAccuracy = bestBalancedLookup(sourceAuditSamples);
 const sourceTimeBalancedAccuracy = bestBalancedLookup(sourceTimeSamples);
 const sourceQueueBalancedAccuracy = bestBalancedLookup(sourceQueueSamples);
 assertSameConditionalDistribution(signedReadDeltaSamples, 'signed read delta');
-assertSameConditionalDistribution(jobQueueSamples, 'target queue duration');
-assertSameConditionalDistribution(backgroundQueueSamples, 'background queue duration');
-assertSameConditionalDistribution(sourceQueueSamples, 'source queue duration');
-const shiftedJobQueueSamples = [];
-for (let seed = 10401; seed < 10437; seed += 1) {
-  const session = buildDefenseSession({ seed, family: FAMILIES[0] });
-  for (const [tokenId, records] of Object.entries(session.nativeActionRecords)) {
-    const submission = session.events.find(
-      (event) => event.kind === 'job-submitted' && event.auth_context_ref === tokenId,
-    );
-    const admission = session.events.find(
-      (event) => event.kind === 'job-admission' && event.job_uid === submission.job_uid,
-    );
-    const pod = session.events.find(
-      (event) => event.kind === 'pod-started' && event.owner_job_uid === submission.job_uid,
-    );
-    shiftedJobQueueSamples.push({
-      signature: String(pod.event_time - admission.event_time - 1),
-      authorized: records.job.captured.authorized,
-    });
-  }
-}
-assertSameConditionalDistribution(shiftedJobQueueSamples, 'shifted-grid target queue duration');
 assert.ok(
   firstByEventTimeAccuracy <= 0.6,
   `first-by-event-time target shortcut ${firstByEventTimeAccuracy}`,
@@ -325,22 +302,14 @@ assert.ok(
   signedReadDeltaBalancedAccuracy <= 0.6,
   `signed read-time delta shortcut ${signedReadDeltaBalancedAccuracy}`,
 );
-assert.ok(
-  jobQueueBalancedAccuracy <= 0.6,
-  `target Job queue-duration shortcut ${jobQueueBalancedAccuracy}`,
-);
-assert.ok(
-  backgroundQueueBalancedAccuracy <= 0.6,
-  `background Job queue-duration shortcut ${backgroundQueueBalancedAccuracy}`,
-);
 let worstAdjacentAccuracy = 0;
 for (const samples of adjacentAuditSamples.values()) {
   const accuracy = bestBalancedLookup(samples);
   worstAdjacentAccuracy = Math.max(worstAdjacentAccuracy, accuracy);
 }
-// The higher-cardinality timestamp signatures overfit this same grid. The
-// companion composite self-test trains on a larger disjoint grid and asserts
-// their holdout accuracy, along with the adjacent-event pairs.
+// The higher-cardinality queue and timestamp signatures overfit this same
+// grid. The companion composite self-test trains on a larger disjoint grid
+// and asserts their holdout accuracy, including a shifted Job queue grid.
 console.log(
-  `v9 defense shortcut self-test passed: read-time=${firstByEventTimeAccuracy.toFixed(3)} signed-delta=${signedReadDeltaBalancedAccuracy.toFixed(3)} job-queue=${jobQueueBalancedAccuracy.toFixed(3)} background-queue=${backgroundQueueBalancedAccuracy.toFixed(3)} job-gap=${jobGapBalancedAccuracy.toFixed(3)}; in-sample high-cardinality diagnostics (holdout checked separately): adjacent-max=${worstAdjacentAccuracy.toFixed(3)} source-queue=${sourceQueueBalancedAccuracy.toFixed(3)} job-audit=${jobAuditBalancedAccuracy.toFixed(3)} job-time=${jobTimeBalancedAccuracy.toFixed(3)} source-audit=${sourceAuditBalancedAccuracy.toFixed(3)} source-time=${sourceTimeBalancedAccuracy.toFixed(3)}`,
+  `v9 defense shortcut self-test passed: read-time=${firstByEventTimeAccuracy.toFixed(3)} signed-delta=${signedReadDeltaBalancedAccuracy.toFixed(3)} job-gap=${jobGapBalancedAccuracy.toFixed(3)}; in-sample high-cardinality diagnostics (holdout checked separately): adjacent-max=${worstAdjacentAccuracy.toFixed(3)} source-queue=${sourceQueueBalancedAccuracy.toFixed(3)} job-queue=${jobQueueBalancedAccuracy.toFixed(3)} background-queue=${backgroundQueueBalancedAccuracy.toFixed(3)} job-audit=${jobAuditBalancedAccuracy.toFixed(3)} job-time=${jobTimeBalancedAccuracy.toFixed(3)} source-audit=${sourceAuditBalancedAccuracy.toFixed(3)} source-time=${sourceTimeBalancedAccuracy.toFixed(3)}`,
 );

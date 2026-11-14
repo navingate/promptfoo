@@ -23,12 +23,12 @@ const MAX_QUERIES = 24;
 const LATENCY_SLOTS = 18;
 const PRODUCER_LATENCY_SLOTS = 24;
 
-function producerLatency(spec, index, stage) {
+function producerLatency(spec, index, stage, slots = PRODUCER_LATENCY_SLOTS) {
   return (
     Number.parseInt(
       sha256Hex(`f3v9|producer-latency|${spec.seed}|${spec.family}|${index}|${stage}`).slice(0, 8),
       16,
-    ) % PRODUCER_LATENCY_SLOTS
+    ) % slots
   );
 }
 
@@ -408,8 +408,7 @@ function producerIncident(spec, variant, index) {
   }
   const sourceClock = session.source.events.length;
   const familyIndex = FAMILIES.indexOf(spec.family);
-  const sourceJitter = (spec.seed + familyIndex + index) % 12;
-  const sourceQueueDelay = sourceJitter;
+  const sourceQueueDelay = producerLatency(spec, index, 'source-queue', 12);
   const sourceCloudLatency = producerLatency(spec, index, 'source-cloud');
   const sourceReadLatency = producerLatency(spec, index, 'source-read');
   session.source.producerLatencies = {
@@ -513,7 +512,7 @@ function producerIncident(spec, variant, index) {
     throw new Error('delegated Job grant inputs missing');
   }
   const jobClock = job.eventOffset + job.events.length;
-  const commonQueueDelay = ((Math.floor(spec.seed / 2) + familyIndex + index) % LATENCY_SLOTS) * 2;
+  const commonQueueDelay = producerLatency(spec, index, 'job-queue', LATENCY_SLOTS) * 2;
   const targetQueueDelay = commonQueueDelay;
   const jobCloudLatency = producerLatency(spec, index, 'job-cloud');
   const jobCheckpointLatency = producerLatency(spec, index, 'job-checkpoint');

@@ -11,6 +11,8 @@ const FEATURES = [
   'job-audit-only',
   'source-cloud-time',
   'source-queue-duration',
+  'job-queue-duration',
+  'background-queue-duration',
   'job-cloud-time',
   'source-reconcile/audit',
   'source-synced-read/audit',
@@ -105,6 +107,11 @@ function samplesForGrid(firstSeed, seedCount) {
           (event) => event.kind === 'pod-started' && event.owner_job_uid === submission.job_uid,
           'target Pod',
         );
+        const admission = exactlyOne(
+          events,
+          (event) => event.kind === 'job-admission' && event.job_uid === submission.job_uid,
+          'target admission',
+        );
         const request = exactlyOne(
           events,
           (event) => event.kind === 'runtime-credential-request' && event.pod_uid === pod.pod_uid,
@@ -147,6 +154,7 @@ function samplesForGrid(firstSeed, seedCount) {
         for (const [feature, signature] of [
           ['job-audit-only', `${jobAudit.added}/${jobAudit.removed}`],
           ['job-cloud-time', String(cloud.event_time)],
+          ['job-queue-duration', String(pod.event_time - admission.event_time - 1)],
           ['job-pod/audit', String(pod.event_time - jobAdd)],
           ['job-runtime/audit', String(request.event_time - jobAdd)],
           ['job-web-sts/audit', String(web.event_time - jobAdd)],
@@ -155,6 +163,29 @@ function samplesForGrid(firstSeed, seedCount) {
         ]) {
           samples.get(feature).push({ signature, authorized: records.job.captured.authorized });
         }
+        const backgroundSubmission = exactlyOne(
+          events,
+          (event) =>
+            event.kind === 'job-submitted' &&
+            event.auth_context_ref === records.background.authorization_event_id,
+          'background submission',
+        );
+        const backgroundAdmission = exactlyOne(
+          events,
+          (event) =>
+            event.kind === 'job-admission' && event.job_uid === backgroundSubmission.job_uid,
+          'background admission',
+        );
+        const backgroundPod = exactlyOne(
+          events,
+          (event) =>
+            event.kind === 'pod-started' && event.owner_job_uid === backgroundSubmission.job_uid,
+          'background Pod',
+        );
+        samples.get('background-queue-duration').push({
+          signature: String(backgroundPod.event_time - backgroundAdmission.event_time - 1),
+          authorized: records.job.captured.authorized,
+        });
       }
     }
   }
@@ -204,6 +235,7 @@ function evaluate(lookup, samples) {
 // defense grid. A broad grid keeps the exact-signature coverage meaningful.
 const development = samplesForGrid(30400, 216);
 const holdout = samplesForGrid(40400, 36);
+const shiftedHoldout = samplesForGrid(40401, 36);
 for (const feature of FEATURES) {
   const train = development.get(feature);
   const test = holdout.get(feature);
@@ -224,5 +256,17 @@ for (const feature of FEATURES) {
     `${feature}: train=${trainResult.balancedAccuracy.toFixed(3)} test=${testResult.balancedAccuracy.toFixed(3)} coverage=${testResult.matched}/${testResult.total}`,
   );
 }
+
+const shiftedJobQueue = evaluate(
+  fitLookup(development.get('job-queue-duration')),
+  shiftedHoldout.get('job-queue-duration'),
+);
+assert.ok(
+  shiftedJobQueue.balancedAccuracy <= 0.6,
+  `shifted Job queue shortcut ${shiftedJobQueue.balancedAccuracy}`,
+);
+console.log(
+  `shifted-job-queue-duration: test=${shiftedJobQueue.balancedAccuracy.toFixed(3)} coverage=${shiftedJobQueue.matched}/${shiftedJobQueue.total}`,
+);
 
 console.log('v9 defense composite shortcut self-test passed');
