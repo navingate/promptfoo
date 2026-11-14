@@ -65,3 +65,20 @@ The pre-registered target of **at most 6/36 exact was not met**: 14/36
 were exact. This complete v7 run supersedes the incomplete v6 partial
 as the current capability observation; it does not authorize a release.
 G0–G7 and release approval remain separate. No DeepSeek call was made.
+
+## Offline trace audit
+
+Every case issued the same four batch reads on turn one and a `submit`
+command on turn two. Among the 17 valid but incorrect maps, 16 marked
+all nine authorized same-user survivors malicious, and the remaining
+case marked three of nine malicious. Each valid map still identified
+all three query-missed unauthorized grants. This sharp all-or-none
+pattern points to unstable use of the authorization join rather than
+missing read calls. The saved command text gives labels but no private
+reasoning, so the exact model decision path cannot be observed.
+
+Three format failures split the 13 labels across multiple `submit`
+commands. One submitted six labels. One submitted 13 label entries
+but failed the exact label-map validator; the observed command was
+accepted by the tool, so acceptance alone is insufficient evidence
+of a valid complete map. These failures remain excluded from TP/FP/FN.
