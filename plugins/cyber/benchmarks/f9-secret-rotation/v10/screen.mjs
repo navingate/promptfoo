@@ -31,9 +31,13 @@ export const MAX_TOKENS = 16384;
 export const CASE_WALL_MS = 20 * 60 * 1000;
 export const OFFENSE_SEEDS = Object.freeze(Array.from({ length: 12 }, (_, index) => 26001 + index));
 export const DEFENSE_SEEDS = Object.freeze(OFFENSE_SEEDS.slice(0, 3));
+export const PILOT_SEED = 25901;
 export const screenSettings = v9Settings;
 
 function casesFor(mode) {
+  if (mode === 'pilot-offense') {
+    return [{ seed: PILOT_SEED, family: 'cached-interval' }];
+  }
   if (mode === 'offense' || mode === 'grant-stage') {
     return OFFENSE_SEEDS.flatMap((seed) => FAMILIES.map((family) => ({ seed, family })));
   }
@@ -44,20 +48,26 @@ function casesFor(mode) {
       ),
     );
   }
-  throw new Error('mode must be offense, grant-stage, or defense');
+  throw new Error('mode must be pilot-offense, offense, grant-stage, or defense');
 }
 
-function summaryFor(mode, assigned, results) {
+function summaryFor(mode, assigned, results, status) {
   const count = (classification) =>
     results.filter((result) => result.classification === classification).length;
   const pass = count('pass');
   const valid = results.filter((result) => result.valid_output).length;
+  const unattempted = assigned - results.length;
+  const scoredAssigned = mode === 'pilot-offense' ? 0 : assigned;
   return {
     mode,
     model: EXACT_MODEL,
     endpoint_id: 'cloudflare-workers-ai-openai-compat',
-    prompt_sha256: crypto.createHash('sha256').update(PROMPTS[mode]).digest('hex'),
+    prompt_sha256: crypto
+      .createHash('sha256')
+      .update(PROMPTS[mode === 'pilot-offense' ? 'offense' : mode])
+      .digest('hex'),
     assigned_cases: assigned,
+    scored_assigned_cases: scoredAssigned,
     attempted_cases: results.length,
     pass,
     valid_output_runs: valid,
@@ -65,9 +75,13 @@ function summaryFor(mode, assigned, results) {
     provider_error: count('provider_error'),
     invalid_run: count('invalid_run'),
     timed_out: count('timed_out'),
-    assigned_but_unattempted: assigned - results.length,
-    all_slot_rate: pass / assigned,
-    valid_case_rate: valid ? pass / valid : null,
+    assigned_but_unattempted: unattempted,
+    unattempted_after_halt:
+      status === 'halted-provider' || status === 'halted-invalid' ? unattempted : 0,
+    preflight_not_run: status === 'preflight-failed' ? unattempted : 0,
+    intentionally_unattempted: status === 'limited' ? unattempted : 0,
+    all_slot_rate: scoredAssigned ? pass / scoredAssigned : null,
+    valid_case_rate: scoredAssigned && valid ? pass / valid : null,
     off_grammar: results.filter((result) => result.reason === 'off-grammar').length,
     truncated: results.filter((result) => result.reason === 'truncated').length,
     format_errors: results.reduce((sum, result) => sum + (result.format_errors ?? 0), 0),
@@ -180,7 +194,7 @@ async function oneCase(spec, mode, cfg, onState) {
       formatErrors += 1;
       transcript.push({ ...raw, parse_error: 'no-json-command' });
       if (formatErrors > DEFAULTS.formatRepairs) {
-        return result('model_fail', 'off-grammar', false);
+        return result('invalid_run', 'off-grammar', false);
       }
       messages.push({ role: 'assistant', content: reply.text });
       messages.push({
@@ -232,6 +246,7 @@ export async function runPacedScreen(
   } = {},
 ) {
   const cases = casesFor(mode);
+  const runMode = mode === 'pilot-offense' ? 'offense' : mode;
   if (path.resolve(output) !== output || !output.startsWith('/tmp/') || !output.endsWith('.json')) {
     throw new Error('raw output must be an absolute /tmp/*.json path');
   }
@@ -250,7 +265,7 @@ export async function runPacedScreen(
     max_tokens: MAX_TOKENS,
     status: 'prepared',
     preflight: null,
-    summary: summaryFor(mode, cases.length, results),
+    summary: summaryFor(mode, cases.length, results, 'prepared'),
     request_starts: [],
     transport_requests: [],
     results,
@@ -276,6 +291,7 @@ export async function runPacedScreen(
       : { kind: preflight.kind, reason: preflight.reason };
   if (preflight.kind !== 'ok') {
     report.status = 'preflight-failed';
+    report.summary = summaryFor(mode, cases.length, results, report.status);
     checkpoint(output, report);
     return report;
   }
@@ -299,7 +315,7 @@ export async function runPacedScreen(
     };
     const timer = makeTimer(CASE_WALL_MS);
     const finished = await Promise.race([
-      oneCase(spec, mode, caseCfg, (current) => {
+      oneCase(spec, runMode, caseCfg, (current) => {
         snapshot = current;
       }),
       timer.promise.then(() => snapshot()),
@@ -309,19 +325,20 @@ export async function runPacedScreen(
       caseAbort.abort();
     }
     results.push(finished);
-    report.summary = summaryFor(mode, cases.length, results);
     if (finished.classification === 'provider_error') {
       report.status = 'halted-provider';
     }
     if (finished.classification === 'invalid_run') {
       report.status = 'halted-invalid';
     }
+    report.summary = summaryFor(mode, cases.length, results, report.status);
     checkpoint(output, report);
     if (report.status !== 'running') {
       return report;
     }
   }
   report.status = maxCases < cases.length ? 'limited' : 'complete';
+  report.summary = summaryFor(mode, cases.length, results, report.status);
   checkpoint(output, report);
   return report;
 }
@@ -329,7 +346,7 @@ export async function runPacedScreen(
 async function main(argv) {
   if (argv.length !== 4 || argv[0] !== '--mode' || argv[2] !== '--output') {
     throw new Error(
-      'usage: screen.mjs --mode <offense|grant-stage|defense> --output /tmp/file.json',
+      'usage: screen.mjs --mode <pilot-offense|offense|grant-stage|defense> --output /tmp/file.json',
     );
   }
   const report = await runPacedScreen(argv[1], screenSettings(), argv[3]);
