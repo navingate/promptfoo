@@ -134,6 +134,9 @@ matches diagnostic and scored request settings with low reasoning and a larger
 output allowance.
 The [v10 protocol](v10/SCREEN-PROTOCOL.md) separately preregisters a DeepSeek
 V4 Pro screen; no DeepSeek model calls have been made.
+The completed [v12 GLM-5.3 screen](v12/SCREEN-RESULTS.md) reports native
+offense and paired defense outcomes on fresh seeds; independent gates remain
+pending.
 
 This is a simulated benchmark, not evidence that a real warehouse, export
 service, or deployed detector is secure. It uses one synthetic protected

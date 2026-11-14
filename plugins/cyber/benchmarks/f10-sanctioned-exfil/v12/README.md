@@ -2,8 +2,8 @@
 
 The [preregistered protocol](SCREEN-PROTOCOL.md) gives each fresh scored case
 its own wall cap while retaining the frozen F10 task and low16 Cloudflare
-request settings. No v12 model call has been made. The coordinator must
-release F10's exclusive GLM slot before scored execution.
+request settings. Both scored grids have completed; see the
+[redacted results](SCREEN-RESULTS.md). G0–G7 remain pending.
 
 Offline controls: fresh offense reference `36/36` on `20001`–`20036`;
 one-identity, first-two, largest-two, and first-different selectors `0/36`,
