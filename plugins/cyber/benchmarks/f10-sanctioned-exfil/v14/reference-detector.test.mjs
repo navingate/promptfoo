@@ -107,6 +107,14 @@ test('cited job with invalid capacity is ambiguous', () => {
   }
 });
 
+test('cited job with missing scope or binding evidence is ambiguous', () => {
+  for (const field of ['dataset', 'destination', 'window', 'actor_binding', 'publisher_bindings']) {
+    const capture = fixture();
+    delete capture.job_registry[0][field];
+    assert.deepEqual(detect(capture), { alice: 'ambiguous' }, field);
+  }
+});
+
 test('nonnumeric event time or arrival order is ambiguous', () => {
   for (const field of ['event_time', 'arrival_order']) {
     for (const value of ['1', Number.NaN, Number.POSITIVE_INFINITY]) {

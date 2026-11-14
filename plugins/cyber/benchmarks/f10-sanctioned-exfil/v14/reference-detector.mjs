@@ -17,6 +17,21 @@ function canonicalCells(a, b) {
   return a.row - b.row || a.column.localeCompare(b.column);
 }
 
+function jobEvidenceComplete(job) {
+  return (
+    typeof job.dataset === 'string' &&
+    job.dataset.length > 0 &&
+    typeof job.destination === 'string' &&
+    job.destination.length > 0 &&
+    Number.isInteger(job.window) &&
+    job.window >= 0 &&
+    Array.isArray(job.actor_binding) &&
+    Array.isArray(job.publisher_bindings) &&
+    Number.isInteger(job.approved_cell_volume) &&
+    job.approved_cell_volume >= 0
+  );
+}
+
 function hasUnresolvableEvidence(event, receipt, jobs, profiles) {
   const citedJob = event.job_ref == null ? null : jobs.get(event.job_ref);
   if (
@@ -24,8 +39,7 @@ function hasUnresolvableEvidence(event, receipt, jobs, profiles) {
     !Number.isFinite(event.arrival_order) ||
     !event.resource?.dataset ||
     (event.job_ref != null && !citedJob) ||
-    (citedJob &&
-      (!Number.isInteger(citedJob.approved_cell_volume) || citedJob.approved_cell_volume < 0)) ||
+    (citedJob && !jobEvidenceComplete(citedJob)) ||
     !receipt?.profile_id ||
     receipt.publisher_actor !== event.actor.identity
   ) {
@@ -105,8 +119,7 @@ function coveredCells(group, capture) {
       job.dataset !== capture.policy.dataset ||
       job.destination !== group.destination ||
       job.window !== group.window ||
-      !Number.isInteger(job.approved_cell_volume) ||
-      job.approved_cell_volume < 0
+      !jobEvidenceComplete(job)
     ) {
       continue;
     }
