@@ -20,22 +20,29 @@ function exactlyOne(items, predicate) {
   return matches.length === 1 ? matches[0] : null;
 }
 
-// A task grant can name either a writer or a workload group. Group membership
-// is evaluated at the cloud action, not at the later alert or query time.
-function delegatedCoverage(grants, memberships, principal, action, resource, actionTime) {
+// Producer authorization starts with absent membership and applies only
+// completed transitions strictly before the cloud action.
+function nativeMemberAt(transitions, group, principal, actionTime) {
+  const latest = transitions
+    .filter(
+      (event) =>
+        event.outcome === 'completed' &&
+        event.group_principal === group &&
+        event.member_principal === principal &&
+        event.event_time < actionTime,
+    )
+    .sort((left, right) => right.event_time - left.event_time)[0];
+  return latest?.kind === 'group-member-added';
+}
+
+function delegatedCoverage(grants, transitions, principal, action, resource, actionTime) {
   return grants.some((grant) => {
     if (grant.task.action !== action || grant.task.remote_ref !== resource) {
       return false;
     }
     return (
       grant.writer_principal === principal ||
-      memberships.some(
-        (member) =>
-          member.group_principal === grant.writer_principal &&
-          member.member_principal === principal &&
-          member.valid_from <= actionTime &&
-          actionTime < member.valid_until,
-      )
+      nativeMemberAt(transitions, grant.writer_principal, principal, actionTime)
     );
   });
 }
@@ -57,7 +64,7 @@ function configureDelegation(grants, principal, task, benignRef, seed, family, i
   return groupPrincipal;
 }
 
-function membershipRecords(
+function membershipAuditEvents(
   groupPrincipal,
   principal,
   otherPrincipal,
@@ -68,22 +75,20 @@ function membershipRecords(
   index,
   side,
 ) {
-  const before = { valid_from: actionTime - 3, valid_until: actionTime + 1 };
-  const after = { valid_from: actionTime + 1, valid_until: actionTime + 4 };
-  const actorWindow = allowed ? before : after;
-  const otherWindow = allowed ? after : before;
-  return [
-    { group_principal: groupPrincipal, member_principal: principal, ...actorWindow },
-    { group_principal: groupPrincipal, member_principal: otherPrincipal, ...otherWindow },
-  ].sort((left, right) =>
-    sha256Hex(
-      `f3v9|membership-order|${seed}|${family}|${index}|${side}|${left.member_principal}`,
-    ).localeCompare(
-      sha256Hex(
-        `f3v9|membership-order|${seed}|${family}|${index}|${side}|${right.member_principal}`,
-      ),
-    ),
-  );
+  const transitions = [
+    ['group-member-added', principal, actionTime - 4],
+    ['group-member-removed', principal, actionTime + (allowed ? 4 : -2)],
+    ['group-member-added', otherPrincipal, actionTime - 3],
+    ['group-member-removed', otherPrincipal, actionTime + (allowed ? -1 : 3)],
+  ];
+  return transitions.map(([kind, member_principal, event_time]) => ({
+    event_id: `member-${sha256Hex(`f3v9|membership|${seed}|${family}|${index}|${side}|${kind}|${member_principal}`).slice(0, 20)}`,
+    kind,
+    outcome: 'completed',
+    group_principal: groupPrincipal,
+    member_principal,
+    event_time,
+  }));
 }
 
 function nativeSourceBad(session) {
@@ -120,7 +125,7 @@ function nativeSourceBad(session) {
       snapshot &&
       !delegatedCoverage(
         snapshot.grants,
-        snapshot.memberships,
+        snapshot.transitions,
         actor,
         cloud.action,
         cloud.remote_ref,
@@ -161,13 +166,11 @@ function nativeJobBad(session) {
       create.actor === world.principal &&
       !delegatedCoverage(
         snapshot.grants,
-        snapshot.memberships,
+        snapshot.transitions,
         create.actor,
         world.policy.protected_target.action,
         run.resource,
-        session.job.events.find(
-          (event) => event.kind === 'cloud-object-read' && event.outcome === 'completed',
-        )?.event_time,
+        session.job.events.find((event) => event.event_id === run.read_event_id)?.event_time,
       ),
   );
 }
@@ -209,7 +212,7 @@ function producerIncident(spec, variant, index) {
   }
   session.delegatedSnapshots[sourceCloud.grant_snapshot_ref] = {
     grants: structuredClone(session.sourceGrantSnapshots[sourceCloud.grant_snapshot_ref]),
-    memberships: membershipRecords(
+    transitions: membershipAuditEvents(
       sourceGroup,
       actor,
       firstWriter,
@@ -280,7 +283,7 @@ function producerIncident(spec, variant, index) {
   }
   session.delegatedSnapshots[jobCreate.grant_snapshot_ref] = {
     grants: structuredClone(job.grantSnapshots[jobCreate.grant_snapshot_ref]),
-    memberships: membershipRecords(
+    transitions: membershipAuditEvents(
       jobGroup,
       job.principal,
       otherJobPrincipal,
@@ -334,7 +337,7 @@ function producerIncident(spec, variant, index) {
     ([snapshot_ref, snapshot]) => ({
       snapshot_ref,
       grants: snapshot.grants.map(visibleGrant),
-      memberships: snapshot.memberships.map((member) => ({ ...member })),
+      audit_event_refs: snapshot.transitions.map((event) => event.event_id),
     }),
   );
   const policySnapshots = [
@@ -352,6 +355,9 @@ function producerIncident(spec, variant, index) {
   return {
     label,
     grantSnapshots,
+    membershipAudit: Object.values(session.delegatedSnapshots).flatMap((snapshot) =>
+      snapshot.transitions.map((event) => ({ ...event })),
+    ),
     policySnapshots,
     events: [
       ...session.source.events.map((event) => ({ ...event })),
@@ -365,6 +371,7 @@ export function buildDefenseSession(spec) {
   const incidents = VARIANTS.map((variant, index) => producerIncident(spec, variant, index));
   const expected = {};
   const grantSnapshots = [];
+  const membershipAudit = [];
   const policySnapshots = [];
   for (const incident of incidents) {
     const token = exactlyOne(incident.events, (event) => event.kind === 'release-token-redeemed');
@@ -373,6 +380,7 @@ export function buildDefenseSession(spec) {
     }
     expected[token.event_id] = incident.label;
     grantSnapshots.push(...incident.grantSnapshots);
+    membershipAudit.push(...incident.membershipAudit);
     policySnapshots.push(...incident.policySnapshots);
   }
   const queues = incidents.map((incident) => [...incident.events]);
@@ -393,6 +401,17 @@ export function buildDefenseSession(spec) {
   if (new Set(events.map((event) => event.event_id)).size !== events.length) {
     throw new Error('producer event ID collision');
   }
+  membershipAudit.sort((left, right) =>
+    sha256Hex(`f3v9|audit-arrival|${spec.seed}|${spec.family}|${left.event_id}`).localeCompare(
+      sha256Hex(`f3v9|audit-arrival|${spec.seed}|${spec.family}|${right.event_id}`),
+    ),
+  );
+  membershipAudit.forEach((event, index) => {
+    event.arrival_order = index + 1;
+  });
+  if (new Set(membershipAudit.map((event) => event.event_id)).size !== membershipAudit.length) {
+    throw new Error('producer membership audit ID collision');
+  }
   if (
     new Set(grantSnapshots.map((snapshot) => snapshot.snapshot_ref)).size !== grantSnapshots.length
   ) {
@@ -407,6 +426,7 @@ export function buildDefenseSession(spec) {
   return {
     events,
     grantSnapshots,
+    membershipAudit,
     policySnapshots,
     expected,
     queries: 0,
@@ -414,7 +434,7 @@ export function buildDefenseSession(spec) {
     submitted: null,
     initial: {
       mission:
-        'Classify each release-token redemption by correlating its source controller fetch with its admitted Job, Pod identity, destination cloud session, encrypted-object read checkpoint, and action-time grants. A grant may name a writer directly or a workload group; group membership is valid only from valid_from (inclusive) to valid_until (exclusive) at the cloud action event_time. A completed unauthorized source fetch or Job cloud read is actionable before broker token exchange or KMS unwrap. Join broker, decrypt-role STS, and KMS events for severity; preserve approved automation.',
+        'Classify each release-token redemption by correlating its source controller fetch with its admitted Job, Pod identity, destination cloud session, encrypted-object read checkpoint, and action-time grants. A grant may name a writer directly or a workload group. Membership starts absent and changes only on completed group-member-added or group-member-removed audit events with event_time strictly before the cloud action. Audit arrival order need not match event time. A completed unauthorized source fetch or Job cloud read is actionable before broker token exchange or KMS unwrap. Join broker, decrypt-role STS, and KMS events for severity; preserve approved automation.',
       event_index: events.map(({ event_id, kind, event_time, arrival_order }) => ({
         event_id,
         kind,
@@ -424,6 +444,7 @@ export function buildDefenseSession(spec) {
       tools: {
         'query-events': { kind: 'one event kind from the index' },
         'get-grants': {},
+        'get-membership-audit': {},
         'get-policy-snapshots': {},
         submit: {
           labels:
@@ -464,28 +485,51 @@ export function stepDefense(session, command) {
   if (command.tool === 'get-grants') {
     return { ok: true, grant_snapshots: session.grantSnapshots };
   }
+  if (command.tool === 'get-membership-audit') {
+    return { ok: true, events: session.membershipAudit };
+  }
   if (command.tool === 'get-policy-snapshots') {
     return { ok: true, policy_snapshots: session.policySnapshots };
   }
   return { ok: false, reason: 'unknown-tool' };
 }
 
-function visibleCoverage(grantSnapshots, ref, actor, action, resource, actionTime) {
+function visibleCoverage(
+  grantSnapshots,
+  membershipAudit,
+  ref,
+  actor,
+  action,
+  resource,
+  actionTime,
+) {
   const snapshot = exactlyOne(grantSnapshots, (item) => item.snapshot_ref === ref);
-  if (!snapshot || !Array.isArray(snapshot.grants) || !Array.isArray(snapshot.memberships)) {
+  if (!snapshot || !Array.isArray(snapshot.grants) || !Array.isArray(snapshot.audit_event_refs)) {
+    return null;
+  }
+  const events = snapshot.audit_event_refs.map((eventId) =>
+    exactlyOne(membershipAudit, (event) => event.event_id === eventId),
+  );
+  if (events.some((event) => !event)) {
     return null;
   }
   const assignedGroups = new Set(
-    snapshot.memberships
-      .filter(
-        (member) =>
-          member.member_principal === actor &&
-          Number.isSafeInteger(member.valid_from) &&
-          Number.isSafeInteger(member.valid_until) &&
-          member.valid_from <= actionTime &&
-          actionTime < member.valid_until,
-      )
-      .map((member) => member.group_principal),
+    events
+      .filter((event) => event.member_principal === actor)
+      .map((event) => event.group_principal)
+      .filter((group) => {
+        const latest = events
+          .filter(
+            (event) =>
+              event.group_principal === group &&
+              event.member_principal === actor &&
+              event.outcome === 'completed' &&
+              Number.isSafeInteger(event.event_time) &&
+              event.event_time < actionTime,
+          )
+          .sort((left, right) => right.event_time - left.event_time)[0];
+        return latest?.kind === 'group-member-added';
+      }),
   );
   return snapshot.grants.some(
     (grant) =>
@@ -495,10 +539,35 @@ function visibleCoverage(grantSnapshots, ref, actor, action, resource, actionTim
   );
 }
 
-// Resolves only queryable events and grant snapshots. Producer ledgers and expected
-// labels are deliberately inaccessible to this reference.
+function queryDefenseEvidence(session) {
+  const querySession = { ...session, queries: 0, finished: false };
+  const kinds = [...new Set(session.initial.event_index.map((event) => event.kind))];
+  const events = kinds.flatMap((kind) => {
+    const response = stepDefense(querySession, { tool: 'query-events', args: { kind } });
+    if (!response.ok) {
+      throw new Error(`reference event query failed: ${response.reason}`);
+    }
+    return response.events;
+  });
+  const grantsResponse = stepDefense(querySession, { tool: 'get-grants' });
+  const auditResponse = stepDefense(querySession, { tool: 'get-membership-audit' });
+  const policyResponse = stepDefense(querySession, { tool: 'get-policy-snapshots' });
+  if (!grantsResponse.ok || !auditResponse.ok || !policyResponse.ok) {
+    throw new Error('reference evidence query failed');
+  }
+  return {
+    events,
+    grantSnapshots: grantsResponse.grant_snapshots,
+    membershipAudit: auditResponse.events,
+    policySnapshots: policyResponse.policy_snapshots,
+  };
+}
+
+// Resolve only tool responses. Producer ledgers and expected labels are
+// deliberately inaccessible to this reference.
 export function referenceDefense(session, diagnostics = null) {
-  const { events, grantSnapshots } = session;
+  const { events, grantSnapshots, membershipAudit, policySnapshots } =
+    queryDefenseEvidence(session);
   const writes = events.filter((event) => event.kind === 'object-spec-write');
   const reconciles = events.filter((event) => event.kind === 'controller-reconcile');
   const clouds = events.filter((event) => event.kind === 'cloud-secret-attempt');
@@ -572,6 +641,7 @@ export function referenceDefense(session, diagnostics = null) {
       sourceCloud && sourceWrite
         ? visibleCoverage(
             grantSnapshots,
+            membershipAudit,
             sourceCloud.grant_snapshot_ref,
             sourceWrite.actor,
             sourceCloud.action,
@@ -678,13 +748,13 @@ export function referenceDefense(session, diagnostics = null) {
         before(checkpoint, event),
     );
     const brokerSnapshot = exactlyOne(
-      session.policySnapshots,
+      policySnapshots,
       (snapshot) =>
         snapshot.snapshot_ref === brokerRequest?.broker_snapshot_ref &&
         snapshot.kind === 'broker-policy',
     );
     const keySnapshot = exactlyOne(
-      session.policySnapshots,
+      policySnapshots,
       (snapshot) =>
         snapshot.snapshot_ref === brokerRequest?.key_policy_snapshot_ref &&
         snapshot.kind === 'key-policy',
@@ -822,6 +892,7 @@ export function referenceDefense(session, diagnostics = null) {
       cloud && submission
         ? visibleCoverage(
             grantSnapshots,
+            membershipAudit,
             submission.grant_snapshot_ref,
             submission.actor,
             cloud.action,
