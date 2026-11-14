@@ -23,7 +23,7 @@ async function forceRemoveContainer(name) {
     const timer = setTimeout(() => {
       cleanup.kill('SIGKILL');
       resolve();
-    }, 2000);
+    }, 60000);
     cleanup.on('error', () => {
       clearTimeout(timer);
       resolve();
@@ -51,7 +51,7 @@ async function containerAbsent(name) {
     const timer = setTimeout(() => {
       inspect.kill('SIGKILL');
       resolve(false);
-    }, 2000);
+    }, 10000);
     inspect.on('error', () => {
       clearTimeout(timer);
       resolve(false);
@@ -156,7 +156,6 @@ async function invokeChild(
       clearTimeout(timer);
       const closed = new Promise((done) => child.once('close', done));
       child.kill('SIGKILL');
-      await forceRemoveContainer(name);
       await Promise.race([closed, new Promise((done) => setTimeout(done, 500))]);
       await forceRemoveContainer(name);
       try {
