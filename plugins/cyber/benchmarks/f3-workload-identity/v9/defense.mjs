@@ -20,31 +20,30 @@ function exactlyOne(items, predicate) {
   return matches.length === 1 ? matches[0] : null;
 }
 
-// Producer authorization starts with absent membership and applies only
-// completed transitions strictly before the cloud action.
-function nativeMemberAt(transitions, group, principal, actionTime) {
-  const latest = transitions
-    .filter(
-      (event) =>
-        event.outcome === 'completed' &&
-        event.group_principal === group &&
-        event.member_principal === principal &&
-        event.event_time < actionTime,
-    )
-    .sort((left, right) => right.event_time - left.event_time)[0];
-  return latest?.kind === 'group-member-added';
-}
-
-function delegatedCoverage(grants, transitions, principal, action, resource, actionTime) {
-  return grants.some((grant) => {
-    if (grant.task.action !== action || grant.task.remote_ref !== resource) {
-      return false;
+// The producer applies its own completed audit ledger at the emitted cloud
+// action, with membership initially absent. This capture is native truth;
+// the visible classifier later reconstructs the state independently.
+export function captureNativeCoverage(grants, ledger, principal, action, resource, actionTime) {
+  const membership = new Map();
+  for (const event of [...ledger].sort((left, right) => left.event_time - right.event_time)) {
+    if (event.outcome !== 'completed' || event.event_time >= actionTime) {
+      continue;
     }
-    return (
-      grant.writer_principal === principal ||
-      nativeMemberAt(transitions, grant.writer_principal, principal, actionTime)
+    membership.set(
+      `${event.group_principal}\0${event.member_principal}`,
+      event.kind === 'group-member-added',
     );
-  });
+  }
+  return {
+    action_time: actionTime,
+    authorized: grants.some(
+      (grant) =>
+        grant.task.action === action &&
+        grant.task.remote_ref === resource &&
+        (grant.writer_principal === principal ||
+          membership.get(`${grant.writer_principal}\0${principal}`) === true),
+    ),
+  };
 }
 
 function configureDelegation(grants, principal, task, benignRef, seed, family, index, side) {
@@ -123,19 +122,14 @@ function nativeSourceBad(session) {
       event.object_uid === cloud?.object_uid &&
       event.revision === cloud?.causal_revision,
   );
+  const capture = session.nativeActionCoverage?.[sourceAction?.event_id];
   return Boolean(
     cloud &&
       sourceAction &&
       writer?.authenticated_writer === actor &&
       snapshot &&
-      !delegatedCoverage(
-        snapshot.grants,
-        snapshot.transitions,
-        actor,
-        cloud.action,
-        cloud.remote_ref,
-        sourceAction.event_time,
-      ),
+      capture?.action_time === sourceAction.event_time &&
+      capture.authorized === false,
   );
 }
 
@@ -164,19 +158,16 @@ function nativeJobBad(session) {
       typeof event.checkpoint_ref === 'string',
   );
   const snapshot = session.delegatedSnapshots?.[create?.grant_snapshot_ref];
+  const read = session.job.events.find((event) => event.event_id === run?.read_event_id);
+  const capture = session.nativeActionCoverage?.[read?.event_id];
   return Boolean(
     create &&
       run &&
       snapshot &&
       create.actor === world.principal &&
-      !delegatedCoverage(
-        snapshot.grants,
-        snapshot.transitions,
-        create.actor,
-        world.policy.protected_target.action,
-        run.resource,
-        session.job.events.find((event) => event.event_id === run.read_event_id)?.event_time,
-      ),
+      read?.outcome === 'completed' &&
+      capture?.action_time === read.event_time &&
+      capture.authorized === false,
   );
 }
 
@@ -184,6 +175,7 @@ function producerIncident(spec, variant, index) {
   const nonce = `v9-defense-capture|${spec.seed}|${spec.family}|${index}`;
   const session = createOffenseSession({ ...spec, nonce });
   session.delegatedSnapshots = {};
+  session.nativeActionCoverage = {};
   const sourceWorld = session.source.world;
   const actor = session.source.initial.principal;
   const sourceGroup = configureDelegation(
@@ -203,10 +195,30 @@ function producerIncident(spec, variant, index) {
   if (!firstWriter) {
     throw new Error('missing approved source writer');
   }
-  const source = replayPhase(session.base, 'source', {
-    objectName: `es-${sha256Hex(`f3v9|defense-object|${nonce}`).slice(0, 16)}`,
+  const sourceClock = session.source.events.length;
+  // The replay emits two writes, a reconcile, then the protected cloud fetch.
+  const sourcePlannedActionTime = sourceClock + 4;
+  sourceWorld.membershipLedger = membershipAuditEvents(
+    sourceGroup,
+    actor,
+    firstWriter,
+    sourcePlannedActionTime,
+    variant.sourceAllowed,
+    spec.seed,
+    spec.family,
+    index,
+    'source',
+  );
+  session.delegatedSnapshots[sourceSnapshotRef] = {
+    grants: structuredClone(session.sourceGrantSnapshots[sourceSnapshotRef]),
+    audit_stream_ref: membershipAuditStream(sourceGroup),
+  };
+  const sourceObjectName = `es-${sha256Hex(`f3v9|defense-object|${nonce}`).slice(0, 16)}`;
+  replayPhase(session.base, 'source', {
+    objectName: sourceObjectName,
     extraPatch: true,
     firstWriterPrincipal: firstWriter,
+    read: false,
   });
   const sourceCloud = exactlyOne(
     sourceWorld.events ?? session.source.events,
@@ -215,24 +227,28 @@ function producerIncident(spec, variant, index) {
   if (!sourceCloud) {
     throw new Error('delegated source cloud event missing');
   }
-  session.delegatedSnapshots[sourceCloud.grant_snapshot_ref] = {
-    grants: structuredClone(session.sourceGrantSnapshots[sourceCloud.grant_snapshot_ref]),
-    audit_stream_ref: membershipAuditStream(sourceGroup),
-    transitions: membershipAuditEvents(
-      sourceGroup,
+  const sourceCapture = {
+    ...captureNativeCoverage(
+      session.delegatedSnapshots[sourceCloud.grant_snapshot_ref].grants,
+      sourceWorld.membershipLedger,
       actor,
-      firstWriter,
+      sourceCloud.action,
+      sourceCloud.resource,
       sourceCloud.event_time,
-      variant.sourceAllowed,
-      spec.seed,
-      spec.family,
-      index,
-      'source',
     ),
+    event_count: session.source.events.length,
   };
+  session.nativeActionCoverage[sourceCloud.event_id] = sourceCapture;
+  const sourceRead = stepOffense(session, {
+    tool: 'read-synced-secret',
+    args: { object_name: sourceObjectName },
+  });
+  if (!sourceRead.ok) {
+    throw new Error(`producer source read failed: ${sourceRead.reason}`);
+  }
   const redeemed = stepOffense(session, {
     tool: 'redeem-release-token',
-    args: { token: source.value },
+    args: { token: sourceRead.value },
   });
   if (!redeemed.ok) {
     throw new Error(`producer redemption failed: ${redeemed.reason}`);
@@ -266,7 +282,51 @@ function producerIncident(spec, variant, index) {
   if (!submitted.ok) {
     throw new Error(`producer Job admission failed: ${submitted.reason}`);
   }
+  const jobCreate = exactlyOne(
+    job.ledger,
+    (event) => event.kind === 'job-create' && event.outcome === 'admitted',
+  );
+  const otherJobPrincipal = job.grants.find(
+    (grant) => grant.writer_principal !== job.principal && grant.writer_principal !== jobGroup,
+  )?.writer_principal;
+  if (!jobCreate || !otherJobPrincipal) {
+    throw new Error('delegated Job grant inputs missing');
+  }
+  const jobClock = job.eventOffset + job.events.length;
+  // run-job emits Pod, credential request, web STS, role STS, then cloud read.
+  const jobPlannedActionTime = jobClock + 5;
+  job.membershipLedger = membershipAuditEvents(
+    jobGroup,
+    job.principal,
+    otherJobPrincipal,
+    jobPlannedActionTime,
+    variant.jobAllowed,
+    spec.seed,
+    spec.family,
+    index,
+    'job',
+  );
+  session.delegatedSnapshots[jobCreate.grant_snapshot_ref] = {
+    grants: structuredClone(job.grantSnapshots[jobCreate.grant_snapshot_ref]),
+    audit_stream_ref: membershipAuditStream(jobGroup),
+  };
+  let jobCapture = null;
+  job.onCloudObjectRead = (cloud) => {
+    jobCapture = {
+      ...captureNativeCoverage(
+        session.delegatedSnapshots[jobCreate.grant_snapshot_ref].grants,
+        job.membershipLedger,
+        job.principal,
+        cloud.action,
+        cloud.resource,
+        cloud.event_time,
+      ),
+      event_count: job.events.length,
+    };
+    session.nativeActionCoverage[cloud.event_id] = jobCapture;
+  };
   const run = stepOffense(session, { tool: 'run-job', args: { job_uid: submitted.job_uid } });
+  delete job.onCloudObjectRead;
   if (!run.ok || run.status !== 'checkpoint') {
     throw new Error(`producer Job run failed: ${run.reason}`);
   }
@@ -274,34 +334,12 @@ function producerIncident(spec, variant, index) {
     job.events,
     (event) => event.kind === 'cloud-object-read' && event.outcome === 'completed',
   );
-  const jobCreate = exactlyOne(
-    job.ledger,
-    (event) => event.kind === 'job-create' && event.outcome === 'admitted',
-  );
-  if (!jobCloud || !jobCreate) {
+  if (!jobCloud) {
     throw new Error('delegated Job action missing');
   }
-  const otherJobPrincipal = job.grants.find(
-    (grant) => grant.writer_principal !== job.principal && grant.writer_principal !== jobGroup,
-  )?.writer_principal;
-  if (!otherJobPrincipal) {
-    throw new Error('delegated Job comparison principal missing');
+  if (!jobCapture || jobCapture.action_time !== jobCloud.event_time) {
+    throw new Error('native Job action capture missing');
   }
-  session.delegatedSnapshots[jobCreate.grant_snapshot_ref] = {
-    grants: structuredClone(job.grantSnapshots[jobCreate.grant_snapshot_ref]),
-    audit_stream_ref: membershipAuditStream(jobGroup),
-    transitions: membershipAuditEvents(
-      jobGroup,
-      job.principal,
-      otherJobPrincipal,
-      jobCloud.event_time,
-      variant.jobAllowed,
-      spec.seed,
-      spec.family,
-      index,
-      'job',
-    ),
-  };
   const resumed = stepOffense(session, {
     tool: 'resume-job',
     args: {
@@ -362,9 +400,41 @@ function producerIncident(spec, variant, index) {
   return {
     label,
     grantSnapshots,
-    membershipAudit: Object.values(session.delegatedSnapshots).flatMap((snapshot) =>
-      snapshot.transitions.map((event) => ({ ...event })),
-    ),
+    membershipAudit: [...sourceWorld.membershipLedger, ...job.membershipLedger].map((event) => ({
+      ...event,
+    })),
+    nativeActionRecords: {
+      source: {
+        grants: structuredClone(session.delegatedSnapshots[sourceCloud.grant_snapshot_ref].grants),
+        ledger: structuredClone(sourceWorld.membershipLedger),
+        action: {
+          event_id: sourceCloud.event_id,
+          event_time: sourceCloud.event_time,
+          arrival_order: sourceCloud.arrival_order,
+          actor,
+          action: sourceCloud.action,
+          resource: sourceCloud.resource,
+        },
+        scheduled_at_clock: sourceClock,
+        planned_action_time: sourcePlannedActionTime,
+        captured: structuredClone(sourceCapture),
+      },
+      job: {
+        grants: structuredClone(session.delegatedSnapshots[jobCreate.grant_snapshot_ref].grants),
+        ledger: structuredClone(job.membershipLedger),
+        action: {
+          event_id: jobCloud.event_id,
+          event_time: jobCloud.event_time,
+          arrival_order: jobCloud.arrival_order,
+          actor: job.principal,
+          action: jobCloud.action,
+          resource: jobCloud.resource,
+        },
+        scheduled_at_clock: jobClock,
+        planned_action_time: jobPlannedActionTime,
+        captured: structuredClone(jobCapture),
+      },
+    },
     policySnapshots,
     events: [
       ...session.source.events.map((event) => ({ ...event })),
@@ -377,6 +447,7 @@ function producerIncident(spec, variant, index) {
 export function buildDefenseSession(spec) {
   const incidents = VARIANTS.map((variant, index) => producerIncident(spec, variant, index));
   const expected = {};
+  const nativeActionRecords = {};
   const grantSnapshots = [];
   const membershipAudit = [];
   const policySnapshots = [];
@@ -386,6 +457,7 @@ export function buildDefenseSession(spec) {
       throw new Error('producer redemption event missing');
     }
     expected[token.event_id] = incident.label;
+    nativeActionRecords[token.event_id] = incident.nativeActionRecords;
     grantSnapshots.push(...incident.grantSnapshots);
     membershipAudit.push(...incident.membershipAudit);
     policySnapshots.push(...incident.policySnapshots);
@@ -436,6 +508,7 @@ export function buildDefenseSession(spec) {
     membershipAudit,
     policySnapshots,
     expected,
+    nativeActionRecords,
     queries: 0,
     finished: false,
     submitted: null,

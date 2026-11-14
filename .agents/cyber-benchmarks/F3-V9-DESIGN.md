@@ -98,6 +98,10 @@ shared role and object alone. No decoy is a hidden seventh target
 incident.
 
 Membership starts absent. Only completed add/remove transitions count.
+The producer schedules each group's transition ledger from the source
+or Job phase clock before the protected cloud action. At emission, it
+applies the completed transitions and captures authorization for the
+native label; the query surface receives a separate ledger projection.
 The generator gives each group/member transition a distinct event time,
 and no transition shares the target cloud action's event time; tests
 enforce both invariants. A member is active when its last completed

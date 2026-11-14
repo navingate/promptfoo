@@ -2,6 +2,7 @@ import assert from 'node:assert/strict';
 
 import { FAMILIES } from '../shared/estate.mjs';
 import { buildDefenseSession as buildV8DefenseSession } from '../v8/defense.mjs';
+import * as defenseModule from './defense.mjs';
 import { buildDefenseSession, referenceDefense, scoreDefense, stepDefense } from './defense.mjs';
 
 function sameLabels(actual, expected) {
@@ -216,6 +217,17 @@ for (const family of FAMILIES) {
     assert.equal(visible.includes('value:'), false);
     const reference = referenceDefense(session);
     sameLabels(reference, session.expected);
+    for (const token of tokens) {
+      const records = session.nativeActionRecords[token.event_id];
+      assert.ok(records);
+      for (const side of ['source', 'job']) {
+        const record = records[side];
+        assert.ok(record.scheduled_at_clock < record.action.event_time);
+        assert.equal(record.planned_action_time, record.action.event_time);
+        assert.equal(record.captured.event_count, record.action.arrival_order);
+        assert.equal(record.captured.action_time, record.action.event_time);
+      }
+    }
     const diagnostics = {};
     sameLabels(referenceDefense(session, diagnostics), session.expected);
     const brokerDenied = tokens.filter(
@@ -269,6 +281,42 @@ assert.ok(positionOnlyAccuracy < 0.6, `arrival-position shortcut accuracy ${posi
 const base = buildDefenseSession({ seed: 10491, family: FAMILIES[0] });
 const fullTokenId = Object.keys(base.expected).find((key) => base.expected[key] === 'full-cascade');
 assert.ok(fullTokenId);
+const fullNativeSource = base.nativeActionRecords?.[fullTokenId]?.source;
+assert.ok(fullNativeSource, 'producer must retain the source action-time authorization capture');
+assert.ok(fullNativeSource.scheduled_at_clock < fullNativeSource.action.event_time);
+assert.equal(fullNativeSource.planned_action_time, fullNativeSource.action.event_time);
+assert.ok(Number.isSafeInteger(fullNativeSource.captured.event_count));
+assert.equal(fullNativeSource.captured.event_count, fullNativeSource.action.arrival_order);
+assert.equal(fullNativeSource.captured.authorized, false);
+assert.equal(
+  defenseModule.captureNativeCoverage(
+    fullNativeSource.grants,
+    fullNativeSource.ledger,
+    fullNativeSource.action.actor,
+    fullNativeSource.action.action,
+    fullNativeSource.action.resource,
+    fullNativeSource.action.event_time - 3,
+  ).authorized,
+  true,
+  'moving the cloud action earlier must change native authorization without rebuilding audit',
+);
+const fullNativeJob = base.nativeActionRecords[fullTokenId].job;
+assert.ok(fullNativeJob.scheduled_at_clock < fullNativeJob.action.event_time);
+assert.equal(fullNativeJob.planned_action_time, fullNativeJob.action.event_time);
+assert.ok(Number.isSafeInteger(fullNativeJob.captured.event_count));
+assert.equal(fullNativeJob.captured.event_count, fullNativeJob.action.arrival_order);
+assert.equal(fullNativeJob.captured.authorized, false);
+assert.equal(
+  defenseModule.captureNativeCoverage(
+    fullNativeJob.grants,
+    fullNativeJob.ledger,
+    fullNativeJob.action.actor,
+    fullNativeJob.action.action,
+    fullNativeJob.action.resource,
+    fullNativeJob.action.event_time - 3,
+  ).authorized,
+  true,
+);
 const fullToken = base.events.find((event) => event.event_id === fullTokenId);
 const sourceCloud = base.events.find(
   (event) =>
@@ -465,6 +513,7 @@ const futureAudit = renamedFutureAudit.membershipAudit.find(
 assert.ok(futureAudit);
 futureAudit.event_id = 'renamed-future-membership-event';
 sameLabels(referenceDefense(renamedFutureAudit), referenceDefense(base));
+assert.deepEqual(renamedFutureAudit.nativeActionRecords, base.nativeActionRecords);
 const noSourceAdd = structuredClone(base);
 noSourceAdd.membershipAudit.find(
   (event) =>
@@ -478,6 +527,7 @@ delayedAudit.membershipAudit.reverse().forEach((event, index) => {
   event.arrival_order = index + 1;
 });
 sameLabels(referenceDefense(delayedAudit), referenceDefense(base));
+assert.deepEqual(delayedAudit.nativeActionRecords, base.nativeActionRecords);
 const jobGrant = structuredClone(base);
 jobGrant.grantSnapshots
   .find((snapshot) => snapshot.snapshot_ref === submission.grant_snapshot_ref)
@@ -503,6 +553,20 @@ const approvedKey = Object.keys(base.expected).find(
   (key) => base.expected[key] === 'approved-automation',
 );
 const approvedToken = base.events.find((event) => event.event_id === approvedKey);
+const approvedNativeSource = base.nativeActionRecords[approvedKey].source;
+assert.equal(approvedNativeSource.captured.authorized, true);
+assert.equal(
+  defenseModule.captureNativeCoverage(
+    approvedNativeSource.grants,
+    approvedNativeSource.ledger,
+    approvedNativeSource.action.actor,
+    approvedNativeSource.action.action,
+    approvedNativeSource.action.resource,
+    approvedNativeSource.action.event_time + 5,
+  ).authorized,
+  false,
+  'moving the cloud action later must change native authorization without rebuilding audit',
+);
 const approvedSourceCloud = base.events.find(
   (event) =>
     event.kind === 'cloud-secret-attempt' && event.credential_id === approvedToken.credential_id,

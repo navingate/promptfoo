@@ -1197,6 +1197,9 @@ function runJob(world, args) {
     ...(decision === 'completed' ? {} : { reason: decision }),
     causal_ref: role.event_id,
   });
+  if (typeof world.onCloudObjectRead === 'function') {
+    world.onCloudObjectRead(cloud);
+  }
   if (decision !== 'completed') {
     return denyRun(world, job, podUid, decision, {
       access_key_ref: destAccessKeyRef,
