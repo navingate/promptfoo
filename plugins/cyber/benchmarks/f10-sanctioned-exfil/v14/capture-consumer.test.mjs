@@ -175,3 +175,27 @@ test('lineage rejects receipt fields falsely marked as non-label inputs', () => 
     () => assert.throws(() => loadCorpus(dir), /receipt lineage must be a label input/u),
   );
 });
+
+test('lineage rejects rehashed native source and label metadata changes', () => {
+  withLineageMutation(
+    (lineage) => {
+      const policy = lineage.groups.find(
+        (group) => group.normalized_prefix === 'captures[*].policy.',
+      );
+      policy.source_prefix = 'invented.source.';
+      policy.label_input = false;
+    },
+    () => assert.throws(() => loadCorpus(dir), /lineage contract hash mismatch/u),
+  );
+});
+
+test('lineage rejects rehashed derived source and transform changes', () => {
+  withLineageMutation(
+    (lineage) => {
+      const flow = lineage.derived.find((field) => field.path === 'flows[*].flow_id');
+      flow.source_paths = ['invented.source'];
+      flow.transform_id = 'invented-transform';
+    },
+    () => assert.throws(() => loadCorpus(dir), /lineage contract hash mismatch/u),
+  );
+});

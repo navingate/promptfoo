@@ -14,6 +14,9 @@ import {
 } from './capture-producer.mjs';
 import { DEFENSE_PROMPT, referenceDefense } from './defense.mjs';
 
+// Source contract: evidence manifests may repeat this hash, but cannot redefine it.
+const FIELD_LINEAGE_SHA256 = '8c3e43ff52f048fff2b978b7435ad4250e2c2fac4a3ab60880e92cfc4b98f75f';
+
 const defaultDir = path.join(path.dirname(fileURLToPath(import.meta.url)), 'evidence');
 const fileNames = ['captures-v1.json', 'answers-v1.json', 'sink-proof-v1.json'];
 const forbiddenKeys = new Set([
@@ -214,6 +217,7 @@ export function loadCorpus(evidenceDir = defaultDir) {
   assert.equal(answers.schema_version, 'f10-evaluator-answers-v1');
   assert.equal(proofs.schema_version, 'f10-native-sink-proof-v1');
   validateLineage(lineage, captures);
+  assert.equal(digest(lineageBytes), FIELD_LINEAGE_SHA256, 'lineage contract hash mismatch');
   const expectedCount = CAPTURE_SEEDS.length * CAPTURE_KINDS.length;
   assert.equal(captures.cases.length, expectedCount);
   assert.equal(answers.cases.length, expectedCount);
