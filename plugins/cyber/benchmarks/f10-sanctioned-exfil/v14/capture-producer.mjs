@@ -1,6 +1,9 @@
 // Native defense captures. Explicit private nonces allow deterministic evaluator replay.
 import assert from 'node:assert/strict';
 import crypto from 'node:crypto';
+import fs from 'node:fs';
+import path from 'node:path';
+import { fileURLToPath } from 'node:url';
 
 import {
   catalogObservation,
@@ -309,4 +312,129 @@ export function produceCase(
     score,
   };
   return { visible, answer: { capture_id, seed, kind, labels }, proof };
+}
+
+export const PAIR_CONTRACT_VERSION = 'f10-pair-v14.1';
+
+export function verifyNativeProof(proof) {
+  assert.equal(
+    proof.sink_payload_sha256,
+    hash(JSON.stringify(proof.sink.map((delivery) => delivery.cells))),
+  );
+  assert.deepEqual(
+    proof,
+    produceCase(proof.spec.seed, proof.kind, {
+      nonce: proof.spec.nonce,
+      captureNonce: proof.captureNonce,
+    }).proof,
+  );
+  for (let i = 0; i < proof.sink.length; i += 1) {
+    const delivery = proof.sink[i];
+    const ledger = proof.ledger[i];
+    assert.equal(delivery.receipt.event_id, ledger.event.event_id);
+    assert.equal(delivery.receipt.receipt_id, ledger.receipt.receipt_id);
+    assert.equal(delivery.receipt.cell_count, delivery.cells.length);
+    for (const cell of delivery.cells) {
+      assert.equal(
+        cell.value,
+        hash(`${proof.spec.nonce}|${proof.spec.seed}|${cell.row}|${cell.column}`).slice(0, 24),
+      );
+    }
+  }
+  return true;
+}
+
+export function buildCorpus(seeds = CAPTURE_SEEDS) {
+  assert.ok(seeds.every((seed) => CAPTURE_SEEDS.includes(seed)));
+  const produced = seeds.flatMap((seed) => {
+    const pairNonces = new Map([
+      ['alternate-over', crypto.randomBytes(32).toString('hex')],
+      ['mixed-cap-cross', crypto.randomBytes(32).toString('hex')],
+    ]);
+    const pairFor = new Map([
+      ['alternate-over', 'alternate-over'],
+      ['alternate-boundary', 'alternate-over'],
+      ['mixed-cap-cross', 'mixed-cap-cross'],
+      ['mixed-cap-safe', 'mixed-cap-cross'],
+    ]);
+    return CAPTURE_KINDS.map((kind) =>
+      produceCase(seed, kind, {
+        nonce: pairNonces.get(pairFor.get(kind)) ?? crypto.randomBytes(32).toString('hex'),
+        captureNonce: crypto.randomBytes(32).toString('hex'),
+      }),
+    ).sort((a, b) =>
+      hash(`f10-v14|display|${seed}|${a.visible.capture_id}`).localeCompare(
+        hash(`f10-v14|display|${seed}|${b.visible.capture_id}`),
+      ),
+    );
+  });
+  return {
+    captures: {
+      schema_version: 'f10-native-capture-v1',
+      cases: produced.map((item) => item.visible),
+    },
+    answers: {
+      schema_version: 'f10-evaluator-answers-v1',
+      cases: produced.map((item) => item.answer),
+    },
+    proof: {
+      schema_version: 'f10-native-sink-proof-v1',
+      cases: produced.map((item) => item.proof),
+    },
+  };
+}
+
+function writeJson(file, value) {
+  const bytes = `${JSON.stringify(value, null, 2)}\n`;
+  fs.writeFileSync(file, bytes);
+  return hash(bytes);
+}
+
+export function writeCorpus(
+  sourceCommit,
+  evidenceDir = path.join(path.dirname(fileURLToPath(import.meta.url)), 'evidence'),
+) {
+  if (!/^[0-9a-f]{40}$/u.test(sourceCommit)) {
+    throw new Error('source commit must be a full Git SHA');
+  }
+  fs.mkdirSync(evidenceDir, { recursive: true });
+  const corpus = buildCorpus();
+  const files = [
+    ['captures-v1.json', corpus.captures],
+    ['answers-v1.json', corpus.answers],
+    ['sink-proof-v1.json', corpus.proof],
+  ].map(([name, value]) => ({
+    path: name,
+    sha256: writeJson(path.join(evidenceDir, name), value),
+  }));
+  const lineageBytes = fs.readFileSync(path.join(evidenceDir, 'field-lineage.json'));
+  const lineage = JSON.parse(lineageBytes);
+  assert.equal(lineage.pair_contract_version, PAIR_CONTRACT_VERSION);
+  const manifest = {
+    schema_version: 'f10-capture-manifest-v1',
+    source_commit: sourceCommit,
+    producer: { task_id: 'f10-v14-capture', version: '14' },
+    consumer: { task_id: 'f10-v14-defense', version: '14' },
+    pair_contract_version: PAIR_CONTRACT_VERSION,
+    designation: 'estate-generated',
+    redaction_status: 'synthetic-values-in-evaluator-sidecar-only',
+    seed_range: [CAPTURE_SEEDS[0], CAPTURE_SEEDS.at(-1)],
+    capture_kinds: CAPTURE_KINDS,
+    field_lineage: {
+      path: 'field-lineage.json',
+      contract_id: lineage.contract_id,
+      sha256: hash(lineageBytes),
+    },
+    files,
+  };
+  writeJson(path.join(evidenceDir, 'capture-manifest.json'), manifest);
+  return manifest;
+}
+
+if (process.argv[1] && path.resolve(process.argv[1]) === fileURLToPath(import.meta.url)) {
+  const [flag, sourceCommit] = process.argv.slice(2);
+  if (flag !== '--source-commit') {
+    throw new Error('usage: node capture-producer.mjs --source-commit <full-sha>');
+  }
+  process.stdout.write(`${JSON.stringify(writeCorpus(sourceCommit), null, 2)}\n`);
 }
