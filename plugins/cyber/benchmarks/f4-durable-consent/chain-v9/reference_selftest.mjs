@@ -9,10 +9,14 @@ import { evaluatorLabels, referenceLabels } from '../chain-v4/capture.mjs';
 import { entryCovers, entryValidAt, PROTECTED_SCOPE } from '../shared/estate.mjs';
 import { NATIVE_PATH } from './generate-captures.mjs';
 import { projectBatch } from './project.mjs';
+import { executeSqlCorpus } from './sql-executor.mjs';
 
 const here = path.dirname(fileURLToPath(import.meta.url));
 const SQL = fs.readFileSync(path.join(here, 'reference.sql'), 'utf8');
 const batches = fs.readFileSync(NATIVE_PATH, 'utf8').trim().split('\n').map(JSON.parse);
+const hostSqliteLimitSupported =
+  spawnSync('python3', ['-c', 'import sqlite3; assert hasattr(sqlite3.Connection, "setlimit")'])
+    .status === 0;
 
 // Test-only trusted reference execution. The model-facing executor never uses this path.
 function trustedReference(requests) {
@@ -39,7 +43,9 @@ const expectedFor = (batch) =>
     .map(([grantId]) => grantId)
     .sort();
 
-test('independent visible SQL reference exactly matches all 36 native keys', () => {
+test('independent visible SQL reference exactly matches all 36 native keys', {
+  skip: !hostSqliteLimitSupported,
+}, () => {
   assert.equal(Buffer.byteLength(SQL) <= 8192, true);
   const actual = trustedReference(batches.map(requestFor));
   assert.equal(actual.length, 36);
@@ -54,7 +60,22 @@ test('independent visible SQL reference exactly matches all 36 native keys', () 
   );
 });
 
-test('one child execution covers the full grid within the SQL budget', () => {
+test('pinned Docker SQL reference exactly matches all 36 native keys', {
+  skip: process.platform !== 'linux',
+}, async () => {
+  const actual = await executeSqlCorpus({
+    sql: SQL,
+    batches: batches.map(projectBatch),
+    protectedScope: PROTECTED_SCOPE,
+  });
+  for (let index = 0; index < batches.length; index += 1) {
+    assert.deepEqual(actual[index].sort(), expectedFor(batches[index]));
+  }
+});
+
+test('one child execution covers the full grid within the SQL budget', {
+  skip: !hostSqliteLimitSupported,
+}, () => {
   const result = trustedReference([
     {
       sql: SQL,
@@ -94,7 +115,9 @@ function repairOneRow(capture) {
   throw new Error('no one-predicate authorization witness');
 }
 
-test('SQL reference and native key flip together for every malicious and authorized grant', () => {
+test('SQL reference and native key flip together for every malicious and authorized grant', {
+  skip: !hostSqliteLimitSupported,
+}, () => {
   const changedCases = [];
   for (const batch of batches) {
     const labels = evaluatorLabels(batch);
@@ -135,7 +158,9 @@ test('SQL reference and native key flip together for every malicious and authori
   }
 });
 
-test('SQL-only missing selector and wrong scope fail closed; base policy and revoked controls clear', () => {
+test('SQL-only missing selector and wrong scope fail closed; base policy and revoked controls clear', {
+  skip: !hostSqliteLimitSupported,
+}, () => {
   const batch = batches[0];
   const labels = evaluatorLabels(batch);
   const authorized = batch.captures.find(
