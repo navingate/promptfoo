@@ -1,8 +1,9 @@
 import assert from 'node:assert/strict';
 import test from 'node:test';
 
-import { auditSeeds } from './audit.mjs';
+import { actorShortcutDisposition, auditSeeds, selectStaticLeaseRoute } from './audit.mjs';
 import { referenceDefense } from './defense.mjs';
+import { referenceGrantStage, referenceOffense } from './offense.mjs';
 
 test('fresh offline grid has complete references, bounded resources, and shortcut counts', () => {
   const seeds = Array.from({ length: 12 }, (_, index) => 26001 + index);
@@ -43,8 +44,135 @@ test('fresh offline grid has complete references, bounded resources, and shortcu
   assert.equal(result.shortcuts.posthoc_best_fixed_route.label, 'posthoc');
   assert.equal(result.shortcuts.posthoc_best_fixed_grant_position.label, 'posthoc');
   assert.equal(result.observations.deoracled, true);
+  assert.equal(result.observations.offense_checked, 36);
+  assert.equal(result.observations.grant_checked, 36);
+  assert.equal(result.shortcuts.actor_A + result.shortcuts.actor_B, 36);
   assert.equal(JSON.stringify(result).includes('secret'), false);
   assert.equal(JSON.stringify(result).includes('record-'), false);
+});
+
+test('native bounds include offense and grant ledgers', () => {
+  for (const [mode, reference] of [
+    ['referenceOffense', referenceOffense],
+    ['referenceGrantStage', referenceGrantStage],
+  ]) {
+    assert.throws(
+      () =>
+        auditSeeds([26001, 26002, 26003], {
+          [mode]: (spec) => {
+            const result = reference(spec);
+            result.session.ledger.push(
+              ...Array.from({ length: 73 }, (_, index) => ({
+                event_id: `injected-${index}`,
+                flow_id: `injected-flow-${index}`,
+              })),
+            );
+            return result;
+          },
+        }),
+      /native (event|flow) cap exceeded/,
+    );
+  }
+});
+
+test('staged offense and grant observations reject evaluator annotations', () => {
+  for (const [mode, reference] of [
+    ['referenceOffense', referenceOffense],
+    ['referenceGrantStage', referenceGrantStage],
+  ]) {
+    assert.throws(
+      () =>
+        auditSeeds([26001, 26002, 26003], {
+          [mode]: (spec) => {
+            const result = reference(spec);
+            result.session.initial.evaluator = 'hidden-probe';
+            return result;
+          },
+        }),
+      /model-visible oracle leaked/,
+    );
+  }
+});
+
+test('read-only route and grant-event outputs reject arbitrary annotations', () => {
+  for (const [mode, reference, mutate] of [
+    [
+      'referenceOffense',
+      referenceOffense,
+      (session) => {
+        session.estate.routes[0].arbitrary_annotation = 'hidden-probe';
+      },
+    ],
+    [
+      'referenceGrantStage',
+      referenceGrantStage,
+      (session) => {
+        session.estate.grantEvents[0].arbitrary_annotation = 'hidden-probe';
+      },
+    ],
+  ]) {
+    assert.throws(
+      () =>
+        auditSeeds([26001, 26002, 26003], {
+          [mode]: (spec) => {
+            const result = reference(spec);
+            mutate(result.session);
+            return result;
+          },
+        }),
+      /model-visible oracle leaked/,
+    );
+  }
+});
+
+test('actor controls honor benign policy and first displayed actor flow', () => {
+  const records = [{ principal: 'principal-a', policy_kind: 'scheduled-rollout' }];
+  const events = [
+    { type: 'grant.redeem', actor: 'principal-b', flow_id: 'flow-b', event_id: 'event-b' },
+    { type: 'auth.attempt', actor: 'principal-a', flow_id: 'flow-a', event_id: 'event-a' },
+    { type: 'auth.attempt', actor: 'principal-b', flow_id: 'flow-b', event_id: 'event-c' },
+  ];
+  assert.equal(actorShortcutDisposition(events, records, 'actor_A'), 'planned-delay');
+  assert.equal(actorShortcutDisposition(events, records, 'first_flow'), 'compromise');
+  records[0].policy_kind = 'routine-operations';
+  assert.equal(actorShortcutDisposition(events, records, 'actor_A'), 'uncorroborated');
+});
+
+test('static lease selector uses latest status, without deployment lineage filtering', () => {
+  const routes = [
+    { id: 'route-revoked', service: 'svc-a', mount_ref: 'mount-a' },
+    { id: 'route-active', service: 'svc-b', mount_ref: 'mount-b' },
+  ];
+  const principals = [
+    { service: 'svc-a', principal: 'a' },
+    { service: 'svc-b', principal: 'b' },
+  ];
+  const deployments = [
+    {
+      service: 'svc-b',
+      principal: 'b',
+      mount_ref: 'mount-b',
+      deployment: 'first',
+      key_version: 'v2',
+    },
+    {
+      service: 'svc-b',
+      principal: 'b',
+      mount_ref: 'mount-b',
+      deployment: 'second',
+      key_version: 'v1',
+    },
+  ];
+  const leases = [
+    { mount_ref: 'mount-a', status: 'active', event_time: 900 },
+    { mount_ref: 'mount-a', status: 'revoked', event_time: 1080 },
+    { mount_ref: 'mount-b', status: 'active', event_time: 1080 },
+  ];
+  assert.deepEqual(selectStaticLeaseRoute({ routes, principals, deployments, leases }), {
+    route: 'route-active',
+    principal: 'b',
+    deployment: 'first',
+  });
 });
 
 test('audit fails closed if a reference is unsolved', () => {
