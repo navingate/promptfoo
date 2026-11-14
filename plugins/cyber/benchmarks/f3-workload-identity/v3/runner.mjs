@@ -3,6 +3,7 @@
 // per seed/family/side and records raw turns, outcomes and provider errors.
 import crypto from 'node:crypto';
 import fs from 'node:fs';
+import path from 'node:path';
 
 import {
   buildDefenseSession as buildV4DefenseSession,
@@ -441,15 +442,66 @@ function summarize(results, args, cfg) {
   };
 }
 
-function writeCapture(fd, capture) {
+function writeCaptureBytes(fd, capture) {
   const bytes = Buffer.from(`${JSON.stringify(capture, null, 2)}\n`);
-  fs.ftruncateSync(fd, 0);
   for (let offset = 0; offset < bytes.length; ) {
     const written = fs.writeSync(fd, bytes, offset, bytes.length - offset, offset);
     if (written <= 0) {
       throw new Error('capture write made no progress');
     }
     offset += written;
+  }
+  fs.fsyncSync(fd);
+}
+
+function initializeCapture(outputPath, capture) {
+  // The destination must not exist before any world or model request.
+  const fd = fs.openSync(outputPath, 'wx', 0o600);
+  try {
+    fs.fchmodSync(fd, 0o600);
+    writeCaptureBytes(fd, capture);
+    fs.closeSync(fd);
+  } catch (error) {
+    try {
+      fs.closeSync(fd);
+    } catch {
+      // Preserve the original write error.
+    }
+    fs.unlinkSync(outputPath);
+    throw error;
+  }
+}
+
+function writeCapture(outputPath, capture) {
+  const tempPath = path.join(
+    path.dirname(outputPath),
+    `.${path.basename(outputPath)}.tmp-${process.pid}-${crypto.randomBytes(12).toString('hex')}`,
+  );
+  const fd = fs.openSync(tempPath, 'wx', 0o600);
+  let open = true;
+  let renamed = false;
+  try {
+    fs.fchmodSync(fd, 0o600);
+    writeCaptureBytes(fd, capture);
+    fs.closeSync(fd);
+    open = false;
+    fs.renameSync(tempPath, outputPath);
+    renamed = true;
+  } finally {
+    if (open) {
+      try {
+        fs.closeSync(fd);
+      } catch {
+        // Keep the write or rename error.
+      }
+    }
+    if (!renamed) {
+      try {
+        fs.unlinkSync(tempPath);
+      } catch {
+        // Keep the previous complete capture if cleanup cannot finish.
+      }
+    }
   }
 }
 
@@ -482,34 +534,28 @@ async function main() {
   ) {
     throw new Error('CYBER_MIN_REQUEST_INTERVAL_MS must be an integer from 0 to 60000');
   }
-  // Exclusive creation rejects existing files and symlinks before any world
-  // or model request. Keep the same private descriptor for each capture update.
-  const outputFd = args.output ? fs.openSync(args.output, 'wx', 0o600) : null;
-  try {
-    const results = [];
-    for (const seed of args.seeds) {
-      for (const family of args.families) {
-        const result = await runOne({ seed, family }, args, cfg);
-        results.push(result);
-        if (outputFd !== null) {
-          writeCapture(outputFd, { summary: summarize(results, args, cfg), results });
-        }
-        process.stdout.write(
-          `${args.mode} ${seed}/${family}: ${result.classification}${result.reason ? ` (${result.reason})` : ''}\n`,
-        );
+  const results = [];
+  if (args.output) {
+    initializeCapture(args.output, { summary: summarize(results, args, cfg), results });
+  }
+  for (const seed of args.seeds) {
+    for (const family of args.families) {
+      const result = await runOne({ seed, family }, args, cfg);
+      results.push(result);
+      if (args.output) {
+        writeCapture(args.output, { summary: summarize(results, args, cfg), results });
       }
-    }
-    const summary = summarize(results, args, cfg);
-    const out = { summary, results };
-    if (outputFd !== null) {
-      writeCapture(outputFd, out);
-    }
-    process.stdout.write(`${JSON.stringify(summary)}\n`);
-  } finally {
-    if (outputFd !== null) {
-      fs.closeSync(outputFd);
+      process.stdout.write(
+        `${args.mode} ${seed}/${family}: ${result.classification}${result.reason ? ` (${result.reason})` : ''}\n`,
+      );
     }
   }
+  const summary = summarize(results, args, cfg);
+  const out = { summary, results };
+  if (args.output) {
+    writeCapture(args.output, out);
+  }
+  process.stdout.write(`${JSON.stringify(summary)}\n`);
 }
 
 main().catch((error) => {

@@ -46,7 +46,9 @@ safety claim.
   `/tmp/f3-v9-glm53-defense-21801-21812.json`. Pilot captures use distinct
   `/tmp/f3-v9-glm53-pilot-{offense,defense}-21799.json` paths. Keep raw files
   outside the repository with mode 0600. Each path must be absent before its
-  run; the runner rejects an existing file or symlink. Never publish raw transcripts,
+  run; the runner rejects an existing file or symlink, writes a valid empty
+  capture before the first request, and atomically replaces each completed
+  snapshot from a private same-directory temporary file. Never publish raw transcripts,
   synthetic credentials, markers, or artifact values.
 
 ## Integrity, validity, and decision
@@ -60,7 +62,7 @@ transport or implementation defect requires a recorded deviation and a
 fresh protocol with new scored seeds.
 
 The local source bundle currently hashes to
-`dce99d28cd2314778bf2c079f8034a891ea52176a82e10d8a2341741f9812986`
+`8847babe2a699774ffb526826b4f0f137749981789894b7e133a3b9d33d557be`
 (SHA-256). This covers 16 sorted files: `v3/runner.mjs`,
 `shared/estate.mjs`, and every `v9/*.mjs`, under the F3 benchmark directory.
 For each file, hash its repository-relative path, a NUL byte, its exact
