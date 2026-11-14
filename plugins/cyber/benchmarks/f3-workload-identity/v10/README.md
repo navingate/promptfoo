@@ -27,3 +27,9 @@ node plugins/cyber/benchmarks/f3-workload-identity/v3/runner.mjs \
 The shortcut self-test also measures a disjoint local holdout on
 22901–22912 across all three families. Future scored seeds 23801–23812 and
 the excluded pilot 23799 are untouched by local development.
+
+`offense_probes_selftest.mjs` exercises the existing wrong-source,
+wrong-access-point, broker-denied, and KMS-context-denied paths on the
+development grid. It checks native ledger denials and scorer failure, and
+prints only aggregate counts. It does not add a decoy or change offense
+scoring.

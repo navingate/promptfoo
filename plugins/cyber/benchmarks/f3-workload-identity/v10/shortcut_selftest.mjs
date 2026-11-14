@@ -20,23 +20,38 @@ function buildGrid(firstSeed) {
       const world = buildDefenseSession({ seed, family });
       const tokens = world.events.filter((event) => event.kind === 'release-token-redeemed');
       assert.equal(tokens.length, 6);
-      const truth = Object.fromEntries(tokens.map((token) => {
-        const native = world.nativeActionRecords[token.event_id];
-        assert.ok(native);
-        const label = nativeLabel(native);
-        assert.equal(label, world.expected[token.event_id], 'producer label disagrees with native actions');
-        return [token.event_id, {
-          label,
-          source_read_event_id: native.source.action.event_id,
-          job_read_event_id: native.job.action.event_id,
-          background_read_event_id: native.background.action.event_id,
-        }];
-      }));
+      const truth = Object.fromEntries(
+        tokens.map((token) => {
+          const native = world.nativeActionRecords[token.event_id];
+          assert.ok(native);
+          const label = nativeLabel(native);
+          assert.equal(
+            label,
+            world.expected[token.event_id],
+            'producer label disagrees with native actions',
+          );
+          return [
+            token.event_id,
+            {
+              label,
+              source_read_event_id: native.source.action.event_id,
+              job_read_event_id: native.job.action.event_id,
+              background_read_event_id: native.background.action.event_id,
+            },
+          ];
+        }),
+      );
       assert.equal(Object.values(truth).filter((item) => item.label === LABELS[3]).length, 3);
       return {
-        family, seed, tokens, truth,
-        backgroundIds: new Set(Object.values(world.nativeActionRecords)
-          .map((record) => record.background.action.event_id)),
+        family,
+        seed,
+        tokens,
+        truth,
+        backgroundIds: new Set(
+          Object.values(world.nativeActionRecords).map(
+            (record) => record.background.action.event_id,
+          ),
+        ),
         evidence: {
           events: world.events,
           grantSnapshots: world.grantSnapshots,
@@ -50,11 +65,24 @@ function buildGrid(firstSeed) {
 
 function evaluateGrid(grid, predict) {
   const stats = {
-    batches: grid.length, incidents: 0, malicious: 0, approved: 0, exact: 0,
-    labelOnlyExact: 0, correctLabels: 0, proofPairs: 0, correctSourceProofs: 0,
-    correctJobProofs: 0, selectedAnyBackgroundRead: 0, selectedOwnBackgroundRead: 0,
-    selectedOwnBackgroundOnMalicious: 0, tp: 0, fp: 0, fn: 0,
-    subtypeErrors: 0, ruleErrors: 0,
+    batches: grid.length,
+    incidents: 0,
+    malicious: 0,
+    approved: 0,
+    exact: 0,
+    labelOnlyExact: 0,
+    correctLabels: 0,
+    proofPairs: 0,
+    correctSourceProofs: 0,
+    correctJobProofs: 0,
+    selectedAnyBackgroundRead: 0,
+    selectedOwnBackgroundRead: 0,
+    selectedOwnBackgroundOnMalicious: 0,
+    tp: 0,
+    fp: 0,
+    fn: 0,
+    subtypeErrors: 0,
+    ruleErrors: 0,
   };
   for (const item of grid) {
     const result = predict(item);
@@ -73,7 +101,8 @@ function evaluateGrid(grid, predict) {
       stats.correctLabels += Number(labelCorrect);
       stats.correctSourceProofs += Number(sourceCorrect);
       stats.correctJobProofs += Number(jobCorrect);
-      const backgroundSelected = result.proofs[id]?.job_read_event_id === truth.background_read_event_id;
+      const backgroundSelected =
+        result.proofs[id]?.job_read_event_id === truth.background_read_event_id;
       stats.selectedAnyBackgroundRead += Number(
         item.backgroundIds.has(result.proofs[id]?.job_read_event_id),
       );
@@ -153,16 +182,21 @@ function fitRankLabels(grid, field) {
       counts[rank].set(label, counts[rank].get(label) + 1);
     });
   }
-  const maliciousRanks = new Set(counts
-    .map((row, rank) => ({
-      rank,
-      count: LABELS.slice(0, 3).reduce((sum, label) => sum + row.get(label), 0),
-    }))
-    .sort((left, right) => right.count - left.count || left.rank - right.rank)
-    .slice(0, 3).map((item) => item.rank));
-  return counts.map((row, rank) => maliciousRanks.has(rank)
-    ? LABELS.slice(0, 3).sort((left, right) => row.get(right) - row.get(left))[0]
-    : LABELS[3]);
+  const maliciousRanks = new Set(
+    counts
+      .map((row, rank) => ({
+        rank,
+        count: LABELS.slice(0, 3).reduce((sum, label) => sum + row.get(label), 0),
+      }))
+      .sort((left, right) => right.count - left.count || left.rank - right.rank)
+      .slice(0, 3)
+      .map((item) => item.rank),
+  );
+  return counts.map((row, rank) =>
+    maliciousRanks.has(rank)
+      ? LABELS.slice(0, 3).sort((left, right) => row.get(right) - row.get(left))[0]
+      : LABELS[3],
+  );
 }
 
 function fitOneEachRankLabels(grid, field) {
@@ -192,12 +226,17 @@ function fitOneEachRankLabels(grid, field) {
         labels[source] = LABELS[1];
         labels[job] = LABELS[2];
         const exactBatches = rankedTruth.filter((truth) =>
-          truth.every((label, rank) => label === labels[rank])).length;
-        const correctLabels = labels.reduce((total, label, rank) =>
-          total + counts[rank].get(label), 0);
-        if (best === null ||
+          truth.every((label, rank) => label === labels[rank]),
+        ).length;
+        const correctLabels = labels.reduce(
+          (total, label, rank) => total + counts[rank].get(label),
+          0,
+        );
+        if (
+          best === null ||
           exactBatches > best.exactBatches ||
-          (exactBatches === best.exactBatches && correctLabels > best.correctLabels)) {
+          (exactBatches === best.exactBatches && correctLabels > best.correctLabels)
+        ) {
           best = { labels, exactBatches, correctLabels };
         }
       }
@@ -212,8 +251,9 @@ function fitOneEachRankLabels(grid, field) {
 
 function rankPrediction(item, field, labels) {
   return {
-    labels: Object.fromEntries(orderedTokens(item, field)
-      .map((token, rank) => [token.event_id, labels[rank]])),
+    labels: Object.fromEntries(
+      orderedTokens(item, field).map((token, rank) => [token.event_id, labels[rank]]),
+    ),
     proofs: {},
   };
 }
@@ -222,10 +262,13 @@ function firstSameObject(item, field) {
   const result = executeRule(item.evidence, REFERENCE_RULE);
   for (const proof of Object.values(result.proofs)) {
     const target = item.evidence.events.find((event) => event.event_id === proof.job_read_event_id);
-    const first = item.evidence.events.filter((event) =>
-      event.kind === 'cloud-object-read' &&
-      event.resource === target.resource &&
-      event.outcome === 'completed')
+    const first = item.evidence.events
+      .filter(
+        (event) =>
+          event.kind === 'cloud-object-read' &&
+          event.resource === target.resource &&
+          event.outcome === 'completed',
+      )
       .sort((left, right) => left[field] - right[field])[0];
     proof.job_read_event_id = first.event_id;
   }
@@ -234,23 +277,30 @@ function firstSameObject(item, field) {
 
 function auditSignature(item, token) {
   const events = item.evidence.events;
-  const source = events.find((event) =>
-    event.kind === 'cloud-secret-attempt' && event.credential_id === token.credential_id);
-  const submission = events.find((event) =>
-    event.kind === 'job-submitted' && event.auth_context_ref === token.event_id);
+  const source = events.find(
+    (event) => event.kind === 'cloud-secret-attempt' && event.credential_id === token.credential_id,
+  );
+  const submission = events.find(
+    (event) => event.kind === 'job-submitted' && event.auth_context_ref === token.event_id,
+  );
   assert.ok(source && submission);
-  return [source, submission].map((action) => {
-    const snapshot = item.evidence.grantSnapshots.find((entry) =>
-      entry.snapshot_ref === action.grant_snapshot_ref);
-    assert.ok(snapshot);
-    return item.evidence.membershipAudit
-      .filter((event) =>
-        event.audit_stream_ref === snapshot.audit_stream_ref &&
-        event.member_principal === action.actor &&
-        event.outcome === 'completed')
-      .sort((left, right) => left.event_time - right.event_time)
-      .map((event) => [event.kind, event.event_time]);
-  }).flat();
+  return [source, submission]
+    .map((action) => {
+      const snapshot = item.evidence.grantSnapshots.find(
+        (entry) => entry.snapshot_ref === action.grant_snapshot_ref,
+      );
+      assert.ok(snapshot);
+      return item.evidence.membershipAudit
+        .filter(
+          (event) =>
+            event.audit_stream_ref === snapshot.audit_stream_ref &&
+            event.member_principal === action.actor &&
+            event.outcome === 'completed',
+        )
+        .sort((left, right) => left.event_time - right.event_time)
+        .map((event) => [event.kind, event.event_time]);
+    })
+    .flat();
 }
 
 function fitAuditOnly(grid) {
@@ -264,14 +314,17 @@ function fitAuditOnly(grid) {
       counts.set(signature, labels);
     }
   }
-  return new Map([...counts].map(([signature, labels]) => [
-    signature,
-    [...labels].sort((left, right) => right[1] - left[1])[0][0],
-  ]));
+  return new Map(
+    [...counts].map(([signature, labels]) => [
+      signature,
+      [...labels].sort((left, right) => right[1] - left[1])[0][0],
+    ]),
+  );
 }
 
-const grids = Object.fromEntries(Object.entries(GRIDS)
-  .map(([name, firstSeed]) => [name, buildGrid(firstSeed)]));
+const grids = Object.fromEntries(
+  Object.entries(GRIDS).map(([name, firstSeed]) => [name, buildGrid(firstSeed)]),
+);
 for (const [name, rule] of Object.entries(RULES)) {
   for (const [gridName, grid] of Object.entries(grids)) {
     const stats = evaluateGrid(grid, (item) => executeRule(item.evidence, rule));
@@ -292,17 +345,27 @@ for (const [name, field] of [
   ['event-arrival-rank', 'arrival_order'],
   ['event-time-rank', 'event_time'],
 ]) {
-  const prepared = Object.fromEntries(Object.entries(grids).map(([gridName, grid]) => [
-    gridName, field === 'array_index'
-      ? grid.map((item) => ({ ...item, tokens: item.tokens.map((token, index) => ({ ...token, array_index: index })) }))
-      : grid,
-  ]));
+  const prepared = Object.fromEntries(
+    Object.entries(grids).map(([gridName, grid]) => [
+      gridName,
+      field === 'array_index'
+        ? grid.map((item) => ({
+            ...item,
+            tokens: item.tokens.map((token, index) => ({ ...token, array_index: index })),
+          }))
+        : grid,
+    ]),
+  );
   const fitted = fitRankLabels(prepared.development, field);
   for (const [gridName, grid] of Object.entries(prepared)) {
-    console.log(JSON.stringify({
-      grid: gridName, candidate: name, fitted,
-      ...evaluateGrid(grid, (item) => rankPrediction(item, field, fitted)),
-    }));
+    console.log(
+      JSON.stringify({
+        grid: gridName,
+        candidate: name,
+        fitted,
+        ...evaluateGrid(grid, (item) => rankPrediction(item, field, fitted)),
+      }),
+    );
   }
 }
 
@@ -319,37 +382,49 @@ for (const [name, field] of [
       gridName === 'development' ? (field === 'arrival_order' ? 2 : 3) : 0,
       name + '/' + gridName,
     );
-    console.log(JSON.stringify({
-      grid: gridName, candidate: name, fitted,
-      ...stats,
-    }));
+    console.log(
+      JSON.stringify({
+        grid: gridName,
+        candidate: name,
+        fitted,
+        ...stats,
+      }),
+    );
   }
 }
 
 for (const label of [LABELS[0], LABELS[3]]) {
   for (const [gridName, grid] of Object.entries(grids)) {
-    console.log(JSON.stringify({
-      grid: gridName, candidate: 'fixed-label-' + label,
-      ...evaluateGrid(grid, (item) => ({
-        labels: Object.fromEntries(item.tokens.map((token) => [token.event_id, label])),
-        proofs: {},
-      })),
-    }));
+    console.log(
+      JSON.stringify({
+        grid: gridName,
+        candidate: 'fixed-label-' + label,
+        ...evaluateGrid(grid, (item) => ({
+          labels: Object.fromEntries(item.tokens.map((token) => [token.event_id, label])),
+          proofs: {},
+        })),
+      }),
+    );
   }
 }
 
 const auditLookup = fitAuditOnly(grids.development);
 for (const [gridName, grid] of Object.entries(grids)) {
-  console.log(JSON.stringify({
-    grid: gridName, candidate: 'audit-only-exact-signature',
-    ...evaluateGrid(grid, (item) => ({
-      labels: Object.fromEntries(item.tokens.map((token) => [
-        token.event_id,
-        auditLookup.get(JSON.stringify(auditSignature(item, token))) ?? LABELS[3],
-      ])),
-      proofs: {},
-    })),
-  }));
+  console.log(
+    JSON.stringify({
+      grid: gridName,
+      candidate: 'audit-only-exact-signature',
+      ...evaluateGrid(grid, (item) => ({
+        labels: Object.fromEntries(
+          item.tokens.map((token) => [
+            token.event_id,
+            auditLookup.get(JSON.stringify(auditSignature(item, token))) ?? LABELS[3],
+          ]),
+        ),
+        proofs: {},
+      })),
+    }),
+  );
 }
 
 for (const [name, field] of [
@@ -357,10 +432,13 @@ for (const [name, field] of [
   ['first-same-object-event-time', 'event_time'],
 ]) {
   for (const [gridName, grid] of Object.entries(grids)) {
-    console.log(JSON.stringify({
-      grid: gridName, candidate: name,
-      ...evaluateGrid(grid, (item) => firstSameObject(item, field)),
-    }));
+    console.log(
+      JSON.stringify({
+        grid: gridName,
+        candidate: name,
+        ...evaluateGrid(grid, (item) => firstSameObject(item, field)),
+      }),
+    );
   }
 }
 

@@ -63,10 +63,13 @@ same-directory temporary file. Require mode **0600**. Never publish
 raw transcripts, synthetic credentials, markers, or artifact values.
 
 **Final source SHA-256 and candidate commit are pending final review and
-freeze.** The source bundle consists of F3 v3/runner.mjs,
-v3/commands.mjs, shared/estate.mjs, and all `v9/*.mjs` and `v10/*.mjs`.
+freeze.** The source bundle consists of every `.mjs` file under
+`plugins/cyber/benchmarks/f3-workload-identity/`, including the runner,
+all version modules, transitive runtime imports, and local self-tests.
 Sort repository-relative paths lexically. For each file concatenate its
 path, NUL, exact bytes, NUL; hash the concatenation with SHA-256.
+Record the file count with the digest. Any new or removed `.mjs` file
+changes the bundle and requires a new freeze.
 Recompute after all reviews and record the committed tree and digest
 here before any pilot; verify the same digest before scored requests.
 A mismatch requires a new freeze. After each run, record capture

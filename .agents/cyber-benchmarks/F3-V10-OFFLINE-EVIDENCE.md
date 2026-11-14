@@ -109,7 +109,8 @@ in-sample fit; the disjoint holdout is the generalization check.
 All v9 self-tests passed on the current branch: analyzer, composite
 shortcut, concurrent defense, queue-pattern defense, defense,
 shortcut, Job, offense, runner, and smoke. All v10 self-tests passed:
-bounded rule, hidden-world defense, runner, and this shortcut sweep.
+bounded rule, hidden-world defense, runner, this shortcut sweep, and
+the read-only offense probes.
 Runner model-free references on development seeds printed:
 
 ```text
@@ -120,11 +121,24 @@ Runner model-free references on development seeds printed:
 These reference runs are local simulator checks. The v9 frozen live
 screen remains separate prior evidence: 7/36 offense native chain
 successes (Wilson 95% 9.8–35.0%) and 22/36 exact six-label defense
-batches. V10 offense leaves that construct unchanged. Existing v9
-offense and Job self-tests exercise wrong-source, wrong access-point,
-broker, and KMS denial paths; this report assigns no new probe counts
-to those paths. A separate read-only offense diagnostic may add counts
-before review, without changing the v9 source or scorer.
+batches. V10 offense leaves that construct unchanged. The read-only
+offense diagnostic executes four existing native denial paths on every
+development world, independently of the defense rule. Each wrong
+choice is made in a fresh v9 offense session; it checks the native
+source or Job ledger and confirms the unchanged v9 scorer rejects the
+chain. It adds no honeypot or decoy penalty.
+
+| Wrong choice   | Native denial reasons across 36 worlds                                            | Scorer failures |
+| -------------- | --------------------------------------------------------------------------------- | --------------: |
+| Source store   | fetch-denied 36                                                                   |           36/36 |
+| Access point   | bucket-policy-denied 14; access-point-vpc-denied 8; access-point-policy-denied 14 |           36/36 |
+| Broker profile | broker-denied 36                                                                  |           36/36 |
+| KMS context    | kms-context-denied 36                                                             |           36/36 |
+
+The access-point probe selects the first different alias, so its
+denial-reason mix is specific to the generator and this local grid.
+These counts are native simulator gates, not evidence of live-model
+resistance or production prevalence.
 
 ## Interpretation and limits
 
