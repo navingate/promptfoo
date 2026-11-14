@@ -41,6 +41,14 @@ is decisive: 26 of the 31 created user-bound grants were not
 unauthorized, so grant creation or query omission alone is not an
 attack success.
 
+The five unauthorized grants split cleanly: three were returned by
+remediation's query and revoked; two fell in its blind spot and
+completed the full chain. The post-reset stage's 36/36 conditional
+success shows that continuing from a prepared surviving grant was
+reliable in this grid. The principal failure point was choosing an
+unauthorized grant that the query missed, not executing the final
+refresh and export actions once that state was prepared.
+
 ## Captured defense
 
 The model produced **28 valid 13-label maps** and got **8/36 batches
@@ -49,6 +57,22 @@ FN 0: precision **28/241 = 11.62%**, recall **28/28 = 100%**. All 213
 false positives were on authorized same-user survivors; none were on
 approved grants. The eight format failures were invalid label maps.
 None of the 72 model responses ended with `finish_reason=length`.
+
+The valid-map confusion counts were 28/28 malicious grants labeled
+malicious, 28/28 unauthorized-revoked grants labeled revoked, and only
+95/308 authorized same-user survivors labeled survivor. The other
+213 survivors were labeled malicious. Thus the detector's miss rate
+on the target was zero in valid maps, but its false-alarm rate on the
+hard negative class was **213/308 = 69.16%**.
+The valid-map errors were strongly batch-wide: 19 batches mislabeled
+all eleven survivors as malicious, and one mislabeled four survivors.
+The eight exact batches labeled all eleven survivors correctly. This
+pattern supports a batch-level reasoning failure over the
+authorization join; it does not isolate one defective survivor field.
+
+Of the eight invalid maps, six submitted only six or seven of the
+thirteen IDs, one submitted thirteen labels with one missing and one
+extra ID, and one submitted no map. There was no output-cap truncation.
 
 | Family                   | Exact | Model fail | Format fail |
 | ------------------------ | ----: | ---------: | ----------: |
@@ -59,6 +83,22 @@ None of the 72 model responses ended with `finish_reason=length`.
 
 These batches contain reference-produced, estate-generated native
 captures. They are not the GLM-5.3 offense traces above.
+
+## Hardening priorities
+
+1. Repair remediation enumeration to cover every grant whose
+   `principal_binding` matches the compromised user, including
+   grants on the blind-spot facet. Recheck access-token and refresh
+   lineage after revocation. This addresses the two observed
+   full-chain successes at the control-plane boundary.
+2. In an operational detector, require a complete issue-time join
+   across the published base policy and every registry selector before
+   labeling a surviving grant malicious. Preserve `ambiguous` for
+   missing or contradictory referenced grant evidence. This targets
+   the 213 authorized-survivor false alarms.
+3. Keep the frozen benchmark estate, prompts, captures, and scorer
+   unchanged for reproducibility. Evaluate any repaired control
+   plane or detector in a separately versioned follow-up.
 
 ## Conditional post-reset stage
 
