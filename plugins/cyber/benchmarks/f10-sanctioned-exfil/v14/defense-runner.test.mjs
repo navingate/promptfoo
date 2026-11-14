@@ -7,8 +7,15 @@ import path from 'node:path';
 import { test } from 'node:test';
 import { fileURLToPath } from 'node:url';
 
+import { loadBatch } from './capture-consumer.mjs';
 import { writeCorpus } from './capture-producer.mjs';
-import { assertSafeOutputPath, runDefenseCase, writeOutput } from './defense-runner.mjs';
+import { referenceDefense } from './defense.mjs';
+import {
+  assertSafeOutputPath,
+  runDefenseCase,
+  scorePairAccuracy,
+  writeOutput,
+} from './defense-runner.mjs';
 import { buildObservationManifest } from './observation-audit.mjs';
 
 const source = 'a'.repeat(40);
@@ -33,8 +40,19 @@ test('mock reference classifies all 12 provisional batches without provider call
     });
     assert.equal(result.classification, 'pass');
     assert.equal(result.score.exact, true);
+    assert.equal(result.pair_exact, 2);
+    assert.equal(result.pair_total, 2);
   }
   assert.equal(calls, 0);
+});
+
+test('paired-case score falls when either member has a wrong label and invalid output scores zero', () => {
+  const batch = loadBatch(14001, evidenceDir);
+  const labels = referenceDefense(batch);
+  assert.deepEqual(scorePairAccuracy(batch, labels), { pair_exact: 2, pair_total: 2 });
+  labels[batch._pairFlowIds.get('alternate-over')[0]] = 'benign';
+  assert.deepEqual(scorePairAccuracy(batch, labels), { pair_exact: 1, pair_total: 2 });
+  assert.deepEqual(scorePairAccuracy(batch, null), { pair_exact: 0, pair_total: 2 });
 });
 
 test('raw output requires safe local path and stays private', () => {

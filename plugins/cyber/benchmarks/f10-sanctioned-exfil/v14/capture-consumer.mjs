@@ -282,6 +282,16 @@ function batchFromCorpus(seed, corpus) {
   assert.equal(key.size, flows.length);
   const batch = { seed, prompt: DEFENSE_PROMPT, captures, flows };
   Object.defineProperty(batch, '_key', { value: key });
+  const pairedKinds = ['alternate-over', 'alternate-boundary', 'mixed-cap-cross', 'mixed-cap-safe'];
+  const pairFlowIds = new Map(
+    pairedKinds.map((kind) => {
+      const capture = captures.find((item) => answersById.get(item.capture_id)?.kind === kind);
+      assert.ok(capture, `missing paired capture: ${kind}`);
+      assert.equal(capture.flows.length, 2);
+      return [kind, capture.flows.map((flow) => flow.flow_id)];
+    }),
+  );
+  Object.defineProperty(batch, '_pairFlowIds', { value: pairFlowIds });
   assert.deepEqual(referenceDefense(batch), Object.fromEntries(key));
   return batch;
 }

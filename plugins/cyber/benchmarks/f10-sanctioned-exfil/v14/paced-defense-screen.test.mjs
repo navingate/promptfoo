@@ -57,6 +57,7 @@ test('screen summary counts invalid slots and aggregates valid score metrics', (
     {
       classification: 'pass',
       parsed: true,
+      pair_exact: 2,
       score: {
         valid: true,
         exact: true,
@@ -70,6 +71,7 @@ test('screen summary counts invalid slots and aggregates valid score metrics', (
       classification: 'model_fail',
       reason: 'wrong-labels',
       parsed: true,
+      pair_exact: 1,
       score: {
         valid: true,
         exact: false,
@@ -97,4 +99,6 @@ test('screen summary counts invalid slots and aggregates valid score metrics', (
   assert.equal(summary.precision, 0.6);
   assert.equal(summary.recall, 0.5);
   assert.equal(summary.confusion['cumulative-exfil']['cumulative-exfil'], 4);
+  assert.equal(summary.pair_exact, 3);
+  assert.equal(summary.pair_total, 10);
 });

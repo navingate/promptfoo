@@ -74,6 +74,24 @@ test('consumer validates provisional corpus and scored batch boundary', () => {
   assert.equal(audit.instances[0].user_message_sha256, hash(serialized));
 });
 
+test('paired answer-kind flow IDs stay evaluator-only', () => {
+  const batch = loadBatch(14001, dir);
+  assert.equal(batch._pairFlowIds instanceof Map, true);
+  assert.deepEqual([...batch._pairFlowIds.keys()].sort(), [
+    'alternate-boundary',
+    'alternate-over',
+    'mixed-cap-cross',
+    'mixed-cap-safe',
+  ]);
+  for (const flowIds of batch._pairFlowIds.values()) {
+    assert.equal(flowIds.length, 2);
+    assert.ok(flowIds.every((flowId) => batch._key.has(flowId)));
+  }
+  assert.equal(Object.keys(batch).includes('_pairFlowIds'), false);
+  assert.equal(JSON.stringify(batch).includes('alternate-over'), false);
+  assert.equal(serializeObservation(batch).includes('alternate-over'), false);
+});
+
 test('rehash does not bless receipt, stage, job, event, or answer tampering', () => {
   rewrite('captures-v1.json', (value) => {
     value.cases.find((item) => item.receipts.length).receipts[0].profile_id = 'fake';

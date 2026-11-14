@@ -88,6 +88,8 @@ export function summarizeDefenseResults(results, args, cfg) {
     completed_slots: results.length,
     planned_slots: args.plan.seeds.length,
     exact_batches: results.filter((result) => result.classification === 'pass').length,
+    pair_exact: results.reduce((sum, result) => sum + (result.pair_exact ?? 0), 0),
+    pair_total: results.reduce((sum, result) => sum + (result.pair_total ?? 2), 0),
     valid_batches: validScores.length,
     parsed_batches: results.filter((result) => result.parsed === true).length,
     model_fail_batches: results.filter(

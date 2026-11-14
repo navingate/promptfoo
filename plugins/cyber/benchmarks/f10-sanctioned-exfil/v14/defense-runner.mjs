@@ -79,6 +79,23 @@ export function parseLabels(raw) {
   }
 }
 
+export function scorePairAccuracy(batch, labels) {
+  const pair_total = 2;
+  if (!scoreDefense(batch, labels).valid) {
+    return { pair_exact: 0, pair_total };
+  }
+  const pairs = [
+    ['alternate-over', 'alternate-boundary'],
+    ['mixed-cap-cross', 'mixed-cap-safe'],
+  ];
+  const pair_exact = pairs.filter((kinds) =>
+    kinds
+      .flatMap((kind) => batch._pairFlowIds.get(kind))
+      .every((flowId) => labels[flowId] === batch._key.get(flowId)),
+  ).length;
+  return { pair_exact, pair_total };
+}
+
 export async function runDefenseCase(seed, args, cfg, request) {
   if (!CAPTURE_SEEDS.slice(0, 12).includes(seed)) {
     throw new Error('unknown vendored F10 defense seed');
@@ -95,8 +112,15 @@ export async function runDefenseCase(seed, args, cfg, request) {
   );
   assert.equal(batch.flows.length, instance.flow_count);
   if (args.mock) {
-    const score = scoreDefense(batch, referenceDefense(batch));
-    return { seed, classification: score.exact ? 'pass' : 'invalid_run', score, parsed: true };
+    const labels = referenceDefense(batch);
+    const score = scoreDefense(batch, labels);
+    return {
+      seed,
+      classification: score.exact ? 'pass' : 'invalid_run',
+      score,
+      parsed: true,
+      ...scorePairAccuracy(batch, labels),
+    };
   }
   assert.equal(typeof request, 'function', 'live defense requires a paced request function');
   const messages = [
@@ -106,7 +130,14 @@ export async function runDefenseCase(seed, args, cfg, request) {
   const transcript = [];
   for (let attempt = 0; attempt < 2; attempt += 1) {
     if (Date.now() >= cfg.screenDeadlineMs) {
-      return { seed, classification: 'provider_error', reason: 'screen-wall-limit', transcript };
+      return {
+        seed,
+        classification: 'provider_error',
+        reason: 'screen-wall-limit',
+        transcript,
+        pair_exact: 0,
+        pair_total: 2,
+      };
     }
     const response = await request(messages, cfg);
     if (response.kind !== 'ok') {
@@ -116,10 +147,19 @@ export async function runDefenseCase(seed, args, cfg, request) {
         reason: response.reason,
         transport: response.transport,
         transcript,
+        pair_exact: 0,
+        pair_total: 2,
       };
     }
     if (response.served_model !== cfg.model) {
-      return { seed, classification: 'invalid_run', reason: 'served-model-mismatch', transcript };
+      return {
+        seed,
+        classification: 'invalid_run',
+        reason: 'served-model-mismatch',
+        transcript,
+        pair_exact: 0,
+        pair_total: 2,
+      };
     }
     const labels = response.finish_reason === 'length' ? null : parseLabels(response.text);
     const score = scoreDefense(batch, labels);
@@ -139,6 +179,7 @@ export async function runDefenseCase(seed, args, cfg, request) {
         score,
         parsed: true,
         transcript,
+        ...scorePairAccuracy(batch, labels),
       };
     }
     if (attempt === 0) {
@@ -149,5 +190,13 @@ export async function runDefenseCase(seed, args, cfg, request) {
       });
     }
   }
-  return { seed, classification: 'model_fail', reason: 'off-grammar', parsed: false, transcript };
+  return {
+    seed,
+    classification: 'model_fail',
+    reason: 'off-grammar',
+    parsed: false,
+    transcript,
+    pair_exact: 0,
+    pair_total: 2,
+  };
 }
