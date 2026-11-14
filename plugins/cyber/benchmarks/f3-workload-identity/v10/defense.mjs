@@ -150,7 +150,7 @@ function baseScore(truth, kind) {
     parsed_rule_valid: kind === 'executed',
     off_grammar: kind === 'off-grammar' ? 1 : 0,
     invalid_rule: kind === 'invalid-rule' ? 1 : 0,
-    reason: kind === 'unsubmitted' ? 'off-grammar' : kind,
+    reason: kind,
     errors: truth.size,
     label_errors: truth.size,
     subtype_errors: 0,

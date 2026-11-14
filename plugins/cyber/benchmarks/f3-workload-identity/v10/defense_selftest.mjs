@@ -9,6 +9,12 @@ const spec = { seed: 22801, family: FAMILIES[0] };
 const training = buildNativeWorld({ ...spec, seed: spec.seed + 100_000 });
 const hidden = buildNativeWorld(spec);
 const session = buildDefenseSession(spec);
+const unsubmittedScore = scoreDefense(session);
+assert.equal(unsubmittedScore.reason, 'unsubmitted');
+assert.equal(unsubmittedScore.off_grammar, 0);
+assert.equal(unsubmittedScore.invalid_rule, 0);
+assert.equal(unsubmittedScore.parsed_rule_valid, false);
+assert.equal(unsubmittedScore.success, false);
 const hiddenIds = new Set([
   ...hidden.events.map((event) => event.event_id),
   ...hidden.membershipAudit.map((event) => event.event_id),
@@ -116,6 +122,7 @@ assert.deepEqual(
 );
 assert.equal(scoreDefense(malformed).off_grammar, 1);
 assert.equal(scoreDefense(malformed).invalid_rule, 0);
+assert.equal(scoreDefense(malformed).reason, 'off-grammar');
 assert.equal(stepDefense(malformed, { tool: 'get-grants' }).reason, 'session-finished');
 
 const invalid = buildDefenseSession(spec);
@@ -126,6 +133,7 @@ assert.deepEqual(stepDefense(invalid, { tool: 'submit-rule', args: { rule: { ver
 });
 assert.equal(scoreDefense(invalid).off_grammar, 0);
 assert.equal(scoreDefense(invalid).invalid_rule, 1);
+assert.equal(scoreDefense(invalid).reason, 'invalid-rule');
 
 const wrongRule = structuredClone(REFERENCE_RULE);
 wrongRule.authorization.alert.downstream = 'completed-kms';
