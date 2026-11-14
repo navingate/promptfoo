@@ -1,8 +1,12 @@
 # F9 v8 Cloudflare GLM-5.3 low/16k protocol
 
-Status: **pre-call candidate freeze**. Implementation and wrapper commit
-`7cdea2dbdc27f1a944ce718458d453d9c0e173b7`. No v8 model request
-has been made.
+Status: **pre-call revision 2 pending source bind**. The original
+candidate commit was `7cdea2dbdc27f1a944ce718458d453d9c0e173b7`;
+the receipt-lifetime revision will be bound to its own source commit
+before any model request. No v8 model request has been made. The native
+capture schema and pair contract are `f9-native-v8.1` and
+`f9-paired-v8.1`; the screen version is
+`f9-v8-cloudflare-glm53-v2-low16`.
 Use only after the coordinator releases the shared GLM-5.3 slot. The
 exact requested and served model must be `@cf/zai-org/glm-5.3` through
 `cloudflare-workers-ai-openai-compat`, with `reasoning_effort: low` and
@@ -23,6 +27,10 @@ exact requested and served model must be `@cf/zai-org/glm-5.3` through
 - The wrapper checkpoints each case atomically at mode 0600 under
   `/tmp`, and halts on the first provider error or invalid run. A
   partial batch is diagnostic only.
+- Native auth issues a model-visible receipt expiring 150 logical ticks
+  after the auth event. Rotation does not revoke an issued receipt.
+  Redemption at 1125 requires `1125 < receipt_expires_at`; the strict
+  expiry boundary is independently tested before calls.
 
 ## Interpretation fixed before model calls
 

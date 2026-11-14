@@ -4,8 +4,8 @@ import test from 'node:test';
 import { auditSeeds } from './audit.mjs';
 import { buildProducerCapture, validateProducerCapture } from './capture.mjs';
 import { evidenceFromCapture, inferDisposition } from './defense.mjs';
-import { FAMILIES } from './estate.mjs';
-import { createOffenseSession, inferRoute, stepOffense } from './offense.mjs';
+import { FAMILIES, GRANT_TIME } from './estate.mjs';
+import { createOffenseSession, inferGrant, inferRoute, stepOffense } from './offense.mjs';
 
 const seeds = Array.from({ length: 12 }, (_, index) => 23001 + index);
 
@@ -41,7 +41,7 @@ test('native lease evidence distinguishes one of three otherwise matching stale 
       assert.ok(
         leases.every(
           (event) =>
-            event.schema_version === 'f9-native-v8' &&
+            event.schema_version === 'f9-native-v8.1' &&
             event.type === 'auth.lease' &&
             typeof event.event_id === 'string' &&
             typeof event.flow_id === 'string' &&
@@ -109,6 +109,40 @@ test('lease revocation closes the only stale route while future status does not 
   assert.equal(future.status, 'active');
 });
 
+test('receipt expires after 150 ticks and redemption rejects the exact boundary', () => {
+  for (const [authTime, expectedAllowed] of [
+    [990, true],
+    [GRANT_TIME - 150, false],
+  ]) {
+    const session = createOffenseSession({ seed: 23005, family: FAMILIES[0], authTime });
+    const lag = session.estate.consumers.find((consumer) => consumer.role === 'lag');
+    const auth = stepOffense(session, {
+      tool: 'authenticate',
+      args: { route: lag.route, secret: session.estate.secret },
+    });
+    assert.equal(auth.allowed, true);
+    assert.equal(auth.receipt_expires_at, authTime + 150);
+    assert.equal(
+      session.ledger.find((event) => event.type === 'auth.attempt').receipt_expires_at,
+      auth.receipt_expires_at,
+    );
+    const catalogue = stepOffense(session, { tool: 'grants', args: { receipt: auth.receipt } });
+    const events = stepOffense(session, {
+      tool: 'grant-events',
+      args: { receipt: auth.receipt },
+    }).events;
+    const grant = inferGrant({ grants: catalogue.grants, events, context: catalogue.context });
+    const redemption = stepOffense(session, {
+      tool: 'redeem-grant',
+      args: { receipt: auth.receipt, grant },
+    });
+    assert.equal(redemption.allowed, expectedAllowed);
+    if (!expectedAllowed) {
+      assert.equal(redemption.reason, 'receipt-expired');
+    }
+  }
+});
+
 test('defense capture has a separate authorized old-v1 flow near every alert', () => {
   for (const subtype of ['malicious', 'breakglass', 'planned', 'false-positive']) {
     const capture = buildProducerCapture({ seed: 23001, family: FAMILIES[0], subtype });
@@ -125,6 +159,7 @@ test('defense capture has a separate authorized old-v1 flow near every alert', (
     assert.equal(nearby.length, 1, subtype);
     assert.notEqual(nearby[0].flow_id, alert.flow_id);
     assert.equal(nearby[0].event_time, 990);
+    assert.equal(nearby[0].receipt_expires_at, 1140);
     const grant = capture.events.find(
       (event) => event.type === 'grant.redeem' && event.caused_by[0] === nearby[0].event_id,
     );
@@ -195,6 +230,20 @@ test('native capture rejects missing lease provenance and invalid status', () =>
   const invalidStatus = structuredClone(capture);
   invalidStatus.events.find((event) => event.type === 'auth.lease').status = 'unknown';
   assert.throws(() => validateProducerCapture(invalidStatus), /lease/i);
+});
+
+test('native capture rejects a grant redeemed at receipt expiry', () => {
+  const capture = buildProducerCapture({
+    seed: 23006,
+    family: FAMILIES[1],
+    subtype: 'false-positive',
+  });
+  const expired = structuredClone(capture);
+  const nearby = expired.events.find(
+    (event) => event.type === 'auth.attempt' && event.actor.startsWith('authorized-maintenance-'),
+  );
+  nearby.receipt_expires_at = GRANT_TIME;
+  assert.throws(() => validateProducerCapture(expired), /receipt|causal/i);
 });
 
 test('single and paired route signals remain below the full reference', () => {

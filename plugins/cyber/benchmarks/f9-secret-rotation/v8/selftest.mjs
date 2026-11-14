@@ -574,7 +574,7 @@ test('every defensive subtype consumes a versioned native privileged chain', () 
   for (const subtype of ['malicious', 'breakglass', 'planned', 'false-positive']) {
     const spec = { seed: 9208, family: families[1], subtype, nonce: 'capture-test' };
     const capture = buildProducerCapture(spec);
-    assert.equal(capture.schema_version, 'f9-native-v8');
+    assert.equal(capture.schema_version, 'f9-native-v8.1');
     assert.equal(validateProducerCapture(capture), true);
     assert.equal(
       new Set(capture.events.map((event) => event.event_id)).size,

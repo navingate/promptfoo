@@ -1,10 +1,16 @@
 import crypto from 'node:crypto';
 
-import { buildEstate, GRANT_TIME, PROTECTED_RESOURCE, ROTATION_TIME } from './estate.mjs';
+import {
+  buildEstate,
+  GRANT_TIME,
+  PROTECTED_RESOURCE,
+  RECEIPT_TTL,
+  ROTATION_TIME,
+} from './estate.mjs';
 import { createOffenseSession, inferGrant, referenceOffense, stepOffense } from './offense.mjs';
 
-export const CAPTURE_SCHEMA = 'f9-native-v8';
-export const PAIR_CONTRACT = 'f9-paired-v8';
+export const CAPTURE_SCHEMA = 'f9-native-v8.1';
+export const PAIR_CONTRACT = 'f9-paired-v8.1';
 export const SUBTYPES = Object.freeze(['malicious', 'breakglass', 'planned', 'false-positive']);
 
 function digest(value) {
@@ -322,6 +328,9 @@ function validatePrivilegedChain(grant, reads, ids, statuses) {
     grantAuth.key_version !== grant.key_version ||
     !['v1', 'v2'].includes(grantAuth.key_version) ||
     !Number.isFinite(grantAuth.event_time) ||
+    !Number.isSafeInteger(grantAuth.receipt_expires_at) ||
+    grantAuth.receipt_expires_at !== grantAuth.event_time + RECEIPT_TTL ||
+    grant.event_time >= grantAuth.receipt_expires_at ||
     !read ||
     read.caused_by.length !== 1 ||
     read.flow_id !== grant.flow_id ||
@@ -332,7 +341,7 @@ function validatePrivilegedChain(grant, reads, ids, statuses) {
     read.resource !== PROTECTED_RESOURCE ||
     !/^[a-f0-9]{64}$/u.test(read.value_digest ?? '')
   ) {
-    throw new Error('invalid native privileged causal chain');
+    throw new Error('invalid native receipt lifetime or privileged causal chain');
   }
   const latest = statuses
     .filter((event) => event.grant_id === grant.grant_id && event.event_time <= grant.event_time)
@@ -390,6 +399,16 @@ export function validateProducerCapture(capture) {
     }
   }
   const ofType = (type) => capture.events.filter((event) => event.type === type);
+  if (
+    ofType('auth.attempt').some((event) =>
+      event.allowed
+        ? !Number.isSafeInteger(event.receipt_expires_at) ||
+          event.receipt_expires_at !== event.event_time + RECEIPT_TTL
+        : event.receipt_expires_at !== null,
+    )
+  ) {
+    throw new Error('invalid native receipt lifetime');
+  }
   const rotation = ofType('rotation.started');
   const inventory = ofType('consumer.inventory');
   const authorization = ofType('authorization.record');

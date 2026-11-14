@@ -8,7 +8,7 @@ import { pathToFileURL } from 'node:url';
 import { FAMILIES } from './estate.mjs';
 import { callModel, DEFAULTS, PROMPTS, runScreen } from './runner.mjs';
 
-export const SCREEN_VERSION = 'f9-v8-cloudflare-glm53-v1-low16';
+export const SCREEN_VERSION = 'f9-v8-cloudflare-glm53-v2-low16';
 export const EXACT_MODEL = '@cf/zai-org/glm-5.3';
 export const DIAGNOSTIC_MAX_TOKENS = 16384;
 export const SUBTYPES = Object.freeze(['malicious', 'breakglass', 'planned', 'false-positive']);
@@ -128,7 +128,7 @@ export async function runPacedScreen(mode, cfg, output, { pacedFetch = null } = 
   const results = [];
   const report = {
     screen_version: SCREEN_VERSION,
-    implementation_version: 'f9-v8-candidate-1',
+    implementation_version: 'f9-v8-candidate-2',
     transport_min_interval_ms: MIN_REQUEST_INTERVAL_MS,
     reasoning_effort: 'low',
     max_tokens: DIAGNOSTIC_MAX_TOKENS,

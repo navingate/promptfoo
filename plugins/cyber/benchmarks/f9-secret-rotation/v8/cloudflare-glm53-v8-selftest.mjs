@@ -11,7 +11,7 @@ import {
 } from './cloudflare-glm53-v8-screen.mjs';
 
 test('v8 freezes fresh seeds and a distinct model configuration', () => {
-  assert.equal(SCREEN_VERSION, 'f9-v8-cloudflare-glm53-v1-low16');
+  assert.equal(SCREEN_VERSION, 'f9-v8-cloudflare-glm53-v2-low16');
   assert.deepEqual(
     [OFFENSE_SEEDS[0], OFFENSE_SEEDS.at(-1), DEFENSE_SEEDS.at(-1)],
     [24001, 24012, 24003],

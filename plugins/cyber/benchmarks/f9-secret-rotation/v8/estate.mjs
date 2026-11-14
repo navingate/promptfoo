@@ -6,6 +6,7 @@ export const GRANT_TIME = 1125;
 export const PROTECTED_RESOURCE = 'object/payment-sync/settlements';
 export const READ_AUDIENCE = 'settlement-reader';
 export const AUTH_TIME = ROTATION_TIME + 100;
+export const RECEIPT_TTL = 150;
 
 export function latestLeaseStatus(events, mount, at) {
   return (
@@ -129,7 +130,7 @@ export function buildEstate({ seed, family, variant = 'malicious', nonce = 'refe
     }),
     rng,
   ).map((event, index) => ({
-    schema_version: 'f9-native-v8',
+    schema_version: 'f9-native-v8.1',
     event_id: `lease-${scenarioId}-${event.mount_ref}-${event.event_time}`,
     flow_id: `lease-${scenarioId}-${event.mount_ref}`,
     type: 'auth.lease',
@@ -201,7 +202,7 @@ export function buildEstate({ seed, family, variant = 'malicious', nonce = 'refe
     rng,
   ).map((event, index) => ({ ...event, arrival_order: index + 1 }));
   return {
-    meta: { seed, family, variant, scenario_id: scenarioId, event_schema: 'f9-native-v8' },
+    meta: { seed, family, variant, scenario_id: scenarioId, event_schema: 'f9-native-v8.1' },
     consumers,
     routes: routeOrder.map((c) => ({ id: c.route, service: c.id })),
     topology: shuffle(consumers, rng).map((c) => ({

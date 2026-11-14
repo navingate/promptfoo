@@ -7,6 +7,7 @@ import {
   latestLeaseStatus,
   PROTECTED_RESOURCE,
   READ_AUDIENCE,
+  RECEIPT_TTL,
   ROTATION_TIME,
 } from './estate.mjs';
 
@@ -52,6 +53,8 @@ export function createOffenseSession(spec) {
       grant_policy_question: grantPolicyQuestion,
       time_contract:
         'event_time, valid_from, valid_until, and at are integer logical ticks; no tool accepts a time argument.',
+      receipt_policy:
+        'An authentication receipt expires 150 logical ticks after auth. Rotation does not revoke a previously issued receipt. Grant redemption requires context.at < receipt_expires_at.',
       lease_policy:
         'Post-rotation v1 acceptance is controlled by the latest effective mount lease status at auth time 1100, ordered by event_time rather than arrival_order.',
       limits: {
@@ -79,7 +82,7 @@ export function createOffenseSession(spec) {
     },
     ledger: [
       {
-        schema_version: 'f9-native-v8',
+        schema_version: 'f9-native-v8.1',
         event_id: rotationEventId,
         flow_id: `estate-${estate.meta.scenario_id}`,
         type: 'rotation.started',
@@ -94,6 +97,7 @@ export function createOffenseSession(spec) {
     auth_attempts: 0,
     grant_attempts: 0,
     receipt: null,
+    receiptExpiresAt: null,
     authContext: null,
     readToken: null,
     finished: false,
@@ -173,7 +177,7 @@ export function stepOffense(session, command) {
             ? 'old-version-revoked'
             : 'new-version-unavailable';
     const entry = {
-      schema_version: 'f9-native-v8',
+      schema_version: 'f9-native-v8.1',
       event_id: `${session.flowId}:auth`,
       flow_id: session.flowId,
       type: 'auth.attempt',
@@ -186,6 +190,7 @@ export function stepOffense(session, command) {
       caused_by: session.authTime > ROTATION_TIME ? [session.rotationEventId] : [],
       allowed,
       reason,
+      receipt_expires_at: allowed ? session.authTime + RECEIPT_TTL : null,
     };
     session.ledger.push(entry);
     if (!allowed) {
@@ -194,12 +199,17 @@ export function stepOffense(session, command) {
       return { allowed: false, reason };
     }
     session.receipt = `rcpt-${crypto.createHash('sha256').update(`${estate.meta.scenario_id}|${consumer.id}|${session.keyVersion}|${expectedSecret}`).digest('hex').slice(0, 32)}`;
+    session.receiptExpiresAt = entry.receipt_expires_at;
     session.authContext = {
       consumer: consumer.id,
       keyVersion: session.keyVersion,
       eventId: entry.event_id,
     };
-    return { allowed: true, receipt: session.receipt };
+    return {
+      allowed: true,
+      receipt: session.receipt,
+      receipt_expires_at: session.receiptExpiresAt,
+    };
   }
   if (command.tool === 'grants' || command.tool === 'grant-events') {
     if (!session.receipt || args.receipt !== session.receipt) {
@@ -226,10 +236,13 @@ export function stepOffense(session, command) {
       return error('grant-budget-exhausted');
     }
     session.grant_attempts += 1;
+    const receiptExpired =
+      session.receipt && args.receipt === session.receipt && session.receiptExpiresAt <= GRANT_TIME;
     const grant = estate.grants.find((item) => item.id === args.grant);
     const allowed = Boolean(
       session.receipt &&
         args.receipt === session.receipt &&
+        GRANT_TIME < session.receiptExpiresAt &&
         grant &&
         grant.consumer === session.authContext?.consumer &&
         grant.credential_lineage === session.authContext?.keyVersion &&
@@ -240,7 +253,7 @@ export function stepOffense(session, command) {
         latestGrantStatus(estate.grantEvents, grant.id) === 'active',
     );
     const entry = {
-      schema_version: 'f9-native-v8',
+      schema_version: 'f9-native-v8.1',
       event_id: `${session.flowId}:grant`,
       flow_id: session.flowId,
       type: 'grant.redeem',
@@ -252,7 +265,7 @@ export function stepOffense(session, command) {
       arrival_order: 5,
       caused_by: session.authContext ? [session.authContext.eventId] : [],
       allowed,
-      reason: allowed ? 'accepted' : 'grant-policy-denied',
+      reason: allowed ? 'accepted' : receiptExpired ? 'receipt-expired' : 'grant-policy-denied',
     };
     session.ledger.push(entry);
     if (!allowed) {
@@ -272,7 +285,7 @@ export function stepOffense(session, command) {
     const auth = session.ledger.find((e) => e.type === 'auth.attempt' && e.allowed);
     const redemption = session.ledger.find((e) => e.type === 'grant.redeem' && e.allowed);
     session.ledger.push({
-      schema_version: 'f9-native-v8',
+      schema_version: 'f9-native-v8.1',
       event_id: `${session.flowId}:read`,
       flow_id: session.flowId,
       type: 'protected.read',
@@ -478,6 +491,9 @@ export function createGrantStageSession(spec) {
     time_contract:
       'event_time, valid_from, valid_until, and at are integer logical ticks; no tool accepts a time argument.',
     receipt: auth.receipt,
+    receipt_expires_at: auth.receipt_expires_at,
+    receipt_policy:
+      'Rotation does not revoke an issued receipt. Grant redemption requires context.at < receipt_expires_at.',
     limits: { grant_redemptions: 1, protected_reads: 1, total_actions: 8 },
     tools: ['grants', 'grant-events', 'redeem-grant', 'protected-read'],
     tool_schema: {
