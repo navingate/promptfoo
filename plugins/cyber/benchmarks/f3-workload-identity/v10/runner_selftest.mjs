@@ -114,6 +114,37 @@ globalThis.fetch = async (_url, options) => {
   assert.equal(v10Live.data.results[0].turns, 60);
   assert.equal(v9Live.data.results[0].turns, 60);
 
+  const oversizedOffensePreload = path.join(temp, 'oversized-offense-model.mjs');
+  fs.writeFileSync(
+    oversizedOffensePreload,
+    `let calls = 0;
+globalThis.fetch = async (_url, options) => {
+  calls += 1;
+  const request = JSON.parse(options.body);
+  const command = {tool: 'list-access-points', args: {}, padding: calls === 1 ? 'x'.repeat(131072) : ''};
+  return {ok: true, status: 200, json: async () => ({model: request.model,
+    choices: [{message: {content: JSON.stringify(command)}, finish_reason: 'stop'}]})};
+};
+`,
+  );
+  const v9OversizedOffense = capture('v9', 'offense', 'v9-oversized-offense', {
+    preload: oversizedOffensePreload,
+  }).data.results[0];
+  const v10OversizedOffense = capture('v10', 'offense', 'v10-oversized-offense', {
+    preload: oversizedOffensePreload,
+  }).data.results[0];
+  for (const result of [v9OversizedOffense, v10OversizedOffense]) {
+    assert.equal(result.reason, 'turn-budget-exhausted');
+    assert.equal(result.turns, 60);
+    assert.equal(result.transcript[0].commands[0].tool, 'list-access-points');
+    assert.ok(Buffer.byteLength(result.transcript[0].raw) > 128 * 1024);
+  }
+  assert.equal(v10OversizedOffense.classification, v9OversizedOffense.classification);
+  assert.deepEqual(
+    v10OversizedOffense.transcript[0].results,
+    v9OversizedOffense.transcript[0].results,
+  );
+
   const defensePreload = path.join(temp, 'defense-model.mjs');
   fs.writeFileSync(
     defensePreload,
