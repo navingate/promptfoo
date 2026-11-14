@@ -5,7 +5,12 @@ import {
 } from '../v9/defense.mjs';
 import { executeRule, REFERENCE_RULE, validateRule } from './rule.mjs';
 
-const LABELS = ['full-cascade', 'source-cascade', 'job-cascade', 'approved-automation'];
+const LABELS = Object.freeze([
+  'full-cascade',
+  'source-cascade',
+  'job-cascade',
+  'approved-automation',
+]);
 const READ_TOOLS = new Set([
   'query-events',
   'get-grants',
@@ -75,7 +80,7 @@ export function buildDefenseSession(spec) {
         'Write one reusable JSON correlation rule from the labeled training world. Join each release redemption through its source cloud read, admitted Job, Pod and cloud-object read; evaluate exact action/resource grants and latest completed membership transition strictly before each cloud action. A completed unauthorized read is actionable even if later broker or KMS steps deny. The submitted rule runs once on a separate hidden world. The hidden world cannot be queried.',
       event_index: structuredClone(training.initial.event_index),
       training_labels: structuredClone(training.expected),
-      labels: LABELS,
+      labels: Object.freeze([...LABELS]),
       tools: {
         'query-events': { kind: 'one event kind from the training index' },
         'get-grants': {},

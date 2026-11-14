@@ -15,6 +15,23 @@ assert.equal(unsubmittedScore.off_grammar, 0);
 assert.equal(unsubmittedScore.invalid_rule, 0);
 assert.equal(unsubmittedScore.parsed_rule_valid, false);
 assert.equal(unsubmittedScore.success, false);
+const otherSession = buildDefenseSession(spec);
+try {
+  session.initial.labels.splice(0, session.initial.labels.length);
+} catch {
+  // A frozen visible list rejects this mutation; scoring must be stable either way.
+}
+assert.equal(
+  stepDefense(otherSession, { tool: 'submit-rule', args: { rule: REFERENCE_RULE } }).ok,
+  true,
+);
+const otherScore = scoreDefense(otherSession);
+assert.equal(otherScore.success, true);
+assert.equal(otherScore.tp, 3);
+assert.equal(otherScore.fn, 0);
+assert.equal(otherScore.recall, 1);
+assert.notEqual(session.initial.labels, otherSession.initial.labels);
+assert.equal(Object.isFrozen(session.initial.labels), true);
 const hiddenIds = new Set([
   ...hidden.events.map((event) => event.event_id),
   ...hidden.membershipAudit.map((event) => event.event_id),
