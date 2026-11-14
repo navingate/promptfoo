@@ -35,10 +35,18 @@ const tables = {
   revoked_grants: [],
 };
 
+let preflightFailure;
 const executorReady = await preflightSqlExecutor().then(
   () => true,
-  () => false,
+  (error) => {
+    preflightFailure = error;
+    return false;
+  },
 );
+const hostPythonSupportsSQLiteLimits =
+  spawnSync('python3', ['-c', 'import sqlite3; print(hasattr(sqlite3.Connection, "setlimit"))'], {
+    encoding: 'utf8',
+  }).stdout?.trim() === 'True';
 
 function inspectSqlBoundary(sql, overrides = {}) {
   // Exercise the SQLite policy directly when this macOS host cannot set RLIMIT_AS.
@@ -61,6 +69,12 @@ except Exception as error:
   return { ...result, grant_ids: result.grant_ids_by_batch?.[0] };
 }
 
+function successfulBoundary(sql, overrides) {
+  const result = inspectSqlBoundary(sql, overrides);
+  assert.equal(result.ok, true, result.error);
+  return result;
+}
+
 function query(sql, overrides = {}) {
   return executeSql({ sql, tables, protectedScope: 'reports.export', ...overrides });
 }
@@ -81,8 +95,13 @@ test('preflight verifies process and container controls or fails closed', async 
     assert.equal(result.outputAndVmLimitsEnforced, true);
     assert.ok(result.containerLifecycleMs < 120000);
   } else {
+    if (process.platform === 'linux') {
+      throw preflightFailure;
+    }
     await assert.rejects(preflightSqlExecutor());
-    await assert.rejects(query('SELECT grant_id FROM grants'));
+    if (process.platform !== 'linux') {
+      await assert.rejects(query('SELECT grant_id FROM grants'));
+    }
   }
 });
 
@@ -191,9 +210,11 @@ test('bounds normal execution time', { skip: !executorReady }, async () => {
   assert.ok(performance.now() - start < 120000);
 });
 
-test('SQLite boundary permits parameterized JSON query and rejects unsafe actions', () => {
+test('SQLite boundary permits parameterized JSON query and rejects unsafe actions', {
+  skip: !hostPythonSupportsSQLiteLimits,
+}, () => {
   assert.deepEqual(
-    inspectSqlBoundary(
+    successfulBoundary(
       'SELECT g.grant_id FROM grants g JOIN json_each(g.scopes_json) s ON s.value = :protected_scope',
     ).grant_ids,
     ['grant-001'],
@@ -215,7 +236,9 @@ test('SQLite boundary permits parameterized JSON query and rejects unsafe action
   }
 });
 
-test('SQLite boundary enforces row, byte, and VM limits', () => {
+test('SQLite boundary enforces row, byte, and VM limits', {
+  skip: !hostPythonSupportsSQLiteLimits,
+}, () => {
   assert.equal(inspectSqlBoundary('SELECT grant_id FROM grants', { maxRows: 0 }).ok, false);
   assert.equal(inspectSqlBoundary('SELECT grant_id FROM grants', { maxOutputBytes: 4 }).ok, false);
   const many = JSON.stringify(Array.from({ length: 100 }, (_, index) => index));
@@ -228,18 +251,22 @@ test('SQLite boundary enforces row, byte, and VM limits', () => {
   );
 });
 
-test('SQLite boundary receives only the current supplied estate', () => {
-  assert.deepEqual(inspectSqlBoundary('SELECT grant_id FROM grants').grant_ids, ['grant-001']);
+test('SQLite boundary receives only the current supplied estate', {
+  skip: !hostPythonSupportsSQLiteLimits,
+}, () => {
+  assert.deepEqual(successfulBoundary('SELECT grant_id FROM grants').grant_ids, ['grant-001']);
   assert.deepEqual(
-    inspectSqlBoundary('SELECT grant_id FROM grants', { tables: { ...tables, grants: [] } })
+    successfulBoundary('SELECT grant_id FROM grants', { tables: { ...tables, grants: [] } })
       .grant_ids,
     [],
   );
 });
 
-test('one child evaluates isolated corpus batches under a shared SQL deadline', () => {
+test('one child evaluates isolated corpus batches under a shared SQL deadline', {
+  skip: !hostPythonSupportsSQLiteLimits,
+}, () => {
   const second = { ...tables, grants: [{ ...grant, grant_id: 'grant-002' }] };
-  const result = inspectSqlBoundary('SELECT grant_id FROM grants', {
+  const result = successfulBoundary('SELECT grant_id FROM grants', {
     batches: [tables, second],
   });
   assert.deepEqual(result.grant_ids_by_batch, [['grant-001'], ['grant-002']]);
@@ -257,7 +284,9 @@ test('one child evaluates isolated corpus batches under a shared SQL deadline', 
   assert.match(slow.error, /interrupted|execution budget/);
 });
 
-test('rejects recursive keyword across comments while ignoring quoted text', () => {
+test('rejects recursive keyword across comments while ignoring quoted text', {
+  skip: !hostPythonSupportsSQLiteLimits,
+}, () => {
   const evasions = [
     'WITH /* gap */ RECURSIVE x(n) AS (SELECT 1 UNION ALL SELECT n+1 FROM x) SELECT grant_id FROM grants',
     'WITH -- gap\n RECURSIVE x(n) AS (SELECT 1 UNION ALL SELECT n+1 FROM x) SELECT grant_id FROM grants',
@@ -266,7 +295,7 @@ test('rejects recursive keyword across comments while ignoring quoted text', () 
     assert.match(inspectSqlBoundary(sql).error, /recursive SQL denied/, sql);
   }
   assert.deepEqual(
-    inspectSqlBoundary(
+    successfulBoundary(
       "SELECT grant_id FROM grants WHERE 'recursive' = 'recursive' /* RECURSIVE */",
     ).grant_ids,
     ['grant-001'],
