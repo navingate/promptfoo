@@ -14,7 +14,7 @@
 
 **Files:** `v15/capture-producer.mjs`, `v15/capture.test.mjs`
 
-- [ ] Copy the v14 offline producer and test; set scored `31001`–`31012`, dev `31101`–`31108`.
+- [ ] Copy the v14 offline producer and test; use the explicit feasible scored/dev seed lists in `DESIGN.md`.
 - [ ] Write failing checks for both purpose values across scored and development seeds, each value paired with every label; pair-shared permutation; seed-varied prior/fresh cells; matching final column; and native replay.
 - [ ] Implement purpose selection, candidate selection, and pair-shared row bijection in the producer only.
 - [ ] Run `node --test plugins/cyber/benchmarks/f10-sanctioned-exfil/v15/capture.test.mjs`.
