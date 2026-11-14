@@ -29,6 +29,11 @@ FUNCTIONS = {
     "coalesce", "ifnull", "nullif", "lower", "upper", "length", "substr", "trim",
     "abs", "min", "max", "count",
 }
+ALLOWED_ENVIRONMENT_NAMES = {"F4_SQL_MEMORY_LIMIT", "PATH", "LANG", "LC_ALL", "LC_CTYPE"}
+
+
+def environment_stripped(environment):
+    return set(environment) <= ALLOWED_ENVIRONMENT_NAMES
 
 
 def sql_tokens(sql):
@@ -224,7 +229,7 @@ def preflight(limit):
         "memoryLimitEnforced": resource.getrlimit(resource.RLIMIT_AS) == (limit, limit),
         "memoryPressureDenied": pressure_denied,
         "jsonFunctionsAvailable": json_result == (1, 1),
-        "environmentStripped": set(os.environ) <= {"F4_SQL_MEMORY_LIMIT", "PATH", "LANG", "LC_ALL"},
+        "environmentStripped": environment_stripped(os.environ),
         "filesystemReadOnly": write_denied,
         "rootFilesystemReadOnly": bool(os.statvfs("/").f_flag & os.ST_RDONLY),
         "nonRootUser": os.getuid() == 65534,

@@ -128,6 +128,20 @@ test('a disconnected Docker CLI triggers forced removal before completion', asyn
   );
 });
 
+test('Python locale coercion is allowed but credential variables are denied', () => {
+  const childPath = join(dirname(fileURLToPath(import.meta.url)), 'sql_child.py');
+  const program = `import importlib.util,sys
+spec=importlib.util.spec_from_file_location("child",sys.argv[1])
+module=importlib.util.module_from_spec(spec)
+spec.loader.exec_module(module)
+base={"F4_SQL_MEMORY_LIMIT":"1","PATH":"/usr/bin","LANG":"C","LC_CTYPE":"C.UTF-8"}
+print(module.environment_stripped(base))
+print(module.environment_stripped({**base,"OPENAI_API_KEY":"redacted"}))`;
+  const process = spawnSync('python3', ['-B', '-c', program, childPath], { encoding: 'utf8' });
+  assert.equal(process.status, 0, process.stderr);
+  assert.deepEqual(process.stdout.trim().split('\n'), ['True', 'False']);
+});
+
 test('runs a parameterized read-only query and deduplicates grant IDs', {
   skip: !executorReady,
 }, async () => {
