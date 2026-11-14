@@ -76,22 +76,26 @@ test('consumer validates provisional corpus and scored batch boundary', () => {
 
 test('rehash does not bless receipt, stage, job, event, or answer tampering', () => {
   rewrite('captures-v1.json', (value) => {
-    value.cases[0].receipts[0].profile_id = 'fake';
+    value.cases.find((item) => item.receipts.length).receipts[0].profile_id = 'fake';
   });
   rewrite('captures-v1.json', (value) => {
-    value.cases[0].stages[0].report_owner = 'fake';
+    value.cases.find((item) => item.receipts.length).stages[0].report_owner = 'fake';
   });
   rewrite('captures-v1.json', (value) => {
-    value.cases[0].job_registry.at(-1).publisher_bindings[0].profile_id = 'fake';
+    value.cases
+      .find((item) => item.receipts.length)
+      .job_registry.at(-1).publisher_bindings[0].profile_id = 'fake';
   });
   rewrite('captures-v1.json', (value) => {
-    value.cases[0].job_registry.at(-1).approved_cell_volume += 1;
+    value.cases.find((item) => item.receipts.length).job_registry.at(-1).approved_cell_volume += 1;
   });
   rewrite('captures-v1.json', (value) => {
-    value.cases[0].events[0].destination = 'fake';
+    value.cases.find((item) => item.events.length).events[0].destination = 'fake';
   });
   rewrite('answers-v1.json', (value) => {
-    value.cases[0].labels[Object.keys(value.cases[0].labels)[0]] = 'tampered';
+    value.cases.find((item) => Object.keys(item.labels).length).labels[
+      Object.keys(value.cases.find((item) => Object.keys(item.labels).length).labels)[0]
+    ] = 'tampered';
   });
 });
 
@@ -100,7 +104,7 @@ test('serialized observation rejects evaluator verdict and value fields', () => 
   batch.captures[0].covered = true;
   assert.throws(() => serializeObservation(batch), /forbidden visible key/u);
   delete batch.captures[0].covered;
-  batch.captures[0].receipts[0].value = 'secret';
+  batch.captures.find((item) => item.receipts.length).receipts[0].value = 'secret';
   assert.throws(() => serializeObservation(batch), /forbidden visible key/u);
 });
 
@@ -130,4 +134,44 @@ test('lineage and manifest metadata remain exact after rehash', () => {
   } finally {
     fs.writeFileSync(manifestFile, originalManifest);
   }
+});
+
+function withLineageMutation(mutate, check) {
+  const lineageFile = path.join(dir, 'field-lineage.json');
+  const manifestFile = path.join(dir, 'capture-manifest.json');
+  const originalLineage = fs.readFileSync(lineageFile);
+  const originalManifest = fs.readFileSync(manifestFile);
+  try {
+    const lineage = JSON.parse(originalLineage);
+    mutate(lineage);
+    const lineageBytes = `${JSON.stringify(lineage, null, 2)}\n`;
+    fs.writeFileSync(lineageFile, lineageBytes);
+    const manifest = JSON.parse(originalManifest);
+    manifest.field_lineage.sha256 = hash(lineageBytes);
+    fs.writeFileSync(manifestFile, `${JSON.stringify(manifest, null, 2)}\n`);
+    check();
+  } finally {
+    fs.writeFileSync(lineageFile, originalLineage);
+    fs.writeFileSync(manifestFile, originalManifest);
+  }
+}
+
+test('lineage rejects missing top-level serialized flow leaves', () => {
+  withLineageMutation(
+    (lineage) => {
+      lineage.derived = lineage.derived.filter((field) => !field.path.startsWith('flows[*].'));
+    },
+    () => assert.throws(() => loadCorpus(dir), /lineage lacks an exact visible field/u),
+  );
+});
+
+test('lineage rejects receipt fields falsely marked as non-label inputs', () => {
+  withLineageMutation(
+    (lineage) => {
+      lineage.groups.find(
+        (group) => group.normalized_prefix === 'captures[*].receipts[*].',
+      ).label_input = false;
+    },
+    () => assert.throws(() => loadCorpus(dir), /receipt lineage must be a label input/u),
+  );
 });

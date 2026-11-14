@@ -71,10 +71,16 @@ function validateLineage(lineage, captures) {
   assert.equal(lineage.normalized_schema, captures.schema_version);
   const observed = new Set();
   captures.cases.forEach((capture) => leafPaths(capture, 'captures[*]', observed));
+  captures.cases
+    .flatMap((capture) => capture.flows)
+    .forEach((flow) => leafPaths(flow, 'flows[*]', observed));
   const declared = new Set();
   for (const group of lineage.groups) {
     assert.equal(group.kind, 'native');
     assert.ok(group.source_prefix);
+    if (group.normalized_prefix === 'captures[*].receipts[*].') {
+      assert.equal(group.label_input, true, 'receipt lineage must be a label input');
+    }
     for (const field of group.fields) {
       const path = `${group.normalized_prefix}${field}`;
       assert.equal(declared.has(path), false, `duplicate lineage path: ${path}`);
