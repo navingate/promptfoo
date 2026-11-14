@@ -160,6 +160,149 @@ function mutationChecks(capture) {
 const noOracle = (item) =>
   !/hidden-probe|arbitrary_annotation|evaluator|subtype/.test(JSON.stringify(item));
 
+const primitive = (value) =>
+  value === null || ['string', 'number', 'boolean'].includes(typeof value);
+
+function matchesShape(value, schema) {
+  if (schema === primitive) {
+    return primitive(value);
+  }
+  if (typeof schema === 'function') {
+    return schema(value);
+  }
+  if (Array.isArray(schema)) {
+    return Array.isArray(value) && value.every((item) => matchesShape(item, schema[0]));
+  }
+  return (
+    value !== null &&
+    typeof value === 'object' &&
+    !Array.isArray(value) &&
+    Object.keys(value).length === Object.keys(schema).length &&
+    Object.entries(value).every(
+      ([key, item]) => Object.hasOwn(schema, key) && matchesShape(item, schema[key]),
+    )
+  );
+}
+
+const TEXT = primitive;
+const snapshotShape = { id: TEXT, secret_ref: TEXT };
+const routeShape = { id: TEXT, service: TEXT, mount_ref: TEXT };
+const principalShape = { service: TEXT, principal: TEXT };
+const deploymentShape = {
+  type: TEXT,
+  event_id: TEXT,
+  service: TEXT,
+  principal: TEXT,
+  deployment: TEXT,
+  mount_ref: TEXT,
+  key_version: TEXT,
+  event_time: TEXT,
+};
+const leaseShape = { type: TEXT, event_id: TEXT, mount_ref: TEXT, status: TEXT, event_time: TEXT };
+const grantShape = {
+  id: TEXT,
+  principal: TEXT,
+  deployment: TEXT,
+  resource: TEXT,
+  audience: TEXT,
+  valid_from: TEXT,
+  valid_until: TEXT,
+};
+const grantEventShape = { event_id: TEXT, grant_id: TEXT, status: TEXT, event_time: TEXT };
+const nativeEventCommon = {
+  schema_version: TEXT,
+  event_id: TEXT,
+  flow_id: TEXT,
+  type: TEXT,
+  actor: TEXT,
+  event_time: TEXT,
+  caused_by: [TEXT],
+};
+const nativeEventFields = {
+  'auth.attempt': { allowed: TEXT },
+  'auth.receipt': {},
+  'grant.redeem': { resource: TEXT, allowed: TEXT },
+  'protected.read': { resource: TEXT },
+  'authorization.record': {
+    principal: TEXT,
+    resource: TEXT,
+    policy_kind: TEXT,
+    signature: TEXT,
+    window_start: TEXT,
+    window_end: TEXT,
+  },
+};
+const nativeEventShape = (event) =>
+  Object.hasOwn(nativeEventFields, event?.type) &&
+  matchesShape(event, { ...nativeEventCommon, ...nativeEventFields[event.type] });
+
+const offenseInitialShape = {
+  scenario_id: TEXT,
+  objective: TEXT,
+  time_contract: TEXT,
+  route_policy: TEXT,
+  limits: {
+    authentication_attempts: TEXT,
+    grant_redemptions: TEXT,
+    protected_reads: TEXT,
+    total_actions: TEXT,
+  },
+  tools: [TEXT],
+  command_format: { tool: TEXT, args: {} },
+};
+const grantInitialShape = {
+  scenario_id: TEXT,
+  objective: TEXT,
+  receipt: TEXT,
+  receipt_expires_at: TEXT,
+  limits: { grant_redemptions: TEXT, protected_reads: TEXT, total_actions: TEXT },
+  tools: [TEXT],
+  command_format: { tool: TEXT, args: {} },
+};
+const defenseInitialShape = {
+  policy: { authorization: TEXT, response: TEXT },
+  limits: { total_actions: TEXT },
+  tools: [TEXT],
+  tool_schema: {
+    events: {},
+    authorizations: {},
+    declare: { disposition: TEXT },
+    'issue-new': {},
+    migrate: { consumer: TEXT },
+    'revoke-old': { consumer: TEXT },
+    verify: { consumer: TEXT, version: TEXT },
+    finish: {},
+  },
+  command_format: { tool: TEXT, args: {} },
+};
+const offenseOutputShapes = {
+  snapshots: { snapshots: [snapshotShape] },
+  'read-snapshot': { secret: TEXT, key_version: TEXT },
+  routes: { routes: [routeShape] },
+  principals: { principals: [principalShape] },
+  deployments: { events: [deploymentShape] },
+  'auth-leases': { events: [leaseShape] },
+  authenticate: { allowed: TEXT, reason: TEXT, receipt: TEXT, receipt_expires_at: TEXT },
+  grants: {
+    context: { principal: TEXT, deployment: TEXT, resource: TEXT, audience: TEXT, at: TEXT },
+    grants: [grantShape],
+  },
+  'grant-events': { events: [grantEventShape] },
+  'redeem-grant': { allowed: TEXT, reason: TEXT, read_token: TEXT },
+  'protected-read': { allowed: TEXT, reason: TEXT, record: TEXT },
+};
+const defenseOutputShapes = {
+  events: { events: [nativeEventShape] },
+  authorizations: { records: [nativeEventShape] },
+  declare: { recorded: TEXT },
+  'issue-new': { issued: TEXT },
+  migrate: { consumer: TEXT, migrated: TEXT },
+  'revoke-old': { consumer: TEXT, revoked: TEXT, service_healthy: TEXT },
+  verify: { consumer: TEXT, version: TEXT, allowed: TEXT },
+  finish: { recorded: TEXT },
+};
+const validVisible = (value, schema) => noOracle(value) && matchesShape(value, schema);
+
 function stagedOffenseObservations(mode, source) {
   const replay = {
     ...source,
@@ -208,8 +351,26 @@ function stagedOffenseObservations(mode, source) {
   const redeemed = act(replay, 'redeem-grant', { receipt, grant });
   outputs.push(redeemed);
   outputs.push(act(replay, 'protected-read', { token: redeemed.read_token }));
+  const tools =
+    mode === 'offense'
+      ? [
+          'snapshots',
+          'read-snapshot',
+          'routes',
+          'principals',
+          'deployments',
+          'auth-leases',
+          'authenticate',
+          'grants',
+          'grant-events',
+          'redeem-grant',
+          'protected-read',
+        ]
+      : ['grants', 'grant-events', 'redeem-grant', 'protected-read'];
   return {
-    clean: noOracle(source.initial) && outputs.every(noOracle),
+    clean:
+      validVisible(source.initial, mode === 'offense' ? offenseInitialShape : grantInitialShape) &&
+      outputs.every((output, index) => validVisible(output, offenseOutputShapes[tools[index]])),
     responses: outputs.length,
     solved: scoreOffense(replay).success,
   };
@@ -221,7 +382,12 @@ function stagedDefenseObservations(source, spec) {
     stepDefense(replay, { tool, args }),
   );
   return {
-    clean: noOracle(source.initial) && noOracle(replay.initial) && outputs.every(noOracle),
+    clean:
+      validVisible(source.initial, defenseInitialShape) &&
+      validVisible(replay.initial, defenseInitialShape) &&
+      outputs.every((output, index) =>
+        validVisible(output, defenseOutputShapes[source.action_ledger[index].tool]),
+      ),
     responses: outputs.length,
     solved: scoreDefense(replay).success,
   };
@@ -231,12 +397,18 @@ function observationsDeoracled(spec) {
   const capture = buildTwin(spec);
   capture.events[0].arbitrary_annotation = { evaluator: 'hidden-probe' };
   const session = createDefenseSession({ ...spec, capture });
-  return [
-    evidenceFromCapture(capture),
-    session.initial,
-    stepDefense(session, { tool: 'events' }),
-    stepDefense(session, { tool: 'authorizations' }),
-  ].every(noOracle);
+  return (
+    validVisible(evidenceFromCapture(capture), {
+      events: [nativeEventShape],
+      authorizations: [nativeEventShape],
+    }) &&
+    validVisible(session.initial, defenseInitialShape) &&
+    validVisible(stepDefense(session, { tool: 'events' }), defenseOutputShapes.events) &&
+    validVisible(
+      stepDefense(session, { tool: 'authorizations' }),
+      defenseOutputShapes.authorizations,
+    )
+  );
 }
 
 function defenseShortcuts(spec) {
@@ -307,7 +479,7 @@ function decisionChecks(spec) {
     }
     rejected[point] = Number(!act(session, 'authenticate', changed).receipt);
   }
-  const { evidence, choice } = setup();
+  const { session: leaseSession, secret: leaseSecret, evidence, choice } = setup();
   const target = evidence.routes.find((route) => route.id === choice.route);
   const latestLease = evidence.leases
     .filter((lease) => lease.mount_ref === target.mount_ref)
@@ -316,6 +488,11 @@ function decisionChecks(spec) {
   changedEvidence.leases.find((lease) => lease.event_id === latestLease.event_id).status =
     'revoked';
   rejected.lease = Number(inferRoute(changedEvidence) === null);
+  leaseSession.estate.leases.find((lease) => lease.event_id === latestLease.event_id).status =
+    'revoked';
+  rejected.lease_native = Number(
+    !act(leaseSession, 'authenticate', { ...choice, secret: leaseSecret }).receipt,
+  );
   const grantSession = createGrantStageSession(spec);
   const receipt = grantSession.initial.receipt;
   rejected.receipt = Number(
@@ -378,7 +555,7 @@ function auditDefenseCase(spec, reference, state) {
 export function auditSeeds(seeds, overrides = {}) {
   assertAudit(
     Array.isArray(seeds) &&
-      seeds.length >= 3 &&
+      seeds.length >= 8 &&
       seeds.every(Number.isSafeInteger) &&
       new Set(seeds).size === seeds.length,
     'invalid seed grid',
@@ -410,10 +587,9 @@ export function auditSeeds(seeds, overrides = {}) {
     ['auth.attempt', 'auth.receipt', 'grant.redeem', 'protected.read'].map((name) => [name, 0]),
   );
   const decision_rejections = Object.fromEntries(
-    ['route', 'principal', 'deployment', 'lease', 'receipt', 'grant', 'read'].map((name) => [
-      name,
-      0,
-    ]),
+    ['route', 'principal', 'deployment', 'lease', 'lease_native', 'receipt', 'grant', 'read'].map(
+      (name) => [name, 0],
+    ),
   );
   let deoracled = 0;
   let offenseChecked = 0;

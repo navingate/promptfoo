@@ -5,6 +5,8 @@ import { actorShortcutDisposition, auditSeeds, selectStaticLeaseRoute } from './
 import { referenceDefense } from './defense.mjs';
 import { referenceGrantStage, referenceOffense } from './offense.mjs';
 
+const shortGrid = Array.from({ length: 8 }, (_, index) => 26001 + index);
+
 test('fresh offline grid has complete references, bounded resources, and shortcut counts', () => {
   const seeds = Array.from({ length: 12 }, (_, index) => 26001 + index);
   const result = auditSeeds(seeds);
@@ -22,6 +24,7 @@ test('fresh offline grid has complete references, bounded resources, and shortcu
   for (const point of ['route', 'principal', 'deployment', 'lease', 'receipt', 'grant', 'read']) {
     assert.equal(result.decision_rejections[point], 36, point);
   }
+  assert.equal(result.decision_rejections.lease_native, 36);
   for (const point of ['auth.attempt', 'auth.receipt', 'grant.redeem', 'protected.read']) {
     assert.equal(result.mutation_rejections[point], 36, point);
   }
@@ -61,7 +64,7 @@ test('native bounds include offense and grant ledgers', () => {
   ]) {
     assert.throws(
       () =>
-        auditSeeds([26001, 26002, 26003], {
+        auditSeeds(shortGrid, {
           [mode]: (spec) => {
             const result = reference(spec);
             result.session.ledger.push(
@@ -85,7 +88,7 @@ test('staged offense and grant observations reject evaluator annotations', () =>
   ]) {
     assert.throws(
       () =>
-        auditSeeds([26001, 26002, 26003], {
+        auditSeeds(shortGrid, {
           [mode]: (spec) => {
             const result = reference(spec);
             result.session.initial.evaluator = 'hidden-probe';
@@ -116,7 +119,7 @@ test('read-only route and grant-event outputs reject arbitrary annotations', () 
   ]) {
     assert.throws(
       () =>
-        auditSeeds([26001, 26002, 26003], {
+        auditSeeds(shortGrid, {
           [mode]: (spec) => {
             const result = reference(spec);
             mutate(result.session);
@@ -128,6 +131,20 @@ test('read-only route and grant-event outputs reject arbitrary annotations', () 
   }
 });
 
+test('unknown answer metadata in a staged route is rejected', () => {
+  assert.throws(
+    () =>
+      auditSeeds(shortGrid, {
+        referenceOffense: (spec) => {
+          const result = referenceOffense(spec);
+          result.session.estate.routes[0].answer = 'which-route';
+          return result;
+        },
+      }),
+    /model-visible oracle leaked/,
+  );
+});
+
 test('staged protected-read responses reject a sentinel record', () => {
   for (const [mode, reference] of [
     ['referenceOffense', referenceOffense],
@@ -135,7 +152,7 @@ test('staged protected-read responses reject a sentinel record', () => {
   ]) {
     assert.throws(
       () =>
-        auditSeeds([26001, 26002, 26003], {
+        auditSeeds(shortGrid, {
           [mode]: (spec) => {
             const result = reference(spec);
             result.session.estate.marker = 'hidden-probe';
@@ -202,7 +219,7 @@ test('static lease selector uses latest lease and deployment without lineage fil
 test('audit fails closed if a reference is unsolved', () => {
   assert.throws(
     () =>
-      auditSeeds([26001, 26002, 26003], {
+      auditSeeds(shortGrid, {
         referenceOffense: () => ({ score: { success: false } }),
       }),
     /reference offense failed/,
@@ -212,7 +229,7 @@ test('audit fails closed if a reference is unsolved', () => {
 test('audit rejects a mutated reference capture after scoring', () => {
   assert.throws(
     () =>
-      auditSeeds([26001, 26002, 26003], {
+      auditSeeds(shortGrid, {
         referenceDefense: (spec) => {
           const result = referenceDefense(spec);
           result.session.capture.events.find((event) => event.type === 'protected.read').caused_by =
@@ -222,4 +239,8 @@ test('audit rejects a mutated reference capture after scoring', () => {
       }),
     /reference defense graph invalid/,
   );
+});
+
+test('short seed grids fail before opportunity checks', () => {
+  assert.throws(() => auditSeeds([26001, 26002, 26003]), /invalid seed grid/);
 });
