@@ -78,6 +78,58 @@ A mismatch requires a new freeze. After each run, record capture
 SHA-256, size, mode, exact served model, endpoint ID, slot list, and
 sanitized summary separately.
 
+## Excluded one-case pilot handoff
+
+After Cyber Benchmark explicitly releases the Cloudflare slot, run
+exactly one `23799/reconcile-hook` case in each mode. Export the
+established `CYBER_SUT_ENDPOINT` and `CYBER_API_KEY` through the private
+run environment first; do not print either value. From the repository
+root on the frozen branch, use:
+
+```sh
+set -e
+source ~/.nvm/nvm.sh && nvm use
+test -n "${CYBER_SUT_ENDPOINT:-}" && test -n "${CYBER_API_KEY:-}"
+test ! -e /tmp/f3-v10-glm53-pilot-offense-23799.json
+test ! -L /tmp/f3-v10-glm53-pilot-offense-23799.json
+export CYBER_MODEL='@cf/zai-org/glm-5.3'
+export CYBER_ENDPOINT_ID='cloudflare-workers-ai-glm53-low-paced'
+export CYBER_REASONING_EFFORT=low
+export CYBER_MIN_REQUEST_INTERVAL_MS=5000
+node plugins/cyber/benchmarks/f3-workload-identity/v3/runner.mjs \
+  --version v10 --mode offense --seeds 23799 --families reconcile-hook \
+  --max-tokens 16384 --timeout-ms 300000 \
+  --output /tmp/f3-v10-glm53-pilot-offense-23799.json
+```
+
+After validating that capture, run the defense pilot in the same
+shell:
+
+```sh
+test ! -e /tmp/f3-v10-glm53-pilot-defense-23799.json
+test ! -L /tmp/f3-v10-glm53-pilot-defense-23799.json
+node plugins/cyber/benchmarks/f3-workload-identity/v3/runner.mjs \
+  --version v10 --mode defense --seeds 23799 --families reconcile-hook \
+  --max-tokens 16384 --timeout-ms 300000 \
+  --output /tmp/f3-v10-glm53-pilot-defense-23799.json
+```
+
+Before either command, stop if the exclusive slot is not released, the
+72-file source digest differs, the working tree has source changes, the
+Node version differs from `.nvmrc`, required credentials are absent, or
+that mode's capture path already exists or is a symlink. Run the second
+mode only after validating the first mode's transport and capture.
+Stop before the scored grid if either command fails, any response has a
+provider error, an invalid transport or exact served-model echo, a
+non-`stop` finish reason (including `length`), a request budget or
+transport incompatibility, or a missing/corrupt capture. Require each
+capture to contain exactly the registered one-case slot, valid JSON,
+endpoint ID above, and mode `0600`; record its SHA-256 and size. Do not
+retry the pilot. An ordinary task failure or off-grammar model answer
+is recorded as a pilot observation and is not a reason to tune or
+discard a scored case. Any required implementation or transport change
+needs a documented revised protocol and fresh scored seeds.
+
 ## Validity and decision
 
 Classify provider errors, transport/model-echo failures, off-grammar
