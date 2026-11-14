@@ -1,9 +1,10 @@
 # F9 v8 Cloudflare GLM-5.3 low/16k protocol
 
-Status: **pre-call revision 2 pending source bind**. The original
+Status: **pre-call revision 2 source bound**. Implementation and wrapper
+commit `333f8d7767189f30103edd1801c034dbfb2755a4`. The original
 candidate commit was `7cdea2dbdc27f1a944ce718458d453d9c0e173b7`;
-the receipt-lifetime revision will be bound to its own source commit
-before any model request. No v8 model request has been made. The native
+the receipt-lifetime revision supersedes it before any model request.
+No v8 model request has been made. The native
 capture schema and pair contract are `f9-native-v8.1` and
 `f9-paired-v8.1`; the screen version is
 `f9-v8-cloudflare-glm53-v2-low16`.

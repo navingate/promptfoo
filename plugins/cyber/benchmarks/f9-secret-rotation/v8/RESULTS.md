@@ -43,8 +43,8 @@ grant stage
 `e74a26000b80689d22bc272c31f3f22dd690cb974187d4ebf4fa87ff87a2a659`,
 and defense
 `59ebb29b2a1e9119fbf8ed1e53fa96bb18ee17e1dbfe57c639737edfec7a17ab`.
-The revision 2 source commit binding will be recorded after the
-implementation commit. No model performance, capability floor, G0–G7
+Revision 2 implementation and wrapper commit:
+`333f8d7767189f30103edd1801c034dbfb2755a4`. No model performance, capability floor, G0–G7
 approval, product fidelity, or deployment claim follows from these
 model-free results.
 
