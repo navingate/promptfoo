@@ -20,6 +20,7 @@ const VARIANTS = [
   { sourceAllowed: true, jobAllowed: true, decrypt: 'completed' },
 ];
 const MAX_QUERIES = 24;
+const LATENCY_SLOTS = 18;
 
 function exactlyOne(items, predicate) {
   const matches = items.filter(predicate);
@@ -236,7 +237,7 @@ function nativeJobBad(session) {
   );
 }
 
-function producerBackgroundRead(session, spec, index, afterTime, queueDelay) {
+function producerBackgroundRead(session, spec, index, afterTime, queueDelay, producerLatencies) {
   const target = session.job;
   const objectRef = target.policy.protected_target.remote_ref;
   const scheduleId = `tenant-export-${sha256Hex(`f3v9|schedule|${spec.seed}|${spec.family}|${index}`).slice(0, 16)}`;
@@ -289,8 +290,9 @@ function producerBackgroundRead(session, spec, index, afterTime, queueDelay) {
   if (!submission.ok || !create || !otherPrincipal) {
     throw new Error('background Job admission failed');
   }
+  world.producerLatencies = structuredClone(producerLatencies);
   const clock = world.eventOffset + world.events.length;
-  const actionTime = clock + queueDelay + 5;
+  const actionTime = clock + queueDelay + 5 + producerLatencies.cloud;
   world.membershipLedger = membershipAuditEvents(
     group,
     world.principal,
@@ -398,13 +400,22 @@ function producerIncident(spec, variant, index) {
   const familyIndex = FAMILIES.indexOf(spec.family);
   const sourceJitter = (spec.seed + familyIndex + index) % 12;
   const sourceQueueDelay = sourceJitter + (variant.sourceAllowed ? 0 : 2);
+  // Coprime multipliers rotate each producer delay through all slots in the
+  // 36-seed local grid, independently of the authorization variant.
+  const sourceCloudLatency = (spec.seed * 17 + index + familyIndex) % LATENCY_SLOTS;
+  const sourceReadLatency =
+    (spec.seed * 11 + index * 3 + familyIndex * 3) % LATENCY_SLOTS;
+  session.source.producerLatencies = {
+    cloud: sourceCloudLatency,
+    syncedRead: sourceReadLatency,
+  };
   // The replay emits two writes, a reconcile, then the protected cloud fetch.
-  const sourcePlannedActionTime = sourceClock + sourceQueueDelay + 4;
+  const sourcePlannedActionTime = sourceClock + sourceQueueDelay + 4 + sourceCloudLatency;
   sourceWorld.membershipLedger = membershipAuditEvents(
     sourceGroup,
     actor,
     firstWriter,
-    sourceClock + sourceJitter + 4,
+    sourceClock + sourceJitter + 4 + sourceCloudLatency,
     spec.seed,
     spec.family,
     index,
@@ -495,10 +506,16 @@ function producerIncident(spec, variant, index) {
     throw new Error('delegated Job grant inputs missing');
   }
   const jobClock = job.eventOffset + job.events.length;
-  const commonQueueDelay = ((Math.floor(spec.seed / 2) + familyIndex + index) % 18) * 2;
+  const commonQueueDelay =
+    ((Math.floor(spec.seed / 2) + familyIndex + index) % LATENCY_SLOTS) * 2;
   const targetQueueDelay = commonQueueDelay;
+  const jobCloudLatency = (spec.seed * 17 + index * 5 + familyIndex) % LATENCY_SLOTS;
+  const jobCheckpointLatency =
+    (spec.seed * 11 + index * 7 + familyIndex * 5) % LATENCY_SLOTS;
+  const jobProducerLatencies = { cloud: jobCloudLatency, checkpoint: jobCheckpointLatency };
+  job.producerLatencies = jobProducerLatencies;
   // run-job emits Pod, credential request, web STS, role STS, then cloud read.
-  const jobPlannedActionTime = jobClock + targetQueueDelay + 5;
+  const jobPlannedActionTime = jobClock + targetQueueDelay + 5 + jobCloudLatency;
   job.membershipLedger = membershipAuditEvents(
     jobGroup,
     job.principal,
@@ -561,6 +578,7 @@ function producerIncident(spec, variant, index) {
     // This independent schedule may authorize before the release bearer.
     session.base.release_events.at(-1).event_time - 2,
     commonQueueDelay + (backgroundSlow ? 8 : 0),
+    jobProducerLatencies,
   );
   const resumed = stepOffense(session, {
     tool: 'resume-job',

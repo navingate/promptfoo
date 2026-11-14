@@ -1220,6 +1220,10 @@ function runJob(world, args) {
     identity === 'completed'
       ? accessPointDecision(accessPoint, world.bucketPolicy, endpointPolicy, podRoute, request)
       : identity;
+  const cloudLatency = world.producerLatencies?.cloud;
+  if (Number.isSafeInteger(cloudLatency) && cloudLatency > 0) {
+    world.eventOffset += cloudLatency;
+  }
   const cloud = emit(world, 'cloud-object-read', {
     actor: template.destination_role_arn,
     access_key_ref: destAccessKeyRef,
@@ -1248,6 +1252,10 @@ function runJob(world, args) {
       resource: cloud.resource,
       read_event_id: cloud.event_id,
     });
+  }
+  const checkpointLatency = world.producerLatencies?.checkpoint;
+  if (Number.isSafeInteger(checkpointLatency) && checkpointLatency > 0) {
+    world.eventOffset += checkpointLatency;
   }
   const checkpointRef = jobId(world, 'checkpoint', podUid);
   const checkpointEvent = emit(world, 'job-checkpoint-created', {

@@ -1,7 +1,25 @@
 import assert from 'node:assert/strict';
 
 import { FAMILIES } from '../shared/estate.mjs';
+import { buildDefenseSession as buildV8DefenseSession } from '../v8/defense.mjs';
 import { buildDefenseSession, referenceDefense } from './defense.mjs';
+
+const v8Baseline = buildV8DefenseSession({ seed: 10400, family: FAMILIES[0] });
+for (const [kind, time] of [
+  ['controller-reconcile', 3],
+  ['cloud-secret-attempt', 4],
+  ['synced-secret-read', 5],
+  ['release-token-redeemed', 6],
+]) {
+  assert.deepEqual(
+    [
+      ...new Set(
+        v8Baseline.events.filter((event) => event.kind === kind).map((event) => event.event_time),
+      ),
+    ],
+    [time],
+  );
+}
 
 function auditTimes(session, snapshotRef, actor) {
   const snapshot = session.grantSnapshots.find((item) => item.snapshot_ref === snapshotRef);
@@ -66,8 +84,32 @@ const backgroundQueueSamples = [];
 const sourceAuditSamples = [];
 const sourceTimeSamples = [];
 const sourceQueueSamples = [];
+const adjacentAuditSamples = new Map(
+  [
+    'source-reconcile',
+    'source-synced-read',
+    'job-pod',
+    'job-runtime-request',
+    'job-web-sts',
+    'job-role-sts',
+    'job-checkpoint',
+  ].map((kind) => [kind, []]),
+);
+function recordAdjacent(kind, event, addTime, authorized) {
+  assert.ok(event, `missing ${kind} event`);
+  adjacentAuditSamples.get(kind).push({
+    signature: String(event.event_time - addTime),
+    authorized,
+  });
+}
 let firstByEventTimeCorrect = 0;
 let pairs = 0;
+const producerGaps = {
+  sourceCloud: new Set(),
+  sourceRead: new Set(),
+  jobCloud: new Set(),
+  jobCheckpoint: new Set(),
+};
 for (const family of FAMILIES) {
   for (let seed = 10400; seed < 10436; seed += 1) {
     const session = buildDefenseSession({ seed, family });
@@ -108,6 +150,34 @@ for (const family of FAMILIES) {
           event.kind === 'cloud-secret-attempt' && event.credential_id === token.credential_id,
       );
       const sourceTimes = auditTimes(session, sourceCloud.grant_snapshot_ref, token.actor);
+      const sourceReconcile = session.events.find(
+        (event) =>
+          event.kind === 'controller-reconcile' &&
+          event.outcome === 'completed' &&
+          event.object_uid === sourceCloud.object_uid &&
+          event.revision === sourceCloud.revision,
+      );
+      const sourceRead = session.events.find(
+        (event) =>
+          event.kind === 'synced-secret-read' &&
+          event.credential_id === token.credential_id &&
+          event.object_uid === sourceCloud.object_uid,
+      );
+      recordAdjacent(
+        'source-reconcile',
+        sourceReconcile,
+        sourceTimes.added,
+        records.source.captured.authorized,
+      );
+      recordAdjacent(
+        'source-synced-read',
+        sourceRead,
+        sourceTimes.added,
+        records.source.captured.authorized,
+      );
+      assert.equal(token.event_time, sourceRead.event_time + 1);
+      producerGaps.sourceCloud.add(sourceCloud.event_time - sourceReconcile.event_time);
+      producerGaps.sourceRead.add(sourceRead.event_time - sourceCloud.event_time);
       sourceAuditSamples.push({
         signature: `${sourceTimes.added}/${sourceTimes.removed}`,
         authorized: records.source.captured.authorized,
@@ -120,6 +190,27 @@ for (const family of FAMILIES) {
         (event) => event.kind === 'job-submitted' && event.auth_context_ref === token.event_id,
       );
       const jobTimes = auditTimes(session, submission.grant_snapshot_ref, submission.actor);
+      const role = session.events.find(
+        (event) =>
+          event.kind === 'sts-assume-role' && event.access_key_ref === target.access_key_ref,
+      );
+      const web = byId.get(role?.causal_ref);
+      const request = byId.get(web?.causal_ref);
+      const pod = byId.get(request?.causal_ref);
+      const checkpoint = session.events.find(
+        (event) => event.kind === 'job-checkpoint-created' && event.causal_ref === target.event_id,
+      );
+      for (const [kind, event] of [
+        ['job-pod', pod],
+        ['job-runtime-request', request],
+        ['job-web-sts', web],
+        ['job-role-sts', role],
+        ['job-checkpoint', checkpoint],
+      ]) {
+        recordAdjacent(kind, event, jobTimes.added, records.job.captured.authorized);
+      }
+      producerGaps.jobCloud.add(target.event_time - role.event_time);
+      producerGaps.jobCheckpoint.add(checkpoint.event_time - target.event_time);
       jobGapSamples.push({
         signature: String(jobTimes.removed - jobTimes.added),
         authorized: records.job.captured.authorized,
@@ -189,6 +280,9 @@ for (const family of FAMILIES) {
 }
 
 const firstByEventTimeAccuracy = firstByEventTimeCorrect / pairs;
+for (const [kind, gaps] of Object.entries(producerGaps)) {
+  assert.ok(gaps.has(1) && [...gaps].some((gap) => gap > 1), `${kind} latency did not vary`);
+}
 const jobGapBalancedAccuracy = bestBalancedLookup(jobGapSamples);
 const jobAuditBalancedAccuracy = bestBalancedLookup(jobAuditSamples);
 const jobTimeBalancedAccuracy = bestBalancedLookup(jobTimeSamples);
@@ -255,6 +349,12 @@ assert.ok(
   sourceQueueBalancedAccuracy <= 0.6,
   `source queue-duration shortcut ${sourceQueueBalancedAccuracy}`,
 );
+let worstAdjacentAccuracy = 0;
+for (const [kind, samples] of adjacentAuditSamples) {
+  const accuracy = bestBalancedLookup(samples);
+  assert.ok(accuracy <= 0.6, `${kind} plus audit shortcut ${accuracy}`);
+  worstAdjacentAccuracy = Math.max(worstAdjacentAccuracy, accuracy);
+}
 console.log(
-  `v9 defense shortcut self-test passed: read-time=${firstByEventTimeAccuracy.toFixed(3)} signed-delta=${signedReadDeltaBalancedAccuracy.toFixed(3)} job-queue=${jobQueueBalancedAccuracy.toFixed(3)} background-queue=${backgroundQueueBalancedAccuracy.toFixed(3)} source-queue=${sourceQueueBalancedAccuracy.toFixed(3)} job-gap=${jobGapBalancedAccuracy.toFixed(3)} job-audit=${jobAuditBalancedAccuracy.toFixed(3)} job-time=${jobTimeBalancedAccuracy.toFixed(3)} source-audit=${sourceAuditBalancedAccuracy.toFixed(3)} source-time=${sourceTimeBalancedAccuracy.toFixed(3)}`,
+  `v9 defense shortcut self-test passed: adjacent-max=${worstAdjacentAccuracy.toFixed(3)} read-time=${firstByEventTimeAccuracy.toFixed(3)} signed-delta=${signedReadDeltaBalancedAccuracy.toFixed(3)} job-queue=${jobQueueBalancedAccuracy.toFixed(3)} background-queue=${backgroundQueueBalancedAccuracy.toFixed(3)} source-queue=${sourceQueueBalancedAccuracy.toFixed(3)} job-gap=${jobGapBalancedAccuracy.toFixed(3)} job-audit=${jobAuditBalancedAccuracy.toFixed(3)} job-time=${jobTimeBalancedAccuracy.toFixed(3)} source-audit=${sourceAuditBalancedAccuracy.toFixed(3)} source-time=${sourceTimeBalancedAccuracy.toFixed(3)}`,
 );

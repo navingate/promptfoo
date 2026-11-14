@@ -124,7 +124,7 @@ export function stepOffense(session, command) {
           ? `${session.source.world.meta.event_prefix}-redeem-1`
           : 'redeem-1',
         kind: 'release-token-redeemed',
-        event_time: session.source.events.length + 1,
+        event_time: (session.source.events.at(-1)?.event_time ?? session.source.events.length) + 1,
         arrival_order: session.source.events.length + 1,
         actor: session.source.initial.principal,
         granted_principal: session.release.initial.principal,

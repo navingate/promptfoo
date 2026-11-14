@@ -138,10 +138,21 @@ export function createOffenseSession(spec) {
 }
 
 function event(session, kind, fields) {
+  // Defense producers may model queue time before a cloud action or a later
+  // synced read. Default sessions have no latency and retain their v3 clock.
+  const producerDelay =
+    kind === 'cloud-secret-attempt'
+      ? session.producerLatencies?.cloud
+      : kind === 'synced-secret-read'
+        ? session.producerLatencies?.syncedRead
+        : 0;
+  if (Number.isSafeInteger(producerDelay) && producerDelay > 0) {
+    session.producerEventClockOffset = (session.producerEventClockOffset ?? 0) + producerDelay;
+  }
   const entry = {
     event_id: `${session.world.meta.event_prefix ?? 'v3'}-${session.events.length + 1}`,
     kind,
-    event_time: session.events.length + 1,
+    event_time: session.events.length + 1 + (session.producerEventClockOffset ?? 0),
     arrival_order: session.events.length + 1,
     ...fields,
   };

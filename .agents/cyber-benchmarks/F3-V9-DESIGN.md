@@ -123,13 +123,17 @@ moves its action across a pre-scheduled membership window. Target and
 background Job queue durations have the same distribution for both
 target authorization states; the target's membership window is
 scheduled before run at a different position relative to the planned
-action. Target and background S3 reads can each be earlier by event
-time for both states within a six-incident world. The additional source
-queue observations use the existing reconcile event kind, so the
-24-query catalogue remains unchanged. Tests bound signed cloud-read
-time differences, queue durations, event-time and audit-only shortcuts
-using balanced accuracy, because each batch has four approved and two
-unauthorized Job actions.
+action. Independent opt-in producer latencies also separate source
+reconcile from the cloud fetch, the cloud fetch from the synced read,
+destination STS from the S3 read, and the S3 read from its checkpoint.
+The v3/v4 default clocks retain their prior behavior; only v9 defense
+sets these latencies. Target and background S3 reads can each be earlier
+by event time for both states within a six-incident world. The
+additional source queue observations use the existing reconcile event
+kind, so the 24-query catalogue remains unchanged. Tests bound signed
+cloud-read time differences, queue durations, adjacent-event plus audit,
+event-time and audit-only shortcuts using balanced accuracy, because
+each batch has four approved and two unauthorized Job actions.
 
 ## Alternatives considered
 
