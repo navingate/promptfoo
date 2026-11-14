@@ -43,10 +43,41 @@ test('native policy kind determines benign disposition independently of evaluato
   for (const subtype of SUBTYPES) {
     const capture = buildTwin({ ...spec, subtype, malicious: false });
     const native = event(capture, 'authorization.record');
-    assert.equal(native.policy_kind, subtype === 'malicious' ? 'breakglass' : subtype);
+    assert.equal(
+      native.policy_kind,
+      {
+        malicious: 'emergency-maintenance',
+        breakglass: 'emergency-maintenance',
+        planned: 'scheduled-rollout',
+        'false-positive': 'routine-operations',
+      }[subtype],
+    );
     const expected = validateTwin(capture).disposition;
     capture.evaluator.subtype = subtype === 'planned' ? 'breakglass' : 'planned';
     assert.equal(validateTwin(capture).disposition, expected);
+  }
+});
+
+test('model-visible events contain no evaluator labels and policy alone cannot separate twins', () => {
+  const labels = new Set([
+    ...SUBTYPES,
+    'compromise',
+    'authorized-exercise',
+    'planned-delay',
+    'uncorroborated',
+  ]);
+  for (const subtype of SUBTYPES) {
+    const benign = buildTwin({ ...spec, subtype, malicious: false });
+    const malicious = buildTwin({ ...spec, subtype, malicious: true });
+    assert.deepEqual(
+      event(benign, 'authorization.record'),
+      event(malicious, 'authorization.record'),
+    );
+    for (const native of benign.events) {
+      for (const value of Object.values(native).flat()) {
+        assert.equal(labels.has(value), false, `${subtype}: leaked ${value}`);
+      }
+    }
   }
 });
 

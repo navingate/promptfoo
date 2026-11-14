@@ -6,9 +6,9 @@ export const SUBTYPES = Object.freeze(['malicious', 'breakglass', 'planned', 'fa
 const SCHEMA = 'f9-native-v10.0';
 const RESOURCE = 'object/payment-sync/settlements';
 const BENIGN_DISPOSITIONS = {
-  breakglass: 'authorized-exercise',
-  planned: 'planned-delay',
-  'false-positive': 'uncorroborated',
+  'emergency-maintenance': 'authorized-exercise',
+  'scheduled-rollout': 'planned-delay',
+  'routine-operations': 'uncorroborated',
 };
 
 function hash(value) {
@@ -92,7 +92,12 @@ export function buildTwin({ seed, family, subtype, malicious = false, nonce = 'r
     caused_by: [],
     principal: authorized,
     resource: RESOURCE,
-    policy_kind: subtype === 'malicious' ? 'breakglass' : subtype,
+    policy_kind: {
+      malicious: 'emergency-maintenance',
+      breakglass: 'emergency-maintenance',
+      planned: 'scheduled-rollout',
+      'false-positive': 'routine-operations',
+    }[subtype],
     signature: 'valid',
     window_start: 995,
     window_end: 1025,
