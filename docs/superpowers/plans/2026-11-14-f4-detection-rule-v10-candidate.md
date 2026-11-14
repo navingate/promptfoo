@@ -4,7 +4,7 @@
 
 **Goal:** Freeze an offline F4 v10 SQL-rule candidate whose native grantor and authorization cohorts are balanced without changing the model-visible schema or scored v9 artifacts.
 
-**Architecture:** Add version-specific allocation, producer, generator, corpus, tests, screen, and protocol under `plugins/cyber/benchmarks/f4-durable-consent/chain-v10/`. Import v9's frozen projection, SQL executor, prompt/development fixture, reference SQL, and projected controls directly; bind their hashes in the v10 manifest. All v10 model calls remain disabled until a later exclusive Cloudflare handoff.
+**Architecture:** Add version-specific allocation, producer, generator, corpus, projected controls, tests, screen, and protocol under `plugins/cyber/benchmarks/f4-durable-consent/chain-v10/`. Import v9's frozen projection, SQL executor, prompt/development fixture, and reference SQL directly; bind their hashes in the v10 manifest. All v10 model calls remain disabled until a later exclusive Cloudflare handoff.
 
 **Tech Stack:** Node.js 24/Vitest-compatible `node:test`, native v3/v4 estate tools, SQLite `node:sqlite` for trusted offline checks, pinned Linux Docker Python SQL executor for the model-facing path.
 
@@ -16,7 +16,7 @@
 
 - [ ] Write a failing test that imports `allocateCohort(schedule)` and asserts the 36×13 schedule, exact global type-by-class totals (malicious 30 each, revoked 18 each, survivor 108 each), per-batch one survivor for each malicious type, and all three survivor types in every zero-malicious batch.
 - [ ] Run `source ~/.nvm/nvm.sh && nvm use && node --test plugins/cyber/benchmarks/f4-durable-consent/chain-v10/cohort_selftest.mjs`; verify failure is missing allocation behavior.
-- [ ] Implement deterministic allocation: cycle user/partner/admin over malicious and revoked slots separately; reserve one survivor per distinct malicious type (all three for zero-malicious batches); fill remaining survivor slots by the type with greatest remaining global deficit, with seed/family hash for tie order. Reject any infeasible schedule. Return per-batch ordered `{classification, grantorType, authorizationMode}` slots; choose admin registry/base/near-miss modes deterministically, while preserving the matched admin registry tuple.
+- [ ] Implement deterministic allocation: cycle user/partner/admin over malicious and revoked slots separately; reserve one survivor per distinct malicious type (all three for zero-malicious batches); fill remaining survivor slots by the type with greatest remaining global deficit, with seed/family hash for tie order. Reject any infeasible schedule. Return per-batch ordered `{classification, grantorType, authorizationMode}` slots. Permit at most one admin base-policy near miss per batch, reserve an authorized admin out-of-catalog registry-covered counterpart with the same grantor/route/verification and extra-scope pattern, and reserve an admin registry-only counterpart for every batch with admin registry-malicious grants. Assert these subtype pairs explicitly.
 - [ ] Re-run the test and inspect its actual distribution by family and batch; add an assertion that no type or label can be inferred from slot position alone after capture shuffling.
 - [ ] Run targeted Biome check and commit only these two files.
 
@@ -31,18 +31,19 @@
 
 ### Task 3: Fresh frozen corpus and counterfactual checks
 
-**Files:** Create `chain-v10/generate-captures.mjs`, `chain-v10/capture/native-v10.jsonl`, `chain-v10/evaluator/labels-v10.jsonl`, `chain-v10/manifest.json`, `chain-v10/grid_selftest.mjs`.
+**Files:** Create `chain-v10/generate-captures.mjs`, `chain-v10/capture/native-v10.jsonl`, `chain-v10/evaluator/labels-v10.jsonl`, `chain-v10/manifest.json`, `chain-v10/grid_selftest.mjs`, `chain-v10/controls.mjs`.
 
 - [ ] Write failing grid tests for fresh v10 IDs/seeds, 36 batches×13 records, six batches for each malicious count 0–5, 18 one-revoked and 18 two-revoked batches, exact global type-by-class quotas, within-batch same-type survivors, and no label-bearing field in projected tables.
 - [ ] Add pairwise counterfactual tests: repair one failed registry predicate for registry-malicious; remove the varied extra scope for admin base near misses while confirming registry remains noncovering; expire all covering rows for registry survivors; change a grant-side base factor for base-only survivors. Require evaluator key and visible reference to flip together, including the no-alternate-authorization condition.
 - [ ] Generate fresh deterministic v10 corpus through native v3/v4 calls. Record seed schedule, SHA-256 of captures and keys, class histogram, source hashes, and model settings in manifest. Bind all reused v9 files and new v10 files. Keep held-out rows outside the model prompt.
+- [ ] Copy and adapt the v9 projected controls. Select the admin base-policy-only source by `basePolicyAuthorizes(grant)` **and** zero covering registry rows, not by grantor type alone. Add an explicit admin out-of-catalog registry-covered control and verify each control against the unchanged reference SQL.
 - [ ] Run grid tests and targeted Biome; commit generator, corpus, manifest, tests.
 
 ### Task 4: Reference SQL and adversarial shortcut audit
 
 **Files:** Create `chain-v10/reference_selftest.mjs`, `chain-v10/replay-old-sql.mjs` (private SQL path argument; no SQL content committed).
 
-- [ ] Write failing tests that run the unchanged v9 `reference.sql` over all 36 v10 projected batches and all projected controls and compare exact grant-ID sets to `evaluatorLabels`. Include a pinned-Docker reference test on Linux; skip only unsupported direct host-Python helpers.
+- [ ] Write failing tests that run the unchanged v9 `reference.sql` over all 36 v10 projected batches and all projected controls. Compare native batch results to `evaluatorLabels` and projected-control results to their explicit expected alert-ID sets. Include a pinned-Docker reference test on Linux; skip only unsupported direct host-Python helpers.
 - [ ] Add adversarial SQL probes for grantor-only, route-only, catalog-only, registry-absence-only, top-k, row-order, and constant-ID shortcuts. Each must fail at least one native batch or scored control. Reuse the v9 shortcut checks where applicable.
 - [ ] Implement a read-only offline replay command accepting `--sql-file` outside the repo; load v10 frozen batches and score the exact frozen v9 SQL without modifying it, calling no model. Print TP/FP/FN, exact batches, survivor FP, control misses, and SQL SHA. Do not commit the private v9 SQL or raw provider response.
 - [ ] Run trusted reference and shortcut tests, then replay old SQL privately and report the actual result without a target score gate. Commit only source/tests.
@@ -54,6 +55,6 @@
 - [ ] Write failing mocked screen tests for corpus/source hash binding, the exact v10 screen ID, Cloudflare `@cf/zai-org/glm-5.3` echo, 16K/low/temperature-0/no-cache request, one transport attempt with no retry, five-second shared-account pacing, private output, and the assigned-slot gate.
 - [ ] Copy the v9 screen into v10 and point only the corpus/controls and candidate identity to v10. Reuse the frozen v9 prompt, projection, SQL executor, and reference unchanged. The model request remains one SQL statement with no held-out rows, labels, or schedule. Document that grantor values are trusted estate metadata, not authenticated admin/partner actors.
 - [ ] Regenerate manifest after final formatting so every scoring-path source hash matches. Run `node --test` over every `chain-v10/*_selftest.mjs` with the repo Node version, targeted Biome/Prettier, and `git diff --check`.
-- [ ] Copy only the committed v10 subtree to the isolated Linux VM and run the full offline suite plus pinned Docker preflight. Do not send Cloudflare or DeepSeek requests. Commit final manifest/docs; push feature branch to the authorized fork without force when connectivity permits. Report Linux pass/skip counts, corpus hash, old-SQL replay, and limitations.
+- [ ] Use a pinned full checkout or transfer a dependency-complete bundle containing v10 plus its exact v9, v3/v4, shared, and defense imports to the isolated Linux VM. Verify every manifest source hash there, then run the full offline suite plus pinned Docker preflight. Do not send Cloudflare or DeepSeek requests. Commit final manifest/docs; push feature branch to the authorized fork without force when connectivity permits. Report Linux pass/skip counts, corpus hash, old-SQL replay, and limitations.
 
 **Safety:** Keep v9 branch/captures/results untouched. Never put credentials, raw provider output, or the private old SQL in git. Never clear Promptfoo cache or database. No live model call in this plan.
