@@ -20,7 +20,11 @@ grids across three controller families, and the independent native analyzer
 agrees on the holdout. Three link ablations are valid but exact 0/9 on a
 smaller three-seed cross-family screen. All eight exact rules from the v12
 early-stop capture remain valid but exact 0/3 each on one new seed across
-three families. These are model-free diagnostics, not a GLM-5.3 result.
+three families. These are model-free diagnostics. The separate
+[`GLM-5.3 screen`](../../../../../.agents/cyber-benchmarks/F3-V13-CLOUDFLARE-GLM53-EARLY-STOP.md)
+stopped at 8 exact successes in 9 completed cases, disproving the proposed
+defense floor. Seven of the eight exact rules used a shorter native causal
+reference instead of an explicit source-revision join.
 
 From the repository root with the `.nvmrc` Node version:
 

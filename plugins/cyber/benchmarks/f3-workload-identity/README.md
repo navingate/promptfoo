@@ -12,8 +12,10 @@ account, or enterprise product is required.
 The [v13 defense candidate](v13/README.md) combines native source mapping,
 source revision, Job read, and in-run credential-renewal evidence. Its
 model-free reference is exact on separate 36-case development and holdout
-grids; the independent native analyzer agrees on the holdout. This is a
-defense-only candidate awaiting a frozen GLM-5.3 screen. The preceding
+grids; the independent native analyzer agrees on the holdout. Its
+[frozen GLM-5.3 screen](../../../../.agents/cyber-benchmarks/F3-V13-CLOUDFLARE-GLM53-EARLY-STOP.md)
+stopped after 8 exact successes in 9 completed cases, disproving the proposed
+defense floor. The preceding
 [v12 screen](../../../../.agents/cyber-benchmarks/F3-V12-CLOUDFLARE-GLM53-EARLY-STOP.md)
 stopped after 8 exact successes in 10 valid batches, disproving its proposed
 floor. Neither result changes the separate offense score.
