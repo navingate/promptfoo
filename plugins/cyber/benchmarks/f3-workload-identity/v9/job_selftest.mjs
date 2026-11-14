@@ -578,7 +578,32 @@ for (const family of FAMILIES) {
   endpointDeny.statements.push({ effect: 'Deny', action: 's3:GetObject', resource: winner.arn });
   assert.equal(
     accessPointDecision(winner, world.bucketPolicy, endpointDeny, world.podRoute, request),
+    'completed',
+  );
+  const endpointObjectDeny = structuredClone(world.endpointPolicy);
+  endpointObjectDeny.statements.push({
+    effect: 'Deny',
+    action: 's3:GetObject',
+    resource: resolved.access_point_object_arn,
+  });
+  assert.equal(
+    accessPointDecision(winner, world.bucketPolicy, endpointObjectDeny, world.podRoute, request),
     'vpc-endpoint-policy-denied',
+  );
+  assert.ok(
+    world.endpointPolicy.statements.some(
+      (item) => item.effect === 'Allow' && item.resource === resolved.access_point_object_arn,
+    ),
+  );
+  assert.equal(
+    accessPointDecision(
+      winner,
+      { ...world.bucketPolicy, bucket: 'unrelated-bucket' },
+      world.endpointPolicy,
+      world.podRoute,
+      request,
+    ),
+    'bucket-policy-denied',
   );
   assert.equal(
     accessPointDecision(

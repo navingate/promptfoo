@@ -235,13 +235,16 @@ export function accessPointDecision(ap, bucketPolicy, endpointPolicy, podRoute, 
   if (!policyAllows(ap.policy.statements, request.access_point_object_arn, request)) {
     return 'access-point-policy-denied';
   }
-  if (!policyAllows(bucketPolicy.statements, request.bucket_object_arn, request)) {
+  if (
+    bucketPolicy.bucket !== ap.bucket ||
+    !policyAllows(bucketPolicy.statements, request.bucket_object_arn, request)
+  ) {
     return 'bucket-policy-denied';
   }
   if (
     endpointPolicy.id !== podRoute.vpc_endpoint_id ||
     endpointPolicy.vpc_id !== podRoute.vpc_id ||
-    !policyAllows(endpointPolicy.statements, ap.arn, request) ||
+    !policyAllows(endpointPolicy.statements, request.access_point_object_arn, request) ||
     !policyAllows(endpointPolicy.statements, request.bucket_object_arn, request)
   ) {
     return 'vpc-endpoint-policy-denied';
@@ -519,7 +522,8 @@ function createAccessPointEstate(world) {
       });
     }
     endpointPolicy.statements.push(
-      { effect: 'Allow', action: ACTION, resource: ap.arn },
+      { effect: 'Allow', action: ACTION, resource: protectedRoute.access_point_object_arn },
+      { effect: 'Allow', action: ACTION, resource: benignRoute.access_point_object_arn },
       { effect: 'Allow', action: ACTION, resource: protectedRoute.bucket_object_arn },
       { effect: 'Allow', action: ACTION, resource: benignRoute.bucket_object_arn },
     );
@@ -528,7 +532,7 @@ function createAccessPointEstate(world) {
         id: ap.benign_route.vpc_endpoint_id,
         vpc_id: ap.vpc_id,
         statements: [
-          { effect: 'Allow', action: ACTION, resource: ap.arn },
+          { effect: 'Allow', action: ACTION, resource: benignRoute.access_point_object_arn },
           { effect: 'Allow', action: ACTION, resource: benignRoute.bucket_object_arn },
         ],
       };
