@@ -1,7 +1,7 @@
 # F3 v10 Cloudflare GLM-5.3 candidate protocol
 
-**Status: preregistered candidate, pending final source freeze and Cyber
-Benchmark review. No live request is authorized.** F10 currently owns the
+**Status: preregistered source-frozen candidate, pending Cyber Benchmark
+review. No live request is authorized.** F10 currently owns the
 exclusive Cloudflare slot. No v10 pilot or scored request may run until
 Cyber Benchmark reviews offline evidence and explicitly releases a slot.
 This protocol is not a G0–G7 release or deployment safety claim.
@@ -62,16 +62,18 @@ and atomically replaces each complete snapshot through a private
 same-directory temporary file. Require mode **0600**. Never publish
 raw transcripts, synthetic credentials, markers, or artifact values.
 
-**Final source SHA-256 and candidate commit are pending final review and
-freeze.** The source bundle consists of every `.mjs` file under
+**Candidate source commit:** `1ebf154cf` on `codex/f3-v10-correlation`.
+**Frozen source bundle:** 72 files, SHA-256
+`d8b05a1ae071edb49f1d5a56f408e2c1863b30951e57cd8cfaf8b3527f88d702`.
+The bundle consists of every `.mjs` file under
 `plugins/cyber/benchmarks/f3-workload-identity/`, including the runner,
 all version modules, transitive runtime imports, and local self-tests.
 Sort repository-relative paths lexically. For each file concatenate its
 path, NUL, exact bytes, NUL; hash the concatenation with SHA-256.
 Record the file count with the digest. Any new or removed `.mjs` file
 changes the bundle and requires a new freeze.
-Recompute after all reviews and record the committed tree and digest
-here before any pilot; verify the same digest before scored requests.
+Recompute the digest from the committed tree before the excluded pilot
+and scored requests. Verify that it matches the value above.
 A mismatch requires a new freeze. After each run, record capture
 SHA-256, size, mode, exact served model, endpoint ID, slot list, and
 sanitized summary separately.
