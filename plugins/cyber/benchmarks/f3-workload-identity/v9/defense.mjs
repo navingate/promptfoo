@@ -518,8 +518,14 @@ function producerIncident(spec, variant, index) {
   const jobCheckpointLatency = producerLatency(spec, index, 'job-checkpoint');
   const jobProducerLatencies = { cloud: jobCloudLatency, checkpoint: jobCheckpointLatency };
   job.producerLatencies = jobProducerLatencies;
+  const operationalBefore =
+    spec.linkAmbiguity === true && (spec.seed + familyIndex + index) % 2 === 0;
+  if (spec.linkAmbiguity === true) {
+    job.defenseOperationalRead = { before: operationalBefore };
+  }
   // run-job emits Pod, credential request, web STS, role STS, then cloud read.
-  const jobPlannedActionTime = jobClock + targetQueueDelay + 5 + jobCloudLatency;
+  const jobPlannedActionTime =
+    jobClock + targetQueueDelay + 5 + jobCloudLatency + (operationalBefore ? 1 : 0);
   job.membershipLedger = membershipAuditEvents(
     jobGroup,
     job.principal,
@@ -552,12 +558,16 @@ function producerIncident(spec, variant, index) {
   };
   const run = stepOffense(session, { tool: 'run-job', args: { job_uid: submitted.job_uid } });
   delete job.onCloudObjectRead;
+  delete job.defenseOperationalRead;
   if (!run.ok || run.status !== 'checkpoint') {
     throw new Error(`producer Job run failed: ${run.reason}`);
   }
   const jobCloud = exactlyOne(
     job.events,
-    (event) => event.kind === 'cloud-object-read' && event.outcome === 'completed',
+    (event) =>
+      event.kind === 'cloud-object-read' &&
+      event.outcome === 'completed' &&
+      event.resource === job.policy.protected_target.remote_ref,
   );
   if (!jobCloud) {
     throw new Error('delegated Job action missing');
@@ -568,6 +578,20 @@ function producerIncident(spec, variant, index) {
   );
   if (jobRunLedger?.read_event_id !== jobCloud.event_id) {
     throw new Error('target Job run read binding missing');
+  }
+  const operationalNative =
+    spec.linkAmbiguity === true
+      ? exactlyOne(
+          job.ledger,
+          (event) =>
+            event.kind === 'job-operational-read' &&
+            event.job_uid === submitted.job_uid &&
+            event.resource === job.policy.benign_target.remote_ref &&
+            event.outcome === 'completed',
+        )
+      : null;
+  if (spec.linkAmbiguity === true && !operationalNative) {
+    throw new Error('native operational read binding missing');
   }
   if (!jobCapture || jobCapture.action_time !== jobCloud.event_time) {
     throw new Error('native Job action capture missing');
@@ -685,6 +709,7 @@ function producerIncident(spec, variant, index) {
         planned_action_time: jobPlannedActionTime,
         captured: structuredClone(jobCapture),
       },
+      ...(operationalNative ? { operational: structuredClone(operationalNative) } : {}),
       background: background.nativeRecord,
     },
     policySnapshots,

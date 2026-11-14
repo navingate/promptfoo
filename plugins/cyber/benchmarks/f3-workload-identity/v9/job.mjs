@@ -1224,6 +1224,81 @@ function runJob(world, args) {
   if (Number.isSafeInteger(cloudLatency) && cloudLatency > 0) {
     world.eventOffset += cloudLatency;
   }
+  const emitOperationalRead = () => {
+    const objectRef = world.policy.benign_target.remote_ref;
+    const operationalRecord = world.objectRecords[objectRef];
+    const operationalRoute = resolveAccessPoint(accessPoint, objectRef);
+    if (!operationalRecord || !operationalRoute) {
+      throw new Error('defense operational read route missing');
+    }
+    const operationalRequest = {
+      ...request,
+      object_ref: objectRef,
+      access_point_object_arn: operationalRoute.access_point_object_arn,
+      bucket_object_arn: operationalRoute.bucket_object_arn,
+    };
+    const operationalSnapshotRef = jobId(world, 's3authsnap-operational', role.event_id);
+    world.authorizationSnapshots[operationalSnapshotRef] = structuredClone({
+      destination_role: template.destination_role,
+      session_policy: template.session_policy,
+      access_point_policy: accessPoint,
+      bucket_policy: world.bucketPolicy,
+      endpoint_policy: endpointPolicy,
+      pod_route: podRoute,
+      request: operationalRequest,
+    });
+    const operationalIdentity = identityAllows(
+      template.destination_role,
+      template.session_policy,
+      operationalRoute.access_point_object_arn,
+      account.session_tags.workload_lane,
+      operationalRoute.access_point_arn,
+    );
+    const operationalDecision =
+      operationalIdentity === 'completed'
+        ? accessPointDecision(
+            accessPoint,
+            world.bucketPolicy,
+            endpointPolicy,
+            podRoute,
+            operationalRequest,
+          )
+        : operationalIdentity;
+    const operational = emit(world, 'cloud-object-read', {
+      actor: template.destination_role_arn,
+      access_key_ref: destAccessKeyRef,
+      resource: objectRef,
+      access_point_alias: job.spec.access_point_alias,
+      access_point_arn: operationalRoute.access_point_arn,
+      access_point_object_arn: operationalRoute.access_point_object_arn,
+      bucket_object_arn: operationalRoute.bucket_object_arn,
+      vpc_id: podRoute.vpc_id,
+      vpc_endpoint_id: podRoute.vpc_endpoint_id,
+      authorization_snapshot_ref: operationalSnapshotRef,
+      action: ACTION,
+      object_version: operationalRecord.version,
+      encrypted_data_key_ref: operationalRecord.encrypted_data_key_ref,
+      ciphertext_ref: operationalRecord.ciphertext_ref,
+      outcome: operationalDecision === 'completed' ? 'completed' : 'denied',
+      ...(operationalDecision === 'completed' ? {} : { reason: operationalDecision }),
+      causal_ref: role.event_id,
+    });
+    world.ledger.push({
+      kind: 'job-operational-read',
+      job_uid: job.uid,
+      read_event_id: operational.event_id,
+      authorization_snapshot_ref: operationalSnapshotRef,
+      access_key_ref: destAccessKeyRef,
+      resource: objectRef,
+      outcome: operational.outcome,
+    });
+    if (operationalDecision !== 'completed') {
+      throw new Error(`defense operational read denied: ${operationalDecision}`);
+    }
+  };
+  if (world.defenseOperationalRead?.before) {
+    emitOperationalRead();
+  }
   const cloud = emit(world, 'cloud-object-read', {
     actor: template.destination_role_arn,
     access_key_ref: destAccessKeyRef,
@@ -1245,6 +1320,9 @@ function runJob(world, args) {
   });
   if (typeof world.onCloudObjectRead === 'function') {
     world.onCloudObjectRead(cloud);
+  }
+  if (world.defenseOperationalRead && !world.defenseOperationalRead.before) {
+    emitOperationalRead();
   }
   if (decision !== 'completed') {
     return denyRun(world, job, podUid, decision, {

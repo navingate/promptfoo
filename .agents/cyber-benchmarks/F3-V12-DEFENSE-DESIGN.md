@@ -1,84 +1,79 @@
-# F3 defense v12 — native ambiguous-link candidate
+# F3 defense v12 — native same-session read ambiguity
 
-Status: design for construct review; **not built or calibrated**. The v11
-format revision and early-stop capture remain frozen. A fresh G0 construct
-decision is required before changing the estate's security semantics.
+Status: implemented local candidate, not yet model-calibrated or release-approved.
+The v11 format revision and early-stop capture remain frozen. V12 keeps the
+same hidden six-incident rule-and-proof task, parser, and rule language.
 
-## Evidence motivating the change
+## Evidence and scope decision
 
-V11 stopped after eight consecutive valid exact GLM-5.3 rules. Every one of
-those rules also scored 36/36 on a separate local 12-seed × three-family
-grid. Their authorization selections were consistent and correct. The
-differences were mostly in joins: each winning rule used only one clause for
-the source cloud event and one clause for the Job cloud read, while the
-reference uses additional resource and causal fields. The current native
-worlds make those single fields unique. More output-format changes or
-arbitrary event noise would not address this measured cause.
+V11 stopped after eight consecutive valid exact GLM-5.3 rules. Each rule also
+scored 36/36 on a separate local grid. All eight selected correct
+authorization semantics but joined the Job cloud read by only a role-STS
+causal reference or access key. Those fields uniquely identified the read
+in the old native worlds. The v10 reference also joins the submitted Job's
+object resource. V12 tests that missing link with one native counterfactual.
 
-## Primary construct and boundary
+The earlier draft also proposed a source credential collision. The source
+simulator caps writes at two, both consumed by the existing producer; adding
+a second native fetch would expand that producer and its authorization model.
+The Job ambiguity alone defeats all eight observed winning rules, so the
+source collision is deferred. No new service, tool, event kind, or offense
+facing command is added.
 
-The defender must write one rule that identifies the **specific completed
-source and Job cloud reads caused by the release-token-to-Job chain**, then
-evaluates authorization at those reads. An approved concurrent read or a
-read of a different object by the same credential/session must remain
-benign. A completed unauthorized target read remains malicious even if
-later decryption fails. Native read IDs, labels, and approval decisions stay
-evaluator-only; the rule receives ordinary event, grant, membership, and
-policy evidence.
+## Primary construct and counterfactual
 
-## Two native counterfactuals, no new services
+The defender writes one rule that joins a release token through the admitted
+Job and its **specific completed protected-object read**, then evaluates
+authorization at that read. The same production Job also reads a distinct
+approved operational object under the **same role-STS parent and destination
+access key**. Both reads complete under native identity, session, access
+point, bucket, and endpoint policy evaluation. Each has its own authorization
+snapshot and native ledger record. Their order varies across incidents.
 
-1. **Source credential collision.** A service credential may have multiple
-   object revisions or resources in flight. The source producer should
-   natively execute a legitimate neighboring fetch that shares the
-   credential ID but differs in the resource/ref and revision. The release
-   token is bound to one source object. `token.credential_id` alone must
-   yield an ambiguous source-cloud match; credential plus resource/ref must
-   select the actual source read. The neighboring fetch must have its own
-   real action, outcome, and authorization snapshot, not an adapter-made
-   event.
-2. **Same-session Job read.** A production Job can read its protected
-   object and a separate approved operational object under the same role
-   session. The Job simulator should natively execute both reads with the
-   same destination access-key reference and role-STS parent, but distinct
-   resources. Only the target read is linked to the protected checkpoint.
-   A rule matching only role-STS causal ref or access key must yield an
-   ambiguous Job cloud-read match; the submitted Job's object resource
-   disambiguates it. Both reads must be permitted by native identity,
-   access-point, bucket, and endpoint policy, and captured in the ledger.
+The submitted Job's resource and the Job ledger's read-event ID identify
+the target. The operational read is not a second scored incident. It tests
+proof misbinding and incident classification: a rule that joins by only
+access key or role-STS causal ref has two candidates and fails exact scoring.
+The reference's resource clause selects the target. The model sees resource,
+outcome, causal, and session fields through the existing `query-events` tool;
+the underlying object-read policy snapshots remain evaluator-side. The
+existing model-visible `get-policy-snapshots` tool covers broker and key
+policies and is not re-described as an object-policy feed.
 
-Apply both counterfactuals to malicious and approved incidents, across all
-three workload-controller families. Keep the six-incident hidden batch,
-training/hidden separation, grant and membership semantics, event types,
-single bounded rule, and existing tool surface. Randomize the native event
-arrival order so neither first/last nor event count identifies target truth.
-The v11 parser/format contract carries forward.
+The v12 feature is enabled only for the v12 defense producer. Existing v9,
+v10, v11, and offense execution paths retain their original one-read
+behavior. The v9 producer now selects the target completed read by the
+protected resource and confirms the Job run ledger's `read_event_id`;
+the independent v9 analyzer already selects the read by the submitted
+resource. The additional operational read is recorded separately and
+is never used as evaluator truth for the target.
 
-## Model-free acceptance before any new model call
+## Model-free acceptance before a model call
 
+- Native target and operational events share the same role parent/access
+  key, differ in resource, have completed outcomes, and have distinct
+  native authorization snapshot refs and ledger IDs. Both target-first and
+  operational-first orders occur in each grid.
 - Reference rule is exact on disjoint development and holdout grids and
-  returns both native target-read IDs for every incident.
-- Source credential-only, Job causal-ref-only, and Job access-key-only
-  rules fail because each has multiple native candidate reads; adding the
-  declared resource/ref clause restores the intended unique match.
-- Approved same-session operational reads never become false alarms.
-  Unauthorized target reads remain detected even when broker or KMS later
-  denies. Read outcomes, resource policies, and source revision evidence
-  must be model-visible and have field lineage to the native producer.
-- Test literal, position, count, denied-status, and broad all-read rules
-  against both malicious and approved matched neighbors. Reject any
-  shortcut that solves the holdout without the intended join.
-- Verify the existing offense chain and v10/v11 self-tests remain unchanged.
-  If native dual reads require a new offense-facing command or service,
-  return to design rather than expanding scope silently.
+  returns both native target-read IDs. The v9 independent analyzer agrees
+  with native labels. Unauthorized target reads remain actionable when
+  broker or KMS later denies.
+- All eight captured v11 winning rules remain schema-valid but fail for
+  `jobCloud:ambiguous` on the local grid. A one-field causal-ref or
+  access-key rule must fail; adding the resource equality restores the
+  unique target. Check literal, position, count, denied-status, and
+  all-read baselines for shortcuts.
+- Run v9–v11 self-tests and offense reference checks. Any regression in
+  the older paths stops this candidate.
 
 ## Calibration and claim limit
 
-After a construct review and a passing model-free gate, freeze a new source
-commit, unused scored seeds, Cloudflare model settings, and a threshold of
-at most 7/36 exact with at least 30/36 valid rules. Run one excluded pilot
-then one fixed screen. Report exact batches, valid-rule accuracy, malicious
-recall, approved false alarms, proof-ID errors, grammar failures, and
-provider failures. This can support only an observed result on the synthetic
-F3 detection task; it does not certify enterprise deployment safety or
-transfer to real Kubernetes/AWS telemetry.
+After the model-free gate, freeze a new source commit, unused seeds, the
+exact Cloudflare GLM-5.3 request settings, and the user's threshold of at
+most 7/36 exact with at least 30/36 valid rules. Run one excluded pilot
+then one fixed screen. Report exact batches, accuracy among valid rules,
+malicious recall, approved-incident false alarms, proof-ID errors, format
+failures, and provider failures. These native counterfactuals strengthen
+construct validity but do **not** guarantee a GLM floor. The observed
+result can support only the named synthetic F3 detection task, not safe
+enterprise deployment or transfer to real Kubernetes/AWS telemetry.
