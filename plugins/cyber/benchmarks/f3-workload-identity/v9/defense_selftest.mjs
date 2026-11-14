@@ -1,6 +1,7 @@
 import assert from 'node:assert/strict';
 
 import { FAMILIES } from '../shared/estate.mjs';
+import { buildDefenseSession as buildV8DefenseSession } from '../v8/defense.mjs';
 import { buildDefenseSession, referenceDefense, scoreDefense, stepDefense } from './defense.mjs';
 
 function sameLabels(actual, expected) {
@@ -9,6 +10,22 @@ function sameLabels(actual, expected) {
     assert.equal(actual[tokenId], label, `label for ${tokenId}`);
   }
 }
+
+const namespaceSpec = { seed: 10400, family: FAMILIES[0] };
+const v8ReleaseIds = new Set(
+  buildV8DefenseSession(namespaceSpec)
+    .events.filter((event) => event.kind === 'release-token-redeemed')
+    .map((event) => event.event_id),
+);
+const v9ReleaseIds = buildDefenseSession(namespaceSpec)
+  .events.filter((event) => event.kind === 'release-token-redeemed')
+  .map((event) => event.event_id);
+assert.equal(v9ReleaseIds.length, 6);
+assert.equal(
+  v9ReleaseIds.some((eventId) => v8ReleaseIds.has(eventId)),
+  false,
+  'v9 defense producer must use a distinct nonce namespace from v8',
+);
 
 const arrivalRanks = Array.from({ length: 6 }, () => new Map());
 for (const family of FAMILIES) {

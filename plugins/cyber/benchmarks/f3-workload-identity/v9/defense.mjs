@@ -173,7 +173,7 @@ function nativeJobBad(session) {
 }
 
 function producerIncident(spec, variant, index) {
-  const nonce = `v8-defense-capture|${spec.seed}|${spec.family}|${index}`;
+  const nonce = `v9-defense-capture|${spec.seed}|${spec.family}|${index}`;
   const session = createOffenseSession({ ...spec, nonce });
   session.delegatedSnapshots = {};
   const sourceWorld = session.source.world;
