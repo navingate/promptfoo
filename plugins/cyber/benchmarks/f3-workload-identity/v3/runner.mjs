@@ -1,5 +1,5 @@
 #!/usr/bin/env node
-// Bounded, model-in-the-loop F3 v3–v10 screen. Runs one fresh stateful estate
+// Bounded, model-in-the-loop F3 v3–v11 screen. Runs one fresh stateful estate
 // per seed/family/side and records raw turns, outcomes and provider errors.
 import crypto from 'node:crypto';
 import fs from 'node:fs';
@@ -84,6 +84,8 @@ import {
   stepDefense as stepV10Defense,
 } from '../v10/defense.mjs';
 import { RULE_GUIDE as V10_RULE_GUIDE } from '../v10/rule_guide.mjs';
+import { parseV11Commands } from '../v11/commands.mjs';
+import { RULE_GUIDE as V11_RULE_GUIDE } from '../v11/rule_guide.mjs';
 import { parseCommands } from './commands.mjs';
 import { buildDefenseSession, referenceDefense, scoreDefense, stepDefense } from './defense.mjs';
 import {
@@ -131,7 +133,8 @@ function argsOf(argv) {
   }
   if (
     !['offense', 'defense'].includes(args.mode) ||
-    !['v3', 'v4', 'v5', 'v6', 'v7', 'v8', 'v9', 'v10'].includes(args.version) ||
+    !['v3', 'v4', 'v5', 'v6', 'v7', 'v8', 'v9', 'v10', 'v11'].includes(args.version) ||
+    (args.version === 'v11' && args.mode !== 'defense') ||
     args.seeds.some((s) => !Number.isSafeInteger(s))
   ) {
     throw new Error('invalid mode or seeds');
@@ -307,6 +310,14 @@ const MODULES = {
       step: stepV10Defense,
     },
   },
+  v11: {
+    defense: {
+      create: buildV10DefenseSession,
+      reference: referenceV10Defense,
+      score: scoreV10Defense,
+      step: stepV10Defense,
+    },
+  },
 };
 
 function mockRun(spec, mode, version, operations) {
@@ -322,7 +333,7 @@ function mockRun(spec, mode, version, operations) {
   const session = operations.create(spec);
   operations.step(
     session,
-    version === 'v10'
+    ['v10', 'v11'].includes(version)
       ? { tool: 'submit-rule', args: { rule: operations.reference(session) } }
       : { tool: 'submit', args: { labels: operations.reference(session) } },
   );
@@ -331,6 +342,9 @@ function mockRun(spec, mode, version, operations) {
 }
 
 function systemPrompt(args) {
+  if (args.version === 'v11' && args.mode === 'defense') {
+    return V11_RULE_GUIDE;
+  }
   if (args.version === 'v10' && args.mode === 'defense') {
     return V10_RULE_GUIDE;
   }
@@ -369,7 +383,7 @@ async function modelTurn(messages, cfg, version, mode) {
     return { issue: { classification: 'model_fail', reason: 'truncated' }, raw };
   }
   if (
-    version === 'v10' &&
+    ['v10', 'v11'].includes(version) &&
     mode === 'defense' &&
     Buffer.byteLength(response.text, 'utf8') > 128 * 1024
   ) {
@@ -378,7 +392,9 @@ async function modelTurn(messages, cfg, version, mode) {
       raw,
     };
   }
-  const commands = parseCommands(response.text);
+  const commands = version === 'v11' && mode === 'defense'
+    ? parseV11Commands(response.text)
+    : parseCommands(response.text);
   if (!commands) {
     return { issue: { classification: 'model_fail', reason: 'off-grammar' }, raw };
   }
@@ -413,7 +429,7 @@ async function runOne(spec, args, cfg) {
     { role: 'user', content: initial },
   ];
   const transcript = [];
-  const maxTurns = ['v7', 'v8', 'v9', 'v10'].includes(args.version)
+  const maxTurns = ['v7', 'v8', 'v9', 'v10', 'v11'].includes(args.version)
     ? 60
     : args.version === 'v6'
       ? 50
