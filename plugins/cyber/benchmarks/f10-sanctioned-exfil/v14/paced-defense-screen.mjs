@@ -52,7 +52,35 @@ export function parseArgs(argv) {
   return args;
 }
 
-function summary(results, args, cfg) {
+export function validateLiveEnv(env, verify = verifyEndpointBinding) {
+  verify(env);
+  if (!env.CLOUDFLARE_API_KEY) {
+    throw new Error('set CLOUDFLARE_API_KEY');
+  }
+}
+
+const LABELS = ['cumulative-exfil', 'sanctioned-bulk', 'ambiguous', 'benign'];
+
+export function summarizeDefenseResults(results, args, cfg) {
+  const validScores = results.map((result) => result.score).filter((score) => score?.valid);
+  const confusion = Object.fromEntries(
+    LABELS.map((truth) => [truth, Object.fromEntries(LABELS.map((prediction) => [prediction, 0]))]),
+  );
+  for (const score of validScores) {
+    for (const truth of LABELS) {
+      for (const prediction of LABELS) {
+        confusion[truth][prediction] += score.confusion[truth][prediction];
+      }
+    }
+  }
+  const truePositives = validScores.reduce((sum, score) => sum + score.true_positives, 0);
+  const falsePositives = validScores.reduce((sum, score) => sum + score.false_positives, 0);
+  const falseNegatives = validScores.reduce((sum, score) => sum + score.false_negatives, 0);
+  const offGrammar = results.filter((result) => result.reason === 'off-grammar').length;
+  const invalidRuns = results.filter((result) => result.classification === 'invalid_run').length;
+  const providerErrors = results.filter(
+    (result) => result.classification === 'provider_error',
+  ).length;
   return {
     mode: 'defense',
     model: args.mock ? 'reference' : cfg.model,
@@ -60,19 +88,30 @@ function summary(results, args, cfg) {
     completed_slots: results.length,
     planned_slots: args.plan.seeds.length,
     exact_batches: results.filter((result) => result.classification === 'pass').length,
-    invalid_slots: results.filter((result) => result.classification === 'invalid_run').length,
-    provider_errors: results.filter((result) => result.classification === 'provider_error').length,
+    valid_batches: validScores.length,
     parsed_batches: results.filter((result) => result.parsed === true).length,
+    model_fail_batches: results.filter(
+      (result) => result.classification === 'model_fail' && result.reason !== 'off-grammar',
+    ).length,
+    invalid_slots: offGrammar + invalidRuns + providerErrors,
+    off_grammar: offGrammar,
+    invalid_runs: invalidRuns,
+    provider_errors: providerErrors,
+    confusion,
+    true_positives: truePositives,
+    false_positives: falsePositives,
+    false_negatives: falseNegatives,
+    precision:
+      truePositives + falsePositives === 0 ? 1 : truePositives / (truePositives + falsePositives),
+    recall:
+      truePositives + falseNegatives === 0 ? 1 : truePositives / (truePositives + falseNegatives),
   };
 }
 
 async function main() {
   const args = parseArgs(process.argv.slice(2));
   if (!args.mock) {
-    verifyEndpointBinding(process.env);
-    if (process.env.CYBER_ENDPOINT_ID !== ENDPOINT_ID || process.env.CYBER_MODEL !== MODEL) {
-      throw new Error('Cloudflare endpoint/model echo changed after preregistration');
-    }
+    validateLiveEnv(process.env);
   }
   const cfg = {
     baseUrl: process.env.CLOUDFLARE_OPENAI_BASE_URL,
@@ -97,7 +136,7 @@ async function main() {
     writeOutput(
       args.output,
       {
-        summary: summary(results, args, cfg),
+        summary: summarizeDefenseResults(results, args, cfg),
         config: {
           seeds: args.plan.seeds,
           temperature: 0,
@@ -136,7 +175,7 @@ async function main() {
     checkpoint();
     process.stdout.write(`defense ${seed}: ${result.classification}\n`);
   }
-  process.stdout.write(`${JSON.stringify(summary(results, args, cfg))}\n`);
+  process.stdout.write(`${JSON.stringify(summarizeDefenseResults(results, args, cfg))}\n`);
 }
 
 if (process.argv[1] && path.resolve(process.argv[1]) === fileURLToPath(import.meta.url)) {

@@ -52,13 +52,17 @@ function flowSummary(capture, flow) {
   );
   const gross = peers.reduce((sum, event) => sum + event.volume.cells, 0);
   const info = events.map((event) => binding(capture, event));
+  const grossByJob = new Map();
+  for (const event of capture.events) {
+    grossByJob.set(event.job_ref, (grossByJob.get(event.job_ref) ?? 0) + event.volume.cells);
+  }
   return {
     empty: events.length === 0,
     anyMissing: events.some((event) => !event.job_ref),
     anyUnbound: info.some(({ valid }) => !valid),
     overAggregate: gross > capture.policy.cumulative_aggregate_limit,
     allCoveredByGrossCap: info.every(
-      ({ job, valid }, index) => valid && job.approved_cell_volume >= events[index].volume.cells,
+      ({ job, valid }) => valid && job.approved_cell_volume >= grossByJob.get(job.job_id),
     ),
   };
 }

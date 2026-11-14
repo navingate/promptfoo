@@ -1,31 +1,20 @@
-#!/usr/bin/env node
-// One frozen producer batch per seed. Raw model output goes only to an explicit local path.
+// Defense-case API and private output helpers; paced-defense-screen is the sole launcher.
 import assert from 'node:assert/strict';
 import crypto from 'node:crypto';
 import fs from 'node:fs';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 
-import { REQUEST_WALL_MS, RETRY_DELAYS_MS, requestChat } from '../v5/transport.mjs';
-import { ENDPOINT_ID, MODEL, verifyEndpointBinding } from '../v7/cloudflare-screen.mjs';
 import { loadBatch, serializeObservation } from './capture-consumer.mjs';
 import { CAPTURE_SEEDS } from './capture-producer.mjs';
 import { DEFENSE_PROMPT, referenceDefense, scoreDefense } from './defense.mjs';
 
-export const SCREEN_WALL_MS = 1200000;
 const defaultEvidenceDir = path.join(path.dirname(fileURLToPath(import.meta.url)), 'evidence');
 const hash = (value) => crypto.createHash('sha256').update(value).digest('hex');
 const worktreeRoot = path.resolve(defaultEvidenceDir, '../../../../../..');
 const marker = `${path.sep}.worktrees${path.sep}`;
 const markerIndex = worktreeRoot.indexOf(marker);
 const checkoutRoot = markerIndex < 0 ? worktreeRoot : worktreeRoot.slice(0, markerIndex);
-
-export function assertPinnedLiveConfig(env) {
-  if (env.CYBER_ENDPOINT_ID !== ENDPOINT_ID || env.CYBER_MODEL !== MODEL) {
-    throw new Error('Cloudflare endpoint/model echo changed after preregistration');
-  }
-  verifyEndpointBinding(env);
-}
 
 function within(parent, child) {
   const relative = path.relative(parent, child);
@@ -90,7 +79,7 @@ export function parseLabels(raw) {
   }
 }
 
-export async function runDefenseCase(seed, args, cfg, request = requestChat) {
+export async function runDefenseCase(seed, args, cfg, request) {
   if (!CAPTURE_SEEDS.slice(0, 12).includes(seed)) {
     throw new Error('unknown vendored F10 defense seed');
   }
@@ -109,6 +98,7 @@ export async function runDefenseCase(seed, args, cfg, request = requestChat) {
     const score = scoreDefense(batch, referenceDefense(batch));
     return { seed, classification: score.exact ? 'pass' : 'invalid_run', score, parsed: true };
   }
+  assert.equal(typeof request, 'function', 'live defense requires a paced request function');
   const messages = [
     { role: 'system', content: DEFENSE_PROMPT },
     { role: 'user', content: staged },
@@ -160,164 +150,4 @@ export async function runDefenseCase(seed, args, cfg, request = requestChat) {
     }
   }
   return { seed, classification: 'model_fail', reason: 'off-grammar', parsed: false, transcript };
-}
-
-function parseArgs(argv) {
-  const args = {
-    seeds: CAPTURE_SEEDS.slice(0, 12),
-    maxTokens: 8192,
-    timeoutMs: 300000,
-    mock: false,
-  };
-  for (let index = 0; index < argv.length; index += 1) {
-    const flag = argv[index];
-    if (flag === '--mock-reference') {
-      args.mock = true;
-    } else if (flag === '--resume') {
-      args.resume = true;
-    } else if (
-      ['--seeds', '--output', '--evidence-dir', '--max-tokens', '--timeout-ms'].includes(flag)
-    ) {
-      const value = argv[++index];
-      if (value === undefined) {
-        throw new Error(`missing value for ${flag}`);
-      }
-      if (flag === '--seeds') {
-        args.seeds = value.split(',').map(Number);
-      } else if (flag === '--output') {
-        args.output = value;
-      } else if (flag === '--evidence-dir') {
-        args.evidenceDir = path.resolve(value);
-      } else if (flag === '--max-tokens') {
-        args.maxTokens = Number(value);
-      } else {
-        args.timeoutMs = Number(value);
-      }
-    } else {
-      throw new Error(`unknown option ${flag}`);
-    }
-  }
-  if (
-    args.seeds.length === 0 ||
-    new Set(args.seeds).size !== args.seeds.length ||
-    args.seeds.some((seed) => !CAPTURE_SEEDS.slice(0, 12).includes(seed)) ||
-    !Number.isInteger(args.maxTokens) ||
-    args.maxTokens < 1 ||
-    !Number.isInteger(args.timeoutMs) ||
-    args.timeoutMs < 1
-  ) {
-    throw new Error('invalid defense seeds or request budget');
-  }
-  if (args.resume && !args.output) {
-    throw new Error('--resume requires --output');
-  }
-  if (args.output) {
-    assertSafeOutputPath(args.output);
-  }
-  return args;
-}
-
-function summarize(results, args, cfg) {
-  const requests = results.flatMap((result) => [
-    ...(result.transcript ?? []).map((turn) => turn.transport).filter(Boolean),
-    ...(result.transport ? [result.transport] : []),
-  ]);
-  return {
-    mode: 'defense',
-    model: args.mock ? 'reference' : cfg.model,
-    endpoint_id: args.mock ? 'local-reference' : cfg.endpointId,
-    total: results.length,
-    pass: results.filter((result) => result.classification === 'pass').length,
-    model_fail: results.filter((result) => result.classification === 'model_fail').length,
-    provider_error: results.filter((result) => result.classification === 'provider_error').length,
-    invalid_run: results.filter((result) => result.classification === 'invalid_run').length,
-    off_grammar: results.filter((result) => result.reason === 'off-grammar').length,
-    parsed_defense_batches: results.filter((result) => result.parsed === true).length,
-    transport_retried_requests: requests.filter((request) => request.attempts > 1).length,
-    transient_error_events: requests.reduce(
-      (sum, request) => sum + request.transient_errors.length,
-      0,
-    ),
-  };
-}
-
-function captureOutput(results, args, cfg) {
-  const evidenceDir = args.evidenceDir ?? defaultEvidenceDir;
-  return {
-    summary: summarize(results, args, cfg),
-    config: {
-      seeds: args.seeds,
-      max_tokens: cfg.maxTokens,
-      timeout_ms: cfg.timeoutMs,
-      concurrency: 1,
-      temperature: 0,
-      request_retry_delays_ms: RETRY_DELAYS_MS,
-      request_wall_ms: REQUEST_WALL_MS,
-      screen_wall_ms: SCREEN_WALL_MS,
-      observation_manifest_sha256: hash(
-        fs.readFileSync(path.join(evidenceDir, 'observation-manifest.json')),
-      ),
-    },
-    results,
-  };
-}
-
-function previousResults(args, cfg) {
-  if (!args.resume) {
-    if (args.output && fs.existsSync(args.output)) {
-      throw new Error('raw defense output already exists; use --resume to retain prior outcomes');
-    }
-    return [];
-  }
-  const prior = JSON.parse(fs.readFileSync(assertSafeOutputPath(args.output), 'utf8'));
-  const expected = captureOutput([], args, cfg);
-  assert.deepEqual(prior.config, expected.config, 'resume config changed');
-  assert.equal(prior.summary.model, expected.summary.model, 'resume model changed');
-  assert.equal(prior.summary.endpoint_id, expected.summary.endpoint_id, 'resume endpoint changed');
-  assert.ok(prior.results.length <= args.seeds.length, 'too many prior cases');
-  for (let index = 0; index < prior.results.length; index += 1) {
-    assert.equal(prior.results[index].seed, args.seeds[index], 'resume seed sequence changed');
-  }
-  assert.deepEqual(prior.summary, summarize(prior.results, args, cfg), 'resume summary mismatch');
-  return prior.results;
-}
-
-async function main() {
-  const args = parseArgs(process.argv.slice(2));
-  if (!args.mock) {
-    assertPinnedLiveConfig(process.env);
-  }
-  const cfg = {
-    baseUrl: process.env.CLOUDFLARE_OPENAI_BASE_URL,
-    endpointId: process.env.CYBER_ENDPOINT_ID,
-    model: process.env.CYBER_MODEL,
-    apiKey: process.env.CLOUDFLARE_API_KEY,
-    maxTokens: args.maxTokens,
-    timeoutMs: args.timeoutMs,
-    screenDeadlineMs: Date.now() + SCREEN_WALL_MS,
-  };
-  if (!args.mock && (!cfg.baseUrl || !cfg.endpointId || !cfg.model || !cfg.apiKey)) {
-    throw new Error(
-      'set CYBER_SUT_ENDPOINT, CYBER_ENDPOINT_ID, CYBER_MODEL, and a gateway API key',
-    );
-  }
-  const results = previousResults(args, cfg);
-  for (const seed of args.seeds.slice(results.length)) {
-    const result = await runDefenseCase(seed, args, cfg);
-    results.push(result);
-    if (args.output) {
-      writeOutput(args.output, captureOutput(results, args, cfg), { replaceExisting: true });
-    }
-    process.stdout.write(
-      `defense ${seed}: ${result.classification}${result.reason ? ` (${result.reason})` : ''}\n`,
-    );
-  }
-  process.stdout.write(`${JSON.stringify(summarize(results, args, cfg))}\n`);
-}
-
-if (process.argv[1] && path.resolve(process.argv[1]) === fileURLToPath(import.meta.url)) {
-  main().catch((error) => {
-    process.stderr.write(`${error.message}\n`);
-    process.exitCode = 1;
-  });
 }

@@ -56,3 +56,18 @@ test('all shortcut controls return one four-class label per completed flow', () 
   }
   assert.throws(() => shortcutLabels({ captures }, 'unknown'), /unknown defense shortcut/u);
 });
+
+test('composite counts gross cells across events citing one job', () => {
+  const capture = produceCase(14001, 'bound-bulk', {
+    nonce: 'gross-cap',
+    captureNonce: 'gross-cap',
+  }).visible;
+  const job = capture.job_registry.find((item) => item.job_id === capture.events[0].job_ref);
+  job.approved_cell_volume = 40;
+  assert.ok(capture.events.every((event) => event.volume.cells <= 40));
+  assert.ok(capture.events.reduce((sum, event) => sum + event.volume.cells, 0) > 40);
+  assert.deepEqual(Object.values(shortcutLabels({ captures: [capture] }, 'profile-cap-gross')), [
+    'cumulative-exfil',
+    'cumulative-exfil',
+  ]);
+});
