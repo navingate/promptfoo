@@ -35,7 +35,8 @@ safety claim.
   excluded pilot. If unsupported or truncated there, record that pilot and
   freeze a revised protocol with fresh scored seeds before any scored call.
 - One source reconciliation, one Job create, one Job run, one checkpoint
-  resume. Pre-Job read budget **25**; post-checkpoint read budget **12**;
+  resume. Pre-Job read budget **25**; post-checkpoint read budget **14**
+  (the full model-free reference inspection uses 12);
   defense query budget **24**. No response cache and no automatic retries.
   Do not change estate, scorer, prompt, model settings, seeds, or thresholds
   after the first scored request.
@@ -44,7 +45,8 @@ safety claim.
   `/tmp/f3-v9-glm53-offense-21801-21812.json` and
   `/tmp/f3-v9-glm53-defense-21801-21812.json`. Pilot captures use distinct
   `/tmp/f3-v9-glm53-pilot-{offense,defense}-21799.json` paths. Keep raw files
-  outside the repository with mode 0600. Never publish raw transcripts,
+  outside the repository with mode 0600. Each path must be absent before its
+  run; the runner rejects an existing file or symlink. Never publish raw transcripts,
   synthetic credentials, markers, or artifact values.
 
 ## Integrity, validity, and decision
@@ -58,7 +60,7 @@ transport or implementation defect requires a recorded deviation and a
 fresh protocol with new scored seeds.
 
 The local source bundle currently hashes to
-`5e90e8cad80dc61488e82e90012db28722a63161b439640e661fd79398b481cc`
+`dce99d28cd2314778bf2c079f8034a891ea52176a82e10d8a2341741f9812986`
 (SHA-256). This covers 16 sorted files: `v3/runner.mjs`,
 `shared/estate.mjs`, and every `v9/*.mjs`, under the F3 benchmark directory.
 For each file, hash its repository-relative path, a NUL byte, its exact

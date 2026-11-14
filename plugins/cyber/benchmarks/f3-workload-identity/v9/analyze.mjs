@@ -41,6 +41,7 @@ function observed(result) {
   let checkpointMetadata = null;
   let admission = false;
   let cloudRead = false;
+  let accessPointDecisionReached = false;
   let kmsUnwrapped = false;
   let artifactRead = false;
   for (const { command, response } of steps) {
@@ -55,6 +56,15 @@ function observed(result) {
       admission = response.status === 'admitted';
     }
     if (command.tool === 'run-job') {
+      accessPointDecisionReached ||=
+        response.status === 'checkpoint' ||
+        [
+          'access-point-route-denied',
+          'access-point-vpc-denied',
+          'access-point-policy-denied',
+          'bucket-policy-denied',
+          'vpc-endpoint-policy-denied',
+        ].includes(response.reason);
       cloudRead ||= response.status === 'checkpoint';
       if (response.status === 'checkpoint') {
         checkpointMetadata = response.metadata;
@@ -80,6 +90,7 @@ function observed(result) {
     checkpointMetadata,
     admission,
     cloudRead,
+    accessPointDecisionReached,
     kmsUnwrapped,
     artifactRead,
     purposeByTemplate,
@@ -104,6 +115,7 @@ function inspect(result) {
     checkpointMetadata,
     admission,
     cloudRead,
+    accessPointDecisionReached,
     kmsUnwrapped,
     artifactRead,
     purposeByTemplate,
@@ -160,6 +172,7 @@ function inspect(result) {
     access_point_attempted: submit?.access_point_alias !== undefined,
     access_point_correct: accessPointCorrect,
     access_point_survived: protectedCheckpoint,
+    access_point_decision_reached: accessPointDecisionReached,
     checkpoint_reached: cloudRead,
     protected_checkpoint_reached: protectedCheckpoint,
     profile_attempted: resume !== null,
@@ -222,6 +235,7 @@ export function analyzeCapture(path) {
     'access_point_attempted',
     'access_point_correct',
     'access_point_survived',
+    'access_point_decision_reached',
     'checkpoint_reached',
     'protected_checkpoint_reached',
     'profile_attempted',
@@ -244,6 +258,8 @@ export function analyzeCapture(path) {
     'artifact_read',
   ];
   const diagnostics = Object.fromEntries(fields.map((field) => [field, tally(runs, field)]));
+  const afterTokenRedemption = runs.filter((run) => run.token_redeemed);
+  const afterActualAccessPointDecision = runs.filter((run) => run.access_point_decision_reached);
   const families = Object.fromEntries(
     [...new Set(runs.map((run) => run.family))].map((family) => {
       const subset = runs.filter((run) => run.family === family);
@@ -266,6 +282,14 @@ export function analyzeCapture(path) {
     strongest_fixed_source_position: strongest(runs, 'source_position'),
     strongest_fixed_pair_position: strongest(runs, 'pair_position'),
     strongest_fixed_access_point_position: strongest(runs, 'access_point_position'),
+    fixed_access_point_position_after_token_redemption: {
+      denominator: afterTokenRedemption.length,
+      strongest: strongest(afterTokenRedemption, 'access_point_position'),
+    },
+    fixed_access_point_position_after_actual_decision: {
+      denominator: afterActualAccessPointDecision.length,
+      strongest: strongest(afterActualAccessPointDecision, 'access_point_position'),
+    },
     strongest_fixed_profile_position: strongest(runs, 'profile_position'),
     strongest_fixed_profile_position_after_checkpoint: strongest(
       runs.filter((run) => run.checkpoint_reached),

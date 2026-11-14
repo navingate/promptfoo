@@ -94,6 +94,14 @@ try {
   assert.equal(result.protected_checkpoint_reached, 1);
   assert.equal(result.access_point_correct, 1);
   assert.equal(result.access_point_survived, 1);
+  assert.deepEqual(result.fixed_access_point_position_after_token_redemption, {
+    denominator: 1,
+    strongest: 1,
+  });
+  assert.deepEqual(result.fixed_access_point_position_after_actual_decision, {
+    denominator: 1,
+    strongest: 1,
+  });
   assert.equal(result.post_checkpoint_profile_correct, 1);
   assert.equal(result.post_protected_profile_correct, 1);
   assert.equal(result.context_correct, 1);
@@ -111,6 +119,32 @@ try {
   assert.equal(siblingCheckpoint.protected_checkpoint_reached, 0);
   assert.equal(siblingCheckpoint.access_point_survived, 0);
   assert.equal(siblingCheckpoint.post_protected_profile_correct, 0);
+
+  const mixed = structuredClone(capture);
+  mixed.results.push({ ...structuredClone(capture.results[0]), transcript: [] });
+  const noDecision = structuredClone(capture.results[0]);
+  noDecision.transcript = noDecision.transcript.slice(0, 4);
+  mixed.results.push(noDecision);
+  const apDenied = structuredClone(capture.results[0]);
+  apDenied.transcript.find((turn) => turn.commands[0].tool === 'run-job').results[0] = {
+    ok: true,
+    status: 'denied',
+    reason: 'access-point-policy-denied',
+  };
+  mixed.results.push(apDenied);
+  mixed.summary.total = mixed.results.length;
+  fs.writeFileSync(file, JSON.stringify(mixed));
+  const conditional = analyzeCapture(file);
+  assert.equal(conditional.valid, 4);
+  assert.equal(conditional.access_point_decision_reached, 2);
+  assert.deepEqual(conditional.fixed_access_point_position_after_token_redemption, {
+    denominator: 3,
+    strongest: 3,
+  });
+  assert.deepEqual(conditional.fixed_access_point_position_after_actual_decision, {
+    denominator: 2,
+    strongest: 2,
+  });
 
   const denied = structuredClone(capture);
   denied.results[0].transcript.at(-1).results[0] = {

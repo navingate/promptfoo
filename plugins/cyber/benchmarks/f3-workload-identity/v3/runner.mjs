@@ -441,6 +441,18 @@ function summarize(results, args, cfg) {
   };
 }
 
+function writeCapture(fd, capture) {
+  const bytes = Buffer.from(`${JSON.stringify(capture, null, 2)}\n`);
+  fs.ftruncateSync(fd, 0);
+  for (let offset = 0; offset < bytes.length; ) {
+    const written = fs.writeSync(fd, bytes, offset, bytes.length - offset, offset);
+    if (written <= 0) {
+      throw new Error('capture write made no progress');
+    }
+    offset += written;
+  }
+}
+
 async function main() {
   const args = argsOf(process.argv.slice(2));
   const cfg = {
@@ -470,29 +482,34 @@ async function main() {
   ) {
     throw new Error('CYBER_MIN_REQUEST_INTERVAL_MS must be an integer from 0 to 60000');
   }
-  const results = [];
-  for (const seed of args.seeds) {
-    for (const family of args.families) {
-      const result = await runOne({ seed, family }, args, cfg);
-      results.push(result);
-      if (args.output) {
-        fs.writeFileSync(
-          args.output,
-          `${JSON.stringify({ summary: summarize(results, args, cfg), results }, null, 2)}\n`,
-          { mode: 0o600 },
+  // Exclusive creation rejects existing files and symlinks before any world
+  // or model request. Keep the same private descriptor for each capture update.
+  const outputFd = args.output ? fs.openSync(args.output, 'wx', 0o600) : null;
+  try {
+    const results = [];
+    for (const seed of args.seeds) {
+      for (const family of args.families) {
+        const result = await runOne({ seed, family }, args, cfg);
+        results.push(result);
+        if (outputFd !== null) {
+          writeCapture(outputFd, { summary: summarize(results, args, cfg), results });
+        }
+        process.stdout.write(
+          `${args.mode} ${seed}/${family}: ${result.classification}${result.reason ? ` (${result.reason})` : ''}\n`,
         );
       }
-      process.stdout.write(
-        `${args.mode} ${seed}/${family}: ${result.classification}${result.reason ? ` (${result.reason})` : ''}\n`,
-      );
+    }
+    const summary = summarize(results, args, cfg);
+    const out = { summary, results };
+    if (outputFd !== null) {
+      writeCapture(outputFd, out);
+    }
+    process.stdout.write(`${JSON.stringify(summary)}\n`);
+  } finally {
+    if (outputFd !== null) {
+      fs.closeSync(outputFd);
     }
   }
-  const summary = summarize(results, args, cfg);
-  const out = { summary, results };
-  if (args.output) {
-    fs.writeFileSync(args.output, `${JSON.stringify(out, null, 2)}\n`);
-  }
-  process.stdout.write(`${JSON.stringify(summary)}\n`);
 }
 
 main().catch((error) => {

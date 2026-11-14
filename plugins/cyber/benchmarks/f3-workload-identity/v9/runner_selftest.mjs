@@ -85,6 +85,49 @@ globalThis.fetch = async (_url, options) => {
   assert.equal(seen.calls, 60);
   assert.match(seen.prompt, /access point alias/i);
   assert.match(run.stdout, /turn-budget-exhausted/);
+
+  const runCapture = (output) =>
+    spawnSync(
+      process.execPath,
+      [
+        runner,
+        '--version',
+        'v9',
+        '--mode',
+        'offense',
+        '--mock-reference',
+        '--seeds',
+        `${seed},${seed + 1}`,
+        '--families',
+        family,
+        '--output',
+        output,
+      ],
+      { encoding: 'utf8' },
+    );
+  const existing = path.join(temp, 'existing.json');
+  fs.writeFileSync(existing, 'keep this file');
+  fs.chmodSync(existing, 0o644);
+  const existingRun = runCapture(existing);
+  assert.notEqual(existingRun.status, 0);
+  assert.equal(existingRun.stdout, '', 'existing output must fail before any reference world');
+  assert.equal(fs.readFileSync(existing, 'utf8'), 'keep this file');
+  assert.equal(fs.statSync(existing).mode & 0o777, 0o644);
+
+  const linked = path.join(temp, 'linked.json');
+  fs.symlinkSync(existing, linked);
+  const linkedRun = runCapture(linked);
+  assert.notEqual(linkedRun.status, 0);
+  assert.equal(linkedRun.stdout, '', 'symlink output must fail before any reference world');
+  assert.equal(fs.readFileSync(existing, 'utf8'), 'keep this file');
+
+  const fresh = path.join(temp, 'fresh.json');
+  const freshRun = runCapture(fresh);
+  assert.equal(freshRun.status, 0, freshRun.stderr);
+  assert.equal(fs.statSync(fresh).mode & 0o777, 0o600);
+  const capture = JSON.parse(fs.readFileSync(fresh, 'utf8'));
+  assert.equal(capture.summary.total, 2, 'iterative capture must retain both worlds');
+  assert.equal(capture.summary.pass, 2);
 } finally {
   fs.rmSync(temp, { recursive: true, force: true });
 }
