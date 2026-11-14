@@ -55,7 +55,7 @@ function outputPath(value) {
   ) {
     throw new Error('private output must be outside the repository');
   }
-  return target;
+  return realTarget;
 }
 
 export function readFrozenCorpus(
@@ -261,6 +261,20 @@ export async function requestSql(config, request = fetch) {
   };
 }
 
+function writePrivateRecord(fd, record) {
+  const bytes = Buffer.from(`${JSON.stringify(record, null, 2)}\n`);
+  let written = 0;
+  while (written < bytes.length) {
+    const count = fs.writeSync(fd, bytes, written, bytes.length - written, written);
+    if (count < 1) {
+      throw new Error('private output write failed');
+    }
+    written += count;
+  }
+  fs.ftruncateSync(fd, bytes.length);
+  fs.fsyncSync(fd);
+}
+
 export async function runScreen(options = {}) {
   if (!options.mock && options.slotAssigned !== true) {
     throw new Error('live F4 v10 screen requires an assigned Cloudflare slot');
@@ -269,111 +283,117 @@ export async function runScreen(options = {}) {
   if (options.mock && typeof options.request !== 'function') {
     throw new Error('mock screen requires injected request');
   }
-  let preflight;
+  // Reserve the private path before any preflight or provider work.
+  const outputFd = fs.openSync(target, 'wx', 0o600);
   try {
-    preflight = await (options.preflight ?? preflightSqlExecutor)();
-  } catch (error) {
-    const result = {
-      screen_id: 'f4-detection-rule-v10-glm53-low16',
-      model: MODEL_ID,
-      endpoint_id: ENDPOINT_ID,
-      transport_attempts: 0,
-      submission: null,
-      score: {
-        classification: 'executor_fail',
-        reason: `preflight: ${String(error?.message ?? error)}`,
-      },
-    };
-    fs.writeFileSync(target, `${JSON.stringify(result, null, 2)}\n`, { mode: 0o600, flag: 'wx' });
-    return result;
-  }
-  let corpus;
-  try {
-    corpus = (options.loadCorpus ?? readFrozenCorpus)();
-    if (corpus.batches.length !== 36 || corpus.keys.length !== 36) {
-      throw new Error('frozen corpus grid mismatch');
+    let preflight;
+    try {
+      preflight = await (options.preflight ?? preflightSqlExecutor)();
+    } catch (error) {
+      const result = {
+        screen_id: 'f4-detection-rule-v10-glm53-low16',
+        model: MODEL_ID,
+        endpoint_id: ENDPOINT_ID,
+        transport_attempts: 0,
+        submission: null,
+        score: {
+          classification: 'executor_fail',
+          reason: `preflight: ${String(error?.message ?? error)}`,
+        },
+      };
+      writePrivateRecord(outputFd, result);
+      return result;
     }
-    corpus.projected = corpus.batches.map(projectBatch);
-    corpus.controls = (options.makeControls ?? makeProjectedControls)(corpus.batches);
-    if (!Array.isArray(corpus.controls) || corpus.controls.length !== 16) {
-      throw new Error('projected control grid mismatch');
+    let corpus;
+    try {
+      corpus = (options.loadCorpus ?? readFrozenCorpus)();
+      if (corpus.batches.length !== 36 || corpus.keys.length !== 36) {
+        throw new Error('frozen corpus grid mismatch');
+      }
+      corpus.projected = corpus.batches.map(projectBatch);
+      corpus.controls = (options.makeControls ?? makeProjectedControls)(corpus.batches);
+      if (!Array.isArray(corpus.controls) || corpus.controls.length !== 16) {
+        throw new Error('projected control grid mismatch');
+      }
+    } catch (error) {
+      const result = {
+        screen_id: 'f4-detection-rule-v10-glm53-low16',
+        model: MODEL_ID,
+        endpoint_id: ENDPOINT_ID,
+        transport_attempts: 0,
+        submission: null,
+        score: {
+          classification: 'executor_fail',
+          reason: `corpus readiness: ${String(error?.message ?? error)}`,
+        },
+      };
+      writePrivateRecord(outputFd, result);
+      return result;
     }
-  } catch (error) {
-    const result = {
+    let config;
+    try {
+      config = options.mock
+        ? { endpoint: 'https://mock.invalid', apiKey: 'mock' }
+        : cloudflareConfig(options.env);
+    } catch (error) {
+      const result = {
+        screen_id: 'f4-detection-rule-v10-glm53-low16',
+        model: MODEL_ID,
+        endpoint_id: ENDPOINT_ID,
+        transport_attempts: 0,
+        preflight,
+        submission: {
+          classification: 'provider_error',
+          reason: String(error?.message ?? error),
+        },
+        score: null,
+      };
+      writePrivateRecord(outputFd, result);
+      return result;
+    }
+    if (!options.mock) {
+      const pace = options.pace ?? ((ms) => new Promise((resolve) => setTimeout(resolve, ms)));
+      await pace(REQUEST_GAP_MS);
+    }
+    const submission = await requestSql(config, options.request);
+    const record = {
       screen_id: 'f4-detection-rule-v10-glm53-low16',
       model: MODEL_ID,
       endpoint_id: ENDPOINT_ID,
-      transport_attempts: 0,
-      submission: null,
-      score: {
-        classification: 'executor_fail',
-        reason: `corpus readiness: ${String(error?.message ?? error)}`,
-      },
-    };
-    fs.writeFileSync(target, `${JSON.stringify(result, null, 2)}\n`, { mode: 0o600, flag: 'wx' });
-    return result;
-  }
-  let config;
-  try {
-    config = options.mock
-      ? { endpoint: 'https://mock.invalid', apiKey: 'mock' }
-      : cloudflareConfig(options.env);
-  } catch (error) {
-    const result = {
-      screen_id: 'f4-detection-rule-v10-glm53-low16',
-      model: MODEL_ID,
-      endpoint_id: ENDPOINT_ID,
-      transport_attempts: 0,
+      transport_attempts: 1,
       preflight,
-      submission: {
-        classification: 'provider_error',
-        reason: String(error?.message ?? error),
-      },
+      submission,
       score: null,
     };
-    fs.writeFileSync(target, `${JSON.stringify(result, null, 2)}\n`, { mode: 0o600, flag: 'wx' });
-    return result;
-  }
-  if (!options.mock) {
-    const pace = options.pace ?? ((ms) => new Promise((resolve) => setTimeout(resolve, ms)));
-    await pace(REQUEST_GAP_MS);
-  }
-  const submission = await requestSql(config, options.request);
-  const record = {
-    screen_id: 'f4-detection-rule-v10-glm53-low16',
-    model: MODEL_ID,
-    endpoint_id: ENDPOINT_ID,
-    transport_attempts: 1,
-    preflight,
-    submission,
-    score: null,
-  };
-  fs.writeFileSync(target, `${JSON.stringify(record, null, 2)}\n`, { mode: 0o600, flag: 'wx' });
-  if (submission.classification !== 'submitted') {
-    return record;
-  }
-  // The private record above freezes the exact model response before executing SQL.
-  try {
-    const alerts = await (options.execute ?? executeSqlCorpus)({
-      sql: submission.sql,
-      batches: corpus.projected,
-      protectedScope: PROTECTED_SCOPE,
-    });
-    record.score = scoreAlerts(corpus.batches, corpus.keys, alerts);
-    const controlAlerts = await (options.execute ?? executeSqlCorpus)({
-      sql: submission.sql,
-      batches: corpus.controls.map((control) => control.tables),
-      protectedScope: PROTECTED_SCOPE,
-    });
-    record.score.projected_controls = scoreProjectedControls(corpus.controls, controlAlerts);
-    if (!record.score.projected_controls.pass) {
-      record.score.classification = 'model_fail';
+    writePrivateRecord(outputFd, record);
+    if (submission.classification !== 'submitted') {
+      return record;
     }
-  } catch (error) {
-    record.score = { classification: 'executor_fail', reason: String(error?.message ?? error) };
+    // The private record above freezes the exact model response before executing SQL.
+    try {
+      const alerts = await (options.execute ?? executeSqlCorpus)({
+        sql: submission.sql,
+        batches: corpus.projected,
+        protectedScope: PROTECTED_SCOPE,
+      });
+      record.score = scoreAlerts(corpus.batches, corpus.keys, alerts);
+      const controlAlerts = await (options.execute ?? executeSqlCorpus)({
+        sql: submission.sql,
+        batches: corpus.controls.map((control) => control.tables),
+        protectedScope: PROTECTED_SCOPE,
+      });
+      record.score.projected_controls = scoreProjectedControls(corpus.controls, controlAlerts);
+      if (!record.score.projected_controls.pass) {
+        record.score.classification = 'model_fail';
+      }
+    } catch (error) {
+      record.score = { classification: 'executor_fail', reason: String(error?.message ?? error) };
+    }
+    writePrivateRecord(outputFd, record);
+    return record;
+  } finally {
+    fs.closeSync(outputFd);
   }
-  fs.writeFileSync(target, `${JSON.stringify(record, null, 2)}\n`, { mode: 0o600 });
-  return record;
 }
 
 if (process.argv[1] && path.resolve(process.argv[1]) === fileURLToPath(import.meta.url)) {

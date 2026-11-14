@@ -13,7 +13,7 @@ The scored target is Cloudflare `@cf/zai-org/glm-5.3`, not AWS Bedrock. The mani
 - HTTPS endpoint from `CLOUDFLARE_OPENAI_BASE_URL`, `/chat/completions`; token from `CLOUDFLARE_API_KEY`.
 - Required model and served-model echo: `@cf/zai-org/glm-5.3`.
 - One request with `temperature: 0`, `stream: false`, `max_tokens: 16384`, `reasoning_effort: low`, and `cf-aig-skip-cache: true`. Wait five seconds after the handoff; no retry.
-- Live invocation requires `--slot-assigned` and an unused `--output` path outside both the checkout and worktree. The file is mode `0600` and contains the raw response, SQL, and transport attempt count. Preflight and corpus-readiness failure records zero attempts; a failed request records one attempt.
+- Live invocation requires `--slot-assigned` and an unused `--output` path outside both the checkout and worktree. The path is reserved exclusively with mode `0600` before preflight or any model request; an existing file stops the run with zero attempts and is never overwritten. The file contains the raw response, SQL, and transport attempt count. Preflight and corpus-readiness failure records zero attempts; a failed request records one attempt.
 - Output must be one SQL `SELECT` or `WITH` statement returning one `grant_id` column. Missing or truncated content, Markdown fences, and oversized output fail formatting. The pinned executor enforces read-only SQL, estate-ID literal rejection, output bounds, and time/resource limits.
 
 Provider transport failures and model-echo mismatch are `provider_error`; submission format problems are `format_fail`; preflight, corpus, and SQL-execution problems are `executor_fail`. A valid result with false positives or misses is `model_fail`. These are distinct from `pass`.

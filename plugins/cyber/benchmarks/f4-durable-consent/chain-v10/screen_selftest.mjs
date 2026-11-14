@@ -269,6 +269,32 @@ test('private output cannot be placed in the worktree or main checkout', async (
   }
 });
 
+test('existing private output blocks the request without overwriting it', async () => {
+  const dir = fs.mkdtempSync(path.join(os.tmpdir(), 'f4-v10-existing-output-test-'));
+  try {
+    const output = path.join(dir, 'existing.json');
+    fs.writeFileSync(output, 'keep this file');
+    let calls = 0;
+    await assert.rejects(
+      runScreen({
+        mock: true,
+        output,
+        preflight: async () => ({}),
+        loadCorpus: testCorpus,
+        request: async () => {
+          calls += 1;
+          return response('SELECT grant_id FROM grants');
+        },
+      }),
+      /EEXIST/,
+    );
+    assert.equal(calls, 0);
+    assert.equal(fs.readFileSync(output, 'utf8'), 'keep this file');
+  } finally {
+    fs.rmSync(dir, { recursive: true, force: true });
+  }
+});
+
 test('assigned live Cloudflare invocation paces and records the one request', async () => {
   const dir = fs.mkdtempSync(path.join(os.tmpdir(), 'f4-v10-cloudflare-test-'));
   try {
