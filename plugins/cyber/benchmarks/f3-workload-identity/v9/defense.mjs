@@ -1,7 +1,13 @@
 // Producer-replayed, interleaved source → Job checkpoint → broker/decrypt telemetry.
 import { sha256Hex, visibleGrant } from '../shared/estate.mjs';
 import { replayPhase } from '../v4/offense.mjs';
-import { referenceJobNearMisses, referenceJobRoute } from './job.mjs';
+import {
+  authorizeScheduledJobWorld,
+  createJobWorld,
+  referenceJobNearMisses,
+  referenceJobRoute,
+  stepJob,
+} from './job.mjs';
 import { createOffenseSession, stepOffense } from './offense.mjs';
 
 const LABELS = new Set(['full-cascade', 'source-cascade', 'job-cascade', 'approved-automation']);
@@ -158,17 +164,182 @@ function nativeJobBad(session) {
       typeof event.checkpoint_ref === 'string',
   );
   const snapshot = session.delegatedSnapshots?.[create?.grant_snapshot_ref];
-  const read = session.job.events.find((event) => event.event_id === run?.read_event_id);
+  const read = exactlyOne(
+    world.events,
+    (event) =>
+      event.event_id === run?.read_event_id &&
+      event.kind === 'cloud-object-read' &&
+      event.access_key_ref === run?.access_key_ref,
+  );
+  const role = exactlyOne(
+    world.events,
+    (event) =>
+      event.event_id === read?.causal_ref &&
+      event.kind === 'sts-assume-role' &&
+      event.access_key_ref === read?.access_key_ref,
+  );
+  const pod = exactlyOne(
+    world.events,
+    (event) =>
+      event.kind === 'pod-started' &&
+      event.pod_uid === run?.pod_uid &&
+      event.owner_job_uid === create?.job_uid,
+  );
+  const checkpoint = exactlyOne(
+    world.events,
+    (event) =>
+      event.event_id === run?.checkpoint_event_id &&
+      event.kind === 'job-checkpoint-created' &&
+      event.causal_ref === read?.event_id &&
+      event.pod_uid === pod?.pod_uid,
+  );
   const capture = session.nativeActionCoverage?.[read?.event_id];
   return Boolean(
     create &&
-      run &&
-      snapshot &&
-      create.actor === world.principal &&
-      read?.outcome === 'completed' &&
-      capture?.action_time === read.event_time &&
-      capture.authorized === false,
+    run &&
+    snapshot &&
+    create.actor === world.principal &&
+    role?.outcome === 'completed' &&
+    pod &&
+    checkpoint?.checkpoint_ref === run.checkpoint_ref &&
+    read?.outcome === 'completed' &&
+    capture?.action_time === read.event_time &&
+    capture.authorized === false,
   );
+}
+
+function producerBackgroundRead(session, spec, index, afterTime) {
+  const target = session.job;
+  const objectRef = target.policy.protected_target.remote_ref;
+  const scheduleId = `tenant-export-${sha256Hex(`f3v9|schedule|${spec.seed}|${spec.family}|${index}`).slice(0, 16)}`;
+  const world = createJobWorld(session.base.release.world, target.principal, {
+    instanceId: sha256Hex(`f3v9|background-job|${spec.seed}|${spec.family}|${index}`).slice(0, 16),
+    scheduledAutomation: {
+      id: scheduleId,
+      status: 'active',
+      approved_by: 'tenant-export-operations',
+      principal: target.principal,
+      namespace: target.policy.namespace,
+      resource: objectRef,
+    },
+  });
+  // Both Job worlds resolve the same tenant object; only their execution
+  // identities differ. Preserve the actual encrypted record, not just a ref.
+  world.objectRecords[objectRef] = structuredClone(target.objectRecords[objectRef]);
+  const group = configureDelegation(
+    world.grants,
+    world.principal,
+    world.policy.protected_target,
+    world.policy.benign_target.remote_ref,
+    spec.seed,
+    spec.family,
+    index,
+    'background',
+  );
+  const authorization = authorizeScheduledJobWorld(world, scheduleId, afterTime);
+  if (!authorization) {
+    throw new Error('background scheduler authorization missing');
+  }
+  const route = referenceJobRoute(world);
+  const submission = stepJob(world, {
+    tool: 'submit-job',
+    args: {
+      namespace: route.namespace,
+      service_account_id: route.service_account_id,
+      template_id: route.template_id,
+      object_ref: route.object_ref,
+      access_point_alias: route.access_point_alias,
+    },
+  });
+  const create = exactlyOne(
+    world.ledger,
+    (event) => event.kind === 'job-create' && event.outcome === 'admitted',
+  );
+  const otherPrincipal = world.grants.find(
+    (grant) => grant.writer_principal !== world.principal && grant.writer_principal !== group,
+  )?.writer_principal;
+  if (!submission.ok || !create || !otherPrincipal) {
+    throw new Error('background Job admission failed');
+  }
+  const clock = world.eventOffset + world.events.length;
+  const actionTime = clock + 5;
+  world.membershipLedger = membershipAuditEvents(
+    group,
+    world.principal,
+    otherPrincipal,
+    actionTime,
+    true,
+    spec.seed,
+    spec.family,
+    index,
+    'background',
+  );
+  let capture = null;
+  world.onCloudObjectRead = (cloud) => {
+    capture = {
+      ...captureNativeCoverage(
+        world.grantSnapshots[create.grant_snapshot_ref],
+        world.membershipLedger,
+        world.principal,
+        cloud.action,
+        cloud.resource,
+        cloud.event_time,
+      ),
+      event_count: world.events.length,
+    };
+  };
+  const run = stepJob(world, { tool: 'run-job', args: { job_uid: submission.job_uid } });
+  delete world.onCloudObjectRead;
+  const read = exactlyOne(
+    world.events,
+    (event) => event.event_id === world.ledger.at(-1)?.read_event_id,
+  );
+  if (
+    !run.ok ||
+    run.status !== 'checkpoint' ||
+    !read ||
+    !capture?.authorized ||
+    capture.action_time !== read.event_time
+  ) {
+    throw new Error('background approved cloud read missing');
+  }
+  return {
+    events: world.events.map((event) => ({ ...event })),
+    grantSnapshot: {
+      snapshot_ref: create.grant_snapshot_ref,
+      grants: world.grantSnapshots[create.grant_snapshot_ref].map(visibleGrant),
+      audit_stream_ref: membershipAuditStream(group),
+    },
+    membershipAudit: world.membershipLedger.map((event) => ({ ...event })),
+    nativeRecord: {
+      authorization_event_id: authorization.event_id,
+      run_read_event_id: read.event_id,
+      action: {
+        event_id: read.event_id,
+        event_time: read.event_time,
+        actor: world.principal,
+        action: read.action,
+        resource: read.resource,
+      },
+      captured: structuredClone(capture),
+    },
+  };
+}
+
+function interleaveJobEvents(target, background, backgroundFirst) {
+  const [authorization, ...backgroundJobEvents] = background;
+  const first = backgroundFirst ? backgroundJobEvents : target;
+  const second = backgroundFirst ? target : backgroundJobEvents;
+  const events = [authorization];
+  for (let index = 0; index < Math.max(first.length, second.length); index += 1) {
+    if (first[index]) {
+      events.push(first[index]);
+    }
+    if (second[index]) {
+      events.push(second[index]);
+    }
+  }
+  return events;
 }
 
 function producerIncident(spec, variant, index) {
@@ -337,9 +508,22 @@ function producerIncident(spec, variant, index) {
   if (!jobCloud) {
     throw new Error('delegated Job action missing');
   }
+  const jobRunLedger = exactlyOne(
+    job.ledger,
+    (event) => event.kind === 'job-run' && event.job_uid === submitted.job_uid,
+  );
+  if (jobRunLedger?.read_event_id !== jobCloud.event_id) {
+    throw new Error('target Job run read binding missing');
+  }
   if (!jobCapture || jobCapture.action_time !== jobCloud.event_time) {
     throw new Error('native Job action capture missing');
   }
+  const background = producerBackgroundRead(
+    session,
+    spec,
+    index,
+    session.base.release_events.at(-1).event_time,
+  );
   const resumed = stepOffense(session, {
     tool: 'resume-job',
     args: {
@@ -385,6 +569,7 @@ function producerIncident(spec, variant, index) {
       audit_stream_ref: snapshot.audit_stream_ref,
     }),
   );
+  grantSnapshots.push(background.grantSnapshot);
   const policySnapshots = [
     ...Object.entries(job.brokerSnapshots).map(([snapshot_ref, policy]) => ({
       snapshot_ref,
@@ -400,9 +585,11 @@ function producerIncident(spec, variant, index) {
   return {
     label,
     grantSnapshots,
-    membershipAudit: [...sourceWorld.membershipLedger, ...job.membershipLedger].map((event) => ({
-      ...event,
-    })),
+    membershipAudit: [
+      ...sourceWorld.membershipLedger,
+      ...job.membershipLedger,
+      ...background.membershipAudit,
+    ].map((event) => ({ ...event })),
     nativeActionRecords: {
       source: {
         grants: structuredClone(session.delegatedSnapshots[sourceCloud.grant_snapshot_ref].grants),
@@ -422,6 +609,7 @@ function producerIncident(spec, variant, index) {
       job: {
         grants: structuredClone(session.delegatedSnapshots[jobCreate.grant_snapshot_ref].grants),
         ledger: structuredClone(job.membershipLedger),
+        run_read_event_id: jobRunLedger.read_event_id,
         action: {
           event_id: jobCloud.event_id,
           event_time: jobCloud.event_time,
@@ -434,12 +622,17 @@ function producerIncident(spec, variant, index) {
         planned_action_time: jobPlannedActionTime,
         captured: structuredClone(jobCapture),
       },
+      background: background.nativeRecord,
     },
     policySnapshots,
     events: [
       ...session.source.events.map((event) => ({ ...event })),
       ...session.base.release_events.map((event) => ({ ...event })),
-      ...job.events.map((event) => ({ ...event })),
+      ...interleaveJobEvents(
+        job.events.map((event) => ({ ...event })),
+        background.events,
+        index % 2 === 0,
+      ),
     ],
   };
 }

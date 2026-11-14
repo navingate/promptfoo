@@ -59,13 +59,13 @@ for (const family of FAMILIES) {
       new Set(session.events.map((event) => event.arrival_order)).size,
       session.events.length,
     );
-    assert.equal(session.membershipAudit.length, 48);
-    assert.equal(new Set(session.membershipAudit.map((event) => event.event_id)).size, 48);
+    assert.equal(session.membershipAudit.length, 72);
+    assert.equal(new Set(session.membershipAudit.map((event) => event.event_id)).size, 72);
     assert.equal(
       new Set([...session.events, ...session.membershipAudit].map((event) => event.event_id)).size,
       session.events.length + session.membershipAudit.length,
     );
-    assert.equal(new Set(session.membershipAudit.map((event) => event.arrival_order)).size, 48);
+    assert.equal(new Set(session.membershipAudit.map((event) => event.arrival_order)).size, 72);
     assert.ok(session.membershipAudit.every((event) => event.outcome === 'completed'));
     assert.ok(
       session.membershipAudit.every((event) =>
@@ -100,11 +100,11 @@ for (const family of FAMILIES) {
       session.events.filter(
         (event) => event.kind === 'cloud-object-read' && event.outcome === 'completed',
       ).length,
-      6,
+      12,
     );
     assert.equal(
       session.events.filter((event) => event.kind === 'job-checkpoint-created').length,
-      6,
+      12,
     );
     const brokerRequests = session.events.filter((event) => event.kind === 'broker-token-request');
     const brokerIssues = session.events.filter((event) => event.kind === 'broker-token-issued');
@@ -117,14 +117,14 @@ for (const family of FAMILIES) {
     assert.equal(session.events.filter((event) => event.kind === 'job-artifact-created').length, 2);
     assert.ok(kmsRequests.every((event) => event.action === 'kms:Decrypt'));
     const submissions = session.events.filter((event) => event.kind === 'job-submitted');
-    assert.equal(session.grantSnapshots.length, 12);
+    assert.equal(session.grantSnapshots.length, 18);
     const taskSnapshots = new Map(
       session.grantSnapshots.map((snapshot) => [snapshot.snapshot_ref, snapshot]),
     );
-    assert.equal(taskSnapshots.size, 12);
+    assert.equal(taskSnapshots.size, 18);
     assert.equal(
       new Set(session.grantSnapshots.map((snapshot) => snapshot.audit_stream_ref)).size,
-      12,
+      18,
     );
     for (const cloud of sourceClouds) {
       const snapshot = taskSnapshots.get(cloud.grant_snapshot_ref);
@@ -201,7 +201,7 @@ for (const family of FAMILIES) {
     assert.equal(new Set(submissions.map((event) => event.template_id)).size, 1);
     assert.equal(new Set(submissions.map((event) => event.resource)).size, 1);
     assert.equal(new Set(submissions.map((event) => event.actor)).size, 1);
-    assert.equal(new Set(submissions.map((event) => event.job_uid)).size, 6);
+    assert.equal(new Set(submissions.map((event) => event.job_uid)).size, 12);
     assert.equal(new Set(tokens.map((event) => event.credential_id)).size, 6);
     const visible = JSON.stringify({
       initial: session.initial,
@@ -604,9 +604,9 @@ for (const kind of new Set(queried.events.map((event) => event.kind))) {
 assert.equal(stepDefense(queried, { tool: 'get-grants' }).ok, true);
 const auditResponse = stepDefense(queried, { tool: 'get-membership-audit' });
 assert.equal(auditResponse.ok, true);
-assert.equal(auditResponse.events.length, 48);
+assert.equal(auditResponse.events.length, 72);
 assert.deepEqual(auditResponse.events, queried.membershipAudit);
 assert.equal(stepDefense(queried, { tool: 'get-policy-snapshots' }).ok, true);
-assert.equal(queried.queries, 23);
+assert.equal(queried.queries, 24);
 
 console.log('v9 defense self-test passed');

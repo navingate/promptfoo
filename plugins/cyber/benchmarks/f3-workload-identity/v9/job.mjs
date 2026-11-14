@@ -724,6 +724,9 @@ export function decryptDecision(world, profile, checkpoint, request, policies = 
 
 export function createJobWorld(releaseWorld, principal, options = {}) {
   const world = createV6JobWorld(releaseWorld, principal, options);
+  world.scheduledAutomation = options.scheduledAutomation
+    ? structuredClone(options.scheduledAutomation)
+    : null;
   const estate = createBrokerEstate(world);
   const accessPointEstate = createAccessPointEstate(world);
   Object.assign(world, accessPointEstate);
@@ -770,6 +773,45 @@ export function createJobWorld(releaseWorld, principal, options = {}) {
 
 export function authorizeJobWorld(world, redemptionEvent) {
   return authorizeV6JobWorld(world, redemptionEvent);
+}
+
+// A scheduled tenant export has its own control-plane authority. It does not
+// borrow a release bearer from the incident whose object it reads.
+export function authorizeScheduledJobWorld(world, scheduleId, afterTime) {
+  const schedule = world.scheduledAutomation;
+  if (
+    world.auth ||
+    world.events.length !== 0 ||
+    typeof scheduleId !== 'string' ||
+    !scheduleId ||
+    !Number.isSafeInteger(afterTime) ||
+    schedule?.id !== scheduleId ||
+    schedule.status !== 'active' ||
+    schedule.approved_by !== 'tenant-export-operations' ||
+    schedule.principal !== world.principal ||
+    schedule.namespace !== world.policy.namespace ||
+    schedule.resource !== world.policy.protected_target.remote_ref
+  ) {
+    return null;
+  }
+  world.eventOffset = afterTime;
+  const event = emit(world, 'scheduled-job-authorized', {
+    actor: 'tenant-export-scheduler',
+    schedule_id: scheduleId,
+    approved_by: schedule.approved_by,
+    granted_principal: world.principal,
+    granted_namespace: world.policy.namespace,
+    resource: world.policy.protected_target.remote_ref,
+    scopes: ['create:job'],
+    outcome: 'completed',
+  });
+  world.auth = {
+    event_id: event.event_id,
+    principal: world.principal,
+    namespace: world.policy.namespace,
+    scopes: ['create:job'],
+  };
+  return event;
 }
 
 function routePair(world) {
