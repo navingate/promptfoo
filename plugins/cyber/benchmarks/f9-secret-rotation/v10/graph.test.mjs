@@ -162,6 +162,19 @@ test('rejects missing, cross-flow, and time-inverted causal edges', () => {
       delete event(capture, 'authorization.record').policy_kind;
     },
     (capture) => {
+      const policy = event(capture, 'authorization.record');
+      const source = capture.events.find(
+        (item) => item.type === 'auth.attempt' && item.actor === policy.principal,
+      );
+      delete policy.principal;
+      for (const item of capture.events.filter((item) => item.flow_id === source.flow_id)) {
+        delete item.actor;
+      }
+    },
+    (capture) => {
+      event(capture, 'authorization.record').window_end = auth.event_time;
+    },
+    (capture) => {
       for (const item of capture.events) {
         delete item.resource;
       }
@@ -172,4 +185,10 @@ test('rejects missing, cross-flow, and time-inverted causal edges', () => {
     mutate(capture);
     assert.throws(() => validateTwin(capture));
   }
+});
+
+test('null native events fail with a controlled graph error', () => {
+  const capture = buildTwin({ ...spec, malicious: false });
+  capture.events[0] = null;
+  assert.throws(() => validateTwin(capture), /^Error: invalid native graph:/);
 });

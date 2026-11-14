@@ -127,6 +127,10 @@ export function validateTwin(capture) {
   requireGraph(capture?.schema_version === SCHEMA && Array.isArray(capture.events), 'capture');
   const { events } = capture;
   requireGraph(events.length === 8 && events.length <= 72, 'event count');
+  requireGraph(
+    events.every((event) => event !== null && typeof event === 'object' && !Array.isArray(event)),
+    'event object',
+  );
   const byId = new Map(events.map((event) => [event.event_id, event]));
   requireGraph(
     byId.size === events.length &&
@@ -164,6 +168,8 @@ export function validateTwin(capture) {
     policy.actor === 'approval-service' &&
       policy.signature === 'valid' &&
       policy.caused_by?.length === 0 &&
+      typeof policy.principal === 'string' &&
+      policy.principal.length > 0 &&
       typeof policy.resource === 'string' &&
       policy.resource.length > 0 &&
       Object.hasOwn(BENIGN_DISPOSITIONS, policy.policy_kind) &&
@@ -196,6 +202,8 @@ export function validateTwin(capture) {
   for (const auth of auths) {
     requireGraph(
       auth.caused_by?.length === 0 &&
+        typeof auth.actor === 'string' &&
+        auth.actor.length > 0 &&
         auth.allowed === true &&
         policy.window_start <= auth.event_time &&
         auth.event_time <= policy.window_end,
@@ -204,14 +212,24 @@ export function validateTwin(capture) {
   }
   for (const receipt of receipts) {
     const auth = parent(receipt, 'auth.attempt');
-    requireGraph(receipt.flow_id === auth.flow_id && receipt.actor === auth.actor, 'receipt flow');
+    requireGraph(
+      typeof receipt.actor === 'string' &&
+        receipt.actor.length > 0 &&
+        receipt.flow_id === auth.flow_id &&
+        receipt.actor === auth.actor,
+      'receipt flow',
+    );
   }
   for (const grant of grants) {
     const receipt = parent(grant, 'auth.receipt');
     requireGraph(
       grant.flow_id === receipt.flow_id &&
         grant.actor === receipt.actor &&
+        typeof grant.actor === 'string' &&
+        grant.actor.length > 0 &&
         grant.allowed === true &&
+        policy.window_start <= grant.event_time &&
+        grant.event_time <= policy.window_end &&
         grant.resource === policy.resource,
       'grant flow or scope',
     );
