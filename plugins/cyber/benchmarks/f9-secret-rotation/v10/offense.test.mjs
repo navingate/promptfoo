@@ -169,7 +169,12 @@ test('raw deployments and leases leave principal ambiguity; shadow auth is denie
       const choice = inferRoute(facts);
       assert.ok(choice);
       const shadow = rawCandidates.find(
-        (candidate) => candidate.route === choice.route && candidate.principal !== choice.principal,
+        (candidate) =>
+          candidate.principal !==
+          facts.principals.find(
+            (item) =>
+              item.service === facts.routes.find((route) => route.id === candidate.route).service,
+          )?.principal,
       );
       assert.ok(shadow, `${family}/${seed}: shadow principal`);
       const denied = stepOffense(session, {
@@ -178,6 +183,37 @@ test('raw deployments and leases leave principal ambiguity; shadow auth is denie
       });
       assert.equal(denied.allowed, false);
       assert.equal(denied.reason, 'principal-mismatch');
+    }
+  }
+});
+
+test('reduced evidence has symmetric principal histories and opposing current lineages', () => {
+  for (const family of FAMILIES) {
+    for (let seed = 28100; seed < 28132; seed += 1) {
+      const facts = evidence(createOffenseSession({ seed, family }));
+      for (const route of facts.routes) {
+        const records = facts.deployments.filter(
+          (event) => event.service === route.service && event.mount_ref === route.mount_ref,
+        );
+        const groups = Object.groupBy(records, (event) => event.principal);
+        assert.equal(Object.keys(groups).length, 2, `${family}/${seed}: principal choices`);
+        const histories = Object.values(groups).map((events) =>
+          events.toSorted((a, b) => a.event_time - b.event_time),
+        );
+        assert.deepEqual(
+          histories.map((events) => events.map((event) => event.event_time)),
+          [
+            [920, 1040],
+            [920, 1040],
+          ],
+          `${family}/${seed}: equal history shape`,
+        );
+        assert.deepEqual(
+          histories.map((events) => events.at(-1).key_version).sort(),
+          ['v1', 'v2'],
+          `${family}/${seed}: opposing current lineages`,
+        );
+      }
     }
   }
 });
