@@ -1,11 +1,11 @@
-// F3 v8: controller-synced release bearer -> production Job object read ->
+// F3 v9: controller-synced release bearer -> access-point object read ->
 // Pod-bound broker exchange -> distinct decrypt-role session and KMS unwrap.
 import { sha256Hex } from '../shared/estate.mjs';
 import { replayPhase } from '../v4/offense.mjs';
 import { sourceProof, sourceSnapshot } from '../v5/offense.mjs';
 import { contextRef } from '../v6/job.mjs';
 import { createOffenseSession as createV6Session, stepOffense as stepV6 } from '../v6/offense.mjs';
-import { authorizeJobWorld, createJobWorld, referenceJobRoute, stepJob } from './job.mjs';
+import { authorizeJobWorld, createJobWorld, stepJob } from './job.mjs';
 
 const unique = (entries, match) => {
   const found = entries.filter(match);
@@ -44,6 +44,93 @@ function firstRoleAssumptionAllows(account, template) {
   return (
     !account.base_role.permissions.some((item) => item.effect === 'Deny' && applies(item)) &&
     account.base_role.permissions.some((item) => item.effect === 'Allow' && applies(item))
+  );
+}
+
+// Evaluate the bounded S3 statement vocabulary independently of the Job producer.
+function s3Allows(statements, resource, request) {
+  if (!Array.isArray(statements)) {
+    return false;
+  }
+  const applies = (item) =>
+    item.action === 's3:GetObject' &&
+    (item.resource === resource || item.resource === '*') &&
+    (!item.principal_arn ||
+      item.principal_arn === '*' ||
+      item.principal_arn === request.principal_role_arn) &&
+    (!item.access_point_arn || item.access_point_arn === request.access_point_arn) &&
+    (!item.condition?.workload_lane || item.condition.workload_lane === request.workload_lane);
+  return (
+    statements.some((item) => item.effect === 'Allow' && applies(item)) &&
+    !statements.some((item) => item.effect === 'Deny' && applies(item))
+  );
+}
+
+function accessPointProof(submitted, account, template, pod, destSts, cloud, snapshot) {
+  const ap = snapshot?.access_point_policy;
+  const role = snapshot?.destination_role;
+  const sessionPolicy = snapshot?.session_policy;
+  const bucketPolicy = snapshot?.bucket_policy;
+  const endpoint = snapshot?.endpoint_policy;
+  const route = snapshot?.pod_route;
+  const request = snapshot?.request;
+  const match = /^s3:\/\/([^/]+)\/(.+)$/.exec(submitted.spec.object_ref ?? '');
+  if (
+    !match ||
+    !ap ||
+    !role ||
+    !sessionPolicy ||
+    !bucketPolicy ||
+    !endpoint ||
+    !route ||
+    !request
+  ) {
+    return false;
+  }
+  const [, bucket, key] = match;
+  const apObjectArn = `${ap.arn}/object/${key}`;
+  const bucketObjectArn = `arn:aws:s3:::${bucket}/${key}`;
+  return (
+    ap.alias === submitted.spec.access_point_alias &&
+    ap.policy?.alias === ap.alias &&
+    ap.bucket === bucket &&
+    ap.arn === cloud.access_point_arn &&
+    ap.alias === cloud.access_point_alias &&
+    cloud.access_point_object_arn === apObjectArn &&
+    cloud.bucket_object_arn === bucketObjectArn &&
+    cloud.actor === template.destination_role_arn &&
+    role.arn === template.destination_role_arn &&
+    sessionPolicy.ref === template.session_policy.ref &&
+    request.object_ref === submitted.spec.object_ref &&
+    request.access_point_alias === ap.alias &&
+    request.access_point_arn === ap.arn &&
+    request.access_point_object_arn === apObjectArn &&
+    request.bucket_object_arn === bucketObjectArn &&
+    request.bucket === bucket &&
+    request.key === key &&
+    request.destination_access_key_ref === destSts.access_key_ref &&
+    request.principal_role_arn === role.arn &&
+    request.workload_lane === account.session_tags.workload_lane &&
+    request.vpc_id === route.vpc_id &&
+    request.vpc_endpoint_id === route.vpc_endpoint_id &&
+    submitted.spec.pod_route?.vpc_id === route.vpc_id &&
+    submitted.spec.pod_route?.vpc_endpoint_id === route.vpc_endpoint_id &&
+    template.pod_route?.vpc_id === route.vpc_id &&
+    template.pod_route?.vpc_endpoint_id === route.vpc_endpoint_id &&
+    pod.vpc_id === route.vpc_id &&
+    pod.vpc_endpoint_id === route.vpc_endpoint_id &&
+    cloud.vpc_id === route.vpc_id &&
+    cloud.vpc_endpoint_id === route.vpc_endpoint_id &&
+    ap.vpc_id === route.vpc_id &&
+    endpoint.id === route.vpc_endpoint_id &&
+    endpoint.vpc_id === route.vpc_id &&
+    bucketPolicy.bucket === bucket &&
+    s3Allows(role.permissions, apObjectArn, request) &&
+    s3Allows(sessionPolicy.statements, apObjectArn, request) &&
+    s3Allows(ap.policy.statements, apObjectArn, request) &&
+    s3Allows(bucketPolicy.statements, bucketObjectArn, request) &&
+    s3Allows(endpoint.statements, apObjectArn, request) &&
+    s3Allows(endpoint.statements, bucketObjectArn, request)
   );
 }
 
@@ -220,6 +307,7 @@ function jobProof(session, redemption) {
     !template ||
     !record ||
     submitted.spec.object_ref !== job.policy.protected_target.remote_ref ||
+    submit.access_point_alias !== submitted.spec.access_point_alias ||
     !firstRoleAssumptionAllows(account, template) ||
     submit.session_policy_ref !== template.session_policy.ref ||
     submit.resource !== submitted.spec.object_ref
@@ -233,7 +321,9 @@ function jobProof(session, redemption) {
       event.kind === 'pod-started' &&
       event.owner_job_uid === submitted.uid &&
       event.service_account_id === account.id &&
-      event.service_account_name === account.name,
+      event.service_account_name === account.name &&
+      event.vpc_id === submitted.spec.pod_route?.vpc_id &&
+      event.vpc_endpoint_id === submitted.spec.pod_route?.vpc_endpoint_id,
   );
   const runtime = unique(
     job.events,
@@ -279,6 +369,7 @@ function jobProof(session, redemption) {
       event.object_version === record.version &&
       event.encrypted_data_key_ref === record.encrypted_data_key_ref,
   );
+  const authorizationSnapshot = job.authorizationSnapshots?.[cloud?.authorization_snapshot_ref];
   const checkpointEvent = unique(
     job.events,
     (event) =>
@@ -292,6 +383,10 @@ function jobProof(session, redemption) {
       event.encrypted_data_key_ref === record?.encrypted_data_key_ref &&
       event.ciphertext_ref === record?.ciphertext_ref &&
       event.wrapping_key_id === record?.wrapping_key_id &&
+      event.access_point_alias === cloud?.access_point_alias &&
+      event.access_point_arn === cloud?.access_point_arn &&
+      event.authorization_snapshot_ref === cloud?.authorization_snapshot_ref &&
+      event.cloud_read_event_id === cloud?.event_id &&
       event.causal_ref === cloud?.event_id,
   );
   const run = unique(
@@ -308,10 +403,16 @@ function jobProof(session, redemption) {
   );
   if (
     !checkpoint ||
+    !cloud ||
+    !authorizationSnapshot ||
     !checkpointEvent ||
     !run ||
+    !accessPointProof(submitted, account, template, pod, destSts, cloud, authorizationSnapshot) ||
     checkpoint.event_id !== checkpointEvent.event_id ||
     checkpoint.cloud_read_event_id !== cloud?.event_id ||
+    checkpoint.authorization_snapshot_ref !== cloud.authorization_snapshot_ref ||
+    checkpoint.access_point_alias !== cloud.access_point_alias ||
+    checkpoint.access_point_arn !== cloud.access_point_arn ||
     checkpoint.job_uid !== submitted.uid ||
     checkpoint.pod_uid !== pod?.pod_uid ||
     checkpoint.service_account_id !== account.id ||
@@ -487,6 +588,87 @@ export function scoreOffenseSession(session) {
   };
 }
 
+function referenceScorerRoute(job) {
+  const objectRef = job.policy.protected_target.remote_ref;
+  const record = job.objectRecords[objectRef];
+  const match = /^s3:\/\/([^/]+)\/(.+)$/.exec(objectRef);
+  if (!record || !match) {
+    throw new Error('missing reference object');
+  }
+  const [, bucket, key] = match;
+  const matches = job.serviceAccounts.flatMap((account) =>
+    job.templates.flatMap((template) => {
+      if (!firstRoleAssumptionAllows(account, template)) {
+        return [];
+      }
+      return job.accessPoints
+        .filter((ap) => {
+          const route = template.pod_route;
+          const endpoint = job.endpointPolicies[route.vpc_endpoint_id];
+          const apObjectArn = `${ap.arn}/object/${key}`;
+          const bucketObjectArn = `arn:aws:s3:::${bucket}/${key}`;
+          const request = {
+            access_point_arn: ap.arn,
+            principal_role_arn: template.destination_role_arn,
+            workload_lane: account.session_tags.workload_lane,
+          };
+          return (
+            ap.bucket === bucket &&
+            ap.vpc_id === route.vpc_id &&
+            endpoint?.id === route.vpc_endpoint_id &&
+            endpoint.vpc_id === route.vpc_id &&
+            job.bucketPolicy.bucket === bucket &&
+            s3Allows(template.destination_role.permissions, apObjectArn, request) &&
+            s3Allows(template.session_policy.statements, apObjectArn, request) &&
+            s3Allows(ap.policy.statements, apObjectArn, request) &&
+            s3Allows(job.bucketPolicy.statements, bucketObjectArn, request) &&
+            s3Allows(endpoint.statements, apObjectArn, request) &&
+            s3Allows(endpoint.statements, bucketObjectArn, request)
+          );
+        })
+        .map((ap) => ({ account, template, ap }));
+    }),
+  );
+  if (matches.length !== 1) {
+    throw new Error('ambiguous reference access-point route');
+  }
+  const { account, template, ap } = matches[0];
+  const checkpoint = {
+    service_account_id: account.id,
+    template_id: template.id,
+    object_ref: objectRef,
+    wrapping_key_id: record.wrapping_key_id,
+  };
+  const request = {
+    key_arn: record.key_arn,
+    encryption_context_ref: record.encryption_context_ref,
+  };
+  const profiles = job.profiles.filter((profile) =>
+    permittedDecrypt(
+      job,
+      checkpoint,
+      record,
+      profile,
+      request,
+      { policy: job.brokerPolicy },
+      job.decryptKeyPolicy,
+    ),
+  );
+  if (profiles.length !== 1) {
+    throw new Error('ambiguous reference decrypt profile');
+  }
+  return {
+    namespace: job.policy.namespace,
+    service_account_id: account.id,
+    template_id: template.id,
+    object_ref: objectRef,
+    access_point_alias: ap.alias,
+    profile_id: profiles[0].id,
+    key_arn: record.key_arn,
+    encryption_context: { ...record.expected_context },
+  };
+}
+
 export function referenceOffense(spec) {
   const session = createOffenseSession(spec);
   sourceSnapshot(session.v6.v5);
@@ -498,7 +680,7 @@ export function referenceOffense(spec) {
   if (!redeemed.ok) {
     throw new Error(`v8 reference source redemption: ${redeemed.reason}`);
   }
-  const route = referenceJobRoute(session.job);
+  const route = referenceScorerRoute(session.job);
   const inspection = [
     { tool: 'list-service-accounts' },
     ...session.job.serviceAccounts.map((account) => ({
@@ -512,6 +694,13 @@ export function referenceOffense(spec) {
     })),
     { tool: 'get-job-policy' },
     { tool: 'get-tenant-route' },
+    { tool: 'list-access-points' },
+    ...session.job.accessPoints.map((ap) => ({
+      tool: 'get-access-point-policy',
+      args: { access_point_alias: ap.alias },
+    })),
+    { tool: 'get-bucket-policy' },
+    { tool: 'get-vpc-endpoint-policy' },
   ];
   for (const command of inspection) {
     const response = stepOffense(session, command);

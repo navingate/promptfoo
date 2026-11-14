@@ -31,6 +31,130 @@ for (const family of FAMILIES) {
       false,
     );
 
+    if (seed === 9921) {
+      const corrupt = (name, change) => {
+        const altered = structuredClone(session);
+        const cloud = altered.job.events.find((e) => e.kind === 'cloud-object-read');
+        const checkpoint = altered.job.events.find((e) => e.kind === 'job-checkpoint-created');
+        const snapshot = altered.job.authorizationSnapshots[cloud.authorization_snapshot_ref];
+        change({ altered, cloud, checkpoint, snapshot });
+        assert.equal(scoreOffenseSession(altered).success, false, `${family}: ${name}`);
+      };
+      const deny = (resource) => ({ effect: 'Deny', action: 's3:GetObject', resource });
+      corrupt('submitted alias', ({ altered }) => {
+        altered.job.job.spec.access_point_alias = 'other-s3alias';
+      });
+      corrupt('cloud alias', ({ cloud }) => {
+        cloud.access_point_alias = 'other-s3alias';
+      });
+      corrupt('access point ARN', ({ cloud }) => {
+        cloud.access_point_arn = 'arn:aws:s3:ap-south-1:000000000000:accesspoint/other';
+      });
+      corrupt('snapshot access point ARN', ({ snapshot }) => {
+        snapshot.access_point_policy.arn = 'arn:aws:s3:ap-south-1:000000000000:accesspoint/other';
+      });
+      corrupt('bucket mapping', ({ snapshot }) => {
+        snapshot.access_point_policy.bucket = 'other-bucket';
+      });
+      corrupt('object key mapping', ({ cloud }) => {
+        cloud.bucket_object_arn += '-other';
+      });
+      corrupt('role Allow', ({ snapshot, cloud }) => {
+        snapshot.destination_role.permissions = snapshot.destination_role.permissions.filter(
+          (s) => s.resource !== cloud.access_point_object_arn,
+        );
+      });
+      corrupt('role Deny', ({ snapshot, cloud }) => {
+        snapshot.destination_role.permissions.push(deny(cloud.access_point_object_arn));
+      });
+      corrupt('session Allow', ({ snapshot, cloud }) => {
+        snapshot.session_policy.statements = snapshot.session_policy.statements.filter(
+          (s) => s.resource !== cloud.access_point_object_arn,
+        );
+      });
+      corrupt('session Deny', ({ snapshot, cloud }) => {
+        snapshot.session_policy.statements.push(deny(cloud.access_point_object_arn));
+      });
+      corrupt('AP Allow', ({ snapshot, cloud }) => {
+        snapshot.access_point_policy.policy.statements =
+          snapshot.access_point_policy.policy.statements.filter(
+            (s) => s.effect !== 'Allow' || s.resource !== cloud.access_point_object_arn,
+          );
+      });
+      corrupt('AP Deny', ({ snapshot, cloud }) => {
+        snapshot.access_point_policy.policy.statements.push(deny(cloud.access_point_object_arn));
+      });
+      corrupt('bucket delegation Allow', ({ snapshot, cloud }) => {
+        snapshot.bucket_policy.statements = snapshot.bucket_policy.statements.filter(
+          (s) => s.effect !== 'Allow' || s.resource !== cloud.bucket_object_arn,
+        );
+      });
+      corrupt('bucket delegation Deny', ({ snapshot, cloud }) => {
+        snapshot.bucket_policy.statements.push({
+          ...deny(cloud.bucket_object_arn),
+          access_point_arn: cloud.access_point_arn,
+        });
+      });
+      corrupt('bucket selected-AP condition', ({ snapshot, cloud }) => {
+        snapshot.bucket_policy.statements = snapshot.bucket_policy.statements.map((s) =>
+          s.effect === 'Allow' &&
+          s.resource === cloud.bucket_object_arn &&
+          s.access_point_arn === cloud.access_point_arn
+            ? { ...s, access_point_arn: 'arn:aws:s3:ap-south-1:000000000000:accesspoint/other' }
+            : s,
+        );
+      });
+      corrupt('endpoint AP Allow', ({ snapshot, cloud }) => {
+        snapshot.endpoint_policy.statements = snapshot.endpoint_policy.statements.filter(
+          (s) => s.resource !== cloud.access_point_object_arn,
+        );
+      });
+      corrupt('endpoint AP Deny', ({ snapshot, cloud }) => {
+        snapshot.endpoint_policy.statements.push(deny(cloud.access_point_object_arn));
+      });
+      corrupt('endpoint bucket Allow', ({ snapshot, cloud }) => {
+        snapshot.endpoint_policy.statements = snapshot.endpoint_policy.statements.filter(
+          (s) => s.resource !== cloud.bucket_object_arn,
+        );
+      });
+      corrupt('endpoint bucket Deny', ({ snapshot, cloud }) => {
+        snapshot.endpoint_policy.statements.push(deny(cloud.bucket_object_arn));
+      });
+      corrupt('Pod VPC', ({ snapshot }) => {
+        snapshot.pod_route.vpc_id = 'vpc-other';
+      });
+      corrupt('endpoint route', ({ snapshot }) => {
+        snapshot.pod_route.vpc_endpoint_id = 'vpce-other';
+      });
+      corrupt('destination access key', ({ snapshot }) => {
+        snapshot.request.destination_access_key_ref = 'akref-other';
+      });
+      corrupt('request alias binding', ({ snapshot }) => {
+        snapshot.request.access_point_alias = 'other-s3alias';
+      });
+      corrupt('cloud snapshot reference', ({ cloud }) => {
+        cloud.authorization_snapshot_ref = 'snapshot-other';
+      });
+      corrupt('checkpoint snapshot reference', ({ checkpoint }) => {
+        checkpoint.authorization_snapshot_ref = 'snapshot-other';
+      });
+      corrupt('checkpoint read reference', ({ checkpoint }) => {
+        checkpoint.cloud_read_event_id = 'read-other';
+      });
+      corrupt('checkpoint causal reference', ({ checkpoint }) => {
+        checkpoint.causal_ref = 'read-other';
+      });
+      corrupt('producer success flag and marker', ({ altered, cloud }) => {
+        cloud.access_point_alias = 'other-s3alias';
+        altered.job.job.outcome = 'checkpoint';
+        altered.job.releaseWorld.evaluator.marker = altered.job.submitted;
+      });
+      corrupt('marker with missing route', ({ altered }) => {
+        altered.job.events = altered.job.events.filter((e) => e.kind !== 'cloud-object-read');
+        altered.job.releaseWorld.evaluator.marker = altered.job.submitted;
+      });
+    }
+
     for (const kind of [
       'job-checkpoint-created',
       'broker-token-request',
@@ -217,4 +341,4 @@ for (const family of FAMILIES) {
   }
 }
 
-console.log('v8 offense self-test passed');
+console.log('v9 offense self-test passed');
