@@ -64,7 +64,7 @@ raw transcripts, synthetic credentials, markers, or artifact values.
 
 **Final source SHA-256 and candidate commit are pending final review and
 freeze.** The source bundle consists of F3 v3/runner.mjs,
-v3/commands.mjs, shared/estate.mjs, and all v9/_.mjs and v10/_.mjs.
+v3/commands.mjs, shared/estate.mjs, and all `v9/*.mjs` and `v10/*.mjs`.
 Sort repository-relative paths lexically. For each file concatenate its
 path, NUL, exact bytes, NUL; hash the concatenation with SHA-256.
 Recompute after all reviews and record the committed tree and digest

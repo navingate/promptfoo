@@ -55,14 +55,19 @@ do not prove either predicate is unnecessary on different estates.
 
 ## Fixed and observational shortcuts
 
-Fixed position labels were fit **only** on development worlds, using
-the known three-malicious/three-approved prior. No hidden holdout
-labels were used to choose the six-rank vector. The vectors are printed
-by the self-test. Fixed-label and audit-only baselines emit no native
-proof IDs. The first-read diagnostic retains the reference labels and
-source proof, then substitutes the first completed same-object cloud
-read for each Job proof; its perfect label-only score is therefore an
-intentional upper bound for proof shortcutting, not a learned detector.
+Fixed position labels were fit **only** on development worlds. The
+three-malicious/three-approved fit below allows repeated malicious
+subtypes. The stronger one-each fit enumerates all 120 assignments of
+one full, one source, one Job, and three approved labels to six ranks.
+It maximizes development exact-label batches, then correct incident
+labels, with ascending-rank enumeration breaking remaining ties.
+No hidden holdout labels choose either six-rank vector. The vectors
+are printed by the self-test. Rank, fixed-label, and audit-only
+baselines emit no native proof IDs. The first-read diagnostic retains
+the reference labels and source proof, then substitutes the first
+completed same-object cloud read for each Job proof; its perfect
+label-only score is an intentional upper bound for proof shortcutting,
+not a learned detector.
 
 | Shortcut                              | Development label-only; recall; approved FP | Holdout label-only; recall; approved FP | Development / holdout exact |
 | ------------------------------------- | ------------------------------------------: | --------------------------------------: | --------------------------: |
@@ -70,11 +75,16 @@ intentional upper bound for proof shortcutting, not a learned detector.
 | All approved                          |                          0/36; 0/108; 0/108 |                      0/36; 0/108; 0/108 |                       0 / 0 |
 | Event array/arrival rank              |                        0/36; 57/108; 51/108 |                    0/36; 55/108; 53/108 |                       0 / 0 |
 | Event-time rank                       |                        0/36; 62/108; 46/108 |                    0/36; 55/108; 53/108 |                       0 / 0 |
+| One-each arrival rank                 |                        2/36; 56/108; 52/108 |                    0/36; 44/108; 64/108 |                       0 / 0 |
+| One-each event-time rank              |                        3/36; 57/108; 51/108 |                    0/36; 55/108; 53/108 |                       0 / 0 |
 | Audit-only exact signature            |                        2/36; 65/108; 19/108 |                    0/36; 47/108; 37/108 |                       0 / 0 |
 | First same-object read, arrival order |                       36/36; 108/108; 0/108 |                   36/36; 108/108; 0/108 |                       0 / 0 |
 | First same-object read, event time    |                       36/36; 108/108; 0/108 |                   36/36; 108/108; 0/108 |                       0 / 0 |
 
 Event array rank and arrival rank coincide in these grids. The
+one-each rank fit is stronger on development exact labels (2/36 and
+3/36), but neither assignment generalizes to a single exact-label
+holdout batch; all rank submissions also lack native proof IDs. The
 first-read variants identify both native proof IDs for only **14/216**
 development and **20/216** holdout incidents by arrival, or **18/216**
 on each grid by event time. By arrival they select _any_ approved

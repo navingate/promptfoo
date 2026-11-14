@@ -165,6 +165,51 @@ function fitRankLabels(grid, field) {
     : LABELS[3]);
 }
 
+function fitOneEachRankLabels(grid, field) {
+  const counts = Array.from({ length: 6 }, () => new Map(LABELS.map((label) => [label, 0])));
+  const rankedTruth = [];
+  for (const item of grid) {
+    const truth = orderedTokens(item, field).map((token) => item.truth[token.event_id].label);
+    rankedTruth.push(truth);
+    truth.forEach((label, rank) => {
+      counts[rank].set(label, counts[rank].get(label) + 1);
+    });
+  }
+  let best = null;
+  // Enumerate 6P3 assignments. Ties retain the first candidate in this
+  // stable ascending-rank order, so the fit is deterministic.
+  for (let full = 0; full < 6; full += 1) {
+    for (let source = 0; source < 6; source += 1) {
+      if (source === full) {
+        continue;
+      }
+      for (let job = 0; job < 6; job += 1) {
+        if (job === full || job === source) {
+          continue;
+        }
+        const labels = Array(6).fill(LABELS[3]);
+        labels[full] = LABELS[0];
+        labels[source] = LABELS[1];
+        labels[job] = LABELS[2];
+        const exactBatches = rankedTruth.filter((truth) =>
+          truth.every((label, rank) => label === labels[rank])).length;
+        const correctLabels = labels.reduce((total, label, rank) =>
+          total + counts[rank].get(label), 0);
+        if (best === null ||
+          exactBatches > best.exactBatches ||
+          (exactBatches === best.exactBatches && correctLabels > best.correctLabels)) {
+          best = { labels, exactBatches, correctLabels };
+        }
+      }
+    }
+  }
+  assert.equal(best.labels.filter((label) => label === LABELS[3]).length, 3);
+  for (const label of LABELS.slice(0, 3)) {
+    assert.equal(best.labels.filter((item) => item === label).length, 1);
+  }
+  return best.labels;
+}
+
 function rankPrediction(item, field, labels) {
   return {
     labels: Object.fromEntries(orderedTokens(item, field)
@@ -257,6 +302,26 @@ for (const [name, field] of [
     console.log(JSON.stringify({
       grid: gridName, candidate: name, fitted,
       ...evaluateGrid(grid, (item) => rankPrediction(item, field, fitted)),
+    }));
+  }
+}
+
+for (const [name, field] of [
+  ['one-each-arrival-rank', 'arrival_order'],
+  ['one-each-event-time-rank', 'event_time'],
+]) {
+  const fitted = fitOneEachRankLabels(grids.development, field);
+  for (const [gridName, grid] of Object.entries(grids)) {
+    const stats = evaluateGrid(grid, (item) => rankPrediction(item, field, fitted));
+    assert.equal(stats.exact, 0);
+    assert.equal(
+      stats.labelOnlyExact,
+      gridName === 'development' ? (field === 'arrival_order' ? 2 : 3) : 0,
+      name + '/' + gridName,
+    );
+    console.log(JSON.stringify({
+      grid: gridName, candidate: name, fitted,
+      ...stats,
     }));
   }
 }
