@@ -82,16 +82,18 @@ test('screen summary counts invalid slots and aggregates valid score metrics', (
       },
     },
     { classification: 'model_fail', reason: 'off-grammar', parsed: false },
+    { classification: 'invalid_run', reason: 'label-schema', parsed: true, pair_exact: 0 },
     { classification: 'invalid_run', reason: 'served-model-mismatch' },
     { classification: 'provider_error', reason: 'timeout' },
   ];
-  const summary = summarizeDefenseResults(results, { mock: true, plan: { seeds: Array(5) } }, {});
-  assert.equal(summary.invalid_slots, 3);
+  const summary = summarizeDefenseResults(results, { mock: true, plan: { seeds: Array(6) } }, {});
+  assert.equal(summary.invalid_slots, 4);
   assert.equal(summary.off_grammar, 1);
-  assert.equal(summary.invalid_runs, 1);
+  assert.equal(summary.label_schema, 1);
+  assert.equal(summary.invalid_runs, 2);
   assert.equal(summary.provider_errors, 1);
   assert.equal(summary.valid_batches, 2);
-  assert.equal(summary.parsed_batches, 2);
+  assert.equal(summary.parsed_batches, 3);
   assert.equal(summary.exact_batches, 1);
   assert.equal(summary.true_positives, 3);
   assert.equal(summary.false_positives, 2);
@@ -100,5 +102,5 @@ test('screen summary counts invalid slots and aggregates valid score metrics', (
   assert.equal(summary.recall, 0.5);
   assert.equal(summary.confusion['cumulative-exfil']['cumulative-exfil'], 4);
   assert.equal(summary.pair_exact, 3);
-  assert.equal(summary.pair_total, 10);
+  assert.equal(summary.pair_total, 12);
 });

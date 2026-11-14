@@ -128,6 +128,8 @@ export async function runDefenseCase(seed, args, cfg, request) {
     { role: 'user', content: staged },
   ];
   const transcript = [];
+  let finalLabels = null;
+  let finalScore = null;
   for (let attempt = 0; attempt < 2; attempt += 1) {
     if (Date.now() >= cfg.screenDeadlineMs) {
       return {
@@ -139,7 +141,19 @@ export async function runDefenseCase(seed, args, cfg, request) {
         pair_total: 2,
       };
     }
-    const response = await request(messages, cfg);
+    let response;
+    try {
+      response = await request(messages, cfg);
+    } catch {
+      return {
+        seed,
+        classification: 'provider_error',
+        reason: 'request-exception',
+        transcript,
+        pair_exact: 0,
+        pair_total: 2,
+      };
+    }
     if (response.kind !== 'ok') {
       return {
         seed,
@@ -163,6 +177,8 @@ export async function runDefenseCase(seed, args, cfg, request) {
     }
     const labels = response.finish_reason === 'length' ? null : parseLabels(response.text);
     const score = scoreDefense(batch, labels);
+    finalLabels = labels;
+    finalScore = score;
     transcript.push({
       raw: response.text,
       served_model: response.served_model,
@@ -189,6 +205,18 @@ export async function runDefenseCase(seed, args, cfg, request) {
         content: `Return only a JSON object with exactly these flow_id keys and one of the four labels for each: ${batch.flows.map((flow) => flow.flow_id).join(', ')}`,
       });
     }
+  }
+  if (finalLabels !== null) {
+    return {
+      seed,
+      classification: 'invalid_run',
+      reason: 'label-schema',
+      parsed: true,
+      score: finalScore,
+      transcript,
+      pair_exact: 0,
+      pair_total: 2,
+    };
   }
   return {
     seed,

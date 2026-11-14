@@ -55,6 +55,69 @@ test('paired-case score falls when either member has a wrong label and invalid o
   assert.deepEqual(scorePairAccuracy(batch, null), { pair_exact: 0, pair_total: 2 });
 });
 
+const liveCfg = () => ({ model: 'test-model', screenDeadlineMs: Date.now() + 60000 });
+const response = (text) => ({
+  kind: 'ok',
+  text,
+  served_model: 'test-model',
+  finish_reason: 'stop',
+});
+
+test('thrown provider request becomes sanitized provider error without losing the slot', async () => {
+  const secret = 'sk-sensitive-example';
+  const result = await runDefenseCase(14001, { evidenceDir }, liveCfg(), async () => {
+    throw new Error(`HTTP 401 ${secret} request body`);
+  });
+  assert.equal(result.classification, 'provider_error');
+  assert.equal(result.reason, 'request-exception');
+  assert.deepEqual([result.pair_exact, result.pair_total], [0, 2]);
+  assert.equal(JSON.stringify(result).includes(secret), false);
+  assert.equal(JSON.stringify(result).includes('request body'), false);
+});
+
+test('bad evidence fails before provider traffic', async () => {
+  let calls = 0;
+  await assert.rejects(
+    runDefenseCase(
+      14001,
+      { evidenceDir: path.join(evidenceDir, 'missing') },
+      liveCfg(),
+      async () => {
+        calls += 1;
+        return response('{}');
+      },
+    ),
+  );
+  assert.equal(calls, 0);
+});
+
+test('parsed object with missing or extra flow keys is label-schema invalid after repair', async () => {
+  const correct = referenceDefense(loadBatch(14001, evidenceDir));
+  for (const text of ['{}', JSON.stringify({ ...correct, extra: 'benign' })]) {
+    let calls = 0;
+    const result = await runDefenseCase(14001, { evidenceDir }, liveCfg(), async () => {
+      calls += 1;
+      return response(text);
+    });
+    assert.equal(calls, 2);
+    assert.equal(result.classification, 'invalid_run');
+    assert.equal(result.reason, 'label-schema');
+    assert.equal(result.parsed, true);
+    assert.equal(result.score.valid, false);
+    assert.deepEqual([result.pair_exact, result.pair_total], [0, 2]);
+  }
+});
+
+test('non-JSON after repair remains off-grammar and unparsed', async () => {
+  const result = await runDefenseCase(14001, { evidenceDir }, liveCfg(), async () =>
+    response('not json'),
+  );
+  assert.equal(result.classification, 'model_fail');
+  assert.equal(result.reason, 'off-grammar');
+  assert.equal(result.parsed, false);
+  assert.deepEqual([result.pair_exact, result.pair_total], [0, 2]);
+});
+
 test('raw output requires safe local path and stays private', () => {
   assert.throws(() => assertSafeOutputPath(path.join(here, 'raw.json')), /outside the repository/u);
   const output = path.join(os.tmpdir(), `f10-v14-private-${crypto.randomUUID()}.json`);

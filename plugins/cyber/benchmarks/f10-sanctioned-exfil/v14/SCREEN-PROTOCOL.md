@@ -6,6 +6,8 @@ This is a defense-only native capture screen. V14 uses the v13 estate without ch
 
 The model receives only the system prompt in `defense.mjs` and the serialized observation from `capture-consumer.mjs`. Answers and sink proof remain evaluator-only. The primary score requires an exact JSON mapping for every flow ID, using one of `cumulative-exfil`, `sanctioned-bulk`, `ambiguous`, or `benign`. Report parsed/valid batches, exact batches, confusion, TP/FP/FN, precision/recall, and paired-case accuracy. Invalid grammar, missing keys, provider failures, and endpoint/model mismatches are invalid slots, not passing decisions.
 
+A JSON object with missing or extra flow keys counts as parsed but fails label schema validation after the repair attempt. Non-JSON output remains off-grammar. Provider request exceptions are recorded as provider errors with a fixed reason; their exception text is not copied into the result.
+
 Paired-case accuracy is a separate evaluator-only score: the `alternate-over`/`alternate-boundary` and `mixed-cap-cross`/`mixed-cap-safe` pairs each count only when all four flow labels across both members are correct. Invalid output receives zero for both pairs. The private answer-kind-to-flow mapping is never serialized into the model observation.
 
 ## Evidence bindings (complete in Task 5)

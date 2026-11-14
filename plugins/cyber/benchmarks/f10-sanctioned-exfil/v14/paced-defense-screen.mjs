@@ -77,6 +77,7 @@ export function summarizeDefenseResults(results, args, cfg) {
   const falsePositives = validScores.reduce((sum, score) => sum + score.false_positives, 0);
   const falseNegatives = validScores.reduce((sum, score) => sum + score.false_negatives, 0);
   const offGrammar = results.filter((result) => result.reason === 'off-grammar').length;
+  const labelSchema = results.filter((result) => result.reason === 'label-schema').length;
   const invalidRuns = results.filter((result) => result.classification === 'invalid_run').length;
   const providerErrors = results.filter(
     (result) => result.classification === 'provider_error',
@@ -97,6 +98,7 @@ export function summarizeDefenseResults(results, args, cfg) {
     ).length,
     invalid_slots: offGrammar + invalidRuns + providerErrors,
     off_grammar: offGrammar,
+    label_schema: labelSchema,
     invalid_runs: invalidRuns,
     provider_errors: providerErrors,
     confusion,
