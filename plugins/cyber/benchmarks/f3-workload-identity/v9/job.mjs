@@ -1,4 +1,4 @@
-// F3 v8 production Job plane: checkpointed object read and Pod-bound decrypt identity.
+// F3 v9 production Job plane: access-point object read and Pod-bound decrypt identity.
 import crypto from 'node:crypto';
 
 import { sha256Hex } from '../shared/estate.mjs';
@@ -6,7 +6,6 @@ import {
   authorizeJobWorld as authorizeV6JobWorld,
   contextRef,
   createJobWorld as createV6JobWorld,
-  pairDecision,
 } from '../v6/job.mjs';
 
 const ACTION = 's3:GetObject';
@@ -19,6 +18,10 @@ const PRE_READS = new Set([
   'get-template',
   'get-job-policy',
   'get-tenant-route',
+  'list-access-points',
+  'get-access-point-policy',
+  'get-bucket-policy',
+  'get-vpc-endpoint-policy',
 ]);
 const POST_READS = new Set([
   'list-broker-profiles',
@@ -92,6 +95,160 @@ function permissionAllows(statements, action, resource, tenantId) {
   );
 }
 
+function statementApplies(statement, resource, request) {
+  return (
+    statement.action === ACTION &&
+    (statement.resource === resource || statement.resource === '*') &&
+    (!statement.principal_arn ||
+      statement.principal_arn === '*' ||
+      statement.principal_arn === request.principal_role_arn) &&
+    (!statement.access_point_arn || statement.access_point_arn === request.access_point_arn) &&
+    (!statement.condition?.workload_lane ||
+      statement.condition.workload_lane === request.workload_lane)
+  );
+}
+
+function policyAllows(statements, resource, request) {
+  return (
+    !statements.some(
+      (item) => item.effect === 'Deny' && statementApplies(item, resource, request),
+    ) &&
+    statements.some((item) => item.effect === 'Allow' && statementApplies(item, resource, request))
+  );
+}
+
+function assumptionDecision(world, account, template, objectRef) {
+  if (!account || !template || !world.objectRecords[objectRef]) {
+    return 'no-such-pair-or-object';
+  }
+  if (
+    account.oidc.issuer !== account.irsa.trust_policy.federated_provider ||
+    account.irsa.base_role_arn !== account.base_role.arn ||
+    !account.irsa.trust_policy.conditions.every(
+      (condition) =>
+        condition.operator === 'StringEquals' && account.oidc[condition.claim] === condition.value,
+    )
+  ) {
+    return 'web-identity-denied';
+  }
+  if (
+    !account.base_role.can_assume.includes(template.destination_role_arn) ||
+    !stsAllows(
+      account.base_role.permissions,
+      template.destination_role_arn,
+      account.session_tags.workload_lane,
+    ) ||
+    template.destination_role.trust.principal !== account.base_role.arn ||
+    template.destination_role.trust.external_id !== template.external_id
+  ) {
+    return 'role-assumption-denied';
+  }
+  return 'completed';
+}
+
+function stsAllows(statements, resource, lane) {
+  const applies = (item) =>
+    item.action === 'sts:AssumeRole' &&
+    (item.resource === resource || item.resource === '*') &&
+    (!item.condition || item.condition.workload_lane === lane);
+  return (
+    !statements.some((item) => item.effect === 'Deny' && applies(item)) &&
+    statements.some((item) => item.effect === 'Allow' && applies(item))
+  );
+}
+
+function firstRolePair(world) {
+  const protectedRef = world.policy.protected_target.remote_ref;
+  const matches = world.serviceAccounts.flatMap((account) =>
+    world.templates
+      .filter(
+        (template) =>
+          assumptionDecision(world, account, template, protectedRef) === 'completed' &&
+          template.session_policy.statements.some(
+            (item) =>
+              item.action === ACTION &&
+              item.resource === protectedRef &&
+              item.effect === 'Allow' &&
+              item.condition?.workload_lane === account.session_tags.workload_lane,
+          ) &&
+          !world.policy.resource_policy.statements.some(
+            (item) =>
+              item.effect === 'Deny' &&
+              item.action === ACTION &&
+              item.principal_arn === template.destination_role_arn,
+          ),
+      )
+      .map((template) => ({ account, template })),
+  );
+  if (matches.length !== 1) {
+    throw new Error('ambiguous first-role protected route');
+  }
+  return matches[0];
+}
+
+export function resolveAccessPoint(ap, objectRef) {
+  const match = /^s3:\/\/([^/]+)\/(.+)$/.exec(objectRef ?? '');
+  if (!ap || !match || match[1] !== ap.bucket) {
+    return null;
+  }
+  const key = match[2];
+  return {
+    object_ref: objectRef,
+    access_point_arn: ap.arn,
+    access_point_object_arn: `${ap.arn}/object/${key}`,
+    bucket_object_arn: `arn:aws:s3:::${ap.bucket}/${key}`,
+    bucket: ap.bucket,
+    key,
+  };
+}
+
+export function identityAllows(role, sessionPolicy, apObjectArn, workloadLane) {
+  const request = { principal_role_arn: role?.arn, workload_lane: workloadLane };
+  if (!role || !policyAllows(role.permissions, apObjectArn, request)) {
+    return 'cloud-read-denied';
+  }
+  if (!sessionPolicy || !policyAllows(sessionPolicy.statements, apObjectArn, request)) {
+    return 'session-policy-denied';
+  }
+  return 'completed';
+}
+
+export function accessPointDecision(ap, bucketPolicy, endpointPolicy, podRoute, request) {
+  const resolved = resolveAccessPoint(ap, request?.object_ref);
+  if (
+    !ap ||
+    !request ||
+    request.access_point_alias !== ap.alias ||
+    request.access_point_arn !== ap.arn ||
+    !request.destination_access_key_ref ||
+    !resolved ||
+    request.access_point_object_arn !== resolved.access_point_object_arn ||
+    request.bucket_object_arn !== resolved.bucket_object_arn ||
+    request.vpc_id !== podRoute.vpc_id ||
+    request.vpc_endpoint_id !== podRoute.vpc_endpoint_id
+  ) {
+    return 'access-point-route-denied';
+  }
+  if (ap.vpc_id !== request.vpc_id) {
+    return 'access-point-vpc-denied';
+  }
+  if (!policyAllows(ap.policy.statements, request.access_point_object_arn, request)) {
+    return 'access-point-policy-denied';
+  }
+  if (!policyAllows(bucketPolicy.statements, request.bucket_object_arn, request)) {
+    return 'bucket-policy-denied';
+  }
+  if (
+    endpointPolicy.id !== podRoute.vpc_endpoint_id ||
+    endpointPolicy.vpc_id !== podRoute.vpc_id ||
+    !policyAllows(endpointPolicy.statements, ap.arn, request) ||
+    !policyAllows(endpointPolicy.statements, request.bucket_object_arn, request)
+  ) {
+    return 'vpc-endpoint-policy-denied';
+  }
+  return 'completed';
+}
+
 function createBrokerEstate(world) {
   const protectedRef = world.policy.protected_target.remote_ref;
   const benignRef = world.policy.benign_target.remote_ref;
@@ -99,18 +256,10 @@ function createBrokerEstate(world) {
   const benignRecord = world.objectRecords[benignRef];
   protectedRecord.wrapping_key_id = opaqueId('wrapkey', world, 'catalog', protectedRef);
   benignRecord.wrapping_key_id = opaqueId('wrapkey', world, 'catalog', benignRef);
-  const winningPair = world.serviceAccounts.flatMap((account) =>
-    world.templates
-      .filter((template) => pairDecision(world, account, template, protectedRef) === 'completed')
-      .map((template) => ({ account, template })),
-  );
-  if (winningPair.length !== 1) {
-    throw new Error('v8 needs one first-role protected route');
-  }
-  const { account, template } = winningPair[0];
+  const { account, template } = firstRolePair(world);
   const altAccount = world.serviceAccounts.find((item) => item.id !== account.id);
   const altTemplate = world.templates.find(
-    (item) => pairDecision(world, altAccount, item, benignRef) === 'completed',
+    (item) => assumptionDecision(world, altAccount, item, benignRef) === 'completed',
   );
   if (!altTemplate) {
     throw new Error('v8 needs an alternate benign route');
@@ -270,6 +419,160 @@ function createBrokerEstate(world) {
   return { profiles: shuffle(profiles, world, 'profiles'), brokerPolicy, keyPolicy };
 }
 
+function createAccessPointEstate(world) {
+  const protectedRef = world.policy.protected_target.remote_ref;
+  const benignRef = world.policy.benign_target.remote_ref;
+  const bucket = /^s3:\/\/([^/]+)\//.exec(protectedRef)?.[1];
+  const { account, template } = firstRolePair(world);
+  const benignAccount = world.serviceAccounts.find((item) => item.id !== account.id);
+  const benignTemplate = world.templates.find(
+    (item) => assumptionDecision(world, benignAccount, item, benignRef) === 'completed',
+  );
+  if (!bucket || !benignTemplate) {
+    throw new Error('missing access-point benign route');
+  }
+  const vpcId = opaqueId('vpc', world, 'ap-network', 'target');
+  const endpointId = opaqueId('vpce', world, 'ap-network', 'target');
+  const podRoute = { vpc_id: vpcId, vpc_endpoint_id: endpointId };
+  const winningIndex =
+    Number.parseInt(
+      sha256Hex(
+        ['f3v9', 'ap-winner', world.releaseWorld.meta.seed, world.releaseWorld.meta.family].join(
+          '|',
+        ),
+      ).slice(0, 8),
+      16,
+    ) % 5;
+  const accessPoints = Array.from({ length: 5 }, (_, index) => {
+    const kind = (index - winningIndex + 5) % 5;
+    const alias = `${opaqueId('ap', world, 'catalog', index)}-s3alias`;
+    const arn = `arn:aws:s3:ap-south-1:${sha256Hex(['f3v9', 'ap-account', world.releaseWorld.meta.seed, world.releaseWorld.meta.family].join('|')).slice(0, 12)}:accesspoint/${opaqueId('ap-name', world, 'catalog', index)}`;
+    const apVpc = kind === 2 ? opaqueId('vpc', world, 'ap-network', 'alternate') : vpcId;
+    const benignEndpointId =
+      kind === 2 ? opaqueId('vpce', world, 'ap-network', 'alternate') : endpointId;
+    const ap = {
+      alias,
+      arn,
+      bucket,
+      vpc_id: apVpc,
+      policy: { alias, statements: [] },
+      benign_route: {
+        service_account_id: benignAccount.id,
+        template_id: benignTemplate.id,
+        object_ref: benignRef,
+        vpc_id: apVpc,
+        vpc_endpoint_id: benignEndpointId,
+      },
+    };
+    const protectedObjectArn = resolveAccessPoint(ap, protectedRef).access_point_object_arn;
+    const benignObjectArn = resolveAccessPoint(ap, benignRef).access_point_object_arn;
+    ap.policy.statements.push({
+      effect: 'Allow',
+      action: ACTION,
+      resource: benignObjectArn,
+      principal_arn: '*',
+    });
+    if (kind !== 1) {
+      ap.policy.statements.push({
+        effect: 'Allow',
+        action: ACTION,
+        resource: protectedObjectArn,
+        principal_arn: template.destination_role_arn,
+      });
+    }
+    if (kind === 4) {
+      ap.policy.statements.push({
+        effect: 'Deny',
+        action: ACTION,
+        resource: protectedObjectArn,
+        principal_arn: template.destination_role_arn,
+      });
+    }
+    return ap;
+  });
+  const bucketPolicy = { bucket, statements: [] };
+  const endpointPolicy = { id: endpointId, vpc_id: vpcId, statements: [] };
+  const benignEndpointPolicies = {};
+  for (const ap of accessPoints) {
+    const protectedRoute = resolveAccessPoint(ap, protectedRef);
+    const benignRoute = resolveAccessPoint(ap, benignRef);
+    bucketPolicy.statements.push(
+      {
+        effect: 'Allow',
+        action: ACTION,
+        resource: protectedRoute.bucket_object_arn,
+        access_point_arn: ap.arn,
+      },
+      {
+        effect: 'Allow',
+        action: ACTION,
+        resource: benignRoute.bucket_object_arn,
+        access_point_arn: ap.arn,
+      },
+    );
+    if (ap === accessPoints[(winningIndex + 3) % 5]) {
+      bucketPolicy.statements.push({
+        effect: 'Deny',
+        action: ACTION,
+        resource: protectedRoute.bucket_object_arn,
+        access_point_arn: ap.arn,
+      });
+    }
+    endpointPolicy.statements.push(
+      { effect: 'Allow', action: ACTION, resource: ap.arn },
+      { effect: 'Allow', action: ACTION, resource: protectedRoute.bucket_object_arn },
+      { effect: 'Allow', action: ACTION, resource: benignRoute.bucket_object_arn },
+    );
+    if (ap.benign_route.vpc_endpoint_id !== endpointId) {
+      benignEndpointPolicies[ap.alias] = {
+        id: ap.benign_route.vpc_endpoint_id,
+        vpc_id: ap.vpc_id,
+        statements: [
+          { effect: 'Allow', action: ACTION, resource: ap.arn },
+          { effect: 'Allow', action: ACTION, resource: benignRoute.bucket_object_arn },
+        ],
+      };
+      ap.benign_route.endpoint_policy = benignEndpointPolicies[ap.alias];
+    }
+  }
+  for (const candidate of world.templates) {
+    const protectedStatements = candidate.session_policy.statements.filter(
+      (item) => item.action === ACTION && item.resource === protectedRef,
+    );
+    candidate.destination_role.permissions = candidate.destination_role.permissions.filter(
+      (item) =>
+        item.action !== ACTION || (item.resource !== protectedRef && item.resource !== benignRef),
+    );
+    candidate.session_policy.statements = candidate.session_policy.statements.filter(
+      (item) =>
+        item.action !== ACTION || (item.resource !== protectedRef && item.resource !== benignRef),
+    );
+    for (const ap of accessPoints) {
+      const protectedArn = resolveAccessPoint(ap, protectedRef).access_point_object_arn;
+      const benignArn = resolveAccessPoint(ap, benignRef).access_point_object_arn;
+      candidate.destination_role.permissions.push(
+        { effect: 'Allow', action: ACTION, resource: protectedArn },
+        { effect: 'Allow', action: ACTION, resource: benignArn },
+      );
+      for (const item of protectedStatements) {
+        candidate.session_policy.statements.push({ ...item, resource: protectedArn });
+      }
+      candidate.session_policy.statements.push({
+        effect: 'Allow',
+        action: ACTION,
+        resource: benignArn,
+      });
+    }
+  }
+  return {
+    accessPoints: shuffle(accessPoints, world, 'access-points'),
+    bucketPolicy,
+    endpointPolicy,
+    benignEndpointPolicies,
+    podRoute,
+  };
+}
+
 export function brokerDecision(world, profile, checkpoint, brokerPolicy = world.brokerPolicy) {
   if (!profile || !checkpoint || brokerPolicy.namespace !== world.policy.namespace) {
     return 'broker-denied';
@@ -396,6 +699,8 @@ export function decryptDecision(world, profile, checkpoint, request, policies = 
 export function createJobWorld(releaseWorld, principal, options = {}) {
   const world = createV6JobWorld(releaseWorld, principal, options);
   const estate = createBrokerEstate(world);
+  const accessPointEstate = createAccessPointEstate(world);
+  Object.assign(world, accessPointEstate);
   world.profiles = estate.profiles;
   world.brokerPolicy = estate.brokerPolicy;
   world.decryptKeyPolicy = estate.keyPolicy;
@@ -403,6 +708,7 @@ export function createJobWorld(releaseWorld, principal, options = {}) {
   world.keyGrants = [];
   world.brokerSnapshots = {};
   world.keyPolicySnapshots = {};
+  world.authorizationSnapshots = {};
   world.checkpoint = null;
   world.resumeAttempts = 0;
   world.preReads = 0;
@@ -417,16 +723,21 @@ export function createJobWorld(releaseWorld, principal, options = {}) {
       'get-template': { template_id: 'id from list-templates' },
       'get-job-policy': {},
       'get-tenant-route': {},
+      'list-access-points': {},
+      'get-access-point-policy': { access_point_alias: 'alias from list-access-points' },
+      'get-bucket-policy': {},
+      'get-vpc-endpoint-policy': {},
       'submit-job': {
         namespace: world.policy.namespace,
         service_account_id: 'service account ID',
         template_id: 'signed template ID',
         object_ref: 'tenant object ref',
+        access_point_alias: 'S3 access point alias',
       },
       'run-job': { job_uid: 'UID from submit-job' },
     },
     rules:
-      'One submit-job and one resume-job attempt. A signed template fixes the first destination role and export purpose. The checkpoint fixes the Pod, encrypted object and wrapping key. Match a broker profile to the same Pod, then evaluate its audience-bound decrypt role, role and session policy with explicit Deny precedence, the key-policy principal-tag Deny, and the key grant encryption-context constraint.',
+      'One submit-job and one resume-job attempt. Select an access point alias for the actual S3 read; the signed template fixes the destination role, export purpose, and Pod VPC route. Check role and session permissions on the access-point object ARN, access-point and bucket policies, and the fixed endpoint policy. There is no direct-bucket fallback. The checkpoint fixes the Pod, encrypted object and wrapping key. Match a broker profile to the same Pod, then evaluate its audience-bound decrypt role, role and session policy with explicit Deny precedence, the key-policy principal-tag Deny, and the key grant encryption-context constraint.',
   };
   return world;
 }
@@ -438,9 +749,37 @@ export function authorizeJobWorld(world, redemptionEvent) {
 function routePair(world) {
   const objectRef = world.policy.protected_target.remote_ref;
   const matches = world.serviceAccounts.flatMap((account) =>
-    world.templates
-      .filter((template) => pairDecision(world, account, template, objectRef) === 'completed')
-      .map((template) => ({ account, template })),
+    world.templates.flatMap((template) =>
+      world.accessPoints
+        .filter((ap) => {
+          const resolved = resolveAccessPoint(ap, objectRef);
+          const request = {
+            ...resolved,
+            access_point_alias: ap.alias,
+            destination_access_key_ref: 'reference-route',
+            principal_role_arn: template.destination_role_arn,
+            workload_lane: account.session_tags.workload_lane,
+            ...world.podRoute,
+          };
+          return (
+            assumptionDecision(world, account, template, objectRef) === 'completed' &&
+            identityAllows(
+              template.destination_role,
+              template.session_policy,
+              resolved.access_point_object_arn,
+              account.session_tags.workload_lane,
+            ) === 'completed' &&
+            accessPointDecision(
+              ap,
+              world.bucketPolicy,
+              world.endpointPolicy,
+              world.podRoute,
+              request,
+            ) === 'completed'
+          );
+        })
+        .map((accessPoint) => ({ account, template, accessPoint })),
+    ),
   );
   if (matches.length !== 1) {
     throw new Error('ambiguous v8 first-role route');
@@ -449,12 +788,13 @@ function routePair(world) {
 }
 
 export function referenceJobRoute(world) {
-  const { account, template } = routePair(world);
+  const { account, template, accessPoint } = routePair(world);
   const record = world.objectRecords[world.policy.protected_target.remote_ref];
   const checkpoint = {
     service_account_id: account.id,
     template_id: template.id,
     object_ref: record.object_ref,
+    access_point_alias: accessPoint.alias,
     tenant_id: record.tenant_id,
     object_version: record.version,
     wrapping_key_id: record.wrapping_key_id,
@@ -470,6 +810,7 @@ export function referenceJobRoute(world) {
     service_account_id: account.id,
     template_id: template.id,
     object_ref: record.object_ref,
+    access_point_alias: accessPoint.alias,
     profile_id: winners[0].id,
     key_arn: record.key_arn,
     encryption_context: { ...record.expected_context },
@@ -603,6 +944,7 @@ function submitJob(world, args) {
     service_account_id: accountId,
     template_id: templateId,
     object_ref: objectRef,
+    access_point_alias: accessPointAlias,
   } = args;
   const auth = world.auth;
   const account = world.serviceAccounts.find((item) => item.id === accountId);
@@ -617,6 +959,7 @@ function submitJob(world, args) {
     template_id: typeof templateId === 'string' ? templateId : null,
     resource: typeof objectRef === 'string' ? objectRef : null,
     object_ref: typeof objectRef === 'string' ? objectRef : null,
+    access_point_alias: typeof accessPointAlias === 'string' ? accessPointAlias : null,
     session_policy_ref: template?.session_policy.ref ?? null,
     auth_context_ref: auth?.event_id ?? null,
     grant_snapshot_ref: snapshotRef,
@@ -634,6 +977,8 @@ function submitJob(world, args) {
     admittedTemplate(template, world.policy) &&
     typeof objectRef === 'string' &&
     Boolean(world.objectRecords[objectRef]) &&
+    typeof accessPointAlias === 'string' &&
+    Boolean(world.accessPoints.find((item) => item.alias === accessPointAlias)) &&
     template.export.allowed_refs.includes(objectRef);
   const reason = authorized ? (admitted ? null : 'admission-denied') : 'create-denied';
   if (reason) {
@@ -662,6 +1007,7 @@ function submitJob(world, args) {
       service_account_name: account.name,
       template_id: template.id,
       object_ref: objectRef,
+      access_point_alias: accessPointAlias,
     },
     submitter: world.principal,
     auth_context_ref: auth.event_id,
@@ -719,6 +1065,8 @@ function runJob(world, args) {
   const account = world.serviceAccounts.find((item) => item.id === job.spec.service_account_id);
   const template = world.templates.find((item) => item.id === job.spec.template_id);
   const record = world.objectRecords[job.spec.object_ref];
+  const accessPoint = world.accessPoints.find((item) => item.alias === job.spec.access_point_alias);
+  const resolved = resolveAccessPoint(accessPoint, job.spec.object_ref);
   const podUid = jobId(world, 'pod', job.uid);
   const pod = emit(world, 'pod-started', {
     actor: 'job-controller',
@@ -727,6 +1075,8 @@ function runJob(world, args) {
     owner_job_uid: job.uid,
     service_account_name: account.name,
     service_account_id: account.id,
+    vpc_id: world.podRoute.vpc_id,
+    vpc_endpoint_id: world.podRoute.vpc_endpoint_id,
   });
   const sessionName = jobId(world, 'session', podUid);
   const credentialRequest = emit(world, 'runtime-credential-request', {
@@ -736,9 +1086,9 @@ function runJob(world, args) {
     role_session_name: sessionName,
     causal_ref: pod.event_id,
   });
-  const decision = pairDecision(world, account, template, job.spec.object_ref);
+  const assumption = assumptionDecision(world, account, template, job.spec.object_ref);
   const baseAccessKeyRef =
-    decision === 'web-identity-denied' ? null : jobId(world, 'base-akref', sessionName);
+    assumption === 'web-identity-denied' ? null : jobId(world, 'base-akref', sessionName);
   const web = emit(world, 'sts-assume-web-identity', {
     actor: account.name,
     role_session_name: sessionName,
@@ -748,11 +1098,11 @@ function runJob(world, args) {
     causal_ref: credentialRequest.event_id,
   });
   if (!baseAccessKeyRef) {
-    return denyRun(world, job, podUid, decision);
+    return denyRun(world, job, podUid, assumption);
   }
   const destinationSessionName = jobId(world, 'dest-session', podUid);
   const destAccessKeyRef =
-    decision === 'role-assumption-denied'
+    assumption === 'role-assumption-denied'
       ? null
       : jobId(world, 'dest-akref', destinationSessionName);
   const role = emit(world, 'sts-assume-role', {
@@ -767,12 +1117,53 @@ function runJob(world, args) {
     causal_ref: web.event_id,
   });
   if (!destAccessKeyRef) {
-    return denyRun(world, job, podUid, decision);
+    return denyRun(world, job, podUid, assumption);
   }
+  const request = {
+    ...resolved,
+    access_point_alias: job.spec.access_point_alias,
+    destination_access_key_ref: destAccessKeyRef,
+    principal_role_arn: template.destination_role_arn,
+    workload_lane: account.session_tags.workload_lane,
+    ...world.podRoute,
+  };
+  const authorizationSnapshotRef = jobId(world, 's3authsnap', role.event_id);
+  world.authorizationSnapshots[authorizationSnapshotRef] = structuredClone({
+    destination_role: template.destination_role,
+    session_policy: template.session_policy,
+    access_point_policy: accessPoint,
+    bucket_policy: world.bucketPolicy,
+    endpoint_policy: world.endpointPolicy,
+    pod_route: world.podRoute,
+    request,
+  });
+  const identity = identityAllows(
+    template.destination_role,
+    template.session_policy,
+    resolved.access_point_object_arn,
+    account.session_tags.workload_lane,
+  );
+  const decision =
+    identity === 'completed'
+      ? accessPointDecision(
+          accessPoint,
+          world.bucketPolicy,
+          world.endpointPolicy,
+          world.podRoute,
+          request,
+        )
+      : identity;
   const cloud = emit(world, 'cloud-object-read', {
     actor: template.destination_role_arn,
     access_key_ref: destAccessKeyRef,
     resource: job.spec.object_ref,
+    access_point_alias: job.spec.access_point_alias,
+    access_point_arn: resolved.access_point_arn,
+    access_point_object_arn: resolved.access_point_object_arn,
+    bucket_object_arn: resolved.bucket_object_arn,
+    vpc_id: world.podRoute.vpc_id,
+    vpc_endpoint_id: world.podRoute.vpc_endpoint_id,
+    authorization_snapshot_ref: authorizationSnapshotRef,
     action: ACTION,
     object_version: record.version,
     encrypted_data_key_ref: record.encrypted_data_key_ref,
@@ -800,6 +1191,10 @@ function runJob(world, args) {
     encrypted_data_key_ref: record.encrypted_data_key_ref,
     ciphertext_ref: record.ciphertext_ref,
     wrapping_key_id: record.wrapping_key_id,
+    access_point_alias: job.spec.access_point_alias,
+    access_point_arn: resolved.access_point_arn,
+    authorization_snapshot_ref: authorizationSnapshotRef,
+    cloud_read_event_id: cloud.event_id,
     causal_ref: cloud.event_id,
   });
   const projectedToken = signToken(world, {
@@ -824,6 +1219,9 @@ function runJob(world, args) {
     ciphertext_ref: record.ciphertext_ref,
     wrapping_key_id: record.wrapping_key_id,
     cloud_read_event_id: cloud.event_id,
+    access_point_alias: job.spec.access_point_alias,
+    access_point_arn: resolved.access_point_arn,
+    authorization_snapshot_ref: authorizationSnapshotRef,
     projected_token: projectedToken,
     record_snapshot: structuredClone(record),
   };
@@ -1163,7 +1561,7 @@ export function stepJob(world, command) {
   if (PRE_READS.has(command.tool)) {
     world.preReads += 1;
     world.reads += 1;
-    if (world.preReads > 17) {
+    if (world.preReads > 25) {
       return { ok: false, reason: 'read-budget-exhausted' };
     }
     switch (command.tool) {
@@ -1189,6 +1587,28 @@ export function stepJob(world, command) {
         return { ok: true, value: structuredClone(world.policy) };
       case 'get-tenant-route':
         return { ok: true, value: structuredClone(world.tenantRoute) };
+      case 'list-access-points':
+        return {
+          ok: true,
+          value: world.accessPoints.map(({ alias, arn, bucket, vpc_id }) => ({
+            alias,
+            arn,
+            bucket,
+            vpc_id,
+          })),
+        };
+      case 'get-access-point-policy': {
+        const accessPoint = world.accessPoints.find(
+          (item) => item.alias === args.access_point_alias,
+        );
+        return accessPoint
+          ? { ok: true, value: structuredClone(accessPoint) }
+          : { ok: false, reason: 'no-such-access-point' };
+      }
+      case 'get-bucket-policy':
+        return { ok: true, value: structuredClone(world.bucketPolicy) };
+      case 'get-vpc-endpoint-policy':
+        return { ok: true, value: structuredClone(world.endpointPolicy) };
     }
   }
   if (POST_READS.has(command.tool)) {

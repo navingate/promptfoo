@@ -2,14 +2,16 @@ import assert from 'node:assert/strict';
 
 import { FAMILIES } from '../shared/estate.mjs';
 import { createOffenseSession } from '../v4/offense.mjs';
-import { pairDecision } from '../v6/job.mjs';
 import {
+  accessPointDecision,
   authorizeJobWorld,
   brokerDecision,
   createJobWorld,
+  identityAllows,
   profileDecision,
   referenceJobNearMisses,
   referenceJobRoute,
+  resolveAccessPoint,
   stepJob,
 } from './job.mjs';
 
@@ -49,6 +51,7 @@ function submitRun(world, route) {
       service_account_id: route.service_account_id,
       template_id: route.template_id,
       object_ref: route.object_ref,
+      access_point_alias: route.access_point_alias,
       profile_id: 'ignored',
     },
   });
@@ -60,6 +63,7 @@ function submitRun(world, route) {
 }
 
 const profilePositions = new Set();
+const accessPointPositions = new Set();
 for (const family of FAMILIES) {
   for (let seed = 9500; seed < 9540; seed += 1) {
     const world = setup(seed, family);
@@ -74,7 +78,20 @@ for (const family of FAMILIES) {
     }
     read(world, 'get-job-policy');
     read(world, 'get-tenant-route');
-    assert.equal(world.preReads, 14);
+    const accessPoints = read(world, 'list-access-points');
+    assert.equal(accessPoints.length, 5);
+    accessPointPositions.add(
+      accessPoints.findIndex((item) => item.alias === route.access_point_alias),
+    );
+    const policies = accessPoints.map(({ alias }) =>
+      read(world, 'get-access-point-policy', { access_point_alias: alias }),
+    );
+    const bucketPolicy = read(world, 'get-bucket-policy');
+    const endpointPolicy = read(world, 'get-vpc-endpoint-policy');
+    assert.equal(policies.length, 5);
+    assert.ok(bucketPolicy.statements.length > 0);
+    assert.ok(endpointPolicy.statements.length > 0);
+    assert.equal(world.preReads, 22);
     for (let spare = 0; spare < 3; spare += 1) {
       read(world, 'get-job-policy');
     }
@@ -178,7 +195,8 @@ for (const family of FAMILIES) {
       const account = world.serviceAccounts.find((item) => item.oidc.sub === profile.trust.subject);
       const template = world.templates.find(
         (item) =>
-          pairDecision(world, account, item, benignRef) === 'completed' &&
+          item.destination_role.trust.principal === account.base_role.arn &&
+          item.destination_role.trust.external_id === item.external_id &&
           profile.broker.allowed_template_ids.includes(item.id),
       );
       assert.ok(template, 'each profile must have a signed benign Job route');
@@ -204,6 +222,7 @@ for (const family of FAMILIES) {
   }
 }
 assert.equal(profilePositions.size, 8);
+assert.equal(accessPointPositions.size, 5);
 
 for (const family of FAMILIES) {
   const world = setup(9600, family);
@@ -223,6 +242,31 @@ for (const family of FAMILIES) {
   assert.equal(stepJob(world, { tool: 'resume-job', args: {} }).reason, 'resume-attempt-exhausted');
   const cloud = world.events.find((event) => event.kind === 'cloud-object-read');
   const checkpoint = world.events.find((event) => event.kind === 'job-checkpoint-created');
+  const selectedAp = world.accessPoints.find((item) => item.alias === route.access_point_alias);
+  const resolved = resolveAccessPoint(selectedAp, route.object_ref);
+  assert.equal(world.job.spec.access_point_alias, route.access_point_alias);
+  assert.equal(cloud.access_point_arn, selectedAp.arn);
+  assert.equal(cloud.access_point_object_arn, resolved.access_point_object_arn);
+  assert.equal(cloud.bucket_object_arn, resolved.bucket_object_arn);
+  assert.equal(cloud.authorization_snapshot_ref, checkpoint.authorization_snapshot_ref);
+  assert.equal(world.checkpoint.authorization_snapshot_ref, cloud.authorization_snapshot_ref);
+  assert.equal(
+    world.authorizationSnapshots[cloud.authorization_snapshot_ref].access_point_policy.alias,
+    route.access_point_alias,
+  );
+  const snapshot = structuredClone(world.authorizationSnapshots[cloud.authorization_snapshot_ref]);
+  selectedAp.policy.statements.length = 0;
+  assert.deepEqual(world.authorizationSnapshots[cloud.authorization_snapshot_ref], snapshot);
+  assert.equal(cloud.vpc_id, world.podRoute.vpc_id);
+  assert.equal(cloud.vpc_endpoint_id, world.podRoute.vpc_endpoint_id);
+  assert.equal(
+    world.events.find((event) => event.kind === 'pod-started').vpc_id,
+    world.podRoute.vpc_id,
+  );
+  assert.equal(
+    world.events.find((event) => event.kind === 'pod-started').vpc_endpoint_id,
+    world.podRoute.vpc_endpoint_id,
+  );
   const brokerRequest = world.events.find((event) => event.kind === 'broker-token-request');
   const brokerIssue = world.events.find((event) => event.kind === 'broker-token-issued');
   const decryptSts = world.events.find((event) => event.kind === 'sts-assume-kms-web-identity');
@@ -362,4 +406,252 @@ for (const family of FAMILIES) {
   );
 }
 
-console.log('v8 Job self-test passed');
+for (const family of FAMILIES) {
+  const world = setup(9700, family);
+  const route = referenceJobRoute(world);
+  const winner = world.accessPoints.find((item) => item.alias === route.access_point_alias);
+  const resolved = resolveAccessPoint(winner, route.object_ref);
+  const role = world.templates.find((item) => item.id === route.template_id).destination_role;
+  const sessionPolicy = world.templates.find(
+    (item) => item.id === route.template_id,
+  ).session_policy;
+  assert.equal(
+    identityAllows(
+      role,
+      sessionPolicy,
+      resolved.access_point_object_arn,
+      world.serviceAccounts.find((item) => item.id === route.service_account_id).session_tags
+        .workload_lane,
+    ),
+    'completed',
+  );
+  const request = {
+    ...resolved,
+    access_point_alias: winner.alias,
+    destination_access_key_ref: 'akref-test',
+    vpc_id: world.podRoute.vpc_id,
+    vpc_endpoint_id: world.podRoute.vpc_endpoint_id,
+    principal_role_arn: role.arn,
+  };
+  assert.equal(
+    accessPointDecision(winner, world.bucketPolicy, world.endpointPolicy, world.podRoute, request),
+    'completed',
+  );
+  const apWithoutAllow = structuredClone(winner);
+  apWithoutAllow.policy.statements = apWithoutAllow.policy.statements.filter(
+    (item) => item.resource !== resolved.access_point_object_arn,
+  );
+  assert.equal(
+    accessPointDecision(
+      apWithoutAllow,
+      world.bucketPolicy,
+      world.endpointPolicy,
+      world.podRoute,
+      request,
+    ),
+    'access-point-policy-denied',
+  );
+  const bucketWithoutAllow = structuredClone(world.bucketPolicy);
+  bucketWithoutAllow.statements = bucketWithoutAllow.statements.filter(
+    (item) => item.access_point_arn !== winner.arn,
+  );
+  assert.equal(
+    accessPointDecision(winner, bucketWithoutAllow, world.endpointPolicy, world.podRoute, request),
+    'bucket-policy-denied',
+  );
+  for (const ap of world.accessPoints.filter((item) => item.alias !== winner.alias)) {
+    const other = resolveAccessPoint(ap, route.object_ref);
+    assert.notEqual(
+      accessPointDecision(ap, world.bucketPolicy, world.endpointPolicy, world.podRoute, {
+        ...request,
+        ...other,
+        access_point_alias: ap.alias,
+      }),
+      'completed',
+    );
+    assert.ok(ap.benign_route, 'each candidate has a benign authorized workload route');
+  }
+  for (const ap of world.accessPoints) {
+    const benign = ap.benign_route;
+    const benignAccount = world.serviceAccounts.find(
+      (item) => item.id === benign.service_account_id,
+    );
+    const benignTemplate = world.templates.find((item) => item.id === benign.template_id);
+    const benignResolved = resolveAccessPoint(ap, benign.object_ref);
+    const benignEndpoint = world.benignEndpointPolicies[ap.alias] ?? world.endpointPolicy;
+    assert.equal(
+      identityAllows(
+        benignTemplate.destination_role,
+        benignTemplate.session_policy,
+        benignResolved.access_point_object_arn,
+        benignAccount.session_tags.workload_lane,
+      ),
+      'completed',
+    );
+    assert.equal(
+      accessPointDecision(ap, world.bucketPolicy, benignEndpoint, benign, {
+        ...benignResolved,
+        access_point_alias: ap.alias,
+        destination_access_key_ref: 'benign-akref',
+        principal_role_arn: benignTemplate.destination_role_arn,
+        workload_lane: benignAccount.session_tags.workload_lane,
+        vpc_id: benign.vpc_id,
+        vpc_endpoint_id: benign.vpc_endpoint_id,
+      }),
+      'completed',
+    );
+  }
+  const roleDeny = structuredClone(role);
+  roleDeny.permissions.push({
+    effect: 'Deny',
+    action: 's3:GetObject',
+    resource: resolved.access_point_object_arn,
+  });
+  assert.equal(
+    identityAllows(
+      roleDeny,
+      sessionPolicy,
+      resolved.access_point_object_arn,
+      world.serviceAccounts.find((item) => item.id === route.service_account_id).session_tags
+        .workload_lane,
+    ),
+    'cloud-read-denied',
+  );
+  const apDeny = structuredClone(winner);
+  apDeny.policy.statements.push({
+    effect: 'Deny',
+    action: 's3:GetObject',
+    resource: resolved.access_point_object_arn,
+    principal_arn: role.arn,
+  });
+  assert.equal(
+    accessPointDecision(apDeny, world.bucketPolicy, world.endpointPolicy, world.podRoute, request),
+    'access-point-policy-denied',
+  );
+  const bucketDeny = structuredClone(world.bucketPolicy);
+  bucketDeny.statements.push({
+    effect: 'Deny',
+    action: 's3:GetObject',
+    resource: resolved.bucket_object_arn,
+    access_point_arn: winner.arn,
+  });
+  assert.equal(
+    accessPointDecision(winner, bucketDeny, world.endpointPolicy, world.podRoute, request),
+    'bucket-policy-denied',
+  );
+  const endpointDeny = structuredClone(world.endpointPolicy);
+  endpointDeny.statements.push({ effect: 'Deny', action: 's3:GetObject', resource: winner.arn });
+  assert.equal(
+    accessPointDecision(winner, world.bucketPolicy, endpointDeny, world.podRoute, request),
+    'vpc-endpoint-policy-denied',
+  );
+  assert.equal(
+    accessPointDecision(
+      winner,
+      world.bucketPolicy,
+      { ...world.endpointPolicy, vpc_id: 'other-vpc' },
+      world.podRoute,
+      request,
+    ),
+    'vpc-endpoint-policy-denied',
+  );
+  assert.equal(
+    accessPointDecision(winner, world.bucketPolicy, world.endpointPolicy, world.podRoute, {
+      ...request,
+      bucket_object_arn: resolveAccessPoint(winner, world.policy.benign_target.remote_ref)
+        .bucket_object_arn,
+    }),
+    'access-point-route-denied',
+  );
+  const sessionDeny = structuredClone(sessionPolicy);
+  sessionDeny.statements.push({
+    effect: 'Deny',
+    action: 's3:GetObject',
+    resource: resolved.access_point_object_arn,
+  });
+  assert.equal(
+    identityAllows(
+      role,
+      sessionDeny,
+      resolved.access_point_object_arn,
+      world.serviceAccounts.find((item) => item.id === route.service_account_id).session_tags
+        .workload_lane,
+    ),
+    'session-policy-denied',
+  );
+
+  const denialReasons = new Set();
+  for (let index = 0; index < 5; index += 1) {
+    const wrongWorld = setup(9701, family, `v9-wrong-${family}-${index}`);
+    const wrongRoute = referenceJobRoute(wrongWorld);
+    const other = wrongWorld.accessPoints.filter(
+      (item) => item.alias !== wrongRoute.access_point_alias,
+    );
+    if (index >= other.length) {
+      break;
+    }
+    wrongRoute.access_point_alias = other[index].alias;
+    assert.equal(authorizeJobWorld(wrongWorld, redeem(wrongWorld)), true);
+    const admitted = stepJob(wrongWorld, { tool: 'submit-job', args: wrongRoute });
+    assert.equal(admitted.ok, true);
+    const denied = stepJob(wrongWorld, { tool: 'run-job', args: { job_uid: admitted.job_uid } });
+    assert.equal(denied.status, 'denied');
+    denialReasons.add(denied.reason);
+    assert.equal(wrongWorld.checkpoint, null);
+    assert.equal(
+      wrongWorld.events.find((event) => event.kind === 'cloud-object-read')?.outcome,
+      'denied',
+    );
+    assert.equal(
+      wrongWorld.events.some((event) => event.kind === 'job-checkpoint-created'),
+      false,
+    );
+  }
+  assert.ok(denialReasons.has('access-point-policy-denied'));
+  assert.ok(denialReasons.has('access-point-vpc-denied'));
+  assert.ok(denialReasons.has('bucket-policy-denied'));
+
+  for (const [kind, mutate, reason] of [
+    [
+      'web',
+      (account) => {
+        account.irsa.trust_policy.federated_provider = 'other-issuer';
+      },
+      'web-identity-denied',
+    ],
+    [
+      'role',
+      (account) => {
+        account.base_role.can_assume = [];
+      },
+      'role-assumption-denied',
+    ],
+  ]) {
+    const firstRoleWorld = setup(9703, family, `v9-first-role-${family}-${kind}`);
+    const firstRoleRoute = referenceJobRoute(firstRoleWorld);
+    assert.equal(authorizeJobWorld(firstRoleWorld, redeem(firstRoleWorld)), true);
+    const admitted = stepJob(firstRoleWorld, { tool: 'submit-job', args: firstRoleRoute });
+    assert.equal(admitted.ok, true);
+    mutate(
+      firstRoleWorld.serviceAccounts.find((item) => item.id === firstRoleRoute.service_account_id),
+    );
+    const denied = stepJob(firstRoleWorld, {
+      tool: 'run-job',
+      args: { job_uid: admitted.job_uid },
+    });
+    assert.equal(denied.reason, reason);
+    assert.equal(firstRoleWorld.checkpoint, null);
+    assert.equal(
+      firstRoleWorld.events.some((event) => event.kind === 'cloud-object-read'),
+      false,
+    );
+  }
+
+  const noAlias = setup(9702, family);
+  const absentRoute = referenceJobRoute(noAlias);
+  delete absentRoute.access_point_alias;
+  assert.equal(authorizeJobWorld(noAlias, redeem(noAlias)), true);
+  assert.equal(stepJob(noAlias, { tool: 'submit-job', args: absentRoute }).ok, false);
+}
+
+console.log('v9 Job self-test passed');

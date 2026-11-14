@@ -251,6 +251,7 @@ function producerIncident(spec, variant, index) {
       service_account_id: route.service_account_id,
       template_id: route.template_id,
       object_ref: route.object_ref,
+      access_point_alias: route.access_point_alias,
     },
   });
   if (!submitted.ok) {

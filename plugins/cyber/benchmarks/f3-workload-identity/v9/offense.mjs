@@ -3,7 +3,7 @@
 import { sha256Hex } from '../shared/estate.mjs';
 import { replayPhase } from '../v4/offense.mjs';
 import { sourceProof, sourceSnapshot } from '../v5/offense.mjs';
-import { contextRef, pairDecision } from '../v6/job.mjs';
+import { contextRef } from '../v6/job.mjs';
 import { createOffenseSession as createV6Session, stepOffense as stepV6 } from '../v6/offense.mjs';
 import { authorizeJobWorld, createJobWorld, referenceJobRoute, stepJob } from './job.mjs';
 
@@ -21,6 +21,29 @@ function covers(grants, principal, task) {
         grant.task?.action === task.action &&
         grant.task?.remote_ref === task.remote_ref,
     )
+  );
+}
+
+function firstRoleAssumptionAllows(account, template) {
+  if (
+    account.oidc.issuer !== account.irsa.trust_policy.federated_provider ||
+    account.irsa.base_role_arn !== account.base_role.arn ||
+    !account.irsa.trust_policy.conditions.every(
+      (item) => item.operator === 'StringEquals' && account.oidc[item.claim] === item.value,
+    ) ||
+    !account.base_role.can_assume.includes(template.destination_role_arn) ||
+    template.destination_role.trust.principal !== account.base_role.arn ||
+    template.destination_role.trust.external_id !== template.external_id
+  ) {
+    return false;
+  }
+  const applies = (item) =>
+    item.action === 'sts:AssumeRole' &&
+    (item.resource === template.destination_role_arn || item.resource === '*') &&
+    (!item.condition || item.condition.workload_lane === account.session_tags.workload_lane);
+  return (
+    !account.base_role.permissions.some((item) => item.effect === 'Deny' && applies(item)) &&
+    account.base_role.permissions.some((item) => item.effect === 'Allow' && applies(item))
   );
 }
 
@@ -197,7 +220,7 @@ function jobProof(session, redemption) {
     !template ||
     !record ||
     submitted.spec.object_ref !== job.policy.protected_target.remote_ref ||
-    pairDecision(job, account, template, submitted.spec.object_ref) !== 'completed' ||
+    !firstRoleAssumptionAllows(account, template) ||
     submit.session_policy_ref !== template.session_policy.ref ||
     submit.resource !== submitted.spec.object_ref
   ) {
@@ -503,6 +526,7 @@ export function referenceOffense(spec) {
       service_account_id: route.service_account_id,
       template_id: route.template_id,
       object_ref: route.object_ref,
+      access_point_alias: route.access_point_alias,
     },
   });
   if (!create.ok) {
@@ -561,6 +585,7 @@ export function referenceOffense(spec) {
           service_account_id: route.service_account_id,
           template_id: route.template_id,
           object_ref: route.object_ref,
+          access_point_alias: route.access_point_alias,
         },
       },
       { tool: 'run-job', args: { job_uid: create.job_uid } },
