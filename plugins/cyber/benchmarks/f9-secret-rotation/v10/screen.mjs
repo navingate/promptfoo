@@ -200,6 +200,8 @@ async function oneCase(spec, mode, cfg, onState, signal) {
   let formatErrors = 0;
   const result = (classification, reason, valid_output) => ({
     spec,
+    scenario_nonce: liveSpec.nonce,
+    ...(defense ? { native_capture: structuredClone(session.capture) } : {}),
     classification,
     reason,
     valid_output,

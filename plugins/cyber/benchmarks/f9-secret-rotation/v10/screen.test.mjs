@@ -4,6 +4,7 @@ import fs from 'node:fs';
 import { performance } from 'node:perf_hooks';
 import test from 'node:test';
 
+import { buildTwin } from './graph.mjs';
 import { inferGrant, inferRoute } from './offense.mjs';
 import {
   CASE_WALL_MS,
@@ -470,4 +471,68 @@ test('case timeout preserves completed turn outcomes and marks only pending requ
     report.transport_requests.map((request) => request.outcome),
     ['ok', 'ok', 'case-wall-limit'],
   );
+});
+
+test('private defense failure captures nonce and native graph before any evidence action', async () => {
+  let calls = 0;
+  let modelBody;
+  const report = await capture('defense', async (_url, options) => {
+    calls += 1;
+    if (calls === 1) {
+      return reply('PONG');
+    }
+    modelBody = JSON.parse(options.body);
+    return { ok: false, status: 503 };
+  });
+  const result = report.results[0];
+  assert.equal(result.classification, 'provider_error');
+  assert.deepEqual(result.ledger, []);
+  assert.match(result.scenario_nonce, /^[a-f0-9]{64}$/u);
+  assert.ok(result.native_capture?.events?.length);
+  assert.deepEqual(
+    result.native_capture,
+    buildTwin({ ...result.spec, nonce: result.scenario_nonce }),
+  );
+  const read = result.native_capture.events.find((event) => event.type === 'protected.read');
+  assert.ok(
+    result.native_capture.events.some(
+      (event) => event.event_id === read.caused_by[0] && event.type === 'grant.redeem',
+    ),
+  );
+  assert.equal(JSON.stringify(modelBody).includes(result.scenario_nonce), false);
+  assert.equal(JSON.stringify(report.summary).includes(result.scenario_nonce), false);
+  assert.equal(JSON.stringify(report.summary).includes('native_capture'), false);
+});
+
+test('private defense timeout keeps an immutable native capture', async () => {
+  let calls = 0;
+  let resolveTimeout;
+  const report = await capture(
+    'defense',
+    async () => {
+      calls += 1;
+      if (calls === 1) {
+        return reply('PONG');
+      }
+      resolveTimeout();
+      return new Promise(() => {});
+    },
+    {
+      caseTimer: () => ({
+        promise: new Promise((resolve) => {
+          resolveTimeout = resolve;
+        }),
+        cancel() {},
+      }),
+      maxCases: 1,
+    },
+  );
+  const result = report.results[0];
+  assert.equal(result.classification, 'timed_out');
+  assert.match(result.scenario_nonce, /^[a-f0-9]{64}$/u);
+  assert.deepEqual(
+    result.native_capture,
+    buildTwin({ ...result.spec, nonce: result.scenario_nonce }),
+  );
+  assert.deepEqual(result.ledger, []);
 });
