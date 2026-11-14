@@ -50,7 +50,7 @@ const EXPECTED_SOURCES = [
   'defense/scripts/harness.mjs',
   'shared/estate.mjs',
 ].sort();
-function assertFrozen(nativeBytes, labelBytes, manifest) {
+function assertFrozen(nativeBytes, labelBytes, manifest, builtManifest) {
   assert.equal(
     manifest.capture_sha256,
     crypto.createHash('sha256').update(nativeBytes).digest('hex'),
@@ -62,6 +62,9 @@ function assertFrozen(nativeBytes, labelBytes, manifest) {
   assert.deepEqual(Object.keys(manifest.source_sha256).sort(), EXPECTED_SOURCES);
   for (const [name, digest] of Object.entries(manifest.source_sha256)) {
     assert.equal(digest, sha(path.join(here, '..', name)), name);
+  }
+  if (builtManifest) {
+    assert.deepEqual(manifest, builtManifest);
   }
 }
 
@@ -170,7 +173,7 @@ test('fresh frozen grid, subtype pairs, counterfactuals, and hashes', () => {
   const result = buildCaptures();
   assert.deepEqual(nativeBytes, Buffer.from(result.nativeBytes));
   assert.deepEqual(labelBytes, Buffer.from(result.labelBytes));
-  assert.deepEqual(manifest.count_schedule, result.manifest.count_schedule);
+  assertFrozen(nativeBytes, labelBytes, manifest, result.manifest);
   assert.deepEqual([result.manifest.batches, result.manifest.records], [36, 468]);
   assert.deepEqual(SEEDS, [36031, 36032, 36033, 36034, 36035, 36036, 36037, 36038, 36039]);
   const batches = readLines(NATIVE_PATH);
@@ -365,6 +368,9 @@ test('freeze verifier rejects altered capture and source hash without rewriting 
   const alteredManifest = structuredClone(manifest);
   alteredManifest.source_sha256['chain-v10/producer.mjs'] = '0'.repeat(64);
   assert.throws(() => assertFrozen(nativeBytes, labelBytes, alteredManifest));
+  const modelTamper = structuredClone(manifest);
+  modelTamper.model = '@cf/other-model';
+  assert.throws(() => assertFrozen(nativeBytes, labelBytes, modelTamper, buildCaptures().manifest));
   const missingSource = structuredClone(manifest);
   delete missingSource.source_sha256['chain-v10/controls.mjs'];
   assert.throws(() => assertFrozen(nativeBytes, labelBytes, missingSource));
