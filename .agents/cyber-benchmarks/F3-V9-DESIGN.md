@@ -75,7 +75,8 @@ cloud-read labels, and three approved labels. Replace the direct
 member add/remove audit events. Every actor has the same number of
 events; only the event-time ordering around the cloud action changes
 whether a protected group grant covers the actor. An action-time grant
-snapshot points to the group, while a separate audit query exposes
+snapshot points to a stable group audit stream, never to IDs of
+membership events that occur later. A separate audit query exposes
 all membership events. Arrival order may differ from event time, but
 event time and event IDs remain visible. The independent visible
 reference reconstructs membership by the latest add/remove event at
@@ -104,8 +105,9 @@ transition before the cloud action is an add. Every relevant
 audit event has arrived before offline classification, although
 arrival order may differ from event time. Native labels use the
 authoritative transition state; the visible reference computes the
-same rule solely from queried audit events. A delayed arrival alone
-cannot change a label.
+same rule solely from queried audit events. The retained native label
+is scorer truth, not visible reference input. A delayed arrival or
+renamed future event ID alone cannot change a label.
 
 ## Alternatives considered
 

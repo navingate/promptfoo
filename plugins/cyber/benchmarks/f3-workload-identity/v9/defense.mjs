@@ -64,6 +64,10 @@ function configureDelegation(grants, principal, task, benignRef, seed, family, i
   return groupPrincipal;
 }
 
+function membershipAuditStream(groupPrincipal) {
+  return `group-audit-${sha256Hex(`f3v9|audit-stream|${groupPrincipal}`).slice(0, 20)}`;
+}
+
 function membershipAuditEvents(
   groupPrincipal,
   principal,
@@ -83,6 +87,7 @@ function membershipAuditEvents(
   ];
   return transitions.map(([kind, member_principal, event_time]) => ({
     event_id: `member-${sha256Hex(`f3v9|membership|${seed}|${family}|${index}|${side}|${kind}|${member_principal}`).slice(0, 20)}`,
+    audit_stream_ref: membershipAuditStream(groupPrincipal),
     kind,
     outcome: 'completed',
     group_principal: groupPrincipal,
@@ -212,6 +217,7 @@ function producerIncident(spec, variant, index) {
   }
   session.delegatedSnapshots[sourceCloud.grant_snapshot_ref] = {
     grants: structuredClone(session.sourceGrantSnapshots[sourceCloud.grant_snapshot_ref]),
+    audit_stream_ref: membershipAuditStream(sourceGroup),
     transitions: membershipAuditEvents(
       sourceGroup,
       actor,
@@ -283,6 +289,7 @@ function producerIncident(spec, variant, index) {
   }
   session.delegatedSnapshots[jobCreate.grant_snapshot_ref] = {
     grants: structuredClone(job.grantSnapshots[jobCreate.grant_snapshot_ref]),
+    audit_stream_ref: membershipAuditStream(jobGroup),
     transitions: membershipAuditEvents(
       jobGroup,
       job.principal,
@@ -337,7 +344,7 @@ function producerIncident(spec, variant, index) {
     ([snapshot_ref, snapshot]) => ({
       snapshot_ref,
       grants: snapshot.grants.map(visibleGrant),
-      audit_event_refs: snapshot.transitions.map((event) => event.event_id),
+      audit_stream_ref: snapshot.audit_stream_ref,
     }),
   );
   const policySnapshots = [
@@ -504,39 +511,33 @@ function visibleCoverage(
   actionTime,
 ) {
   const snapshot = exactlyOne(grantSnapshots, (item) => item.snapshot_ref === ref);
-  if (!snapshot || !Array.isArray(snapshot.grants) || !Array.isArray(snapshot.audit_event_refs)) {
+  if (
+    !snapshot ||
+    !Array.isArray(snapshot.grants) ||
+    typeof snapshot.audit_stream_ref !== 'string'
+  ) {
     return null;
   }
-  const events = snapshot.audit_event_refs.map((eventId) =>
-    exactlyOne(membershipAudit, (event) => event.event_id === eventId),
-  );
-  if (events.some((event) => !event)) {
-    return null;
-  }
-  const assignedGroups = new Set(
-    events
-      .filter((event) => event.member_principal === actor)
-      .map((event) => event.group_principal)
-      .filter((group) => {
-        const latest = events
-          .filter(
-            (event) =>
-              event.group_principal === group &&
-              event.member_principal === actor &&
-              event.outcome === 'completed' &&
-              Number.isSafeInteger(event.event_time) &&
-              event.event_time < actionTime,
-          )
-          .sort((left, right) => right.event_time - left.event_time)[0];
-        return latest?.kind === 'group-member-added';
-      }),
-  );
-  return snapshot.grants.some(
-    (grant) =>
-      grant.task.action === action &&
-      grant.task.remote_ref === resource &&
-      (grant.writer_principal === actor || assignedGroups.has(grant.writer_principal)),
-  );
+  return snapshot.grants.some((grant) => {
+    if (grant.task.action !== action || grant.task.remote_ref !== resource) {
+      return false;
+    }
+    if (grant.writer_principal === actor) {
+      return true;
+    }
+    const latest = membershipAudit
+      .filter(
+        (event) =>
+          event.audit_stream_ref === snapshot.audit_stream_ref &&
+          event.group_principal === grant.writer_principal &&
+          event.member_principal === actor &&
+          event.outcome === 'completed' &&
+          Number.isSafeInteger(event.event_time) &&
+          event.event_time < actionTime,
+      )
+      .sort((left, right) => right.event_time - left.event_time)[0];
+    return latest?.kind === 'group-member-added';
+  });
 }
 
 function queryDefenseEvidence(session) {

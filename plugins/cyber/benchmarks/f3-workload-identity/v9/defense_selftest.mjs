@@ -121,14 +121,19 @@ for (const family of FAMILIES) {
       session.grantSnapshots.map((snapshot) => [snapshot.snapshot_ref, snapshot]),
     );
     assert.equal(taskSnapshots.size, 12);
+    assert.equal(
+      new Set(session.grantSnapshots.map((snapshot) => snapshot.audit_stream_ref)).size,
+      12,
+    );
     for (const cloud of sourceClouds) {
       const snapshot = taskSnapshots.get(cloud.grant_snapshot_ref);
       const grants = snapshot?.grants;
       assert.equal(grants?.length, 3);
-      assert.equal(snapshot?.audit_event_refs.length, 4);
+      assert.equal(typeof snapshot?.audit_stream_ref, 'string');
+      assert.equal('audit_event_refs' in snapshot, false);
       assert.equal('memberships' in snapshot, false);
-      const audit = session.membershipAudit.filter((event) =>
-        snapshot.audit_event_refs.includes(event.event_id),
+      const audit = session.membershipAudit.filter(
+        (event) => event.audit_stream_ref === snapshot.audit_stream_ref,
       );
       assert.equal(audit.length, 4);
       assert.equal(new Set(audit.map((event) => event.event_time)).size, 4);
@@ -147,10 +152,11 @@ for (const family of FAMILIES) {
       const snapshot = taskSnapshots.get(submission.grant_snapshot_ref);
       const grants = snapshot?.grants;
       assert.equal(grants?.length, 3);
-      assert.equal(snapshot?.audit_event_refs.length, 4);
+      assert.equal(typeof snapshot?.audit_stream_ref, 'string');
+      assert.equal('audit_event_refs' in snapshot, false);
       assert.equal('memberships' in snapshot, false);
-      const audit = session.membershipAudit.filter((event) =>
-        snapshot.audit_event_refs.includes(event.event_id),
+      const audit = session.membershipAudit.filter(
+        (event) => event.audit_stream_ref === snapshot.audit_stream_ref,
       );
       assert.equal(audit.length, 4);
       assert.equal(new Set(audit.map((event) => event.event_time)).size, 4);
@@ -241,11 +247,11 @@ for (const family of FAMILIES) {
     changedTruth.expected = Object.fromEntries(
       tokens.map((event) => [event.event_id, 'approved-automation']),
     );
+    // The scorer consumes this retained native truth; the visible reference
+    // must still classify from queried events and grants.
     sameLabels(referenceDefense(changedTruth), reference);
-    changedTruth.grantSnapshots.forEach((snapshot) => {
-      snapshot.native_authorized = !snapshot.native_authorized;
-    });
-    sameLabels(referenceDefense(changedTruth), reference);
+    changedTruth.submitted = reference;
+    assert.equal(scoreDefense(changedTruth).success, false);
     assert.equal(stepDefense(session, { tool: 'submit', args: { labels: reference } }).ok, true);
     const score = scoreDefense(session);
     assert.equal(score.success, true);
@@ -435,12 +441,12 @@ sourceGrant.grantSnapshots
 };
 assert.equal(referenceDefense(sourceGrant)[fullTokenId], 'job-cascade');
 const activeSourceMembership = structuredClone(base);
-const sourceAuditRefs = activeSourceMembership.grantSnapshots.find(
+const sourceAuditStreamRef = activeSourceMembership.grantSnapshots.find(
   (snapshot) => snapshot.snapshot_ref === sourceCloud.grant_snapshot_ref,
-).audit_event_refs;
+).audit_stream_ref;
 const sourceRemoval = activeSourceMembership.membershipAudit.find(
   (event) =>
-    sourceAuditRefs.includes(event.event_id) &&
+    event.audit_stream_ref === sourceAuditStreamRef &&
     event.member_principal === sourceWriter.actor &&
     event.kind === 'group-member-removed',
 );
@@ -451,10 +457,18 @@ ignoredSourceRemoval.membershipAudit.find(
   (event) => event.event_id === sourceRemoval.event_id,
 ).outcome = 'denied';
 assert.equal(referenceDefense(ignoredSourceRemoval)[fullTokenId], 'job-cascade');
+const renamedFutureAudit = structuredClone(base);
+const futureAudit = renamedFutureAudit.membershipAudit.find(
+  (event) =>
+    event.audit_stream_ref === sourceAuditStreamRef && event.event_time > sourceCloud.event_time,
+);
+assert.ok(futureAudit);
+futureAudit.event_id = 'renamed-future-membership-event';
+sameLabels(referenceDefense(renamedFutureAudit), referenceDefense(base));
 const noSourceAdd = structuredClone(base);
 noSourceAdd.membershipAudit.find(
   (event) =>
-    sourceAuditRefs.includes(event.event_id) &&
+    event.audit_stream_ref === sourceAuditStreamRef &&
     event.member_principal === sourceWriter.actor &&
     event.kind === 'group-member-added',
 ).outcome = 'denied';
@@ -473,12 +487,12 @@ jobGrant.grantSnapshots
 };
 assert.equal(referenceDefense(jobGrant)[fullTokenId], 'source-cascade');
 const activeJobMembership = structuredClone(base);
-const jobAuditRefs = activeJobMembership.grantSnapshots.find(
+const jobAuditStreamRef = activeJobMembership.grantSnapshots.find(
   (snapshot) => snapshot.snapshot_ref === submission.grant_snapshot_ref,
-).audit_event_refs;
+).audit_stream_ref;
 const jobRemoval = activeJobMembership.membershipAudit.find(
   (event) =>
-    jobAuditRefs.includes(event.event_id) &&
+    event.audit_stream_ref === jobAuditStreamRef &&
     event.member_principal === submission.actor &&
     event.kind === 'group-member-removed',
 );
@@ -499,7 +513,7 @@ const approvedSourceSnapshot = base.grantSnapshots.find(
 const absentUntilCompletedAdd = structuredClone(base);
 absentUntilCompletedAdd.membershipAudit.find(
   (event) =>
-    approvedSourceSnapshot.audit_event_refs.includes(event.event_id) &&
+    event.audit_stream_ref === approvedSourceSnapshot.audit_stream_ref &&
     event.member_principal === approvedToken.actor &&
     event.kind === 'group-member-added',
 ).outcome = 'denied';
