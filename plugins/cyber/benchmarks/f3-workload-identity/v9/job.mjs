@@ -202,8 +202,19 @@ export function resolveAccessPoint(ap, objectRef) {
   };
 }
 
-export function identityAllows(role, sessionPolicy, apObjectArn, workloadLane) {
-  const request = { principal_role_arn: role?.arn, workload_lane: workloadLane };
+export function identityAllows(role, sessionPolicy, apObjectArn, workloadLane, accessPointArn) {
+  if (
+    typeof accessPointArn !== 'string' ||
+    typeof apObjectArn !== 'string' ||
+    !apObjectArn.startsWith(`${accessPointArn}/object/`)
+  ) {
+    return 'cloud-read-denied';
+  }
+  const request = {
+    principal_role_arn: role?.arn,
+    workload_lane: workloadLane,
+    access_point_arn: accessPointArn,
+  };
   if (!role || !policyAllows(role.permissions, apObjectArn, request)) {
     return 'cloud-read-denied';
   }
@@ -783,6 +794,7 @@ function routePair(world) {
               template.session_policy,
               resolved.access_point_object_arn,
               account.session_tags.workload_lane,
+              resolved.access_point_arn,
             ) === 'completed' &&
             accessPointDecision(
               ap,
@@ -1160,6 +1172,7 @@ function runJob(world, args) {
     template.session_policy,
     resolved.access_point_object_arn,
     account.session_tags.workload_lane,
+    resolved.access_point_arn,
   );
   const decision =
     identity === 'completed'

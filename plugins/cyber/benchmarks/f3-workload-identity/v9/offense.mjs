@@ -307,6 +307,9 @@ function jobProof(session, redemption) {
     !template ||
     !record ||
     submitted.spec.object_ref !== job.policy.protected_target.remote_ref ||
+    submit.service_account_id !== submitted.spec.service_account_id ||
+    submit.template_id !== submitted.spec.template_id ||
+    submit.object_ref !== submitted.spec.object_ref ||
     submit.access_point_alias !== submitted.spec.access_point_alias ||
     !firstRoleAssumptionAllows(account, template) ||
     submit.session_policy_ref !== template.session_policy.ref ||

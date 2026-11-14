@@ -41,8 +41,48 @@ for (const family of FAMILIES) {
         assert.equal(scoreOffenseSession(altered).success, false, `${family}: ${name}`);
       };
       const deny = (resource) => ({ effect: 'Deny', action: 's3:GetObject', resource });
+      const scopedRole = structuredClone(session);
+      const scopedCloud = scopedRole.job.events.find((e) => e.kind === 'cloud-object-read');
+      const scopedSnapshot =
+        scopedRole.job.authorizationSnapshots[scopedCloud.authorization_snapshot_ref];
+      const scopedAllow = scopedSnapshot.destination_role.permissions.find(
+        (s) => s.effect === 'Allow' && s.resource === scopedCloud.access_point_object_arn,
+      );
+      scopedAllow.access_point_arn = scopedCloud.access_point_arn;
+      assert.equal(
+        scoreOffenseSession(scopedRole).success,
+        true,
+        `${family}: selected AP role Allow`,
+      );
+      scopedAllow.access_point_arn = 'arn:aws:s3:ap-south-1:000000000000:accesspoint/other';
+      assert.equal(
+        scoreOffenseSession(scopedRole).success,
+        false,
+        `${family}: wrong AP role Allow`,
+      );
       corrupt('submitted alias', ({ altered }) => {
         altered.job.job.spec.access_point_alias = 'other-s3alias';
+      });
+      corrupt('submitted service account', ({ altered }) => {
+        altered.job.events.find((e) => e.kind === 'job-submitted').service_account_id = 'other';
+      });
+      corrupt('submitted template', ({ altered }) => {
+        altered.job.events.find((e) => e.kind === 'job-submitted').template_id = 'other';
+      });
+      corrupt('submitted object ref', ({ altered }) => {
+        altered.job.events.find((e) => e.kind === 'job-submitted').object_ref = 's3://other/key';
+      });
+      corrupt('Pod owner', ({ altered }) => {
+        altered.job.events.find((e) => e.kind === 'pod-started').owner_job_uid = 'other';
+      });
+      corrupt('runtime Pod', ({ altered }) => {
+        altered.job.events.find((e) => e.kind === 'runtime-credential-request').pod_uid = 'other';
+      });
+      corrupt('destination STS access key', ({ altered }) => {
+        altered.job.events.find((e) => e.kind === 'sts-assume-role').access_key_ref = 'other';
+      });
+      corrupt('cloud access key', ({ cloud }) => {
+        cloud.access_key_ref = 'other';
       });
       corrupt('cloud alias', ({ cloud }) => {
         cloud.access_point_alias = 'other-s3alias';

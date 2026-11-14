@@ -411,6 +411,21 @@ for (const family of FAMILIES) {
   const route = referenceJobRoute(world);
   const winner = world.accessPoints.find((item) => item.alias === route.access_point_alias);
   const resolved = resolveAccessPoint(winner, route.object_ref);
+  const selectedWorld = setup(9709, family);
+  const selectedRoute = referenceJobRoute(selectedWorld);
+  const selectedAp = selectedWorld.accessPoints.find(
+    (item) => item.alias === selectedRoute.access_point_alias,
+  );
+  const selectedTemplate = selectedWorld.templates.find(
+    (item) => item.id === selectedRoute.template_id,
+  );
+  selectedTemplate.destination_role.permissions.find(
+    (item) =>
+      item.effect === 'Allow' &&
+      item.resource ===
+        resolveAccessPoint(selectedAp, selectedRoute.object_ref).access_point_object_arn,
+  ).access_point_arn = selectedAp.arn;
+  assert.equal(submitRun(selectedWorld, selectedRoute).run.status, 'checkpoint');
   const role = world.templates.find((item) => item.id === route.template_id).destination_role;
   const sessionPolicy = world.templates.find(
     (item) => item.id === route.template_id,
@@ -422,8 +437,19 @@ for (const family of FAMILIES) {
       resolved.access_point_object_arn,
       world.serviceAccounts.find((item) => item.id === route.service_account_id).session_tags
         .workload_lane,
+      winner.arn,
     ),
     'completed',
+  );
+  assert.equal(
+    identityAllows(
+      role,
+      sessionPolicy,
+      resolved.access_point_object_arn,
+      world.serviceAccounts.find((item) => item.id === route.service_account_id).session_tags
+        .workload_lane,
+    ),
+    'cloud-read-denied',
   );
   const request = {
     ...resolved,
@@ -485,6 +511,7 @@ for (const family of FAMILIES) {
         benignTemplate.session_policy,
         benignResolved.access_point_object_arn,
         benignAccount.session_tags.workload_lane,
+        ap.arn,
       ),
       'completed',
     );
@@ -549,6 +576,7 @@ for (const family of FAMILIES) {
       resolved.access_point_object_arn,
       world.serviceAccounts.find((item) => item.id === route.service_account_id).session_tags
         .workload_lane,
+      winner.arn,
     ),
     'cloud-read-denied',
   );
@@ -636,6 +664,7 @@ for (const family of FAMILIES) {
       resolved.access_point_object_arn,
       world.serviceAccounts.find((item) => item.id === route.service_account_id).session_tags
         .workload_lane,
+      winner.arn,
     ),
     'session-policy-denied',
   );
