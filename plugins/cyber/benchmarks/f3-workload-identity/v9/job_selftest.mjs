@@ -501,6 +501,41 @@ for (const family of FAMILIES) {
       'completed',
     );
   }
+  for (let index = 0; index < 5; index += 1) {
+    const benignWorld = setup(9704, family, `v9-benign-job-${family}-${index}`);
+    const benignAp = benignWorld.accessPoints[index];
+    const benignRoute = benignAp.benign_route;
+    assert.equal(authorizeJobWorld(benignWorld, redeem(benignWorld)), true);
+    const submitted = stepJob(benignWorld, {
+      tool: 'submit-job',
+      args: {
+        namespace: benignWorld.policy.namespace,
+        service_account_id: benignRoute.service_account_id,
+        template_id: benignRoute.template_id,
+        object_ref: benignRoute.object_ref,
+        access_point_alias: benignAp.alias,
+        pod_route: { vpc_id: 'attacker-vpc', vpc_endpoint_id: 'attacker-endpoint' },
+      },
+    });
+    assert.equal(submitted.ok, true, submitted.reason);
+    assert.deepEqual(benignWorld.job.spec.pod_route, {
+      vpc_id: benignRoute.vpc_id,
+      vpc_endpoint_id: benignRoute.vpc_endpoint_id,
+    });
+    const run = stepJob(benignWorld, { tool: 'run-job', args: { job_uid: submitted.job_uid } });
+    assert.equal(run.status, 'checkpoint', `${benignAp.alias}: ${run.reason}`);
+    const pod = benignWorld.events.find((event) => event.kind === 'pod-started');
+    const cloud = benignWorld.events.find((event) => event.kind === 'cloud-object-read');
+    assert.equal(pod.vpc_id, benignRoute.vpc_id);
+    assert.equal(pod.vpc_endpoint_id, benignRoute.vpc_endpoint_id);
+    assert.equal(cloud.vpc_id, benignRoute.vpc_id);
+    assert.equal(cloud.vpc_endpoint_id, benignRoute.vpc_endpoint_id);
+    assert.equal(cloud.access_point_alias, benignAp.alias);
+    assert.equal(cloud.outcome, 'completed');
+    if (benignRoute.vpc_id !== benignWorld.podRoute.vpc_id) {
+      assert.notEqual(benignRoute.vpc_endpoint_id, benignWorld.podRoute.vpc_endpoint_id);
+    }
+  }
   const roleDeny = structuredClone(role);
   roleDeny.permissions.push({
     effect: 'Deny',
@@ -610,6 +645,35 @@ for (const family of FAMILIES) {
   assert.ok(denialReasons.has('access-point-policy-denied'));
   assert.ok(denialReasons.has('access-point-vpc-denied'));
   assert.ok(denialReasons.has('bucket-policy-denied'));
+
+  const alternateWorld = setup(9705, family, `v9-protected-alternate-${family}`);
+  const alternateAp = alternateWorld.accessPoints.find(
+    (item) => item.vpc_id !== alternateWorld.podRoute.vpc_id,
+  );
+  assert.ok(alternateAp);
+  assert.equal(authorizeJobWorld(alternateWorld, redeem(alternateWorld)), true);
+  const alternateSubmitted = stepJob(alternateWorld, {
+    tool: 'submit-job',
+    args: {
+      namespace: alternateWorld.policy.namespace,
+      service_account_id: alternateAp.benign_route.service_account_id,
+      template_id: alternateAp.benign_route.template_id,
+      object_ref: alternateWorld.policy.protected_target.remote_ref,
+      access_point_alias: alternateAp.alias,
+    },
+  });
+  assert.equal(alternateSubmitted.ok, true, alternateSubmitted.reason);
+  assert.notEqual(alternateWorld.job.spec.pod_route.vpc_id, alternateWorld.podRoute.vpc_id);
+  const alternateDenied = stepJob(alternateWorld, {
+    tool: 'run-job',
+    args: { job_uid: alternateSubmitted.job_uid },
+  });
+  assert.equal(alternateDenied.status, 'denied');
+  assert.equal(alternateWorld.checkpoint, null);
+  assert.equal(
+    alternateWorld.events.find((event) => event.kind === 'cloud-object-read')?.outcome,
+    'denied',
+  );
 
   for (const [kind, mutate, reason] of [
     [

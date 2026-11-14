@@ -457,8 +457,8 @@ function createAccessPointEstate(world) {
       vpc_id: apVpc,
       policy: { alias, statements: [] },
       benign_route: {
-        service_account_id: benignAccount.id,
-        template_id: benignTemplate.id,
+        service_account_id: kind === 2 ? benignAccount.id : account.id,
+        template_id: kind === 2 ? benignTemplate.id : template.id,
         object_ref: benignRef,
         vpc_id: apVpc,
         vpc_endpoint_id: benignEndpointId,
@@ -536,6 +536,7 @@ function createAccessPointEstate(world) {
     }
   }
   for (const candidate of world.templates) {
+    candidate.pod_route = { ...podRoute };
     const protectedStatements = candidate.session_policy.statements.filter(
       (item) => item.action === ACTION && item.resource === protectedRef,
     );
@@ -564,10 +565,20 @@ function createAccessPointEstate(world) {
       });
     }
   }
+  const alternateRoute = accessPoints[(winningIndex + 2) % 5].benign_route;
+  benignTemplate.pod_route = {
+    vpc_id: alternateRoute.vpc_id,
+    vpc_endpoint_id: alternateRoute.vpc_endpoint_id,
+  };
+  const endpointPolicies = { [endpointId]: endpointPolicy };
+  for (const policy of Object.values(benignEndpointPolicies)) {
+    endpointPolicies[policy.id] = policy;
+  }
   return {
     accessPoints: shuffle(accessPoints, world, 'access-points'),
     bucketPolicy,
     endpointPolicy,
+    endpointPolicies,
     benignEndpointPolicies,
     podRoute,
   };
@@ -759,7 +770,7 @@ function routePair(world) {
             destination_access_key_ref: 'reference-route',
             principal_role_arn: template.destination_role_arn,
             workload_lane: account.session_tags.workload_lane,
-            ...world.podRoute,
+            ...template.pod_route,
           };
           return (
             assumptionDecision(world, account, template, objectRef) === 'completed' &&
@@ -772,8 +783,8 @@ function routePair(world) {
             accessPointDecision(
               ap,
               world.bucketPolicy,
-              world.endpointPolicy,
-              world.podRoute,
+              world.endpointPolicies[template.pod_route.vpc_endpoint_id],
+              template.pod_route,
               request,
             ) === 'completed'
           );
@@ -1008,6 +1019,7 @@ function submitJob(world, args) {
       template_id: template.id,
       object_ref: objectRef,
       access_point_alias: accessPointAlias,
+      pod_route: structuredClone(template.pod_route),
     },
     submitter: world.principal,
     auth_context_ref: auth.event_id,
@@ -1065,6 +1077,8 @@ function runJob(world, args) {
   const account = world.serviceAccounts.find((item) => item.id === job.spec.service_account_id);
   const template = world.templates.find((item) => item.id === job.spec.template_id);
   const record = world.objectRecords[job.spec.object_ref];
+  const podRoute = job.spec.pod_route;
+  const endpointPolicy = world.endpointPolicies[podRoute.vpc_endpoint_id];
   const accessPoint = world.accessPoints.find((item) => item.alias === job.spec.access_point_alias);
   const resolved = resolveAccessPoint(accessPoint, job.spec.object_ref);
   const podUid = jobId(world, 'pod', job.uid);
@@ -1075,8 +1089,8 @@ function runJob(world, args) {
     owner_job_uid: job.uid,
     service_account_name: account.name,
     service_account_id: account.id,
-    vpc_id: world.podRoute.vpc_id,
-    vpc_endpoint_id: world.podRoute.vpc_endpoint_id,
+    vpc_id: podRoute.vpc_id,
+    vpc_endpoint_id: podRoute.vpc_endpoint_id,
   });
   const sessionName = jobId(world, 'session', podUid);
   const credentialRequest = emit(world, 'runtime-credential-request', {
@@ -1125,7 +1139,7 @@ function runJob(world, args) {
     destination_access_key_ref: destAccessKeyRef,
     principal_role_arn: template.destination_role_arn,
     workload_lane: account.session_tags.workload_lane,
-    ...world.podRoute,
+    ...podRoute,
   };
   const authorizationSnapshotRef = jobId(world, 's3authsnap', role.event_id);
   world.authorizationSnapshots[authorizationSnapshotRef] = structuredClone({
@@ -1133,8 +1147,8 @@ function runJob(world, args) {
     session_policy: template.session_policy,
     access_point_policy: accessPoint,
     bucket_policy: world.bucketPolicy,
-    endpoint_policy: world.endpointPolicy,
-    pod_route: world.podRoute,
+    endpoint_policy: endpointPolicy,
+    pod_route: podRoute,
     request,
   });
   const identity = identityAllows(
@@ -1145,13 +1159,7 @@ function runJob(world, args) {
   );
   const decision =
     identity === 'completed'
-      ? accessPointDecision(
-          accessPoint,
-          world.bucketPolicy,
-          world.endpointPolicy,
-          world.podRoute,
-          request,
-        )
+      ? accessPointDecision(accessPoint, world.bucketPolicy, endpointPolicy, podRoute, request)
       : identity;
   const cloud = emit(world, 'cloud-object-read', {
     actor: template.destination_role_arn,
@@ -1161,8 +1169,8 @@ function runJob(world, args) {
     access_point_arn: resolved.access_point_arn,
     access_point_object_arn: resolved.access_point_object_arn,
     bucket_object_arn: resolved.bucket_object_arn,
-    vpc_id: world.podRoute.vpc_id,
-    vpc_endpoint_id: world.podRoute.vpc_endpoint_id,
+    vpc_id: podRoute.vpc_id,
+    vpc_endpoint_id: podRoute.vpc_endpoint_id,
     authorization_snapshot_ref: authorizationSnapshotRef,
     action: ACTION,
     object_version: record.version,
