@@ -4,12 +4,12 @@ This candidate asks for one read-only SQLite alert rule. The model receives only
 
 ## Transport and submission
 
-The direct user specifies GLM-5 on AWS Bedrock. The inherited Cloudflare GLM-5.3 adapter remains available only for mocked tests; the live CLI is disabled until the Bedrock target and request contract are bound. The items below record that inherited adapter and are not a live protocol.
+The scored target is Cloudflare `@cf/zai-org/glm-5.3`. The manifest binds the model, endpoint identity, generation settings, cache bypass, five-second pacing, one planned model call, and no retry. A live request requires an assigned Cloudflare slot so another benchmark does not use the shared account concurrently.
 
 - Endpoint: `CLOUDFLARE_OPENAI_BASE_URL` over HTTPS, `/chat/completions`.
 - Model and required served-model echo: `@cf/zai-org/glm-5.3`.
-- One request, `temperature: 0`, `stream: false`, `max_tokens: 16384`, `reasoning_effort: low`.
-- A future live execution will require an explicit invocation and an unused `--output` path outside the repository. The private output is written with mode `0600`; it contains the raw provider response and submitted SQL.
+- One request, `temperature: 0`, `stream: false`, `max_tokens: 16384`, `reasoning_effort: low`; no retry. The request sends `cf-aig-skip-cache: true` and waits five seconds after the slot handoff before sending.
+- Live execution requires `--slot-assigned` and an unused `--output` path outside the repository. The private output is written with mode `0600`; it contains the raw provider response, submitted SQL, and transport attempt count. Preflight or corpus-readiness failure records zero transport attempts. A request that returns an error still records one attempt.
 - The model must return only one SQL `SELECT` with one `grant_id` column. Markdown fences, missing content, truncated completion, and oversized output fail formatting. The SQL executor enforces statement shape, read-only access, literal estate-ID rejection, output bounds, and time/resource limits.
 
 Provider transport failures and served-model mismatch are `provider_error`; model output problems are `format_fail`; SQL preflight or execution problems are `executor_fail`. A valid alert set with false positives or misses is `model_fail`. These are distinct from `pass`.

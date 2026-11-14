@@ -26,6 +26,27 @@ export const MODEL_ID = '@cf/zai-org/glm-5.3';
 export const ENDPOINT_ID = 'cloudflare-openai-compatible';
 export const MAX_TOKENS = 16384;
 export const REASONING_EFFORT = 'low';
+const REQUEST_GAP_MS = 5000;
+
+export function assertManifestSettings(manifest) {
+  const expected = {
+    model: MODEL_ID,
+    endpoint_id: ENDPOINT_ID,
+    max_tokens: MAX_TOKENS,
+    reasoning_effort: REASONING_EFFORT,
+    temperature: 0,
+    stream: false,
+    cache_policy: 'cf-aig-skip-cache:true',
+    request_gap_ms: REQUEST_GAP_MS,
+    planned_model_calls: 1,
+    retry_policy: 'none',
+  };
+  for (const [name, value] of Object.entries(expected)) {
+    if (manifest[name] !== value) {
+      throw new Error(`${name} setting mismatch`);
+    }
+  }
+}
 
 function outputPath(value) {
   if (!value) {
@@ -42,6 +63,7 @@ function outputPath(value) {
 
 function readFrozenCorpus() {
   const manifest = JSON.parse(fs.readFileSync(path.join(here, 'manifest.json'), 'utf8'));
+  assertManifestSettings(manifest);
   const native = fs.readFileSync(path.join(here, 'capture/native-v9.jsonl'));
   const labels = fs.readFileSync(path.join(here, 'evaluator/labels-v9.jsonl'));
   if (sha(native) !== manifest.capture_sha256 || sha(labels) !== manifest.labels_sha256) {
@@ -195,7 +217,11 @@ export async function requestSql(config, request = fetch) {
   try {
     response = await request(`${config.endpoint}/chat/completions`, {
       method: 'POST',
-      headers: { 'content-type': 'application/json', authorization: `Bearer ${config.apiKey}` },
+      headers: {
+        'content-type': 'application/json',
+        authorization: `Bearer ${config.apiKey}`,
+        'cf-aig-skip-cache': 'true',
+      },
       body: JSON.stringify({
         model: MODEL_ID,
         messages: modelMessages(),
@@ -233,8 +259,8 @@ export async function requestSql(config, request = fetch) {
 }
 
 export async function runScreen(options = {}) {
-  if (!options.mock) {
-    throw new Error('live provider target pending Bedrock GLM-5 binding');
+  if (!options.mock && options.slotAssigned !== true) {
+    throw new Error('live F4 v9 screen requires an assigned Cloudflare slot');
   }
   const target = outputPath(options.output);
   if (options.mock && typeof options.request !== 'function') {
@@ -248,6 +274,7 @@ export async function runScreen(options = {}) {
       screen_id: 'f4-detection-rule-v9-glm53-low16',
       model: MODEL_ID,
       endpoint_id: ENDPOINT_ID,
+      transport_attempts: 0,
       submission: null,
       score: {
         classification: 'executor_fail',
@@ -277,6 +304,7 @@ export async function runScreen(options = {}) {
       screen_id: 'f4-detection-rule-v9-glm53-low16',
       model: MODEL_ID,
       endpoint_id: ENDPOINT_ID,
+      transport_attempts: 0,
       submission: null,
       score: {
         classification: 'executor_fail',
@@ -286,14 +314,37 @@ export async function runScreen(options = {}) {
     fs.writeFileSync(target, `${JSON.stringify(result, null, 2)}\n`, { mode: 0o600, flag: 'wx' });
     return result;
   }
-  const config = options.mock
-    ? { endpoint: 'https://mock.invalid', apiKey: 'mock' }
-    : cloudflareConfig(options.env);
+  let config;
+  try {
+    config = options.mock
+      ? { endpoint: 'https://mock.invalid', apiKey: 'mock' }
+      : cloudflareConfig(options.env);
+  } catch (error) {
+    const result = {
+      screen_id: 'f4-detection-rule-v9-glm53-low16',
+      model: MODEL_ID,
+      endpoint_id: ENDPOINT_ID,
+      transport_attempts: 0,
+      preflight,
+      submission: {
+        classification: 'provider_error',
+        reason: String(error?.message ?? error),
+      },
+      score: null,
+    };
+    fs.writeFileSync(target, `${JSON.stringify(result, null, 2)}\n`, { mode: 0o600, flag: 'wx' });
+    return result;
+  }
+  if (!options.mock) {
+    const pace = options.pace ?? ((ms) => new Promise((resolve) => setTimeout(resolve, ms)));
+    await pace(REQUEST_GAP_MS);
+  }
   const submission = await requestSql(config, options.request);
   const record = {
     screen_id: 'f4-detection-rule-v9-glm53-low16',
     model: MODEL_ID,
     endpoint_id: ENDPOINT_ID,
+    transport_attempts: 1,
     preflight,
     submission,
     score: null,
@@ -327,5 +378,24 @@ export async function runScreen(options = {}) {
 }
 
 if (process.argv[1] && path.resolve(process.argv[1]) === fileURLToPath(import.meta.url)) {
-  throw new Error('live provider target pending Bedrock GLM-5 binding');
+  const args = { output: null, slotAssigned: false };
+  for (let index = 2; index < process.argv.length; index += 1) {
+    if (process.argv[index] === '--slot-assigned') {
+      args.slotAssigned = true;
+    } else if (process.argv[index] === '--output') {
+      args.output = process.argv[++index];
+    } else {
+      throw new Error(`unknown option ${process.argv[index]}`);
+    }
+  }
+  runScreen(args)
+    .then((result) => {
+      if (result.score?.classification !== 'pass') {
+        process.exitCode = 1;
+      }
+    })
+    .catch((error) => {
+      process.stderr.write(`${error.message}\n`);
+      process.exitCode = 1;
+    });
 }

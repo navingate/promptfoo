@@ -5,7 +5,9 @@ import path from 'node:path';
 import test from 'node:test';
 
 import { modelMessages } from './prompt.mjs';
-import { MODEL_ID, requestSql, runScreen, scoreAlerts, scoreProjectedControls } from './screen.mjs';
+import * as screen from './screen.mjs';
+
+const { MODEL_ID, requestSql, runScreen, scoreAlerts, scoreProjectedControls } = screen;
 
 const response = (content, model = MODEL_ID, finishReason = 'stop') => ({
   ok: true,
@@ -13,6 +15,7 @@ const response = (content, model = MODEL_ID, finishReason = 'stop') => ({
 });
 const request = async (_url, init) => {
   const body = JSON.parse(init.body);
+  assert.equal(init.headers['cf-aig-skip-cache'], 'true');
   assert.equal(body.model, MODEL_ID);
   assert.equal(body.max_tokens, 16384);
   assert.equal(body.reasoning_effort, 'low');
@@ -41,6 +44,19 @@ test('prompt contains only schema and independent unlabeled development rows', (
   assert.equal(prompt.includes('malicious-missed-by-query'), false);
   assert.equal(prompt.includes('count_schedule'), false);
   assert.equal(prompt.includes('grant_id'), true);
+});
+
+test('frozen manifest binds the Cloudflare request and pacing settings', () => {
+  const manifest = JSON.parse(fs.readFileSync(new URL('./manifest.json', import.meta.url), 'utf8'));
+  assert.doesNotThrow(() => screen.assertManifestSettings(manifest));
+  assert.throws(
+    () => screen.assertManifestSettings({ ...manifest, model: 'other-model' }),
+    /model setting mismatch/,
+  );
+  assert.throws(
+    () => screen.assertManifestSettings({ ...manifest, cache_policy: 'default' }),
+    /cache_policy setting mismatch/,
+  );
 });
 
 test('Cloudflare transport rejects wrong model echo and incomplete responses', async () => {
@@ -175,9 +191,56 @@ test('corpus readiness fails before model request', async () => {
   }
 });
 
-test('live invocation stays disabled until Bedrock target is bound', async () => {
+test('live Cloudflare invocation requires an assigned slot', async () => {
   await assert.rejects(
     runScreen({ output: path.join(os.tmpdir(), 'unused-v9.json') }),
-    /Bedrock GLM-5 binding/,
+    /assigned Cloudflare slot/,
   );
+});
+
+test('assigned live Cloudflare invocation paces and records the one request', async () => {
+  const dir = fs.mkdtempSync(path.join(os.tmpdir(), 'f4-v9-cloudflare-test-'));
+  try {
+    let gap = null;
+    const output = path.join(dir, 'result.json');
+    const result = await runScreen({
+      slotAssigned: true,
+      output,
+      env: {
+        CLOUDFLARE_OPENAI_BASE_URL: 'https://mock.invalid/v1',
+        CLOUDFLARE_API_KEY: 'mock',
+      },
+      pace: async (ms) => {
+        gap = ms;
+      },
+      request,
+      preflight: async () => ({ memoryLimitEnforced: true }),
+      loadCorpus: testCorpus,
+      execute: async ({ batches }) => batches.map(() => []),
+    });
+    assert.equal(gap, 5000);
+    assert.equal(result.transport_attempts, 1);
+    assert.equal(JSON.parse(fs.readFileSync(output, 'utf8')).transport_attempts, 1);
+  } finally {
+    fs.rmSync(dir, { recursive: true, force: true });
+  }
+});
+
+test('live configuration failure records zero transport attempts', async () => {
+  const dir = fs.mkdtempSync(path.join(os.tmpdir(), 'f4-v9-config-test-'));
+  try {
+    const output = path.join(dir, 'result.json');
+    const result = await runScreen({
+      slotAssigned: true,
+      output,
+      env: {},
+      preflight: async () => ({}),
+      loadCorpus: testCorpus,
+    });
+    assert.equal(result.transport_attempts, 0);
+    assert.equal(result.submission.classification, 'provider_error');
+    assert.equal(JSON.parse(fs.readFileSync(output, 'utf8')).transport_attempts, 0);
+  } finally {
+    fs.rmSync(dir, { recursive: true, force: true });
+  }
 });
