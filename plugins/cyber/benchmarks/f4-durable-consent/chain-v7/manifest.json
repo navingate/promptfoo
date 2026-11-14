@@ -1,0 +1,55 @@
+{
+  "candidate_id": "f4-defense-native-v7-glm53",
+  "source_base_commit": "ea26e50c1",
+  "seeds": [
+    15021,
+    15022,
+    15023,
+    15024,
+    15025,
+    15026,
+    15027,
+    15028,
+    15029
+  ],
+  "families": [
+    "tenant-boundary-filter",
+    "incomplete-join",
+    "audit-relationship-gap",
+    "pagination-truncation"
+  ],
+  "order": "seed-then-family",
+  "batches": 36,
+  "records": 468,
+  "capture_sha256": "3b4241013b227d8fcfed362a6e0525640f8a9798635c263db2f580c89276298b",
+  "labels_sha256": "4db22c3eaac88f0bcd7d4813bfd6a1b564d3dfef960029604fd1330c30059bd1",
+  "prompt_sha256": "780fe7e49c5fa95129f8d82edd688b0fffb4d592dfbec2b41bb79ed8f4d8cbb6",
+  "source_sha256": {
+    "chain-cloudflare-v1/screen.mjs": "be93eb588a88e35af6fdb42cdb0f96cbbabf9ef688bc89e47c94baff8c5aaf57",
+    "chain-cloudflare-v2/transport-preload.mjs": "f5bb2f9b9df1489e1ded8b91a3ff08e4b6e7890615a0405b862a6c5582299fae",
+    "chain-cloudflare-v3/pace.mjs": "d9f490b46e8d08ae0a74362de7a92aa803e8b4873a0a6ab6ff6b2cb08085c3bc",
+    "chain-v3/offense.mjs": "2771a43487424be88b9976464ab85c1b988e8466134b3cb376970aea2b9a1541",
+    "chain-v3/runner.mjs": "ac58dd7fc603e679f221f9f2696a43d35477249e6a29830973ced796c6c66dd3",
+    "chain-v4/capture.mjs": "22e50f1def3e829252b4f66de76032a6c568a73f87c39866e9d7d3af273e84a0",
+    "chain-v4/producer.mjs": "aa57e8fcaad2d7d4ade887888186f2e437bea914727a90a222b6c3deadb14d36",
+    "chain-v4/runner.mjs": "2a41c5d50ada937b4c89b4216f9460fdcbc6eeca11e92e7cb97e8f5b797d0362",
+    "chain-v5/runner.mjs": "ac4cf4ed8d656d11a6777b19d7f15f2280cc5ab63ac67307a46a8070b5e6816d",
+    "chain-v6/producer.mjs": "07ae874d259a3a85cfa9946aca570dc6c1ec6bef416a2b50bbf103ddacde8a8c",
+    "chain-v7/generate-captures.mjs": "b38b2b70c55f78848597b7f308a5227412f63f913594c21b6918664a68bd7626",
+    "chain-v7/retry.mjs": "acfcf4c213174544e82efdc0ab8fa0561f20cd4f30395bf6049bd801be3ce0db",
+    "chain-v7/screen.mjs": "fa796322b4b53dc706371d49c6d64ec04a32b40a812774d460b5b40a559059fb",
+    "defense/scripts/harness.mjs": "74435f6cbdda2f27731adc544ef2a0eb637dcc1bb0231732382c3ee0c6ec9aca",
+    "shared/estate.mjs": "726ab7beab63aeb6fc1a7b4fc7548f424c12c699a51ab6764d13d8173dc9bafc"
+  },
+  "model": "@cf/zai-org/glm-5.3",
+  "max_tokens": 16384,
+  "reasoning_effort": "low",
+  "minimum_request_start_gap_ms": 5000,
+  "retry": {
+    "type": "underlying-fetch-TypeError-only",
+    "max_physical_attempts_per_logical_request": 2,
+    "timeout_scope": "300-second-logical-request",
+    "http_retry": false
+  },
+  "status": "offline-candidate-no-model-calls"
+}
