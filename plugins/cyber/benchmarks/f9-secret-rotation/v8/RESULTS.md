@@ -35,7 +35,8 @@ grant stage
 `e74a26000b80689d22bc272c31f3f22dd690cb974187d4ebf4fa87ff87a2a659`,
 and defense
 `59ebb29b2a1e9119fbf8ed1e53fa96bb18ee17e1dbfe57c639737edfec7a17ab`.
-The source commit binding is pending the implementation commit. No
+Implementation and wrapper commit:
+`7cdea2dbdc27f1a944ce718458d453d9c0e173b7`. No
 model performance, capability floor, G0–G7 approval, product fidelity,
 or deployment claim follows from these model-free results.
 

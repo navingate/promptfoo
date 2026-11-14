@@ -1,6 +1,8 @@
 # F9 v8 Cloudflare GLM-5.3 low/16k protocol
 
-Status: **pre-call candidate freeze**. No v8 model request has been made.
+Status: **pre-call candidate freeze**. Implementation and wrapper commit
+`7cdea2dbdc27f1a944ce718458d453d9c0e173b7`. No v8 model request
+has been made.
 Use only after the coordinator releases the shared GLM-5.3 slot. The
 exact requested and served model must be `@cf/zai-org/glm-5.3` through
 `cloudflare-workers-ai-openai-compat`, with `reasoning_effort: low` and
