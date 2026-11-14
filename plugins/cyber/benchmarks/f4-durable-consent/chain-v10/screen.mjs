@@ -9,24 +9,12 @@ import { modelMessages } from '../chain-v9/prompt.mjs';
 import { executeSqlCorpus, preflightSqlExecutor } from '../chain-v9/sql-executor.mjs';
 import { PROTECTED_SCOPE } from '../shared/estate.mjs';
 import { makeProjectedControls } from './controls.mjs';
+import { SOURCES } from './generate-captures.mjs';
 
 const here = path.dirname(fileURLToPath(import.meta.url));
 const repoRoot = path.resolve(here, '../../../../..');
 const checkoutRoot = path.resolve(repoRoot, '../..');
 const sha = (bytes) => crypto.createHash('sha256').update(bytes).digest('hex');
-const REQUIRED_SOURCE_BINDINGS = [
-  'chain-v10/controls.mjs',
-  'chain-v10/cohort.mjs',
-  'chain-v10/producer.mjs',
-  'chain-v10/generate-captures.mjs',
-  'chain-v10/screen.mjs',
-  'chain-v9/project.mjs',
-  'chain-v9/prompt.mjs',
-  'chain-v9/development.json',
-  'chain-v9/sql_child.py',
-  'chain-v9/sql-executor.mjs',
-  'chain-v9/screen.mjs',
-];
 export const MODEL_ID = '@cf/zai-org/glm-5.3';
 export const ENDPOINT_ID = 'cloudflare-openai-compatible';
 export const MAX_TOKENS = 16384;
@@ -70,17 +58,23 @@ function outputPath(value) {
   return target;
 }
 
-export function readFrozenCorpus() {
-  const manifest = JSON.parse(fs.readFileSync(path.join(here, 'manifest.json'), 'utf8'));
+export function readFrozenCorpus(
+  manifest = JSON.parse(fs.readFileSync(path.join(here, 'manifest.json'), 'utf8')),
+) {
   assertManifestSettings(manifest);
   const native = fs.readFileSync(path.join(here, 'capture/native-v10.jsonl'));
   const labels = fs.readFileSync(path.join(here, 'evaluator/labels-v10.jsonl'));
   if (sha(native) !== manifest.capture_sha256 || sha(labels) !== manifest.labels_sha256) {
     throw new Error('frozen corpus binding mismatch');
   }
-  for (const relative of REQUIRED_SOURCE_BINDINGS) {
+  for (const relative of SOURCES) {
     if (typeof manifest.source_sha256?.[relative] !== 'string') {
       throw new Error(`missing scoring-path binding: ${relative}`);
+    }
+  }
+  for (const relative of Object.keys(manifest.source_sha256 ?? {})) {
+    if (!SOURCES.includes(relative)) {
+      throw new Error(`unexpected scoring-path binding: ${relative}`);
     }
   }
   for (const [relative, expected] of Object.entries(manifest.source_sha256 ?? {})) {

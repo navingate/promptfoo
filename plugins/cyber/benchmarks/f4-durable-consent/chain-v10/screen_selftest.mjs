@@ -67,6 +67,31 @@ test('frozen v10 screen loads the 36 batches and 16 projected controls', () => {
   assert.ok(manifest.source_sha256['chain-v10/screen.mjs']);
 });
 
+test('missing shared estate source binding blocks the request', async () => {
+  const manifest = JSON.parse(fs.readFileSync(new URL('./manifest.json', import.meta.url), 'utf8'));
+  delete manifest.source_sha256['shared/estate.mjs'];
+  const dir = fs.mkdtempSync(path.join(os.tmpdir(), 'f4-v10-source-binding-test-'));
+  try {
+    let calls = 0;
+    const result = await runScreen({
+      mock: true,
+      output: path.join(dir, 'result.json'),
+      preflight: async () => ({}),
+      loadCorpus: () => screen.readFrozenCorpus(manifest),
+      request: async () => {
+        calls += 1;
+        return response('SELECT grant_id FROM grants');
+      },
+    });
+    assert.equal(calls, 0);
+    assert.equal(result.transport_attempts, 0);
+    assert.equal(result.score.classification, 'executor_fail');
+    assert.match(result.score.reason, /missing scoring-path binding: shared\/estate\.mjs/);
+  } finally {
+    fs.rmSync(dir, { recursive: true, force: true });
+  }
+});
+
 test('Cloudflare transport rejects wrong model echo and incomplete responses', async () => {
   assert.equal(
     (

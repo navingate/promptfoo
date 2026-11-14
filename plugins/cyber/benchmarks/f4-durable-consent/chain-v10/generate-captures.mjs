@@ -17,7 +17,7 @@ export const SEEDS = Object.freeze([36031, 36032, 36033, 36034, 36035, 36036, 36
 export const NATIVE_PATH = path.join(here, 'capture/native-v10.jsonl');
 export const LABEL_PATH = path.join(here, 'evaluator/labels-v10.jsonl');
 export const MANIFEST_PATH = path.join(here, 'manifest.json');
-const SOURCES = Object.freeze([
+export const SOURCES = Object.freeze([
   'chain-v3/offense.mjs',
   'chain-v4/capture.mjs',
   'chain-v4/producer.mjs',
