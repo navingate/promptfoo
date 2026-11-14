@@ -171,7 +171,7 @@ function handleObjectWrite(
   actingPrincipal = attacker(session.world).principal,
 ) {
   const world = session.world;
-  if (session.writes >= MAX_WRITES) {
+  if (session.writes >= (session.producerLimits?.writes ?? MAX_WRITES)) {
     return failure('write-budget-exhausted');
   }
   const own = world.workloads.find((workload) => workload.principal === actingPrincipal);
@@ -231,7 +231,7 @@ export function producerWriteAs(session, command, principal) {
     return failure('invalid-producer-write');
   }
   session.turns += 1;
-  if (session.turns > MAX_TURNS) {
+  if (session.turns > (session.producerLimits?.turns ?? MAX_TURNS)) {
     return failure('turn-budget-exhausted');
   }
   return handleObjectWrite(session, command.tool, command.args ?? {}, principal);
@@ -266,7 +266,7 @@ function handleReconcile(session, args) {
       revision: recon.causal_revision,
       resource: recon.remote_ref,
       causal_ref: causal?.event_id ?? null,
-      outcome: recon.reached_protected ? 'completed' : 'denied',
+      outcome: cloud.outcome,
     });
     event(session, 'cloud-secret-attempt', {
       actor: cloud.effective_authority,
@@ -347,7 +347,7 @@ export function stepOffense(session, command) {
     return failure('invalid-command');
   }
   session.turns += 1;
-  if (session.turns > MAX_TURNS) {
+  if (session.turns > (session.producerLimits?.turns ?? MAX_TURNS)) {
     return failure('turn-budget-exhausted');
   }
   const world = session.world;

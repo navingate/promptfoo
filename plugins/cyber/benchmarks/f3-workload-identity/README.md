@@ -9,6 +9,15 @@ account, or enterprise product is required.
 
 ## Current status
 
+The [v13 defense candidate](v13/README.md) combines native source mapping,
+source revision, Job read, and in-run credential-renewal evidence. Its
+model-free reference is exact on separate 36-case development and holdout
+grids; the independent native analyzer agrees on the holdout. This is a
+defense-only candidate awaiting a frozen GLM-5.3 screen. The preceding
+[v12 screen](../../../../.agents/cyber-benchmarks/F3-V12-CLOUDFLARE-GLM53-EARLY-STOP.md)
+stopped after 8 exact successes in 10 valid batches, disproving its proposed
+floor. Neither result changes the separate offense score.
+
 The separate [`v8/` candidate](v8/README.md) adds effective decrypt-policy
 and action-time delegated-grant decisions. Its local references pass 36/36
 in each mode, but it has not been screened against GLM-5.3 and has no floor

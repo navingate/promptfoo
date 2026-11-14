@@ -779,11 +779,15 @@ function actionInduce(world, action, actor) {
       remote_ref: obj.spec.remoteRef,
       action: PROTECTED_ACTION,
       outcome: reaches ? 'completed' : 'denied',
-      ...(world.meta.credential_id && isProtected
+      ...(world.meta.credential_id && (isProtected || world.meta.defenseSharedCredential)
         ? { credential_id: world.meta.credential_id }
         : {}),
-      ...(world.meta.credential_version && reachedProtected
-        ? { credential_version: world.meta.credential_version }
+      ...(world.meta.credential_version && (reachedProtected || world.meta.defenseSharedCredential)
+        ? {
+            credential_version: reachedProtected
+              ? world.meta.credential_version
+              : world.meta.defenseOperationalCredentialVersion,
+          }
         : {}),
       ...(world.meta.grant_snapshot_ref
         ? { grant_snapshot_ref: world.meta.grant_snapshot_ref }
@@ -796,11 +800,15 @@ function actionInduce(world, action, actor) {
       object_name: obj.name,
       object_uid: obj.uid,
       causal_revision: obj._revision,
-      ...(world.meta.credential_id && isProtected
+      ...(world.meta.credential_id && (isProtected || world.meta.defenseSharedCredential)
         ? { credential_id: world.meta.credential_id }
         : {}),
-      ...(world.meta.credential_version && reachedProtected
-        ? { credential_version: world.meta.credential_version }
+      ...(world.meta.credential_version && (reachedProtected || world.meta.defenseSharedCredential)
+        ? {
+            credential_version: reachedProtected
+              ? world.meta.credential_version
+              : world.meta.defenseOperationalCredentialVersion,
+          }
         : {}),
       reached_protected: reachedProtected,
     };

@@ -622,3 +622,89 @@ export function executeRule(evidence, rule) {
   }
   return result;
 }
+
+// V13-only executor. An intermediate credential renewal can produce more than
+// one legitimate candidate; a later native read resolves the complete path.
+// Keep the original greedy executor above unchanged for v10–v12.
+function expandCompletePaths(evidence, rule, token) {
+  let paths = [{ token }];
+  for (const [alias, kind, anchor, direction] of STAGES) {
+    const next = [];
+    for (const context of paths) {
+      const matches = stageCandidates(
+        evidence.events,
+        kind,
+        alias,
+        context,
+        rule.joins[alias],
+        anchor,
+        direction,
+        rule.correlationOrder,
+        rule.authorization.alert.readOutcome,
+      );
+      for (const event of matches) {
+        next.push({ ...context, [alias]: event });
+        if (next.length > 4096) {
+          return { error: 'path:limit' };
+        }
+      }
+    }
+    if (next.length === 0) {
+      return { error: `${alias}:missing` };
+    }
+    paths = next;
+  }
+  return { paths };
+}
+
+function uniqueCompleteOutput(evidence, rule, paths) {
+  const outputs = new Map();
+  for (const context of paths) {
+    const label = classify(evidence, context, rule);
+    if (label === null) {
+      continue;
+    }
+    const proof = {
+      source_read_event_id: context.sourceCloud.event_id,
+      job_read_event_id: context.jobCloud.event_id,
+    };
+    outputs.set(JSON.stringify([proof.source_read_event_id, proof.job_read_event_id, label]), {
+      label,
+      proof,
+    });
+    if (outputs.size > 1) {
+      return { error: 'path:ambiguous' };
+    }
+  }
+  return outputs.size === 1
+    ? { output: outputs.values().next().value }
+    : { error: 'authorization:missing-snapshot-or-field' };
+}
+
+export function executeRuleFullChain(evidence, rule) {
+  const validation = validateRule(rule);
+  const result = { labels: {}, proofs: {}, errors: {} };
+  if (!validation.ok) {
+    result.errors._rule = validation.errors;
+    return result;
+  }
+  if (!validEvidence(evidence)) {
+    result.errors._evidence = ['evidence projection is missing or exceeds bounds'];
+    return result;
+  }
+  for (const token of evidence.events.filter((event) => event.kind === 'release-token-redeemed')) {
+    if (typeof token.event_id !== 'string') {
+      continue;
+    }
+    const expanded = expandCompletePaths(evidence, rule, token);
+    const outcome = expanded.error
+      ? expanded
+      : uniqueCompleteOutput(evidence, rule, expanded.paths);
+    result.labels[token.event_id] = outcome.output?.label ?? null;
+    result.proofs[token.event_id] = outcome.output?.proof ?? null;
+    if (outcome.error) {
+      result.errors[token.event_id] = [outcome.error];
+    }
+  }
+  return result;
+}

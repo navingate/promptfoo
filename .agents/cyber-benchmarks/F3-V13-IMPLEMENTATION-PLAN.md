@@ -34,7 +34,7 @@
 
 - [ ] Wire all four pressures together in v13 and update the model-facing guide to describe complete-path semantics without exposing chosen links.
 - [ ] Verify all pressure combinations and an independent analyzer on disjoint development and holdout grids, each crossed with the three controller families.
-- [ ] Replay v11 and v12 winning rules as diagnostics; verify ablated resource, revision, role, and Job-resource links fail for intended reasons. Search literal, event-count, order, denied-status, and simple-combination shortcuts.
+- [ ] Replay v11 and v12 winning rules as diagnostics; verify ablated source-resource, source-revision, and Job-resource links fail for intended reasons, and that renewal requires complete-path matching. Search literal, event-count, order, denied-status, and simple-combination shortcuts.
 - [ ] Run formatting and focused tests; commit the candidate on `codex/f3-v13-defense-combined`.
 
 ### Task 4: Frozen model screen and result

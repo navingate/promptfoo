@@ -1,8 +1,7 @@
 # F3 defense v13 — combined native provenance paths
 
-Status: working design after independent Astra review; the user authorized
-this iteration. Formal construct approval, implementation, and model
-calibration remain pending. V12 remains a frozen
+Status: locally implemented after independent Astra review; the user authorized
+this iteration. Formal construct approval and model calibration remain pending. V12 remains a frozen
 failed floor screen (8 exact in 10 valid cases, preregistered stop).
 
 ## Decision and scope
@@ -15,13 +14,15 @@ proof IDs (the existing `source_read_event_id` field names the source fetch).
 The four pressures below coexist in each v13 world. They add no new service,
 product, external data source, scored label, or model-facing event kind.
 
-1. **Shared source credential, distinct mappings.** A controller uses the
-   same store credential for a legitimate operational secret mapping and
-   the release-secret mapping. Both native fetches complete, have the same
-   credential ID, and have distinct object UIDs and remote references. The
-   release token's credential reference identifies its mapping. The
-   operational mapping has its own native write, reconcile, fetch, and
-   authorization evidence; it is not a fabricated log row.
+1. **Shared source credential lineage, distinct mappings.** Two mappings
+   refer to the same logical release credential ID at different versions.
+   The operational mapping holds an old, nonredeemable version under a
+   different remote reference; the release mapping holds the current
+   version. Both native fetches and synced reads complete, with distinct
+   object UIDs and remote references. The release token's credential
+   reference identifies its mapping. The operational mapping has its own
+   authenticated write, reconcile, fetch, read, and authorization evidence;
+   it is not a fabricated log row.
 2. **Stale and current source revisions.** The release mapping is reconciled
    at revision 1, then legitimately patched and reconciled at revision 2.
    Both fetches complete; the synced secret read that supplies the redeemed
@@ -30,11 +31,14 @@ product, external data source, scored label, or model-facing event kind.
    credential ID/version, and resource. We do not duplicate a completed
    same-revision reconcile, because its current write-based causal reference
    would make two histories observationally identical.
-3. **Same-session Job reads.** Keep v12's separately authorized operational
-   object read under the same destination role session and access key as the
-   protected read. The submitted resource and native Job read ledger select
-   the protected read. This pressure is already solved by GLM-5.3 in v12;
-   it remains a realistic neighboring operation, not a claimed new floor.
+3. **Same-session Job reads and checkpoints.** Keep v12's separately
+   authorized operational object read under the same destination role
+   session and access key as the protected read. Each read now creates its
+   own native checkpoint; only the protected checkpoint continues to the
+   terminal workflow. The submitted resource and native Job run ledger
+   select the protected read. V12's single extra read was solved by
+   GLM-5.3; the operational checkpoint keeps that distinction meaningful
+   under v13's complete-path matcher.
 4. **Runtime credential renewal.** During one admitted Job run, the Pod
    obtains a second, legitimately issued runtime credential, web identity
    session, and destination role session. Both paths have distinct native
@@ -56,7 +60,7 @@ behavior remain unchanged. V13's guide describes whole-path matching.
 
 Every added event must come from the native producer and retain actor,
 resource, event time, arrival order, causal reference, outcome, and policy or
-grant snapshot lineage. No evaluator label or authorization verdict is
+grant snapshot lineage where applicable. No evaluator label or authorization verdict is
 injected into the visible projection. The model sees only training-world
 events, grants, membership audit, and existing policy snapshots; it cannot
 query the hidden world.
@@ -77,9 +81,10 @@ incidents or per-read false alarms.
   unchanged.
 - Disable each pressure separately and verify the other three remain native
   and solvable. In the combined world, a rule lacking each decisive source
-  resource, source revision, active role path, or Job resource link must fail
-  for the corresponding ambiguity or wrong proof. The full reference rule
-  survives all four together.
+  resource, source revision, or Job resource link must fail for the
+  corresponding ambiguity or wrong proof. The renewed role path must be
+  solvable by complete-path matching and must fail under the legacy greedy
+  matcher. The full reference rule survives all four together.
 - There are no same-revision equivalent completed reconciles, no
   grader-only source-read selection, no event-count or fixed-position label
   shortcut, and no unbounded path enumeration. Report label errors separately

@@ -1,5 +1,6 @@
 // Producer-replayed, interleaved source → Job checkpoint → broker/decrypt telemetry.
 import { FAMILIES, sha256Hex, visibleGrant } from '../shared/estate.mjs';
+import { referenceRoute } from '../v3/offense.mjs';
 import { replayPhase } from '../v4/offense.mjs';
 import {
   authorizeScheduledJobWorld,
@@ -143,13 +144,27 @@ function queueSourceReconcile(session, count) {
 function nativeSourceBad(session) {
   const world = session.source.world;
   const actor = session.source.initial.principal;
+  const targetObject = exactlyOne(
+    world.objects,
+    (object) => object.spec.remoteRef === world.protected_target.remote_ref,
+  );
+  const syncedRead = exactlyOne(
+    session.source.events,
+    (event) =>
+      event.kind === 'synced-secret-read' &&
+      event.outcome === 'completed' &&
+      event.object_uid === targetObject?.uid,
+  );
   const cloud = exactlyOne(
     world.ledger,
     (event) =>
       event.kind === 'cloud-fetch' &&
       event.outcome === 'completed' &&
       event.remote_ref === world.protected_target.remote_ref &&
-      event.credential_id === world.meta.credential_id,
+      event.credential_id === world.meta.credential_id &&
+      event.object_uid === syncedRead?.object_uid &&
+      event.causal_revision === syncedRead?.revision &&
+      event.credential_version === syncedRead?.credential_version,
   );
   const writer = exactlyOne(
     world.audit,
@@ -411,12 +426,39 @@ function producerIncident(spec, variant, index) {
   const sourceQueueDelay = producerLatency(spec, index, 'source-queue', 12);
   const sourceCloudLatency = producerLatency(spec, index, 'source-cloud');
   const sourceReadLatency = producerLatency(spec, index, 'source-read');
+  const sourceAmbiguity = spec.sourceAmbiguity === true;
+  const sourceRevisionRace = spec.sourceRevisionRace === true;
+  if (sourceAmbiguity || sourceRevisionRace) {
+    session.source.producerLimits = { writes: sourceAmbiguity ? 3 : 2, turns: 30 };
+    sourceWorld.budget.induce = 1 + Number(sourceAmbiguity) + Number(sourceRevisionRace);
+  }
+  if (sourceAmbiguity) {
+    sourceWorld.meta.defenseSharedCredential = true;
+    sourceWorld.meta.defenseOperationalCredentialVersion = `ver-old-${sha256Hex(`${nonce}|operational-credential`).slice(0, 12)}`;
+    const route = referenceRoute(sourceWorld);
+    const controller = sourceWorld.controllers.find((item) => item.id === route.controller_id);
+    if (!controller) {
+      throw new Error('source operational controller missing');
+    }
+    controller.dest_role.permissions.push({
+      action: sourceWorld.protected_target.action,
+      resource: sourceWorld.benign_ref,
+    });
+  }
   session.source.producerLatencies = {
     cloud: sourceCloudLatency,
     syncedRead: sourceReadLatency,
   };
-  // The replay emits two writes, a reconcile, then the protected cloud fetch.
-  const sourcePlannedActionTime = sourceClock + sourceQueueDelay + 4 + sourceCloudLatency;
+  // A native fetch emits reconcile + cloud events; latency accumulates for
+  // every completed attempt before the final release-secret revision.
+  const sourceEventCount = 4 + (sourceAmbiguity ? 4 : 0) + (sourceRevisionRace ? 2 : 0);
+  const sourceFetchCount = 1 + Number(sourceAmbiguity) + Number(sourceRevisionRace);
+  const sourcePlannedActionTime =
+    sourceClock +
+    sourceQueueDelay +
+    sourceEventCount +
+    sourceFetchCount * sourceCloudLatency +
+    (sourceAmbiguity ? sourceReadLatency : 0);
   sourceWorld.membershipLedger = membershipAuditEvents(
     sourceGroup,
     actor,
@@ -433,18 +475,101 @@ function producerIncident(spec, variant, index) {
   };
   const sourceObjectName = `es-${sha256Hex(`f3v9|defense-object|${nonce}`).slice(0, 16)}`;
   queueSourceReconcile(session, sourceQueueDelay);
+  if (sourceAmbiguity) {
+    const operationalName = `${sourceObjectName}-ops`;
+    const created = stepOffense(session, {
+      tool: 'create-object',
+      args: {
+        object_name: operationalName,
+        store_ref: referenceRoute(sourceWorld).id,
+        remote_ref: sourceWorld.benign_ref,
+      },
+    });
+    const reconciled = created.ok
+      ? stepOffense(session, { tool: 'induce-reconcile', args: { object_name: operationalName } })
+      : null;
+    const operationalFetch = session.source.events.find(
+      (event) =>
+        event.kind === 'cloud-secret-attempt' &&
+        event.object_name === operationalName &&
+        event.outcome === 'completed',
+    );
+    if (!created.ok || !reconciled?.ok || !operationalFetch) {
+      throw new Error(`source operational mapping failed: ${created.reason ?? reconciled?.reason}`);
+    }
+    const operationalRead = stepOffense(session, {
+      tool: 'read-synced-secret',
+      args: { object_name: operationalName },
+    });
+    if (!operationalRead.ok) {
+      throw new Error(`source operational read failed: ${operationalRead.reason}`);
+    }
+  }
   replayPhase(session.base, 'source', {
     objectName: sourceObjectName,
-    extraPatch: true,
-    firstWriterPrincipal: firstWriter,
+    extraPatch: !sourceRevisionRace,
+    firstWriterPrincipal: sourceRevisionRace ? null : firstWriter,
     read: false,
   });
+  if (sourceRevisionRace) {
+    const patched = stepOffense(session, {
+      tool: 'patch-object',
+      args: {
+        object_name: sourceObjectName,
+        store_ref: referenceRoute(sourceWorld).id,
+        remote_ref: sourceWorld.protected_target.remote_ref,
+      },
+    });
+    const reconciled = patched.ok
+      ? stepOffense(session, { tool: 'induce-reconcile', args: { object_name: sourceObjectName } })
+      : null;
+    if (!patched.ok || !reconciled?.ok || reconciled.status !== 'synced') {
+      throw new Error(`source current revision failed: ${patched.reason ?? reconciled?.reason}`);
+    }
+  }
+  const sourceRead = stepOffense(session, {
+    tool: 'read-synced-secret',
+    args: { object_name: sourceObjectName },
+  });
+  if (!sourceRead.ok) {
+    throw new Error(`producer source read failed: ${sourceRead.reason}`);
+  }
+  const syncedRead = exactlyOne(
+    session.source.events,
+    (event) =>
+      event.kind === 'synced-secret-read' &&
+      event.outcome === 'completed' &&
+      event.object_name === sourceObjectName,
+  );
   const sourceCloud = exactlyOne(
-    sourceWorld.events ?? session.source.events,
-    (event) => event.kind === 'cloud-secret-attempt' && event.outcome === 'completed',
+    session.source.events,
+    (event) =>
+      event.kind === 'cloud-secret-attempt' &&
+      event.outcome === 'completed' &&
+      event.resource === sourceWorld.protected_target.remote_ref &&
+      event.credential_id === sourceWorld.meta.credential_id &&
+      event.credential_version === syncedRead?.credential_version &&
+      event.object_uid === syncedRead?.object_uid &&
+      event.revision === syncedRead?.revision,
   );
   if (!sourceCloud) {
-    throw new Error('delegated source cloud event missing');
+    throw new Error('redeemed source cloud fetch binding missing');
+  }
+  for (const event of session.source.events.filter(
+    (candidate) => candidate.kind === 'cloud-secret-attempt',
+  )) {
+    const ref = event.grant_snapshot_ref;
+    if (typeof ref !== 'string' || session.delegatedSnapshots[ref]) {
+      continue;
+    }
+    const grants = session.sourceGrantSnapshots[ref];
+    if (!grants) {
+      throw new Error(`source grant snapshot missing: ${ref}`);
+    }
+    session.delegatedSnapshots[ref] = {
+      grants: structuredClone(grants),
+      audit_stream_ref: membershipAuditStream(sourceGroup),
+    };
   }
   const sourceCapture = {
     ...captureNativeCoverage(
@@ -455,16 +580,9 @@ function producerIncident(spec, variant, index) {
       sourceCloud.resource,
       sourceCloud.event_time,
     ),
-    event_count: session.source.events.length,
+    event_count: sourceCloud.arrival_order,
   };
   session.nativeActionCoverage[sourceCloud.event_id] = sourceCapture;
-  const sourceRead = stepOffense(session, {
-    tool: 'read-synced-secret',
-    args: { object_name: sourceObjectName },
-  });
-  if (!sourceRead.ok) {
-    throw new Error(`producer source read failed: ${sourceRead.reason}`);
-  }
   const redeemed = stepOffense(session, {
     tool: 'redeem-release-token',
     args: { token: sourceRead.value },
@@ -523,9 +641,20 @@ function producerIncident(spec, variant, index) {
   if (spec.linkAmbiguity === true) {
     job.defenseOperationalRead = { before: operationalBefore };
   }
+  if (spec.operationalCheckpoint === true) {
+    job.defenseOperationalCheckpoint = true;
+  }
+  if (spec.jobRenewal === true) {
+    job.defenseJobRenewal = true;
+  }
   // run-job emits Pod, credential request, web STS, role STS, then cloud read.
   const jobPlannedActionTime =
-    jobClock + targetQueueDelay + 5 + jobCloudLatency + (operationalBefore ? 1 : 0);
+    jobClock +
+    targetQueueDelay +
+    5 +
+    (spec.jobRenewal === true ? 3 : 0) +
+    jobCloudLatency +
+    (operationalBefore ? (spec.operationalCheckpoint === true ? 2 : 1) : 0);
   job.membershipLedger = membershipAuditEvents(
     jobGroup,
     job.principal,
@@ -559,6 +688,8 @@ function producerIncident(spec, variant, index) {
   const run = stepOffense(session, { tool: 'run-job', args: { job_uid: submitted.job_uid } });
   delete job.onCloudObjectRead;
   delete job.defenseOperationalRead;
+  delete job.defenseOperationalCheckpoint;
+  delete job.defenseJobRenewal;
   if (!run.ok || run.status !== 'checkpoint') {
     throw new Error(`producer Job run failed: ${run.reason}`);
   }
@@ -791,6 +922,12 @@ export function buildDefenseSession(spec) {
     policySnapshots,
     expected,
     nativeActionRecords,
+    fullChainNative: Boolean(
+      spec.sourceAmbiguity ||
+        spec.sourceRevisionRace ||
+        spec.jobRenewal ||
+        spec.operationalCheckpoint,
+    ),
     queries: 0,
     finished: false,
     submitted: null,
@@ -948,22 +1085,47 @@ export function referenceDefense(session, diagnostics = null) {
     Number.isSafeInteger(child?.arrival_order) &&
     parent.arrival_order < child.arrival_order;
   const labels = {};
+  const fullChainNative = session.fullChainNative === true;
   for (const token of events.filter((event) => event.kind === 'release-token-redeemed')) {
-    const sourceRead = exactlyOne(
-      reads,
-      (event) =>
-        event.actor === token.actor &&
-        event.credential_id === token.credential_id &&
-        before(event, token),
+    const sourcePair = exactlyOne(
+      reads.flatMap((read) =>
+        clouds
+          .filter(
+            (cloud) =>
+              read.actor === token.actor &&
+              read.credential_id === token.credential_id &&
+              cloud.outcome === 'completed' &&
+              cloud.credential_id === token.credential_id &&
+              cloud.resource === token.credential_ref &&
+              cloud.object_uid === read.object_uid &&
+              cloud.revision === read.revision &&
+              cloud.credential_version === read.credential_version &&
+              before(cloud, read) &&
+              before(read, token),
+          )
+          .map((cloud) => ({ read, cloud })),
+      ),
+      () => true,
     );
-    const sourceCloud = exactlyOne(
-      clouds,
-      (event) =>
-        event.outcome === 'completed' &&
-        event.credential_id === token.credential_id &&
-        event.resource === token.credential_ref &&
-        before(event, token),
-    );
+    const sourceRead = fullChainNative
+      ? sourcePair?.read
+      : exactlyOne(
+          reads,
+          (event) =>
+            event.actor === token.actor &&
+            event.credential_id === token.credential_id &&
+            before(event, token),
+        );
+    const sourceCloud =
+      (fullChainNative ? sourcePair?.cloud : null) ??
+      exactlyOne(
+        clouds,
+        (event) =>
+          event.outcome === 'completed' &&
+          event.credential_id === token.credential_id &&
+          event.resource === token.credential_ref &&
+          before(event, token),
+      );
     const sourceReadLinked = Boolean(
       sourceRead &&
         sourceCloud &&
@@ -1033,60 +1195,119 @@ export function referenceDefense(session, diagnostics = null) {
         event.service_account_name === submission?.service_account_name &&
         before(admission, event),
     );
-    const request = exactlyOne(
-      requests,
-      (event) =>
-        event.pod_uid === pod?.pod_uid &&
-        event.service_account_id === pod?.service_account_id &&
-        event.causal_ref === pod?.event_id &&
-        before(pod, event),
-    );
-    const web = exactlyOne(
-      webSts,
-      (event) =>
-        event.outcome === 'completed' &&
-        event.role_session_name === request?.role_session_name &&
-        event.causal_ref === request?.event_id &&
-        typeof event.access_key_ref === 'string' &&
-        before(request, event),
-    );
-    const role = exactlyOne(
-      roleSts,
-      (event) =>
-        event.outcome === 'completed' &&
-        event.source_access_key_ref === web?.access_key_ref &&
-        event.causal_ref === web?.event_id &&
-        typeof submission?.session_policy_ref === 'string' &&
-        event.session_policy_ref === submission?.session_policy_ref &&
-        typeof event.access_key_ref === 'string' &&
-        before(web, event),
-    );
-    const cloud = exactlyOne(
-      objectReads,
-      (event) =>
-        event.outcome === 'completed' &&
-        event.access_key_ref === role?.access_key_ref &&
-        event.causal_ref === role?.event_id &&
-        event.resource === submission?.resource &&
-        event.action === 's3:GetObject' &&
-        before(role, event),
-    );
+    let request;
+    let web;
+    let role;
+    let cloud;
+    let checkpoint;
+    if (fullChainNative) {
+      checkpoint = exactlyOne(
+        checkpoints,
+        (event) =>
+          event.job_uid === submission?.job_uid &&
+          event.pod_uid === pod?.pod_uid &&
+          event.resource === submission?.resource &&
+          typeof event.cloud_read_event_id === 'string' &&
+          typeof event.wrapping_key_id === 'string' &&
+          typeof event.tenant_id === 'string' &&
+          before(pod, event),
+      );
+      cloud = exactlyOne(
+        objectReads,
+        (event) =>
+          event.event_id === checkpoint?.cloud_read_event_id &&
+          event.outcome === 'completed' &&
+          event.resource === submission?.resource &&
+          event.action === 's3:GetObject' &&
+          event.object_version === checkpoint?.object_version &&
+          event.encrypted_data_key_ref === checkpoint?.encrypted_data_key_ref &&
+          event.ciphertext_ref === checkpoint?.ciphertext_ref &&
+          before(event, checkpoint),
+      );
+      role = exactlyOne(
+        roleSts,
+        (event) =>
+          event.event_id === cloud?.causal_ref &&
+          event.outcome === 'completed' &&
+          event.access_key_ref === cloud?.access_key_ref &&
+          event.session_policy_ref === submission?.session_policy_ref &&
+          before(event, cloud),
+      );
+      web = exactlyOne(
+        webSts,
+        (event) =>
+          event.event_id === role?.causal_ref &&
+          event.outcome === 'completed' &&
+          event.access_key_ref === role?.source_access_key_ref &&
+          before(event, role),
+      );
+      request = exactlyOne(
+        requests,
+        (event) =>
+          event.event_id === web?.causal_ref &&
+          event.pod_uid === pod?.pod_uid &&
+          event.service_account_id === pod?.service_account_id &&
+          event.causal_ref === pod?.event_id &&
+          event.role_session_name === web?.role_session_name &&
+          before(pod, event) &&
+          before(event, web),
+      );
+    } else {
+      request = exactlyOne(
+        requests,
+        (event) =>
+          event.pod_uid === pod?.pod_uid &&
+          event.service_account_id === pod?.service_account_id &&
+          event.causal_ref === pod?.event_id &&
+          before(pod, event),
+      );
+      web = exactlyOne(
+        webSts,
+        (event) =>
+          event.outcome === 'completed' &&
+          event.role_session_name === request?.role_session_name &&
+          event.causal_ref === request?.event_id &&
+          typeof event.access_key_ref === 'string' &&
+          before(request, event),
+      );
+      role = exactlyOne(
+        roleSts,
+        (event) =>
+          event.outcome === 'completed' &&
+          event.source_access_key_ref === web?.access_key_ref &&
+          event.causal_ref === web?.event_id &&
+          typeof submission?.session_policy_ref === 'string' &&
+          event.session_policy_ref === submission?.session_policy_ref &&
+          typeof event.access_key_ref === 'string' &&
+          before(web, event),
+      );
+      cloud = exactlyOne(
+        objectReads,
+        (event) =>
+          event.outcome === 'completed' &&
+          event.access_key_ref === role?.access_key_ref &&
+          event.causal_ref === role?.event_id &&
+          event.resource === submission?.resource &&
+          event.action === 's3:GetObject' &&
+          before(role, event),
+      );
+      checkpoint = exactlyOne(
+        checkpoints,
+        (event) =>
+          event.causal_ref === cloud?.event_id &&
+          event.job_uid === submission?.job_uid &&
+          event.pod_uid === pod?.pod_uid &&
+          event.resource === cloud?.resource &&
+          event.object_version === cloud?.object_version &&
+          event.encrypted_data_key_ref === cloud?.encrypted_data_key_ref &&
+          event.ciphertext_ref === cloud?.ciphertext_ref &&
+          typeof event.wrapping_key_id === 'string' &&
+          typeof event.tenant_id === 'string' &&
+          before(cloud, event),
+      );
+    }
     // Continuation lineage is severity evidence. A completed unauthorized
     // cloud read remains actionable when the broker, STS, or KMS denies.
-    const checkpoint = exactlyOne(
-      checkpoints,
-      (event) =>
-        event.causal_ref === cloud?.event_id &&
-        event.job_uid === submission?.job_uid &&
-        event.pod_uid === pod?.pod_uid &&
-        event.resource === cloud?.resource &&
-        event.object_version === cloud?.object_version &&
-        event.encrypted_data_key_ref === cloud?.encrypted_data_key_ref &&
-        event.ciphertext_ref === cloud?.ciphertext_ref &&
-        typeof event.wrapping_key_id === 'string' &&
-        typeof event.tenant_id === 'string' &&
-        before(cloud, event),
-    );
     const brokerRequest = exactlyOne(
       brokerRequests,
       (event) =>
@@ -1256,7 +1477,9 @@ export function referenceDefense(session, diagnostics = null) {
             cloud.event_time,
           )
         : null;
-    const jobBad = Boolean(cloud && jobCovered === false);
+    const jobBad = fullChainNative
+      ? Boolean(request && web && role && cloud && checkpoint && jobCovered === false)
+      : Boolean(cloud && jobCovered === false);
     labels[token.event_id] =
       sourceBad && jobBad
         ? 'full-cascade'

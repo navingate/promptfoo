@@ -1191,15 +1191,62 @@ function runJob(world, args) {
   if (!destAccessKeyRef) {
     return denyRun(world, job, podUid, assumption);
   }
+  let activeRole = role;
+  let activeDestAccessKeyRef = destAccessKeyRef;
+  if (world.defenseJobRenewal === true) {
+    const renewalDecision = assumptionDecision(world, account, template, job.spec.object_ref);
+    if (renewalDecision !== 'completed') {
+      return denyRun(world, job, podUid, renewalDecision);
+    }
+    const renewedSessionName = jobId(world, 'session-renewed', podUid);
+    const renewedRequest = emit(world, 'runtime-credential-request', {
+      actor: account.name,
+      pod_uid: podUid,
+      service_account_id: account.id,
+      role_session_name: renewedSessionName,
+      causal_ref: pod.event_id,
+    });
+    const renewedBaseAccessKeyRef = jobId(world, 'base-akref-renewed', podUid);
+    const renewedWeb = emit(world, 'sts-assume-web-identity', {
+      actor: account.name,
+      role_session_name: renewedSessionName,
+      role_arn: account.base_role.arn,
+      access_key_ref: renewedBaseAccessKeyRef,
+      outcome: 'completed',
+      causal_ref: renewedRequest.event_id,
+    });
+    const renewedDestinationSessionName = jobId(world, 'dest-session-renewed', podUid);
+    activeDestAccessKeyRef = jobId(world, 'dest-akref-renewed', renewedDestinationSessionName);
+    activeRole = emit(world, 'sts-assume-role', {
+      actor: account.base_role.arn,
+      source_access_key_ref: renewedBaseAccessKeyRef,
+      role_session_name: renewedDestinationSessionName,
+      role_arn: template.destination_role_arn,
+      external_id: template.external_id,
+      session_policy_ref: template.session_policy.ref,
+      access_key_ref: activeDestAccessKeyRef,
+      outcome: 'completed',
+      causal_ref: renewedWeb.event_id,
+    });
+    world.ledger.push({
+      kind: 'job-credential-renewal',
+      job_uid: job.uid,
+      pod_uid: podUid,
+      previous_role_event_id: role.event_id,
+      active_role_event_id: activeRole.event_id,
+      active_access_key_ref: activeDestAccessKeyRef,
+      outcome: 'completed',
+    });
+  }
   const request = {
     ...resolved,
     access_point_alias: job.spec.access_point_alias,
-    destination_access_key_ref: destAccessKeyRef,
+    destination_access_key_ref: activeDestAccessKeyRef,
     principal_role_arn: template.destination_role_arn,
     workload_lane: account.session_tags.workload_lane,
     ...podRoute,
   };
-  const authorizationSnapshotRef = jobId(world, 's3authsnap', role.event_id);
+  const authorizationSnapshotRef = jobId(world, 's3authsnap', activeRole.event_id);
   world.authorizationSnapshots[authorizationSnapshotRef] = structuredClone({
     destination_role: template.destination_role,
     session_policy: template.session_policy,
@@ -1237,7 +1284,7 @@ function runJob(world, args) {
       access_point_object_arn: operationalRoute.access_point_object_arn,
       bucket_object_arn: operationalRoute.bucket_object_arn,
     };
-    const operationalSnapshotRef = jobId(world, 's3authsnap-operational', role.event_id);
+    const operationalSnapshotRef = jobId(world, 's3authsnap-operational', activeRole.event_id);
     world.authorizationSnapshots[operationalSnapshotRef] = structuredClone({
       destination_role: template.destination_role,
       session_policy: template.session_policy,
@@ -1266,7 +1313,7 @@ function runJob(world, args) {
         : operationalIdentity;
     const operational = emit(world, 'cloud-object-read', {
       actor: template.destination_role_arn,
-      access_key_ref: destAccessKeyRef,
+      access_key_ref: activeDestAccessKeyRef,
       resource: objectRef,
       access_point_alias: job.spec.access_point_alias,
       access_point_arn: operationalRoute.access_point_arn,
@@ -1281,19 +1328,48 @@ function runJob(world, args) {
       ciphertext_ref: operationalRecord.ciphertext_ref,
       outcome: operationalDecision === 'completed' ? 'completed' : 'denied',
       ...(operationalDecision === 'completed' ? {} : { reason: operationalDecision }),
-      causal_ref: role.event_id,
+      causal_ref: activeRole.event_id,
     });
     world.ledger.push({
       kind: 'job-operational-read',
       job_uid: job.uid,
       read_event_id: operational.event_id,
       authorization_snapshot_ref: operationalSnapshotRef,
-      access_key_ref: destAccessKeyRef,
+      access_key_ref: activeDestAccessKeyRef,
       resource: objectRef,
       outcome: operational.outcome,
     });
     if (operationalDecision !== 'completed') {
       throw new Error(`defense operational read denied: ${operationalDecision}`);
+    }
+    if (world.defenseOperationalCheckpoint === true) {
+      const operationalCheckpointRef = jobId(world, 'operational-checkpoint', operational.event_id);
+      const operationalCheckpoint = emit(world, 'job-checkpoint-created', {
+        actor: account.name,
+        job_uid: job.uid,
+        pod_uid: podUid,
+        checkpoint_ref: operationalCheckpointRef,
+        resource: objectRef,
+        object_version: operationalRecord.version,
+        tenant_id: operationalRecord.tenant_id,
+        encrypted_data_key_ref: operationalRecord.encrypted_data_key_ref,
+        ciphertext_ref: operationalRecord.ciphertext_ref,
+        wrapping_key_id: operationalRecord.wrapping_key_id,
+        access_point_alias: job.spec.access_point_alias,
+        access_point_arn: operationalRoute.access_point_arn,
+        authorization_snapshot_ref: operationalSnapshotRef,
+        cloud_read_event_id: operational.event_id,
+        causal_ref: operational.event_id,
+      });
+      world.ledger.push({
+        kind: 'job-operational-checkpoint',
+        job_uid: job.uid,
+        read_event_id: operational.event_id,
+        checkpoint_event_id: operationalCheckpoint.event_id,
+        checkpoint_ref: operationalCheckpointRef,
+        resource: objectRef,
+        outcome: 'completed',
+      });
     }
   };
   if (world.defenseOperationalRead?.before) {
@@ -1301,7 +1377,7 @@ function runJob(world, args) {
   }
   const cloud = emit(world, 'cloud-object-read', {
     actor: template.destination_role_arn,
-    access_key_ref: destAccessKeyRef,
+    access_key_ref: activeDestAccessKeyRef,
     resource: job.spec.object_ref,
     access_point_alias: job.spec.access_point_alias,
     access_point_arn: resolved.access_point_arn,
@@ -1316,7 +1392,7 @@ function runJob(world, args) {
     ciphertext_ref: record.ciphertext_ref,
     outcome: decision === 'completed' ? 'completed' : 'denied',
     ...(decision === 'completed' ? {} : { reason: decision }),
-    causal_ref: role.event_id,
+    causal_ref: activeRole.event_id,
   });
   if (typeof world.onCloudObjectRead === 'function') {
     world.onCloudObjectRead(cloud);
@@ -1326,7 +1402,7 @@ function runJob(world, args) {
   }
   if (decision !== 'completed') {
     return denyRun(world, job, podUid, decision, {
-      access_key_ref: destAccessKeyRef,
+      access_key_ref: activeDestAccessKeyRef,
       resource: cloud.resource,
       read_event_id: cloud.event_id,
     });
@@ -1386,7 +1462,7 @@ function runJob(world, args) {
     kind: 'job-run',
     job_uid: job.uid,
     pod_uid: podUid,
-    access_key_ref: destAccessKeyRef,
+    access_key_ref: activeDestAccessKeyRef,
     resource: cloud.resource,
     outcome: 'checkpoint',
     read_event_id: cloud.event_id,

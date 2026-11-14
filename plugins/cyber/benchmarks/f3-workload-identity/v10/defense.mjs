@@ -3,7 +3,7 @@ import {
   buildDefenseSession as buildNativeWorld,
   stepDefense as stepNativeDefense,
 } from '../v9/defense.mjs';
-import { executeRule, REFERENCE_RULE, validateRule } from './rule.mjs';
+import { executeRule, executeRuleFullChain, REFERENCE_RULE, validateRule } from './rule.mjs';
 
 const LABELS = Object.freeze([
   'full-cascade',
@@ -95,6 +95,7 @@ export function buildDefenseSession(spec) {
     training,
     hiddenEvidence: visibleProjection(hidden),
     truth: captureTruth(hidden),
+    ruleExecutor: spec.matchMode === 'full-chain' ? executeRuleFullChain : executeRule,
     submission: null,
   });
   return session;
@@ -134,7 +135,10 @@ export function stepDefense(session, command) {
       state.submission = { kind: 'invalid-rule' };
       return { ok: false, finished: true, reason: 'invalid-rule' };
     }
-    state.submission = { kind: 'executed', result: executeRule(state.hiddenEvidence, args.rule) };
+    state.submission = {
+      kind: 'executed',
+      result: state.ruleExecutor(state.hiddenEvidence, args.rule),
+    };
     return { ok: true, finished: true };
   }
   if (!READ_TOOLS.has(command.tool)) {
