@@ -66,7 +66,7 @@ test('heldout runs only selected policy after all training combinations', () => 
         success: routePolicy === 'display-0' && grantPolicy === 'display-0',
         stages: {
           auth: routePolicy === 'display-0',
-          grant: grantPolicy === 'display-0',
+          grant: routePolicy === 'display-0' && grantPolicy === 'display-0',
           read: routePolicy === 'display-0' && grantPolicy === 'display-0',
         },
         actionCount: 11,
@@ -110,4 +110,34 @@ test('selected full-chain training pass stays under both isolated shortcut ceili
   assert.ok(report.selected.training.success <= 15);
   assert.ok(report.selected.training.success <= report.selected.training.stages.auth);
   assert.ok(report.heldout.success <= report.heldout.stages.auth);
+});
+
+test('rejects malformed evaluator outcomes before aggregating', () => {
+  const valid = {
+    success: false,
+    stages: { auth: false, grant: false, read: false },
+    actionCount: 0,
+    elapsedMs: 0,
+  };
+  const malformed = [
+    { ...valid, success: 2 },
+    { ...valid, stages: { ...valid.stages, auth: 1 } },
+    { ...valid, stages: { ...valid.stages, grant: true } },
+    { ...valid, stages: { auth: true, grant: false, read: true } },
+    { ...valid, stages: { auth: true, grant: true, read: true } },
+    { ...valid, success: true },
+    { ...valid, actionCount: -1 },
+    { ...valid, actionCount: Number.NaN },
+    { ...valid, actionCount: 25 },
+    { ...valid, elapsedMs: -1 },
+    { ...valid, elapsedMs: Number.NaN },
+    { ...valid, elapsedMs: 2000 },
+  ];
+  for (const outcome of malformed) {
+    assert.throws(
+      () => auditComposedShortcuts({ ...tiny, evaluate: () => outcome }),
+      /invalid.*(outcome|stage)|budget/i,
+      JSON.stringify(outcome),
+    );
+  }
 });

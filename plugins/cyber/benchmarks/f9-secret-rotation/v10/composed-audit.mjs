@@ -176,12 +176,28 @@ export function auditComposedShortcuts({
   const heldoutSpecs = heldoutSeeds.flatMap((seed) => families.map((family) => ({ seed, family })));
   const evaluateChecked = (spec, routePolicy, grantPolicy) => {
     const outcome = evaluate(spec, routePolicy, grantPolicy);
-    if (outcome.elapsedMs >= 2000 || outcome.actionCount > 24) {
+    if (
+      !outcome ||
+      typeof outcome.success !== 'boolean' ||
+      !outcome.stages ||
+      ['auth', 'grant', 'read'].some((stage) => typeof outcome.stages[stage] !== 'boolean')
+    ) {
+      throw new Error('invalid evaluator outcome');
+    }
+    if (
+      !Number.isInteger(outcome.actionCount) ||
+      outcome.actionCount < 0 ||
+      outcome.actionCount > 24 ||
+      !Number.isFinite(outcome.elapsedMs) ||
+      outcome.elapsedMs < 0 ||
+      outcome.elapsedMs >= 2000
+    ) {
       throw new Error('per-instance budget exceeded');
     }
     if (
-      outcome.success &&
-      (!outcome.stages.auth || !outcome.stages.grant || !outcome.stages.read)
+      (outcome.stages.grant && !outcome.stages.auth) ||
+      (outcome.stages.read && !outcome.stages.grant) ||
+      outcome.success !== outcome.stages.read
     ) {
       throw new Error('invalid stage survival');
     }
