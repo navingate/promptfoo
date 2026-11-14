@@ -75,6 +75,48 @@ test('each seed has six native two-flow cases, a denied case, and balanced truth
   }
 });
 
+test('completed exports cite the intended job, with publisher and actor binding mismatches preserved', () => {
+  for (const seed of CAPTURE_SEEDS) {
+    for (const kind of completed) {
+      const { visible } = produceCase(seed, kind);
+      const job = visible.job_registry.find(
+        (item) =>
+          item.job_id.startsWith('job-') && item.destination === visible.events[0].destination,
+      );
+      assert.ok(job, `${seed} ${kind}`);
+      for (const event of visible.events) {
+        assert.equal(event.job_ref, job.job_id, `${seed} ${kind} ${event.event_id}`);
+      }
+      if (kind.startsWith('alternate-')) {
+        for (const receipt of visible.receipts) {
+          const binding = job.publisher_bindings.find(
+            (item) => item.actor === receipt.publisher_actor,
+          );
+          assert.ok(binding);
+          assert.notEqual(receipt.profile_id, binding.profile_id);
+          assert.equal(
+            visible.publisher_profiles.find((item) => item.profile_id === receipt.profile_id)
+              ?.actor_binding,
+            receipt.publisher_actor,
+          );
+        }
+      }
+      if (kind.startsWith('mixed-cap-')) {
+        const actor1 = visible.flows[1].identity;
+        assert.ok(!job.actor_binding.includes(actor1));
+        assert.ok(!job.publisher_bindings.some((item) => item.actor === actor1));
+        assert.ok(
+          visible.receipts.some(
+            (receipt) =>
+              receipt.publisher_actor === actor1 &&
+              receipt.profile_id !== job.publisher_bindings[0].profile_id,
+          ),
+        );
+      }
+    }
+  }
+});
+
 function signature(capture) {
   const { visible } = capture;
   return {

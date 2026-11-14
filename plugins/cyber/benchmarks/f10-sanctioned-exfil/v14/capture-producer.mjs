@@ -236,12 +236,7 @@ export function produceCase(seed, kind) {
       actor,
       kind.startsWith('alternate-') || (kind.startsWith('mixed-cap-') && actor === 1),
     );
-    const jobRef =
-      kind === 'bound-bulk' ||
-      kind === 'duplicate-covered' ||
-      (kind.startsWith('mixed-cap-') && actor === 0)
-        ? job.job_id
-        : null;
+    const jobRef = job.job_id;
     if (kind === 'owner-denied') {
       const wrong = profiles.find(
         (item) => item.destination === action.destination && item.actor_binding !== action.identity,
