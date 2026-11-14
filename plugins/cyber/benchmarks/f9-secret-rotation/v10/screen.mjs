@@ -87,7 +87,48 @@ function summaryFor(mode, assigned, results, status) {
     off_grammar: results.filter((result) => result.reason === 'off-grammar').length,
     truncated: results.filter((result) => result.reason === 'truncated').length,
     format_errors: results.reduce((sum, result) => sum + (result.format_errors ?? 0), 0),
+    diagnostic_counts: aggregateDiagnosticCounts(results),
   };
+}
+
+export function offenseDiagnostics(session) {
+  const diagnostics = [];
+  for (const event of session.ledger) {
+    if (event.type !== 'auth.attempt' && event.type !== 'grant.redeem') {
+      continue;
+    }
+    const stage = event.type === 'auth.attempt' ? 'auth' : 'grant';
+    if (stage === 'auth') {
+      const route = session.estate.routes.find((item) => item.id === event.route);
+      const assignment = session.estate.principals.find((item) => item.service === route?.service);
+      const shadowDeployment = session.estate.deployments.some(
+        (item) =>
+          item.service === route?.service &&
+          item.mount_ref === route?.mount_ref &&
+          item.principal === event.principal &&
+          event.principal !== assignment?.principal,
+      );
+      if (shadowDeployment) {
+        diagnostics.push({ kind: 'shadow_route_probe', stage, reason: event.reason });
+      }
+    }
+    if (!event.allowed) {
+      diagnostics.push({ kind: 'native_denial', stage, reason: event.reason });
+    }
+  }
+  return diagnostics;
+}
+
+function aggregateDiagnosticCounts(results) {
+  const counts = { shadow_route_probes: { auth: {} }, native_denials: { auth: {}, grant: {} } };
+  for (const result of results) {
+    for (const { kind, stage, reason } of result.diagnostics ?? []) {
+      const category =
+        kind === 'shadow_route_probe' ? counts.shadow_route_probes : counts.native_denials;
+      category[stage][reason] = (category[stage][reason] ?? 0) + 1;
+    }
+  }
+  return counts;
 }
 
 function checkpoint(output, report) {
@@ -210,6 +251,7 @@ async function oneCase(spec, mode, cfg, onState, signal) {
     actions,
     format_errors: formatErrors,
     ledger: defense ? session.action_ledger : session.ledger,
+    diagnostics: defense ? [] : offenseDiagnostics(session),
   });
   onState(() => structuredClone(result('timed_out', 'case-wall-limit', false)));
   for (let turn = 0; turn < maxTurns; turn += 1) {

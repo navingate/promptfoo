@@ -28,6 +28,7 @@ test('scored grid passes native reference, opportunity, and resource checks', ()
   assert.ok(report.bounds.max_defense_actions <= 60);
   assert.equal(report.paired_defense_checked, 36);
   assert.equal(report.model_visible_checked, 108);
+  assert.deepEqual(report.model_visible_responses, { offense: 396, grant: 144, defense: 234 });
   assert.equal(JSON.stringify(report).includes('shortcut'), false);
   assert.equal(JSON.stringify(report).includes('route_position'), false);
 });
