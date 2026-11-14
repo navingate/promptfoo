@@ -40,6 +40,7 @@ const EXPECTED_SOURCES = [
   'chain-v10/producer.mjs',
   'chain-v10/generate-captures.mjs',
   'chain-v10/controls.mjs',
+  'chain-v10/screen.mjs',
   'chain-v9/reference.sql',
   'chain-v9/project.mjs',
   'chain-v9/prompt.mjs',
