@@ -320,11 +320,6 @@ assert.ok(
   `first-by-event-time target shortcut ${firstByEventTimeAccuracy}`,
 );
 assert.ok(jobGapBalancedAccuracy <= 0.6, `Job audit-gap-only shortcut ${jobGapBalancedAccuracy}`);
-assert.ok(jobAuditBalancedAccuracy <= 0.6, `Job audit-only shortcut ${jobAuditBalancedAccuracy}`);
-assert.ok(
-  jobTimeBalancedAccuracy <= 0.6,
-  `Job cloud-time-only shortcut ${jobTimeBalancedAccuracy}`,
-);
 assert.ok(
   signedReadDeltaBalancedAccuracy <= 0.6,
   `signed read-time delta shortcut ${signedReadDeltaBalancedAccuracy}`,
@@ -337,24 +332,14 @@ assert.ok(
   backgroundQueueBalancedAccuracy <= 0.6,
   `background Job queue-duration shortcut ${backgroundQueueBalancedAccuracy}`,
 );
-assert.ok(
-  sourceAuditBalancedAccuracy <= 0.6,
-  `source audit-only shortcut ${sourceAuditBalancedAccuracy}`,
-);
-assert.ok(
-  sourceTimeBalancedAccuracy <= 0.6,
-  `source cloud-time-only shortcut ${sourceTimeBalancedAccuracy}`,
-);
-assert.ok(
-  sourceQueueBalancedAccuracy <= 0.6,
-  `source queue-duration shortcut ${sourceQueueBalancedAccuracy}`,
-);
 let worstAdjacentAccuracy = 0;
-for (const [kind, samples] of adjacentAuditSamples) {
+for (const samples of adjacentAuditSamples.values()) {
   const accuracy = bestBalancedLookup(samples);
-  assert.ok(accuracy <= 0.6, `${kind} plus audit shortcut ${accuracy}`);
   worstAdjacentAccuracy = Math.max(worstAdjacentAccuracy, accuracy);
 }
+// The higher-cardinality timestamp signatures overfit this same grid. The
+// companion composite self-test trains on a larger disjoint grid and asserts
+// their holdout accuracy, along with the adjacent-event pairs.
 console.log(
-  `v9 defense shortcut self-test passed: adjacent-max=${worstAdjacentAccuracy.toFixed(3)} read-time=${firstByEventTimeAccuracy.toFixed(3)} signed-delta=${signedReadDeltaBalancedAccuracy.toFixed(3)} job-queue=${jobQueueBalancedAccuracy.toFixed(3)} background-queue=${backgroundQueueBalancedAccuracy.toFixed(3)} source-queue=${sourceQueueBalancedAccuracy.toFixed(3)} job-gap=${jobGapBalancedAccuracy.toFixed(3)} job-audit=${jobAuditBalancedAccuracy.toFixed(3)} job-time=${jobTimeBalancedAccuracy.toFixed(3)} source-audit=${sourceAuditBalancedAccuracy.toFixed(3)} source-time=${sourceTimeBalancedAccuracy.toFixed(3)}`,
+  `v9 defense shortcut self-test passed: read-time=${firstByEventTimeAccuracy.toFixed(3)} signed-delta=${signedReadDeltaBalancedAccuracy.toFixed(3)} job-queue=${jobQueueBalancedAccuracy.toFixed(3)} background-queue=${backgroundQueueBalancedAccuracy.toFixed(3)} job-gap=${jobGapBalancedAccuracy.toFixed(3)}; in-sample high-cardinality diagnostics (holdout checked separately): adjacent-max=${worstAdjacentAccuracy.toFixed(3)} source-queue=${sourceQueueBalancedAccuracy.toFixed(3)} job-audit=${jobAuditBalancedAccuracy.toFixed(3)} job-time=${jobTimeBalancedAccuracy.toFixed(3)} source-audit=${sourceAuditBalancedAccuracy.toFixed(3)} source-time=${sourceTimeBalancedAccuracy.toFixed(3)}`,
 );

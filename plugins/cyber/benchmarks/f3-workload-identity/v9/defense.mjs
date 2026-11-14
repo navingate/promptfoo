@@ -21,6 +21,16 @@ const VARIANTS = [
 ];
 const MAX_QUERIES = 24;
 const LATENCY_SLOTS = 18;
+const PRODUCER_LATENCY_SLOTS = 24;
+
+function producerLatency(spec, index, stage) {
+  return (
+    Number.parseInt(
+      sha256Hex(`f3v9|producer-latency|${spec.seed}|${spec.family}|${index}|${stage}`).slice(0, 8),
+      16,
+    ) % PRODUCER_LATENCY_SLOTS
+  );
+}
 
 function exactlyOne(items, predicate) {
   const matches = items.filter(predicate);
@@ -225,15 +235,15 @@ function nativeJobBad(session) {
   const capture = session.nativeActionCoverage?.[read?.event_id];
   return Boolean(
     create &&
-    run &&
-    snapshot &&
-    create.actor === world.principal &&
-    role?.outcome === 'completed' &&
-    pod &&
-    checkpoint?.checkpoint_ref === run.checkpoint_ref &&
-    read?.outcome === 'completed' &&
-    capture?.action_time === read.event_time &&
-    capture.authorized === false,
+      run &&
+      snapshot &&
+      create.actor === world.principal &&
+      role?.outcome === 'completed' &&
+      pod &&
+      checkpoint?.checkpoint_ref === run.checkpoint_ref &&
+      read?.outcome === 'completed' &&
+      capture?.action_time === read.event_time &&
+      capture.authorized === false,
   );
 }
 
@@ -400,11 +410,8 @@ function producerIncident(spec, variant, index) {
   const familyIndex = FAMILIES.indexOf(spec.family);
   const sourceJitter = (spec.seed + familyIndex + index) % 12;
   const sourceQueueDelay = sourceJitter + (variant.sourceAllowed ? 0 : 2);
-  // Coprime multipliers rotate each producer delay through all slots in the
-  // 36-seed local grid, independently of the authorization variant.
-  const sourceCloudLatency = (spec.seed * 17 + index + familyIndex) % LATENCY_SLOTS;
-  const sourceReadLatency =
-    (spec.seed * 11 + index * 3 + familyIndex * 3) % LATENCY_SLOTS;
+  const sourceCloudLatency = producerLatency(spec, index, 'source-cloud');
+  const sourceReadLatency = producerLatency(spec, index, 'source-read');
   session.source.producerLatencies = {
     cloud: sourceCloudLatency,
     syncedRead: sourceReadLatency,
@@ -506,12 +513,10 @@ function producerIncident(spec, variant, index) {
     throw new Error('delegated Job grant inputs missing');
   }
   const jobClock = job.eventOffset + job.events.length;
-  const commonQueueDelay =
-    ((Math.floor(spec.seed / 2) + familyIndex + index) % LATENCY_SLOTS) * 2;
+  const commonQueueDelay = ((Math.floor(spec.seed / 2) + familyIndex + index) % LATENCY_SLOTS) * 2;
   const targetQueueDelay = commonQueueDelay;
-  const jobCloudLatency = (spec.seed * 17 + index * 5 + familyIndex) % LATENCY_SLOTS;
-  const jobCheckpointLatency =
-    (spec.seed * 11 + index * 7 + familyIndex * 5) % LATENCY_SLOTS;
+  const jobCloudLatency = producerLatency(spec, index, 'job-cloud');
+  const jobCheckpointLatency = producerLatency(spec, index, 'job-checkpoint');
   const jobProducerLatencies = { cloud: jobCloudLatency, checkpoint: jobCheckpointLatency };
   job.producerLatencies = jobProducerLatencies;
   // run-job emits Pod, credential request, web STS, role STS, then cloud read.
@@ -570,7 +575,7 @@ function producerIncident(spec, variant, index) {
   }
   const backgroundOrderBit = (index + Math.floor(index / 4)) % 2;
   const backgroundSlow =
-    ((Math.floor(spec.seed / 2) + familyIndex + index + backgroundOrderBit) % 2) === 0;
+    (Math.floor(spec.seed / 2) + familyIndex + index + backgroundOrderBit) % 2 === 0;
   const background = producerBackgroundRead(
     session,
     spec,

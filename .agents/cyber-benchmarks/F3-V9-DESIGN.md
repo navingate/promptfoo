@@ -126,14 +126,25 @@ scheduled before run at a different position relative to the planned
 action. Independent opt-in producer latencies also separate source
 reconcile from the cloud fetch, the cloud fetch from the synced read,
 destination STS from the S3 read, and the S3 read from its checkpoint.
+Each stage draws from a separate deterministic SHA-256 stream keyed by
+seed, family, incident, and stage. These delays do not depend on the
+authorization variant, and membership windows are scheduled before the
+delayed action. This prevents adjacent event pairs from acting as a
+fixed proxy for the action-time decision.
 The v3/v4 default clocks retain their prior behavior; only v9 defense
 sets these latencies. Target and background S3 reads can each be earlier
 by event time for both states within a six-incident world. The
 additional source queue observations use the existing reconcile event
 kind, so the 24-query catalogue remains unchanged. Tests bound signed
-cloud-read time differences, queue durations, adjacent-event plus audit,
-event-time and audit-only shortcuts using balanced accuracy, because
-each batch has four approved and two unauthorized Job actions.
+cloud-read time differences and queue durations using balanced
+accuracy. For timestamp and audit features with many distinct values,
+the shortcut test fits exact signature lookups on a disjoint 216-seed
+training grid and scores them on a 36-seed holdout grid. It checks
+source reconcile plus synced read, target Pod or role STS plus
+checkpoint, each paired with audit add time, as well as adjacent-event,
+event-time, and audit-only single features. The test reports signature
+coverage alongside balanced accuracy, because each batch has four
+approved and two unauthorized Job actions.
 
 ## Alternatives considered
 
