@@ -56,6 +56,17 @@ for (const family of FAMILIES) {
     const targetTimes = new Set();
     for (const token of tokens) {
       const records = session.nativeActionRecords[token.event_id];
+      assert.ok(Array.isArray(records.source.queued_reconciles));
+      for (const queued of records.source.queued_reconciles) {
+        assert.ok(
+          session.events.some(
+            (event) =>
+              event.kind === 'controller-reconcile' &&
+              event.outcome === 'queued' &&
+              event.queue_ref === queued.queue_ref,
+          ),
+        );
+      }
       const target = byId.get(records.job.action.event_id);
       const background = byId.get(records.background.action.event_id);
       assert.ok(target);

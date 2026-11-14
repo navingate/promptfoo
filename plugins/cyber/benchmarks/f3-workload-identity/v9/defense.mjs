@@ -104,9 +104,19 @@ function membershipAuditEvents(
 // replay. They advance its event clock without inventing a protected fetch.
 function queueSourceReconcile(session, count) {
   const events = session.source.events;
-  const prefix = session.source.world.meta.event_prefix ?? 'v3';
+  const world = session.source.world;
+  const prefix = world.meta.event_prefix ?? 'v3';
   for (let index = 0; index < count; index += 1) {
     const ordinal = events.length + 1;
+    const queueRef = `source-queue-${sha256Hex(`${prefix}|${index}`).slice(0, 12)}`;
+    world.ledger.push({
+      kind: 'controller-queue',
+      event_id: `queue-${sha256Hex(`${queueRef}|native`).slice(0, 16)}`,
+      event_time: ordinal,
+      order: world.ledger.length,
+      queue_ref: queueRef,
+      outcome: 'queued',
+    });
     events.push({
       event_id: `${prefix}-${ordinal}`,
       kind: 'controller-reconcile',
@@ -114,7 +124,7 @@ function queueSourceReconcile(session, count) {
       arrival_order: ordinal,
       actor: 'external-secrets-controller',
       outcome: 'queued',
-      queue_ref: `source-queue-${sha256Hex(`${prefix}|${index}`).slice(0, 12)}`,
+      queue_ref: queueRef,
     });
   }
 }
@@ -621,6 +631,9 @@ function producerIncident(spec, variant, index) {
       source: {
         grants: structuredClone(session.delegatedSnapshots[sourceCloud.grant_snapshot_ref].grants),
         ledger: structuredClone(sourceWorld.membershipLedger),
+        queued_reconciles: sourceWorld.ledger
+          .filter((event) => event.kind === 'controller-queue')
+          .map((event) => ({ event_id: event.event_id, queue_ref: event.queue_ref })),
         action: {
           event_id: sourceCloud.event_id,
           event_time: sourceCloud.event_time,
