@@ -95,7 +95,11 @@ export function generateCaptures() {
       SOURCES.map((name) => [name, sha(fs.readFileSync(path.join(parent, name)))]),
     ),
   };
-  fs.writeFileSync(MANIFEST_PATH, `${JSON.stringify(manifest, null, 2)}\n`);
+  const manifestText = JSON.stringify(manifest, null, 2).replace(
+    /"revoked_counts": \[\n\s+1,\n\s+2\n\s+\]/,
+    '"revoked_counts": [1, 2]',
+  );
+  fs.writeFileSync(MANIFEST_PATH, `${manifestText}\n`);
   return {
     batches: manifest.batches,
     records: manifest.records,
