@@ -1,5 +1,5 @@
 // Producer-replayed, interleaved source → Job checkpoint → broker/decrypt telemetry.
-import { sha256Hex, visibleGrant } from '../shared/estate.mjs';
+import { FAMILIES, sha256Hex, visibleGrant } from '../shared/estate.mjs';
 import { replayPhase } from '../v4/offense.mjs';
 import {
   authorizeScheduledJobWorld,
@@ -631,7 +631,7 @@ function producerIncident(spec, variant, index) {
       ...interleaveJobEvents(
         job.events.map((event) => ({ ...event })),
         background.events,
-        index % 2 === 0,
+        (spec.seed + FAMILIES.indexOf(spec.family) + index) % 2 === 0,
       ),
     ],
   };

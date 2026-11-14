@@ -29,6 +29,7 @@ assert.equal(
 );
 
 const arrivalRanks = Array.from({ length: 6 }, () => new Map());
+const readOrderByAuthorization = new Set();
 for (const family of FAMILIES) {
   for (let seed = 10400; seed < 10436; seed += 1) {
     const session = buildDefenseSession({ seed, family });
@@ -227,6 +228,13 @@ for (const family of FAMILIES) {
         assert.equal(record.captured.event_count, record.action.arrival_order);
         assert.equal(record.captured.action_time, record.action.event_time);
       }
+      const targetPosition = positions.get(records.job.action.event_id);
+      const backgroundPosition = positions.get(records.background.action.event_id);
+      assert.ok(Number.isSafeInteger(targetPosition));
+      assert.ok(Number.isSafeInteger(backgroundPosition));
+      readOrderByAuthorization.add(
+        `${records.job.captured.authorized}/${targetPosition < backgroundPosition ? 'target-first' : 'background-first'}`,
+      );
     }
     const diagnostics = {};
     sameLabels(referenceDefense(session, diagnostics), session.expected);
@@ -277,6 +285,12 @@ const positionOnlyAccuracy =
   arrivalRanks.reduce((correct, rank) => correct + Math.max(...rank.values()), 0) /
   (arrivalRanks.length * FAMILIES.length * 36);
 assert.ok(positionOnlyAccuracy < 0.6, `arrival-position shortcut accuracy ${positionOnlyAccuracy}`);
+assert.deepEqual([...readOrderByAuthorization].sort(), [
+  'false/background-first',
+  'false/target-first',
+  'true/background-first',
+  'true/target-first',
+]);
 
 const base = buildDefenseSession({ seed: 10491, family: FAMILIES[0] });
 const fullTokenId = Object.keys(base.expected).find((key) => base.expected[key] === 'full-cascade');

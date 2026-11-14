@@ -18,6 +18,7 @@ const unscheduledWorld = createJobWorld(
 assert.equal(authorizeScheduledJobWorld(unscheduledWorld, 'unscheduled-test', 10), null);
 assert.equal(unscheduledWorld.events.length, 0);
 
+const orderByAuthorization = new Set();
 for (const seed of [10491, 10492]) {
   const session = buildDefenseSession({ seed, family: FAMILIES[0] });
   const tokens = session.events.filter((event) => event.kind === 'release-token-redeemed');
@@ -110,8 +111,14 @@ for (const seed of [10491, 10492]) {
     }
     if (backgroundRead.arrival_order < targetRead.arrival_order) {
       backgroundFirst += 1;
+      orderByAuthorization.add(
+        `${session.nativeActionRecords[token.event_id].job.captured.authorized}/background-first`,
+      );
     } else {
       targetFirst += 1;
+      orderByAuthorization.add(
+        `${session.nativeActionRecords[token.event_id].job.captured.authorized}/target-first`,
+      );
     }
     assert.equal(
       authorizations.filter((event) => event.event_id === backgroundSubmission.auth_context_ref)
@@ -167,5 +174,11 @@ for (const seed of [10491, 10492]) {
     assert.equal(referenceDefense(altered)[fullTokenId], 'source-cascade');
   }
 }
+assert.deepEqual([...orderByAuthorization].sort(), [
+  'false/background-first',
+  'false/target-first',
+  'true/background-first',
+  'true/target-first',
+]);
 
 console.log('v9 concurrent defense self-test passed');
