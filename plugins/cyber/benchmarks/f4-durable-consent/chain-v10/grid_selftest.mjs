@@ -20,13 +20,7 @@ import {
   PROTECTED_SCOPE,
 } from '../shared/estate.mjs';
 import { makeProjectedControls } from './controls.mjs';
-import {
-  generateCaptures,
-  LABEL_PATH,
-  NATIVE_PATH,
-  SEEDS,
-  schedule,
-} from './generate-captures.mjs';
+import { buildCaptures, LABEL_PATH, NATIVE_PATH, SEEDS, schedule } from './generate-captures.mjs';
 
 const here = path.dirname(fileURLToPath(import.meta.url));
 const readLines = (file) => fs.readFileSync(file, 'utf8').trim().split('\n').map(JSON.parse);
@@ -38,6 +32,39 @@ const labels = {
   revoked: 'unauthorized-revoked',
 };
 const types = ['user-consent', 'partner-consent', 'admin-consent'];
+const EXPECTED_SOURCES = [
+  'chain-v3/offense.mjs',
+  'chain-v4/capture.mjs',
+  'chain-v4/producer.mjs',
+  'chain-v10/cohort.mjs',
+  'chain-v10/producer.mjs',
+  'chain-v10/generate-captures.mjs',
+  'chain-v10/controls.mjs',
+  'chain-v9/reference.sql',
+  'chain-v9/project.mjs',
+  'chain-v9/prompt.mjs',
+  'chain-v9/development.json',
+  'chain-v9/sql_child.py',
+  'chain-v9/sql-executor.mjs',
+  'chain-v9/screen.mjs',
+  'defense/scripts/harness.mjs',
+  'shared/estate.mjs',
+].sort();
+function assertFrozen(nativeBytes, labelBytes, manifest) {
+  assert.equal(
+    manifest.capture_sha256,
+    crypto.createHash('sha256').update(nativeBytes).digest('hex'),
+  );
+  assert.equal(
+    manifest.labels_sha256,
+    crypto.createHash('sha256').update(labelBytes).digest('hex'),
+  );
+  assert.deepEqual(Object.keys(manifest.source_sha256).sort(), EXPECTED_SOURCES);
+  for (const [name, digest] of Object.entries(manifest.source_sha256)) {
+    assert.equal(digest, sha(path.join(here, '..', name)), name);
+  }
+}
+
 function assertFlip(batch, id, expected) {
   assert.equal(validateNativeBatch(batch).ok, true, id);
   assert.equal(evaluatorLabels(batch)[id], labels[expected], id);
@@ -136,8 +163,15 @@ function assertSubtypePairs(local, spec) {
 }
 
 test('fresh frozen grid, subtype pairs, counterfactuals, and hashes', () => {
-  const result = generateCaptures();
-  assert.deepEqual([result.batches, result.records], [36, 468]);
+  const nativeBytes = fs.readFileSync(NATIVE_PATH);
+  const labelBytes = fs.readFileSync(LABEL_PATH);
+  const manifest = JSON.parse(fs.readFileSync(path.join(here, 'manifest.json'), 'utf8'));
+  assertFrozen(nativeBytes, labelBytes, manifest);
+  const result = buildCaptures();
+  assert.deepEqual(nativeBytes, Buffer.from(result.nativeBytes));
+  assert.deepEqual(labelBytes, Buffer.from(result.labelBytes));
+  assert.deepEqual(manifest.count_schedule, result.manifest.count_schedule);
+  assert.deepEqual([result.manifest.batches, result.manifest.records], [36, 468]);
   assert.deepEqual(SEEDS, [36031, 36032, 36033, 36034, 36035, 36036, 36037, 36038, 36039]);
   const batches = readLines(NATIVE_PATH);
   const keys = readLines(LABEL_PATH);
@@ -277,13 +311,7 @@ test('fresh frozen grid, subtype pairs, counterfactuals, and hashes', () => {
   assert.deepEqual([ids.size, captureIds.size], [468, 468]);
   assert.ok(nearMisses > 0 && baseOnly > 0 && registryMalicious > 0 && registrySurvivors > 0);
   assert.ok(extraScopes.size > 1);
-  const manifest = JSON.parse(fs.readFileSync(path.join(here, 'manifest.json'), 'utf8'));
-  assert.equal(manifest.capture_sha256, sha(NATIVE_PATH));
-  assert.equal(manifest.labels_sha256, sha(LABEL_PATH));
   assert.deepEqual(manifest.grantor_class_histogram, classCounts);
-  for (const [name, digest] of Object.entries(manifest.source_sha256)) {
-    assert.equal(digest, sha(path.join(here, '..', name)));
-  }
 });
 
 test('unchanged v9 reference SQL agrees with v10 projected controls', () => {
@@ -325,4 +353,21 @@ test('row order and uncataloged scope literals cannot determine labels', () => {
   }
   assert.ok(literalFalsePositives > 0);
   assert.ok(grantorFalsePositives > 0);
+});
+
+test('freeze verifier rejects altered capture and source hash without rewriting files', () => {
+  const nativeBytes = fs.readFileSync(NATIVE_PATH);
+  const labelBytes = fs.readFileSync(LABEL_PATH);
+  const manifest = JSON.parse(fs.readFileSync(path.join(here, 'manifest.json'), 'utf8'));
+  assert.throws(() =>
+    assertFrozen(Buffer.concat([nativeBytes, Buffer.from('corruption')]), labelBytes, manifest),
+  );
+  const alteredManifest = structuredClone(manifest);
+  alteredManifest.source_sha256['chain-v10/producer.mjs'] = '0'.repeat(64);
+  assert.throws(() => assertFrozen(nativeBytes, labelBytes, alteredManifest));
+  const missingSource = structuredClone(manifest);
+  delete missingSource.source_sha256['chain-v10/controls.mjs'];
+  assert.throws(() => assertFrozen(nativeBytes, labelBytes, missingSource));
+  assert.deepEqual(fs.readFileSync(NATIVE_PATH), nativeBytes);
+  assert.deepEqual(fs.readFileSync(LABEL_PATH), labelBytes);
 });

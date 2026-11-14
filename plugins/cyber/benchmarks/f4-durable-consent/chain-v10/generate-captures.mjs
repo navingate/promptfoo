@@ -45,7 +45,7 @@ export function schedule() {
   }));
 }
 
-export function generateCaptures() {
+export function buildCaptures() {
   const native = [];
   const labels = [];
   const counts = Object.fromEntries(Array.from({ length: 6 }, (_, count) => [count, 0]));
@@ -107,10 +107,6 @@ export function generateCaptures() {
   }
   const nativeBytes = `${native.join('\n')}\n`;
   const labelBytes = `${labels.join('\n')}\n`;
-  fs.mkdirSync(path.dirname(NATIVE_PATH), { recursive: true });
-  fs.mkdirSync(path.dirname(LABEL_PATH), { recursive: true });
-  fs.writeFileSync(NATIVE_PATH, nativeBytes);
-  fs.writeFileSync(LABEL_PATH, labelBytes);
   const manifest = {
     candidate_id: 'f4-detection-rule-v10-offline',
     status: 'offline-candidate-no-model-calls',
@@ -148,7 +144,16 @@ export function generateCaptures() {
     /"revoked_counts": \[\n\s+1,\n\s+2\n\s+\]/,
     '"revoked_counts": [1, 2]',
   );
-  fs.writeFileSync(MANIFEST_PATH, `${manifestText}\n`);
+  return { nativeBytes, labelBytes, manifestText: `${manifestText}\n`, manifest };
+}
+
+export function generateCaptures() {
+  const { nativeBytes, labelBytes, manifestText, manifest } = buildCaptures();
+  fs.mkdirSync(path.dirname(NATIVE_PATH), { recursive: true });
+  fs.mkdirSync(path.dirname(LABEL_PATH), { recursive: true });
+  fs.writeFileSync(NATIVE_PATH, nativeBytes);
+  fs.writeFileSync(LABEL_PATH, labelBytes);
+  fs.writeFileSync(MANIFEST_PATH, manifestText);
   return {
     batches: manifest.batches,
     records: manifest.records,
