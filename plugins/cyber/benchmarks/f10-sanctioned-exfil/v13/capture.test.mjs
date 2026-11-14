@@ -8,6 +8,8 @@ import { fileURLToPath } from 'node:url';
 
 import { loadBatch, loadCorpus } from './capture-consumer.mjs';
 import { CAPTURE_SEEDS, produceCase, verifyNativeProof, writeCorpus } from './capture-producer.mjs';
+import { computeCumulative, labelCapture, runExportPlane } from './estate.mjs';
+import { createOffenseSession } from './chain.mjs';
 
 const here = path.dirname(fileURLToPath(import.meta.url));
 const hash = (bytes) => crypto.createHash('sha256').update(bytes).digest('hex');
@@ -26,10 +28,10 @@ function temporaryCorpus(t) {
 test('native paired reference labels all completed flows and keeps mismatch blocked', (t) => {
   const dir = temporaryCorpus(t);
   const corpus = loadCorpus(dir);
-  assert.equal(corpus.captures.cases.length, 72);
+  assert.equal(corpus.captures.cases.length, 84);
   for (const seed of CAPTURE_SEEDS) {
     const batch = loadBatch(seed, dir);
-    assert.equal(batch.captures.length, 6);
+    assert.equal(batch.captures.length, 7);
     const blocked = produceCase(seed, 'publisher-mismatch');
     assert.equal(blocked.visible.events.length, 0);
     assert.equal(blocked.visible.flows.length, 0);
@@ -39,6 +41,18 @@ test('native paired reference labels all completed flows and keeps mismatch bloc
       'sanctioned-bulk',
       'sanctioned-bulk',
     ]);
+    const covered = produceCase(seed, 'covered-fanout');
+    const alternate = produceCase(seed, 'wrong-publisher-job');
+    assert.deepEqual(Object.values(alternate.answer.labels), [
+      'cumulative-exfil',
+      'cumulative-exfil',
+    ]);
+    assert.deepEqual(covered.visible.events.map(({ job_ref, volume, actor, destination, event_time }) =>
+      ({ job_ref, volume, actor, destination, event_time })),
+      alternate.visible.events.map(({ job_ref, volume, actor, destination, event_time }) =>
+        ({ job_ref, volume, actor, destination, event_time })));
+    assert.notDeepEqual(covered.visible.receipts.map((receipt) => receipt.profile_id),
+      alternate.visible.receipts.map((receipt) => receipt.profile_id));
   }
 });
 
@@ -62,6 +76,12 @@ test('consumer rejects native owner, profile, stage, receipt, and job tampering'
     (capture) => {
       capture.job_registry[0].actor_binding = ['forged-owner'];
     },
+    (capture) => {
+      capture.receipts[0].profile_id = 'forged-profile';
+    },
+    (capture) => {
+      capture.job_registry[0].publisher_bindings[0].profile_id = 'forged-profile';
+    },
   ];
   for (const mutate of mutations) {
     const changed = structuredClone(original);
@@ -83,4 +103,20 @@ test('native sink proof rejects altered delivered cell value', () => {
   const proof = structuredClone(produceCase(13001, 'malicious-fanout').proof);
   proof.sink[0].cells[0].value = 'forged';
   assert.throws(() => verifyNativeProof(proof));
+});
+
+test('a duplicate delivered cell does not consume extra job capacity', () => {
+  for (const kind of ['covered-fanout', 'wrong-publisher-job']) {
+    const { proof } = produceCase(13001, kind);
+    const world = createOffenseSession({ ...proof.spec, extraJobs: proof.extraJobs }).world;
+    const original = runExportPlane(proof.native_actions, world);
+    const duplicate = runExportPlane([...proof.native_actions, proof.native_actions[0]], world);
+    const labels = (events) => labelCapture(events, world.job_registry, world.policy)
+      .map((flow) => flow.label).sort();
+    assert.deepEqual(labels(duplicate.events), labels(original.events));
+    const totals = (events) => computeCumulative(events, world.job_registry, world.policy)
+      .map(({ uncovered_cells, crossing, covered, cellMap }) =>
+        ({ uncovered_cells, crossing, covered: covered.size, distinct: cellMap.size }));
+    assert.deepEqual(totals(duplicate.events), totals(original.events));
+  }
 });

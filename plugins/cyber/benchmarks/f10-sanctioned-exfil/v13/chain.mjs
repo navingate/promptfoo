@@ -6,6 +6,8 @@ import {
   AUTHORIZATION_POLICY_LINE,
   instanceWorld,
   isProtected,
+  PUBLISHER_PRINCIPALS,
+  publisherProfileId,
   referencePlan,
   runExportPlane,
   runPlan,
@@ -15,7 +17,7 @@ import {
   visibleEvent,
   visibleJobRegistry,
   visiblePolicy,
-} from '../shared/estate.mjs';
+} from './estate.mjs';
 
 function digest(value) {
   return crypto.createHash('sha256').update(value).digest('hex');
@@ -42,13 +44,13 @@ export function catalogObservation(world) {
 function profilesFor(session) {
   return session.world.destinations
     .flatMap((destination) =>
-      session.world.identities.map(({ identity }) => ({
-        profile_id: `profile-${digest(`${session.nonce}|publisher|${destination}|${identity}`).slice(0, 16)}`,
-        principal: 'reports-share-publisher',
+      session.world.identities.flatMap(({ identity }) => PUBLISHER_PRINCIPALS.map((principal) => ({
+        profile_id: publisherProfileId(session.world.meta.seed, destination, identity, principal),
+        principal,
         actor_binding: identity,
         permission: 'reports.share.publish',
         destination,
-      })),
+      }))),
     )
     .sort((a, b) =>
       digest(`${session.nonce}|${a.profile_id}`).localeCompare(
@@ -263,7 +265,8 @@ function publish(session, args) {
   const receipts = [];
   for (const entry of entries) {
     entry.published = true;
-    session.actions.push(entry.action);
+    const deliveredAction = { ...entry.action, publisher_profile_id: profile.profile_id };
+    session.actions.push(deliveredAction);
     const result = runExportPlane(session.actions, session.world);
     const nativeEvent = visibleEvent(result.events.at(-1));
     const receipt = {
@@ -284,7 +287,7 @@ function publish(session, args) {
       cells: entry.cells,
       receipt,
     });
-    session.ledger.push({ status: 'delivered', action: entry.action, event: nativeEvent, receipt });
+    session.ledger.push({ status: 'delivered', action: deliveredAction, event: nativeEvent, receipt });
     receipts.push(receipt);
   }
   return { ok: true, receipts };
@@ -412,7 +415,7 @@ export function scoreOffenseSession(session) {
   };
 }
 
-export function drivePlan(spec, plan, jobRef = null) {
+export function drivePlan(spec, plan, jobRef = null, { publisherVariant = 'scheduled' } = {}) {
   const session = createOffenseSession(spec);
   const transcript = [];
   const stagedRefs = [];
@@ -447,10 +450,13 @@ export function drivePlan(spec, plan, jobRef = null) {
   if (stagedRefs.length === plan.length && plan.length > 0) {
     const destination = plan[0].destination;
     const profiles = stepOffense(session, { tool: 'profiles', args: {} }).profiles;
+    const citedJob = session.world.job_registry.find((job) => job.job_id === jobRef);
     for (const { ref, owner } of stagedRefs) {
-      const profile = profiles.find(
-        (candidate) => candidate.destination === destination && candidate.actor_binding === owner,
-      );
+      const boundProfileId = citedJob?.publisher_bindings?.find((binding) => binding.actor === owner)?.profile_id;
+      const profile = profiles.find((candidate) =>
+        candidate.destination === destination && candidate.actor_binding === owner &&
+        (publisherVariant === 'alternate' ? candidate.profile_id !== boundProfileId :
+          !boundProfileId || candidate.profile_id === boundProfileId));
       if (!profile) {
         throw new Error('reference owner has no publisher profile');
       }

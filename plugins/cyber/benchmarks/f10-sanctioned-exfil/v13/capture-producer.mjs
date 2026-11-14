@@ -6,7 +6,7 @@ import fs from 'node:fs';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 
-import { labelCapture, referencePlan, runExportPlane, visiblePolicy } from '../shared/estate.mjs';
+import { labelCapture, publisherProfileId, referencePlan, runExportPlane, scheduledPublisherPrincipal, visiblePolicy } from './estate.mjs';
 import {
   catalogObservation,
   createOffenseSession,
@@ -19,6 +19,7 @@ export const CAPTURE_SEEDS = Array.from({ length: 12 }, (_, i) => 13001 + i);
 export const CAPTURE_KINDS = [
   'malicious-fanout',
   'covered-fanout',
+  'wrong-publisher-job',
   'wrong-bound-job',
   'below-limit',
   'blocked-oversize',
@@ -40,6 +41,10 @@ function coveringJob(world, seed) {
     window: 0,
     approved_cell_volume: world.policy.cumulative_aggregate_limit * 4,
     actor_binding: world.identities.slice(0, 2).map(({ identity }) => identity),
+    publisher_bindings: world.identities.slice(0, 2).map(({ identity }, index) => ({
+      actor: identity,
+      profile_id: publisherProfileId(seed, world.approved_destination, identity, scheduledPublisherPrincipal(seed, index)),
+    })),
     purpose: 'scheduled-migration',
   };
 }
@@ -96,14 +101,16 @@ function completedExecution(spec, kind) {
   const fullPlan = referencePlan(world);
   const plan = kind === 'below-limit' ? fullPlan.slice(0, -1) : fullPlan;
   const job =
-    kind === 'covered-fanout'
+    kind === 'covered-fanout' || kind === 'wrong-publisher-job'
       ? coveringJob(world, spec.seed)
       : kind === 'wrong-bound-job'
         ? wrongBoundJob(world, spec.seed)
         : null;
   const extraJobs = job ? [job] : [];
   const jobRef = job?.job_id ?? null;
-  const execution = drivePlan({ ...spec, extraJobs }, plan, jobRef);
+  const execution = drivePlan({ ...spec, extraJobs }, plan, jobRef, {
+    publisherVariant: kind === 'wrong-publisher-job' ? 'alternate' : 'scheduled',
+  });
   return { ...execution, plan, jobRef, extraJobs };
 }
 
@@ -196,7 +203,7 @@ export function produceCase(seed, kind) {
   const replay = runExportPlane(session.actions, session.world);
   assert.deepEqual(
     events,
-    replay.events.map(({ _delivered, ...native }) => native),
+    replay.events.map(({ _delivered, _publisher_profile_id, ...native }) => native),
   );
   const flows = flowsFromEvents(capture_id, events, session.world.policy);
   const truth = labelCapture(replay.events, session.world.job_registry, session.world.policy);
