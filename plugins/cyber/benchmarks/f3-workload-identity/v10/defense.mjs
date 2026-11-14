@@ -17,7 +17,27 @@ const READ_TOOLS = new Set([
   'get-membership-audit',
   'get-policy-snapshots',
 ]);
+const CROSS_PLANE_CAUSAL_KINDS = new Set([
+  'cloud-secret-attempt',
+  'synced-secret-read',
+  'runtime-credential-request',
+  'sts-assume-web-identity',
+  'sts-assume-role',
+  'cloud-object-read',
+]);
 const PRIVATE = new WeakMap();
+
+function projectEvents(events, mode) {
+  const projected = structuredClone(events);
+  if (mode === 'cross-plane-deoracle') {
+    for (const event of projected) {
+      if (CROSS_PLANE_CAUSAL_KINDS.has(event.kind)) {
+        delete event.causal_ref;
+      }
+    }
+  }
+  return projected;
+}
 
 function nativeLabel(record) {
   const sourceBad = record.source.captured.authorized === false;
@@ -57,9 +77,9 @@ function captureTruth(world) {
   return truth;
 }
 
-function visibleProjection(world) {
+function visibleProjection(world, mode) {
   return {
-    events: structuredClone(world.events),
+    events: projectEvents(world.events, mode),
     grantSnapshots: structuredClone(world.grantSnapshots),
     membershipAudit: structuredClone(world.membershipAudit),
     policySnapshots: structuredClone(world.policySnapshots),
@@ -93,9 +113,10 @@ export function buildDefenseSession(spec) {
   };
   PRIVATE.set(session, {
     training,
-    hiddenEvidence: visibleProjection(hidden),
+    hiddenEvidence: visibleProjection(hidden, spec.projectionMode),
     truth: captureTruth(hidden),
     ruleExecutor: spec.matchMode === 'full-chain' ? executeRuleFullChain : executeRule,
+    projectionMode: spec.projectionMode,
     submission: null,
   });
   return session;
@@ -146,7 +167,11 @@ export function stepDefense(session, command) {
   }
   const response = stepNativeDefense(state.training, command);
   session.queries = state.training.queries;
-  return structuredClone(response);
+  const projected = structuredClone(response);
+  if (command.tool === 'query-events') {
+    projected.events = projectEvents(projected.events, state.projectionMode);
+  }
+  return projected;
 }
 
 function baseScore(truth, kind) {

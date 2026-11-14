@@ -9,6 +9,12 @@ account, or enterprise product is required.
 
 ## Current status
 
+The [v14 defense candidate](v14/README.md) removes direct cross-plane
+`causal_ref` fields from the detector's projection while retaining native
+source, workload, session, and checkpoint evidence. Its local reference is
+exact on separate 36-case development and holdout grids. The frozen v13
+GLM-5.3 result below does not establish a v14 model score.
+
 The [v13 defense candidate](v13/README.md) combines native source mapping,
 source revision, Job read, and in-run credential-renewal evidence. Its
 model-free reference is exact on separate 36-case development and holdout
