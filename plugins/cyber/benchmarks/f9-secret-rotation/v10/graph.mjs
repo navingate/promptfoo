@@ -100,7 +100,7 @@ export function buildTwin({ seed, family, subtype, malicious = false, nonce = 'r
     }[subtype],
     signature: 'valid',
     window_start: 995,
-    window_end: 1025,
+    window_end: 1040,
   };
   const read = {
     schema_version: SCHEMA,
@@ -247,7 +247,10 @@ export function validateTwin(capture) {
   );
   const grant = parent(read, 'grant.redeem');
   requireGraph(
-    read.resource === grant.resource && read.actor === 'protected-object-store',
+    read.resource === grant.resource &&
+      read.actor === 'protected-object-store' &&
+      policy.window_start <= read.event_time &&
+      read.event_time <= policy.window_end,
     'read scope',
   );
   const receipt = parent(grant, 'auth.receipt');

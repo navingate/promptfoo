@@ -202,3 +202,12 @@ test('root policy and auth causal fields must be empty arrays', () => {
   }
   assert.throws(() => validateTwin(capture), /^Error: invalid native graph:/);
 });
+
+test('signed authorization window covers the read and rejects later reads', () => {
+  const capture = buildTwin({ ...spec, malicious: false });
+  const policy = event(capture, 'authorization.record');
+  const read = event(capture, 'protected.read');
+  assert.ok(read.event_time <= policy.window_end);
+  read.event_time = policy.window_end + 1;
+  assert.throws(() => validateTwin(capture), /^Error: invalid native graph:/);
+});
