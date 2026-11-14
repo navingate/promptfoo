@@ -218,6 +218,7 @@ for (const family of FAMILIES) {
     assert.equal(visible.includes('value:'), false);
     const reference = referenceDefense(session);
     sameLabels(reference, session.expected);
+    const sessionReadOrderByAuthorization = new Set();
     for (const token of tokens) {
       const records = session.nativeActionRecords[token.event_id];
       assert.ok(records);
@@ -232,10 +233,16 @@ for (const family of FAMILIES) {
       const backgroundPosition = positions.get(records.background.action.event_id);
       assert.ok(Number.isSafeInteger(targetPosition));
       assert.ok(Number.isSafeInteger(backgroundPosition));
-      readOrderByAuthorization.add(
-        `${records.job.captured.authorized}/${targetPosition < backgroundPosition ? 'target-first' : 'background-first'}`,
-      );
+      const pair = `${records.job.captured.authorized}/${targetPosition < backgroundPosition ? 'target-first' : 'background-first'}`;
+      readOrderByAuthorization.add(pair);
+      sessionReadOrderByAuthorization.add(pair);
     }
+    assert.deepEqual([...sessionReadOrderByAuthorization].sort(), [
+      'false/background-first',
+      'false/target-first',
+      'true/background-first',
+      'true/target-first',
+    ]);
     const diagnostics = {};
     sameLabels(referenceDefense(session, diagnostics), session.expected);
     const brokerDenied = tokens.filter(

@@ -21,6 +21,7 @@ assert.equal(unscheduledWorld.events.length, 0);
 const orderByAuthorization = new Set();
 for (const seed of [10491, 10492]) {
   const session = buildDefenseSession({ seed, family: FAMILIES[0] });
+  const sessionOrderByAuthorization = new Set();
   const tokens = session.events.filter((event) => event.kind === 'release-token-redeemed');
   const authorizations = session.events.filter(
     (event) => event.kind === 'scheduled-job-authorized',
@@ -111,14 +112,14 @@ for (const seed of [10491, 10492]) {
     }
     if (backgroundRead.arrival_order < targetRead.arrival_order) {
       backgroundFirst += 1;
-      orderByAuthorization.add(
-        `${session.nativeActionRecords[token.event_id].job.captured.authorized}/background-first`,
-      );
+      const pair = `${session.nativeActionRecords[token.event_id].job.captured.authorized}/background-first`;
+      orderByAuthorization.add(pair);
+      sessionOrderByAuthorization.add(pair);
     } else {
       targetFirst += 1;
-      orderByAuthorization.add(
-        `${session.nativeActionRecords[token.event_id].job.captured.authorized}/target-first`,
-      );
+      const pair = `${session.nativeActionRecords[token.event_id].job.captured.authorized}/target-first`;
+      orderByAuthorization.add(pair);
+      sessionOrderByAuthorization.add(pair);
     }
     assert.equal(
       authorizations.filter((event) => event.event_id === backgroundSubmission.auth_context_ref)
@@ -138,6 +139,12 @@ for (const seed of [10491, 10492]) {
   }
   assert.ok(backgroundFirst > 0);
   assert.ok(targetFirst > 0);
+  assert.deepEqual([...sessionOrderByAuthorization].sort(), [
+    'false/background-first',
+    'false/target-first',
+    'true/background-first',
+    'true/target-first',
+  ]);
   assert.deepEqual(referenceDefense(session), session.expected);
   const fullTokenId = tokens.find(
     (token) => session.expected[token.event_id] === 'full-cascade',

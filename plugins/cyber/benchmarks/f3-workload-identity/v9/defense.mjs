@@ -631,7 +631,8 @@ function producerIncident(spec, variant, index) {
       ...interleaveJobEvents(
         job.events.map((event) => ({ ...event })),
         background.events,
-        (spec.seed + FAMILIES.indexOf(spec.family) + index) % 2 === 0,
+        // The final pair flips the order of the two unauthorized Job variants.
+        (spec.seed + FAMILIES.indexOf(spec.family) + index + Math.floor(index / 4)) % 2 === 0,
       ),
     ],
   };
