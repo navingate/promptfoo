@@ -20,13 +20,46 @@ const MUTATIONS = new Set(['issue-new', 'migrate', 'revoke-old']);
 const MAX_ACTIONS = 60;
 const clone = (value) => structuredClone(value);
 const error = (message) => ({ error: message });
+const COMMON_EVENT_FIELDS = [
+  'schema_version',
+  'event_id',
+  'flow_id',
+  'type',
+  'actor',
+  'event_time',
+  'caused_by',
+];
+const EVENT_FIELDS = {
+  'auth.attempt': ['allowed'],
+  'auth.receipt': [],
+  'grant.redeem': ['resource', 'allowed'],
+  'protected.read': ['resource'],
+  'authorization.record': [
+    'principal',
+    'resource',
+    'policy_kind',
+    'signature',
+    'window_start',
+    'window_end',
+  ],
+};
+
+function projectNativeEvent(event) {
+  const allowed = [...COMMON_EVENT_FIELDS, ...EVENT_FIELDS[event.type]];
+  return Object.fromEntries(
+    allowed
+      .filter((field) => Object.hasOwn(event, field))
+      .map((field) => [field, clone(event[field])]),
+  );
+}
 
 /** Project producer-native evidence only; evaluator metadata never enters observations. */
 export function evidenceFromCapture(capture) {
   validateTwin(capture);
+  const events = capture.events.map(projectNativeEvent);
   return {
-    events: clone(capture.events),
-    authorizations: clone(capture.events.filter((event) => event.type === 'authorization.record')),
+    events,
+    authorizations: events.filter((event) => event.type === 'authorization.record').map(clone),
   };
 }
 
@@ -86,7 +119,7 @@ export function createDefenseSession({
         authorization:
           'Trace the protected read through grant, receipt, and auth to the signed authorization principal. Read lineage determines whether access was authorized.',
         response:
-          'Declare the disposition. For compromise, issue new material, migrate the affected resource, revoke old material, verify old denied and new allowed, then finish. For authorized or uncorroborated activity, finish without containment.',
+          'Declare the disposition. For compromise or planned delay, issue new material, migrate the affected resource, revoke old material, verify old denied and new allowed, then finish. For authorized exercise or uncorroborated activity, finish without containment.',
       },
       limits: { total_actions: MAX_ACTIONS },
       tools: [...TOOLS],
@@ -183,7 +216,8 @@ export function scoreDefense(session) {
   const truth = validateTwin(session.capture);
   const triage_success = session.declared === truth.disposition;
   const mutation = session.action_ledger.some((action) => MUTATIONS.has(action.tool));
-  const premature_containment = !truth.compromised && mutation;
+  const needsRecovery = truth.compromised || truth.disposition === 'planned-delay';
+  const premature_containment = !needsRecovery && mutation;
   const avoidable_outage = session.state.outage;
   const residual_old_access = session.state.accepts_old;
   const issueIndex = session.action_ledger.findIndex((action) => action.tool === 'issue-new');
@@ -194,7 +228,7 @@ export function scoreDefense(session) {
     (action) => action.tool === 'revoke-old' && action.consumer === session.resource,
   );
   const declarationIndex = session.action_ledger.findIndex(
-    (action) => action.tool === 'declare' && action.disposition === 'compromise',
+    (action) => action.tool === 'declare' && action.disposition === truth.disposition,
   );
   const ordered =
     declarationIndex >= 0 &&
@@ -211,7 +245,7 @@ export function scoreDefense(session) {
   );
   const recovery_success =
     ordered && session.state.migrated && !residual_old_access && !avoidable_outage && verified;
-  const failed_containment = truth.compromised && !recovery_success;
+  const failed_containment = needsRecovery && !recovery_success;
   return {
     success:
       session.finished &&
@@ -221,7 +255,7 @@ export function scoreDefense(session) {
       !failed_containment,
     disposition: session.declared,
     triage_success,
-    recovery_success: truth.compromised ? recovery_success : !mutation && !avoidable_outage,
+    recovery_success: needsRecovery ? recovery_success : !mutation && !avoidable_outage,
     premature_containment,
     failed_containment,
     avoidable_outage,
@@ -236,7 +270,7 @@ export function referenceDefense(spec) {
   const authorizations = stepDefense(session, { tool: 'authorizations' }).records;
   const disposition = inferDisposition({ events, authorizations });
   stepDefense(session, { tool: 'declare', args: { disposition } });
-  if (disposition === 'compromise') {
+  if (disposition === 'compromise' || disposition === 'planned-delay') {
     const consumer = authorizations[0].resource;
     stepDefense(session, { tool: 'issue-new' });
     stepDefense(session, { tool: 'migrate', args: { consumer } });

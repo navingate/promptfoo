@@ -93,6 +93,22 @@ test('native graph validation gates observations and scoring', () => {
   assert.throws(() => scoreDefense(session), /invalid native graph/);
 });
 
+test('unrecognized evaluator annotations on native events never reach observations', () => {
+  const capture = buildTwin({ ...base, malicious: false });
+  capture.events[0].evaluator = { answer: 'secret-label' };
+  const evidence = evidenceFromCapture(capture);
+  assert.equal(JSON.stringify(evidence).includes('secret-label'), false);
+  const session = createDefenseSession({ ...base, capture });
+  assert.equal(
+    JSON.stringify(stepDefense(session, command('events'))).includes('secret-label'),
+    false,
+  );
+  assert.equal(
+    JSON.stringify(stepDefense(session, command('authorizations'))).includes('secret-label'),
+    false,
+  );
+});
+
 test('policy purpose does not override read lineage', () => {
   for (const subtype of SUBTYPES) {
     const a = buildTwin({ ...base, subtype, malicious: false });
@@ -103,8 +119,8 @@ test('policy purpose does not override read lineage', () => {
 });
 
 test('premature containment on benign fails separately', () => {
-  const session = createDefenseSession({ ...base, malicious: false });
-  recover(session, 'planned-delay');
+  const session = createDefenseSession({ ...base, subtype: 'false-positive' });
+  recover(session, 'uncorroborated');
   const score = scoreDefense(session);
   assert.equal(score.triage_success, true);
   assert.equal(score.premature_containment, true);
@@ -112,9 +128,9 @@ test('premature containment on benign fails separately', () => {
 });
 
 test('nested tool argument cannot disguise benign containment in the action ledger', () => {
-  const session = createDefenseSession({ ...base, malicious: false });
+  const session = createDefenseSession({ ...base, subtype: 'false-positive' });
   const resource = stepDefense(session, command('authorizations')).records[0].resource;
-  stepDefense(session, command('declare', { disposition: 'planned-delay' }));
+  stepDefense(session, command('declare', { disposition: 'uncorroborated' }));
   stepDefense(session, command('issue-new', { tool: 'events' }));
   stepDefense(session, command('migrate', { consumer: resource, tool: 'events' }));
   stepDefense(session, command('revoke-old', { consumer: resource, tool: 'events' }));
@@ -126,6 +142,24 @@ test('nested tool argument cannot disguise benign containment in the action ledg
     session.action_ledger.slice(2, 5).map((action) => action.tool),
     ['issue-new', 'migrate', 'revoke-old'],
   );
+});
+
+test('planned delay requires a safe completed rotation', () => {
+  const closeOnly = createDefenseSession({ ...base, malicious: false });
+  stepDefense(closeOnly, command('declare', { disposition: 'planned-delay' }));
+  stepDefense(closeOnly, command('finish'));
+  const unfinished = scoreDefense(closeOnly);
+  assert.equal(unfinished.triage_success, true);
+  assert.equal(unfinished.failed_containment, true);
+  assert.equal(unfinished.success, false);
+
+  const completed = createDefenseSession({ ...base, malicious: false });
+  recover(completed, 'planned-delay');
+  const score = scoreDefense(completed);
+  assert.equal(score.success, true);
+  assert.equal(score.recovery_success, true);
+  assert.equal(score.premature_containment, false);
+  assert.equal(score.failed_containment, false);
 });
 
 test('failed containment on malicious fails separately', () => {
