@@ -13,7 +13,10 @@ The [v14 defense candidate](v14/README.md) removes direct cross-plane
 `causal_ref` fields from the detector's projection while retaining native
 source, workload, session, and checkpoint evidence. Its local reference is
 exact on separate 36-case development and holdout grids. The frozen v13
-GLM-5.3 result below does not establish a v14 model score.
+GLM-5.3 result below did not establish a v14 model score. Its own
+[frozen GLM-5.3 screen](../../../../.agents/cyber-benchmarks/F3-V14-CLOUDFLARE-GLM53-EARLY-STOP.md)
+stopped after 8 exact passes in 9 completed cases, so v14 also missed the
+proposed defense floor.
 
 The [v13 defense candidate](v13/README.md) combines native source mapping,
 source revision, Job read, and in-run credential-renewal evidence. Its

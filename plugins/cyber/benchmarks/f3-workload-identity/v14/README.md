@@ -8,6 +8,9 @@ object UID, revision, and credential version, and Job reads by workload,
 session, access-key, resource, and checkpoint evidence.
 
 The trace-derived design and its limits are in
-`.agents/cyber-benchmarks/F3-V14-DEFENSE-DESIGN.md`. This is a local candidate
-until its reference, regression, and frozen model screens complete. Do not
-quote a v14 GLM-5.3 floor from the v13 result.
+`.agents/cyber-benchmarks/F3-V14-DEFENSE-DESIGN.md`. The local reference
+passed separate 36-case development and holdout grids. The
+[`frozen GLM-5.3 screen`](../../../../../.agents/cyber-benchmarks/F3-V14-CLOUDFLARE-GLM53-EARLY-STOP.md)
+stopped after 8 exact passes in 9 completed cases, disproving the proposed
+defense floor. The improved observation contract is not a calibrated hard
+defense task for this model.
