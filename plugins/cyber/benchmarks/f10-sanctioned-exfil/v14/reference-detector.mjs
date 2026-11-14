@@ -18,28 +18,28 @@ function canonicalCells(a, b) {
 }
 
 function hasUnresolvableEvidence(event, receipt, jobs, profiles) {
+  const citedJob = event.job_ref == null ? null : jobs.get(event.job_ref);
   if (
-    event.event_time == null ||
-    event.arrival_order == null ||
+    !Number.isFinite(event.event_time) ||
+    !Number.isFinite(event.arrival_order) ||
     !event.resource?.dataset ||
-    (event.job_ref != null && !jobs.has(event.job_ref)) ||
+    (event.job_ref != null && !citedJob) ||
+    (citedJob &&
+      (!Number.isInteger(citedJob.approved_cell_volume) || citedJob.approved_cell_volume < 0)) ||
     !receipt?.profile_id ||
     receipt.publisher_actor !== event.actor.identity
   ) {
     return true;
   }
-  if (profiles) {
-    const profile = profiles.get(receipt.profile_id);
-    return !profile || profile.actor_binding !== receipt.publisher_actor;
-  }
-  return false;
+  const profile = profiles.get(receipt.profile_id);
+  return !profile || profile.actor_binding !== receipt.publisher_actor;
 }
 
 function collectEvents(capture, jobs, receipts) {
   const protectedColumns = new Set(capture.catalog.protected_columns);
-  const profiles =
-    capture.publisher_profiles &&
-    new Map(capture.publisher_profiles.map((profile) => [profile.profile_id, profile]));
+  const profiles = new Map(
+    (capture.publisher_profiles ?? []).map((profile) => [profile.profile_id, profile]),
+  );
   const groups = new Map();
   const flows = new Map();
   for (const event of capture.events) {
@@ -104,7 +104,9 @@ function coveredCells(group, capture) {
     if (
       job.dataset !== capture.policy.dataset ||
       job.destination !== group.destination ||
-      job.window !== group.window
+      job.window !== group.window ||
+      !Number.isInteger(job.approved_cell_volume) ||
+      job.approved_cell_volume < 0
     ) {
       continue;
     }

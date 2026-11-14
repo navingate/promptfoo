@@ -41,10 +41,15 @@ function fixture({
         publisher_bindings: jobProfiles,
       },
     ],
+    publisher_profiles: [
+      { profile_id: 'scheduled', actor_binding: 'alice' },
+      { profile_id: 'alternate', actor_binding: 'alice' },
+      { profile_id: 'bob-scheduled', actor_binding: 'bob' },
+    ],
     events,
     receipts: events.map((event) => ({
       event_id: event.event_id,
-      profile_id: profile,
+      profile_id: event.actor.identity === 'bob' ? 'bob-scheduled' : profile,
       publisher_actor: event.actor.identity,
     })),
     flows: [...new Set(events.map((event) => event.actor.identity))].map((identity) => ({
@@ -86,6 +91,51 @@ test('contradictory receipt publisher actor and profile binding are ambiguous', 
   assert.deepEqual(detect(wrongProfile), { alice: 'ambiguous' });
 });
 
+test('missing or empty profile registry cannot authenticate receipt profile', () => {
+  for (const profiles of [undefined, []]) {
+    const capture = fixture();
+    capture.publisher_profiles = profiles;
+    assert.deepEqual(detect(capture), { alice: 'ambiguous' });
+  }
+});
+
+test('cited job with invalid capacity is ambiguous', () => {
+  for (const capacity of [undefined, Number.NaN, Number.POSITIVE_INFINITY, -1]) {
+    const capture = fixture();
+    capture.job_registry[0].approved_cell_volume = capacity;
+    assert.deepEqual(detect(capture), { alice: 'ambiguous' });
+  }
+});
+
+test('nonnumeric event time or arrival order is ambiguous', () => {
+  for (const field of ['event_time', 'arrival_order']) {
+    for (const value of ['1', Number.NaN, Number.POSITIVE_INFINITY]) {
+      const capture = fixture();
+      capture.events[0][field] = value;
+      assert.deepEqual(detect(capture), { alice: 'ambiguous' });
+    }
+  }
+});
+
+test('later job skips already-covered cells without spending capacity', () => {
+  const capture = fixture({
+    cells: [
+      [0, 'ssn'],
+      [0, 'ssn'],
+      [2, 'ssn'],
+    ],
+    cap: 1,
+  });
+  capture.job_registry.push({ ...capture.job_registry[0], job_id: 'job-2' });
+  capture.events[1].job_ref = 'job-2';
+  capture.events[2].actor.identity = 'alice';
+  capture.receipts[2].publisher_actor = 'alice';
+  capture.receipts[2].profile_id = 'scheduled';
+  capture.events[2].job_ref = 'job-2';
+  capture.flows = capture.flows.filter((flow) => flow.identity === 'alice');
+  assert.deepEqual(detect(capture), { alice: 'sanctioned-bulk' });
+});
+
 test('job cap covers only canonical distinct cells', () => {
   const capture = fixture({
     cells: [
@@ -97,9 +147,10 @@ test('job cap covers only canonical distinct cells', () => {
   assert.deepEqual(detect(capture), { alice: 'cumulative-exfil' });
   capture.events[0].actor.identity = 'bob';
   capture.receipts[0].publisher_actor = 'bob';
+  capture.receipts[0].profile_id = 'bob-scheduled';
   capture.flows.unshift({ flow_id: 'bob', identity: 'bob', destination: 'approved', window: 0 });
   capture.job_registry[0].actor_binding.push('bob');
-  capture.job_registry[0].publisher_bindings.push({ actor: 'bob', profile_id: 'scheduled' });
+  capture.job_registry[0].publisher_bindings.push({ actor: 'bob', profile_id: 'bob-scheduled' });
   assert.deepEqual(detect(capture), { bob: 'cumulative-exfil', alice: 'sanctioned-bulk' });
 });
 
