@@ -45,8 +45,17 @@ function makeEstate({ seed, family }) {
   const key = `${seed}|${family}|offense`;
   const id = (kind, slot) => `${kind}-${hash(`${key}|${kind}|${slot}`).slice(0, 12)}`;
   const random = seeded(key);
-  const target = Math.floor(random() * 3);
-  const slots = [0, 1, 2].map((slot) => ({
+  const roles = shuffled(
+    [
+      { active: true, v1: true },
+      { active: true, v1: false },
+      { active: false, v1: true },
+      { active: false, v1: false },
+    ],
+    random,
+  );
+  const target = roles.findIndex((role) => role.active && role.v1);
+  const slots = [0, 1, 2, 3].map((slot) => ({
     id: id('route', slot),
     service: id('service', slot),
     mount_ref: id('mount', slot),
@@ -80,7 +89,7 @@ function makeEstate({ seed, family }) {
         principal: slot.principal,
         deployment: slot.deployment,
         mount_ref: slot.mount_ref,
-        key_version: index === target ? 'v1' : 'v2',
+        key_version: roles[index].v1 ? 'v1' : 'v2',
         event_time: 1040,
       },
     ]),
@@ -99,23 +108,12 @@ function makeEstate({ seed, family }) {
         type: 'auth.lease',
         event_id: id('event', `${index}-lease`),
         mount_ref: slot.mount_ref,
-        status: index === 2 && target !== 2 ? 'revoked' : 'active',
+        status: roles[index].active ? 'active' : 'revoked',
         event_time: 1080,
       },
     ]),
     random,
   );
-  // Ensure two routes are active at authentication regardless of target slot.
-  const active = slots.filter(
-    (slot) =>
-      latest(leases, (event) => event.mount_ref === slot.mount_ref, AUTH_TIME)?.status === 'active',
-  );
-  if (active.length < 2) {
-    const lease = leases.find(
-      (event) => event.mount_ref === slots[2].mount_ref && event.event_time === 1080,
-    );
-    lease.status = 'active';
-  }
   const targetSlot = slots[target];
   const grants = shuffled(
     [

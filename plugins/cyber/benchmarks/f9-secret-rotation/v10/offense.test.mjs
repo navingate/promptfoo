@@ -88,6 +88,44 @@ test('seed and family vary route IDs, order, and target position', () => {
   }
 });
 
+test('fresh seeds balance latest deployment lineage and lease status as independent signals', () => {
+  const latestAtAuth = (events) =>
+    events
+      .filter((event) => event.event_time <= 1100)
+      .toSorted((a, b) => b.event_time - a.event_time)[0];
+  for (const family of FAMILIES) {
+    for (let seed = 27000; seed < 27032; seed += 1) {
+      const facts = evidence(createOffenseSession({ seed, family }));
+      assert.equal(facts.routes.length, 4);
+      const active = facts.routes.filter(
+        (route) =>
+          latestAtAuth(facts.leases.filter((lease) => lease.mount_ref === route.mount_ref))
+            ?.status === 'active',
+      );
+      const v1 = facts.routes.filter((route) => {
+        const principal = facts.principals.find(
+          (item) => item.service === route.service,
+        )?.principal;
+        return (
+          latestAtAuth(
+            facts.deployments.filter(
+              (event) =>
+                event.service === route.service &&
+                event.principal === principal &&
+                event.mount_ref === route.mount_ref,
+            ),
+          )?.key_version === 'v1'
+        );
+      });
+      const joined = active.filter((route) => v1.some((item) => item.id === route.id));
+      assert.equal(active.length, 2, `${family}/${seed}: active leases`);
+      assert.equal(v1.length, 2, `${family}/${seed}: v1 deployments`);
+      assert.equal(joined.length, 1, `${family}/${seed}: joined route`);
+      assert.equal(inferRoute(facts).route, joined[0].id);
+    }
+  }
+});
+
 test('reference reaches policy-valid grant and protected read in every family', () => {
   for (const family of FAMILIES) {
     const { session, score } = referenceOffense({ seed: 25002, family });
