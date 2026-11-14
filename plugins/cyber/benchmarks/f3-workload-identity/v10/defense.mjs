@@ -100,15 +100,16 @@ export function referenceDefense() {
 }
 
 export function stepDefense(session, command) {
-  if (session.finished) {
+  const state = PRIVATE.get(session);
+  if (!state) {
+    throw new Error('unknown defense session');
+  }
+  if (state.submission !== null) {
+    session.finished = true;
     return { ok: false, reason: 'session-finished' };
   }
   if (!command || typeof command.tool !== 'string') {
     return { ok: false, reason: 'invalid-command' };
-  }
-  const state = PRIVATE.get(session);
-  if (!state) {
-    throw new Error('unknown defense session');
   }
   if (command.tool === 'submit-rule') {
     session.finished = true;

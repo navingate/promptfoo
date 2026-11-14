@@ -110,6 +110,12 @@ assert.equal(scored.ambiguous_joins, 0);
 
 // Repeated scoring still uses the captured native truth.
 assert.equal(scoreDefense(session).success, true);
+session.finished = false;
+assert.equal(
+  stepDefense(session, { tool: 'submit-rule', args: { rule: { version: 1 } } }).reason,
+  'session-finished',
+);
+assert.equal(scoreDefense(session).success, true);
 
 const malformed = buildDefenseSession(spec);
 assert.deepEqual(
@@ -124,6 +130,12 @@ assert.equal(scoreDefense(malformed).off_grammar, 1);
 assert.equal(scoreDefense(malformed).invalid_rule, 0);
 assert.equal(scoreDefense(malformed).reason, 'off-grammar');
 assert.equal(stepDefense(malformed, { tool: 'get-grants' }).reason, 'session-finished');
+malformed.finished = false;
+assert.equal(
+  stepDefense(malformed, { tool: 'submit-rule', args: { rule: REFERENCE_RULE } }).reason,
+  'session-finished',
+);
+assert.equal(scoreDefense(malformed).off_grammar, 1);
 
 const invalid = buildDefenseSession(spec);
 assert.deepEqual(stepDefense(invalid, { tool: 'submit-rule', args: { rule: { version: 1 } } }), {
@@ -134,6 +146,18 @@ assert.deepEqual(stepDefense(invalid, { tool: 'submit-rule', args: { rule: { ver
 assert.equal(scoreDefense(invalid).off_grammar, 0);
 assert.equal(scoreDefense(invalid).invalid_rule, 1);
 assert.equal(scoreDefense(invalid).reason, 'invalid-rule');
+invalid.finished = false;
+assert.deepEqual(stepDefense(invalid, { tool: 'get-grants' }), {
+  ok: false,
+  reason: 'session-finished',
+});
+assert.equal(invalid.finished, true);
+assert.deepEqual(stepDefense(invalid, { tool: 'submit-rule', args: { rule: REFERENCE_RULE } }), {
+  ok: false,
+  reason: 'session-finished',
+});
+assert.equal(scoreDefense(invalid).reason, 'invalid-rule');
+assert.equal(scoreDefense(invalid).success, false);
 
 const wrongRule = structuredClone(REFERENCE_RULE);
 wrongRule.authorization.alert.downstream = 'completed-kms';
