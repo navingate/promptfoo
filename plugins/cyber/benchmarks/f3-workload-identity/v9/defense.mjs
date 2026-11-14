@@ -77,18 +77,17 @@ function membershipAuditEvents(
   groupPrincipal,
   principal,
   otherPrincipal,
-  actionTime,
-  allowed,
+  windowTime,
   seed,
   family,
   index,
   side,
 ) {
   const transitions = [
-    ['group-member-added', principal, actionTime - 4],
-    ['group-member-removed', principal, actionTime + (allowed ? 4 : -2)],
-    ['group-member-added', otherPrincipal, actionTime - 3],
-    ['group-member-removed', otherPrincipal, actionTime + (allowed ? -1 : 3)],
+    ['group-member-added', principal, windowTime - 1],
+    ['group-member-removed', principal, windowTime + 1],
+    ['group-member-added', otherPrincipal, windowTime - 2],
+    ['group-member-removed', otherPrincipal, windowTime + 6],
   ];
   return transitions.map(([kind, member_principal, event_time]) => ({
     event_id: `member-${sha256Hex(`f3v9|membership|${seed}|${family}|${index}|${side}|${kind}|${member_principal}`).slice(0, 20)}`,
@@ -99,6 +98,25 @@ function membershipAuditEvents(
     member_principal,
     event_time,
   }));
+}
+
+// Queue observations are emitted before the source producer starts its write
+// replay. They advance its event clock without inventing a protected fetch.
+function queueSourceReconcile(session, count) {
+  const events = session.source.events;
+  const prefix = session.source.world.meta.event_prefix ?? 'v3';
+  for (let index = 0; index < count; index += 1) {
+    const ordinal = events.length + 1;
+    events.push({
+      event_id: `${prefix}-${ordinal}`,
+      kind: 'controller-reconcile',
+      event_time: ordinal,
+      arrival_order: ordinal,
+      actor: 'external-secrets-controller',
+      outcome: 'queued',
+      queue_ref: `source-queue-${sha256Hex(`${prefix}|${index}`).slice(0, 12)}`,
+    });
+  }
 }
 
 function nativeSourceBad(session) {
@@ -208,7 +226,7 @@ function nativeJobBad(session) {
   );
 }
 
-function producerBackgroundRead(session, spec, index, afterTime) {
+function producerBackgroundRead(session, spec, index, afterTime, queueDelay) {
   const target = session.job;
   const objectRef = target.policy.protected_target.remote_ref;
   const scheduleId = `tenant-export-${sha256Hex(`f3v9|schedule|${spec.seed}|${spec.family}|${index}`).slice(0, 16)}`;
@@ -262,18 +280,18 @@ function producerBackgroundRead(session, spec, index, afterTime) {
     throw new Error('background Job admission failed');
   }
   const clock = world.eventOffset + world.events.length;
-  const actionTime = clock + 5;
+  const actionTime = clock + queueDelay + 5;
   world.membershipLedger = membershipAuditEvents(
     group,
     world.principal,
     otherPrincipal,
     actionTime,
-    true,
     spec.seed,
     spec.family,
     index,
     'background',
   );
+  world.eventOffset += queueDelay;
   let capture = null;
   world.onCloudObjectRead = (cloud) => {
     capture = {
@@ -367,14 +385,16 @@ function producerIncident(spec, variant, index) {
     throw new Error('missing approved source writer');
   }
   const sourceClock = session.source.events.length;
+  const familyIndex = FAMILIES.indexOf(spec.family);
+  const sourceJitter = (spec.seed + familyIndex + index) % 12;
+  const sourceQueueDelay = sourceJitter + (variant.sourceAllowed ? 0 : 2);
   // The replay emits two writes, a reconcile, then the protected cloud fetch.
-  const sourcePlannedActionTime = sourceClock + 4;
+  const sourcePlannedActionTime = sourceClock + sourceQueueDelay + 4;
   sourceWorld.membershipLedger = membershipAuditEvents(
     sourceGroup,
     actor,
     firstWriter,
-    sourcePlannedActionTime,
-    variant.sourceAllowed,
+    sourceClock + sourceJitter + 4,
     spec.seed,
     spec.family,
     index,
@@ -385,6 +405,7 @@ function producerIncident(spec, variant, index) {
     audit_stream_ref: membershipAuditStream(sourceGroup),
   };
   const sourceObjectName = `es-${sha256Hex(`f3v9|defense-object|${nonce}`).slice(0, 16)}`;
+  queueSourceReconcile(session, sourceQueueDelay);
   replayPhase(session.base, 'source', {
     objectName: sourceObjectName,
     extraPatch: true,
@@ -464,19 +485,21 @@ function producerIncident(spec, variant, index) {
     throw new Error('delegated Job grant inputs missing');
   }
   const jobClock = job.eventOffset + job.events.length;
+  const commonQueueDelay = ((Math.floor(spec.seed / 2) + familyIndex + index) % 16) * 2;
+  const targetQueueDelay = commonQueueDelay + (variant.jobAllowed ? 0 : 4);
   // run-job emits Pod, credential request, web STS, role STS, then cloud read.
-  const jobPlannedActionTime = jobClock + 5;
+  const jobPlannedActionTime = jobClock + targetQueueDelay + 5;
   job.membershipLedger = membershipAuditEvents(
     jobGroup,
     job.principal,
     otherJobPrincipal,
-    jobPlannedActionTime,
-    variant.jobAllowed,
+    jobClock + commonQueueDelay + 5,
     spec.seed,
     spec.family,
     index,
     'job',
   );
+  job.eventOffset += targetQueueDelay;
   session.delegatedSnapshots[jobCreate.grant_snapshot_ref] = {
     grants: structuredClone(job.grantSnapshots[jobCreate.grant_snapshot_ref]),
     audit_stream_ref: membershipAuditStream(jobGroup),
@@ -518,11 +541,15 @@ function producerIncident(spec, variant, index) {
   if (!jobCapture || jobCapture.action_time !== jobCloud.event_time) {
     throw new Error('native Job action capture missing');
   }
+  const backgroundSlow =
+    ((Number(index >= 2 && index <= 4) + Math.floor(spec.seed / 2) + familyIndex) % 2) === 0;
   const background = producerBackgroundRead(
     session,
     spec,
     index,
-    session.base.release_events.at(-1).event_time,
+    // This independent schedule may authorize before the release bearer.
+    session.base.release_events.at(-1).event_time - 2,
+    commonQueueDelay + (backgroundSlow ? 8 : 0),
   );
   const resumed = stepOffense(session, {
     tool: 'resume-job',

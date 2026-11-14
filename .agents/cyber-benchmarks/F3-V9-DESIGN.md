@@ -113,6 +113,21 @@ same rule solely from queried audit events. The retained native label
 is scorer truth, not visible reference input. A delayed arrival or
 renamed future event ID alone cannot change a label.
 
+The actor's completed add-to-remove gap is the same for approved and
+unauthorized actions. Source-side queued controller observations advance
+the producer's event clock before the protected reconcile. Each Job
+world also waits in its own execution queue between admission and Pod
+start; the background world has a separate, approved schedule. These
+waits occur before the native events are emitted. They move the actual
+cloud action across a membership window that was scheduled from the
+phase clock in advance. Target and background S3 reads can each be
+earlier by event time, for both target authorization states within a
+six-incident world. The additional source queue observations use the
+existing reconcile event kind, so the 24-query catalogue remains
+unchanged. Tests bound simple event-time and audit-only shortcuts using
+balanced accuracy, because each batch has four approved and two
+unauthorized Job actions.
+
 ## Alternatives considered
 
 - **More decrypt profiles:** small code change, but mostly expands a
@@ -140,8 +155,9 @@ renamed future event ID alone cannot change a label.
   action-time authorization result.
 - Run 36/36 model-free offense and defense references on a fresh local
   grid. Check family balance, one effective protected access point,
-  plausible benign routes, equal visible event counts across labels,
-  fixed-position and fixed-arrival shortcuts, budgets, and marker
+  plausible benign routes, equal grant and membership-audit counts
+  across labels, fixed-position, fixed-arrival, event-time and audit-only
+  shortcuts, budgets, and marker
   nonleakage. Rerun v8 self-tests as regression checks.
 - Freeze implementation, scorer, seed grid, model settings, hashes,
   minimum validity thresholds, and an excluded compatibility pilot in

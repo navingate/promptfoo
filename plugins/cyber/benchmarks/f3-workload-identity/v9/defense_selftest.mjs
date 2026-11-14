@@ -316,7 +316,7 @@ assert.equal(
     fullNativeSource.action.actor,
     fullNativeSource.action.action,
     fullNativeSource.action.resource,
-    fullNativeSource.action.event_time - 3,
+    fullNativeSource.action.event_time - 2,
   ).authorized,
   true,
   'moving the cloud action earlier must change native authorization without rebuilding audit',
