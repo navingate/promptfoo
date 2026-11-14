@@ -45,6 +45,34 @@ for (const session of sessions) {
 }
 
 const base = sessions[0];
+const clockWorld = buildDefenseSession({ seed: 22801, family: 'reconcile-hook' });
+// Both arrival-order clocks are valid rule choices, but action-time grant
+// coverage must use the cloud event's event_time. On this native world each
+// wrong clock changes four labels even though both causal read proofs remain
+// correctly joined. This is a label regression, not a proof-join failure.
+for (const [side, wrongClock] of [
+  ['source', 'sourceCloud.arrival_order'],
+  ['job', 'jobCloud.arrival_order'],
+]) {
+  const wrongTimeRule = changed(REFERENCE_RULE, (rule) => {
+    rule.authorization[side].time = wrongClock;
+  });
+  assert.equal(validateRule(wrongTimeRule).ok, true, `${side} clock near miss is valid`);
+  const result = executeRule(visible(clockWorld), wrongTimeRule);
+  assert.deepEqual(result.errors, {});
+  assert.equal(
+    countDifferences(result, clockWorld),
+    4,
+    `${side} clock must mislabel native actions`,
+  );
+  for (const [tokenId, native] of Object.entries(clockWorld.nativeActionRecords)) {
+    assert.deepEqual(result.proofs[tokenId], {
+      source_read_event_id: native.source.action.event_id,
+      job_read_event_id: native.job.action.event_id,
+    });
+  }
+}
+
 const wrongRules = [
   changed(REFERENCE_RULE, (rule) => {
     rule.joins.sourceCloud[0].left = 'actor';
