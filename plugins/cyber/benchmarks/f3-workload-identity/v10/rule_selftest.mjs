@@ -240,6 +240,34 @@ const acceptsDeniedAudit = changed(REFERENCE_RULE, (rule) => {
 assert.equal(validateRule(acceptsDeniedAudit).ok, true);
 assert.notDeepEqual(executeRule(deniedAuditEvidence, acceptsDeniedAudit).labels, base.expected);
 
+const throwingTail = new Proxy(
+  {},
+  {
+    ownKeys() {
+      throw new Error('validator inspected beyond the bound');
+    },
+  },
+);
+const oversizedArray = new Proxy(Array(97).fill(0), {
+  getOwnPropertyDescriptor(target, key) {
+    if (key === '96') {
+      throw new Error('validator inspected an oversized array entry');
+    }
+    return Reflect.getOwnPropertyDescriptor(target, key);
+  },
+});
+assert.ok(validateRule(oversizedArray).errors.some((error) => error.includes('96 entries')));
+const tooManyNodes = {
+  payload: Array.from({ length: 30 }, () => Array(40).fill(0)),
+  tail: throwingTail,
+};
+assert.ok(validateRule(tooManyNodes).errors.some((error) => error.includes('node limit')));
+const tooManyBytes = {
+  payload: Array.from({ length: 3 }, () => Array(70).fill('x'.repeat(150))),
+  tail: throwingTail,
+};
+assert.ok(validateRule(tooManyBytes).errors.some((error) => error.includes('byte limit')));
+
 for (const invalid of [
   null,
   '{"version":1}',

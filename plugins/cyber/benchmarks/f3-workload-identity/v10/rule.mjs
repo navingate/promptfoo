@@ -169,53 +169,100 @@ function plain(value) {
   );
 }
 
-function jsonSafety(value, errors, seen = new WeakSet(), depth = 0) {
+function chargeBytes(state, errors, count) {
+  state.bytes += count;
+  if (state.bytes > 24_000) {
+    errors.push('rule exceeds byte limit (24000 bytes)');
+    return false;
+  }
+  return true;
+}
+
+function objectShape(value, errors, state) {
+  if (state.seen.has(value)) {
+    errors.push('rule contains a cycle or shared object');
+    return null;
+  }
+  state.seen.add(value);
+  const array = Array.isArray(value);
+  if (!array && !plain(value)) {
+    errors.push('rule objects must be plain JSON objects');
+    return null;
+  }
+  if (array && value.length > 96) {
+    errors.push('rule object or array exceeds 96 entries');
+    return null;
+  }
+  const keys = Reflect.ownKeys(value);
+  if (keys.length > (array ? 97 : 96)) {
+    errors.push('rule object or array exceeds 96 entries');
+    return null;
+  }
+  if (array && keys.length !== value.length + 1) {
+    errors.push('rule arrays must be dense and have no extra fields');
+    return null;
+  }
+  if (!chargeBytes(state, errors, 2)) {
+    return null;
+  }
+  return { array, entries: Object.getOwnPropertyDescriptors(value) };
+}
+
+function jsonSafety(value, errors, state = { seen: new WeakSet(), nodes: 0, bytes: 0 }, depth = 0) {
+  state.nodes += 1;
+  if (state.nodes > 1_024) {
+    errors.push('rule exceeds node limit (1024 nodes)');
+    return false;
+  }
   if (depth > 9) {
     errors.push('rule exceeds maximum nesting depth');
-    return;
+    return false;
   }
   if (value === null || typeof value === 'boolean') {
-    return;
+    return chargeBytes(state, errors, String(value).length);
   }
   if (typeof value === 'number') {
     if (!Number.isSafeInteger(value)) {
       errors.push('rule numbers must be safe integers');
+      return false;
     }
-    return;
+    return chargeBytes(state, errors, String(value).length);
   }
   if (typeof value === 'string') {
     if (value.length > 160) {
       errors.push('rule string exceeds 160 characters');
+      return false;
     }
-    return;
+    return chargeBytes(state, errors, Buffer.byteLength(JSON.stringify(value)));
   }
   if (typeof value !== 'object') {
     errors.push('rule must contain JSON values only');
-    return;
+    return false;
   }
-  if (seen.has(value)) {
-    errors.push('rule contains a cycle or shared object');
-    return;
+  const shape = objectShape(value, errors, state);
+  if (shape === null) {
+    return false;
   }
-  seen.add(value);
-  if (!Array.isArray(value) && !plain(value)) {
-    errors.push('rule objects must be plain JSON objects');
-    return;
-  }
-  const entries = Object.getOwnPropertyDescriptors(value);
-  if (Reflect.ownKeys(value).length > 96) {
-    errors.push('rule object or array exceeds 96 entries');
-  }
-  for (const [key, descriptor] of Object.entries(entries)) {
-    if ('value' in descriptor) {
-      jsonSafety(descriptor.value, errors, seen, depth + 1);
-    } else {
+  for (const [key, descriptor] of Object.entries(shape.entries)) {
+    if (shape.array && key === 'length') {
+      continue;
+    }
+    if (!('value' in descriptor)) {
       errors.push(`rule accessor forbidden at ${key}`);
+      return false;
+    }
+    if (!chargeBytes(state, errors, Buffer.byteLength(JSON.stringify(key)) + 2)) {
+      return false;
+    }
+    if (!jsonSafety(descriptor.value, errors, state, depth + 1)) {
+      return false;
     }
   }
   if (Object.getOwnPropertySymbols(value).length) {
     errors.push('rule symbols forbidden');
+    return false;
   }
+  return true;
 }
 
 function keysOnly(value, names, path, errors) {
@@ -352,9 +399,6 @@ export function validateRule(rule) {
   jsonSafety(rule, errors);
   if (errors.length) {
     return { ok: false, errors };
-  }
-  if (Buffer.byteLength(JSON.stringify(rule)) > 24_000) {
-    return { ok: false, errors: ['rule exceeds 24000 bytes'] };
   }
   if (!keysOnly(rule, ['version', 'correlationOrder', 'joins', 'authorization'], 'rule', errors)) {
     return { ok: false, errors };
