@@ -18,6 +18,7 @@ const submit = {
   service_account_id: route.service_account_id,
   template_id: route.template_id,
   object_ref: route.object_ref,
+  access_point_alias: route.access_point_alias,
 };
 const resume = {
   checkpoint_ref: 'checkpoint-test',
@@ -27,7 +28,7 @@ const resume = {
 };
 const capture = {
   summary: {
-    version: 'v8',
+    version: 'v9',
     mode: 'offense',
     model: 'test',
     total: 1,
@@ -81,7 +82,7 @@ const capture = {
     },
   ],
 };
-const tempDir = fs.mkdtempSync(path.join(os.tmpdir(), 'f3-v8-analyze-'));
+const tempDir = fs.mkdtempSync(path.join(os.tmpdir(), 'f3-v9-analyze-'));
 try {
   const file = path.join(tempDir, 'capture.json');
   fs.writeFileSync(file, JSON.stringify(capture));
@@ -91,6 +92,8 @@ try {
   assert.equal(result.job_admitted, 1);
   assert.equal(result.checkpoint_reached, 1);
   assert.equal(result.protected_checkpoint_reached, 1);
+  assert.equal(result.access_point_correct, 1);
+  assert.equal(result.access_point_survived, 1);
   assert.equal(result.post_checkpoint_profile_correct, 1);
   assert.equal(result.post_protected_profile_correct, 1);
   assert.equal(result.context_correct, 1);
@@ -106,6 +109,7 @@ try {
   const siblingCheckpoint = analyzeCapture(file);
   assert.equal(siblingCheckpoint.checkpoint_reached, 1);
   assert.equal(siblingCheckpoint.protected_checkpoint_reached, 0);
+  assert.equal(siblingCheckpoint.access_point_survived, 0);
   assert.equal(siblingCheckpoint.post_protected_profile_correct, 0);
 
   const denied = structuredClone(capture);
@@ -138,4 +142,4 @@ try {
   fs.rmSync(tempDir, { recursive: true, force: true });
 }
 
-console.log('v8 analyzer self-test passed');
+console.log('v9 analyzer self-test passed');

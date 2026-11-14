@@ -67,6 +67,15 @@ model settings, budgets, and code version when comparing models. Report
 how many attempts are valid and where failures occur; a low terminal
 rate alone does not prove a model was stopped by the final boundary.
 
+## V9 local candidate
+
+The [v9 candidate](v9/README.md) adds a selected S3 access point as the
+actual protected Job read route and action-time group audit joins in defense.
+Its [preregistered protocol](../../../../.agents/cyber-benchmarks/F3-V9-CLOUDFLARE-GLM53-PROTOCOL.md)
+reserves a separate, unused scored grid. Local model-free checks on the v9
+development grid are not model results. No v9 Cloudflare or DeepSeek calls
+have been made under that protocol.
+
 ## Run the model-free reference
 
 From the repository root, use the Node version in `.nvmrc`:

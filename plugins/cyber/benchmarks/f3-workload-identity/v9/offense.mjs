@@ -201,7 +201,7 @@ function permittedDecrypt(job, checkpoint, record, profile, request, brokerSnaps
 
 export function createOffenseSession(spec) {
   const v6 = createV6Session(spec);
-  v6.source.world.meta.telemetry_contract_id = 'f3-workload-events-v8';
+  v6.source.world.meta.telemetry_contract_id = 'f3-workload-events-v9';
   const job = createJobWorld(v6.base.release.world, v6.base.release.initial.principal, {
     instanceId: sha256Hex(
       `f3v9|job|${spec.nonce ?? 'reference'}|${spec.seed}|${spec.family}`,
