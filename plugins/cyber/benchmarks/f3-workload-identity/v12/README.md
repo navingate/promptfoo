@@ -19,7 +19,12 @@ three controller families: the reference is exact 36/36 on both grids.
 All eight rules written by GLM-5.3 in the v11 early-stop screen remain
 valid but score 0/36 on the disjoint holdout, with six ambiguous Job joins
 per world. Existing v9–v11 self-tests and v12 focused tests pass. This is
-model-free evidence; it does not predict the live model score.
+model-free evidence; it did not predict the live model score. In the frozen
+Cloudflare GLM-5.3 screen the model produced eight exact, valid rules in the
+first ten cases, triggering the preregistered futility stop. Eight rules
+used the resource join. V12 therefore does not establish the intended
+defense floor. See
+`.agents/cyber-benchmarks/F3-V12-CLOUDFLARE-GLM53-EARLY-STOP.md`.
 
 The design record is `.agents/cyber-benchmarks/F3-V12-DEFENSE-DESIGN.md`.
 The source credential collision proposed in the earlier draft was deferred

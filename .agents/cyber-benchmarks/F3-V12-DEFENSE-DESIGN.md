@@ -1,6 +1,8 @@
 # F3 defense v12 — native same-session read ambiguity
 
-Status: implemented local candidate, not yet model-calibrated or release-approved.
+Status: implemented and model-calibrated; proposed GLM-5.3 floor disproved
+by the preregistered 8/10 exact early stop. Not release-approved. See
+`F3-V12-CLOUDFLARE-GLM53-EARLY-STOP.md`.
 The v11 format revision and early-stop capture remain frozen. V12 keeps the
 same hidden six-incident rule-and-proof task, parser, and rule language.
 
