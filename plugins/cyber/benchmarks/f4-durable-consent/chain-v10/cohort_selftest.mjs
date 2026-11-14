@@ -7,6 +7,11 @@ import { allocateCohort } from './cohort.mjs';
 const TYPES = ['user-consent', 'partner-consent', 'admin-consent'];
 const CLASSES = ['malicious', 'revoked', 'authorized'];
 const TARGETS = { malicious: 30, revoked: 18, authorized: 108 };
+const MODES = {
+  malicious: ['registry-failed', 'base-policy-near-miss'],
+  revoked: ['revoked'],
+  authorized: ['registry-covered', 'registry-covered-out-of-catalog', 'base-policy-only'],
+};
 
 test('allocates the exact class and grantor quotas across the native schedule', () => {
   const batches = allocateCohort(schedule());
@@ -27,7 +32,17 @@ test('allocates the exact class and grantor quotas across the native schedule', 
     for (const slot of batch.slots) {
       assert.ok(CLASSES.includes(slot.classification));
       assert.ok(TYPES.includes(slot.grantorType));
-      assert.equal(typeof slot.authorizationMode, 'string');
+      assert.ok(
+        MODES[slot.classification].includes(slot.authorizationMode),
+        `${slot.classification}/${slot.authorizationMode}`,
+      );
+      if (
+        ['base-policy-near-miss', 'registry-covered-out-of-catalog', 'base-policy-only'].includes(
+          slot.authorizationMode,
+        )
+      ) {
+        assert.equal(slot.grantorType, 'admin-consent');
+      }
       counts[slot.classification][slot.grantorType] += 1;
     }
   }
@@ -122,8 +137,8 @@ test('shuffling prevents classification or grantor type from being a slot-positi
   assert.deepEqual(allocateCohort(schedule()), allocateCohort(schedule()));
 });
 
-test('rejects a schedule with impossible survivor matching', () => {
-  const impossible = schedule();
-  impossible[0] = { ...impossible[0], maliciousCount: 12, revokedCount: 1 };
-  assert.throws(() => allocateCohort(impossible), /infeasible|invalid/i);
+test('rejects an out-of-range malicious count', () => {
+  const invalid = schedule();
+  invalid[0] = { ...invalid[0], maliciousCount: 12, revokedCount: 1 };
+  assert.throws(() => allocateCohort(invalid), /invalid v10 cohort batch/);
 });
