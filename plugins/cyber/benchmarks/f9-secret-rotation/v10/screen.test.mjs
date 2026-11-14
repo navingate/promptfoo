@@ -1,5 +1,7 @@
 import assert from 'node:assert/strict';
+import { execFileSync } from 'node:child_process';
 import fs from 'node:fs';
+import { performance } from 'node:perf_hooks';
 import test from 'node:test';
 
 import { inferGrant, inferRoute } from './offense.mjs';
@@ -125,6 +127,7 @@ test('case timeout counts assigned slot and continues to next case', async () =>
   assert.equal(report.summary.valid_case_rate, 0);
   assert.equal(report.summary.all_slot_rate, 0);
   assert.equal(report.results[0].classification, 'timed_out');
+  assert.equal(report.transport_requests[1].outcome, 'case-wall-limit');
   assert.ok(report.results[0].score);
   assert.ok(Array.isArray(report.results[0].ledger));
   assert.equal(report.results[1].classification, 'model_fail');
@@ -328,6 +331,7 @@ test('late response after case timeout cannot change report, checkpoint, or star
       maxCases: 1,
     });
     assert.equal(report.results[0].classification, 'timed_out');
+    assert.equal(report.transport_requests[1].outcome, 'case-wall-limit');
     const beforeReport = JSON.stringify(report);
     const beforeCheckpoint = fs.readFileSync(output, 'utf8');
     resolveLate(reply('{"tool":"routes"}'));
@@ -387,6 +391,7 @@ test('timeout during retry backoff cancels old case while the next case proceeds
     });
     assert.equal(report.results[0].classification, 'timed_out');
     assert.equal(report.results[1].classification, 'model_fail');
+    assert.equal(report.transport_requests[1].outcome, 'case-wall-limit');
     const beforeReport = JSON.stringify(report);
     const beforeCheckpoint = fs.readFileSync(output, 'utf8');
     releaseBackoff();
@@ -394,6 +399,40 @@ test('timeout during retry backoff cancels old case while the next case proceeds
     assert.equal(calls, 3);
     assert.equal(JSON.stringify(report), beforeReport);
     assert.equal(fs.readFileSync(output, 'utf8'), beforeCheckpoint);
+  } finally {
+    fs.rmSync(directory, { recursive: true, force: true });
+  }
+});
+
+test('default retry delay releases its real timer when case deadline aborts', () => {
+  const directory = fs.mkdtempSync('/tmp/f9-v10-real-timer-');
+  const output = `${directory}/capture.json`;
+  const moduleUrl = new URL('./screen.mjs', import.meta.url).href;
+  const source = `
+    import { runPacedScreen, screenSettings } from ${JSON.stringify(moduleUrl)};
+    const cfg = screenSettings({ CLOUDFLARE_OPENAI_BASE_URL: 'https://example.invalid/v1', CLOUDFLARE_API_KEY: 'fixture' });
+    let calls = 0;
+    let monotonic = 0;
+    const response = { ok: true, status: 200, json: async () => ({ model: '@cf/zai-org/glm-5.3', choices: [{ message: { content: 'PONG' }, finish_reason: 'stop' }] }) };
+    const report = await runPacedScreen('offense', cfg, ${JSON.stringify(output)}, {
+      fetchImpl: async () => ++calls === 1 ? response : { ok: false, status: 429 },
+      transportOptions: { monotonicNow: () => { monotonic += 6000; return monotonic; } },
+      caseTimer: () => ({ promise: new Promise((resolve) => setTimeout(resolve, 20)), cancel() {} }),
+      maxCases: 1,
+    });
+    process.stdout.write(JSON.stringify({ classification: report.results[0].classification, outcome: report.transport_requests[1].outcome }));
+  `;
+  try {
+    const started = performance.now();
+    const result = JSON.parse(
+      execFileSync(process.execPath, ['--input-type=module', '-e', source], {
+        encoding: 'utf8',
+        timeout: 5000,
+      }),
+    );
+    const elapsed = performance.now() - started;
+    assert.deepEqual(result, { classification: 'timed_out', outcome: 'case-wall-limit' });
+    assert.ok(elapsed < 700, `child exit took ${elapsed.toFixed(0)} ms`);
   } finally {
     fs.rmSync(directory, { recursive: true, force: true });
   }

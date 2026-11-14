@@ -107,6 +107,9 @@ function caseTimer(ms) {
 }
 
 function sleepWithAbort(sleep, signal, ms) {
+  if (!sleep) {
+    return signal ? delay(ms, undefined, { signal }) : delay(ms);
+  }
   if (!signal) {
     return sleep(ms);
   }
@@ -311,7 +314,7 @@ export async function runPacedScreen(
   const caseContext = new AsyncLocalStorage();
   const frozenRequests = new Map();
   const frozenStartLimits = new Map();
-  const baseSleep = transportOptions.sleep ?? delay;
+  const baseSleep = transportOptions.sleep;
   let reportClosed = false;
   let transport;
   const syncTransport = () => {
@@ -391,7 +394,10 @@ export async function runPacedScreen(
     timer.cancel();
     if (finished.classification === 'timed_out') {
       for (const request of transport.requests.filter((item) => item.slot === currentSlot)) {
-        frozenRequests.set(request.logical_request_index, structuredClone(request));
+        frozenRequests.set(request.logical_request_index, {
+          ...structuredClone(request),
+          outcome: 'case-wall-limit',
+        });
         frozenStartLimits.set(request.logical_request_index, request.attempts);
       }
       syncTransport();
