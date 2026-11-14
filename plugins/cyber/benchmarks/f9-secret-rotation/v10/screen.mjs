@@ -1,7 +1,9 @@
 #!/usr/bin/env node
+import { AsyncLocalStorage } from 'node:async_hooks';
 import crypto from 'node:crypto';
 import fs from 'node:fs';
 import path from 'node:path';
+import { setTimeout as delay } from 'node:timers/promises';
 import { pathToFileURL } from 'node:url';
 
 import { parseCommands } from '../v8/commands.mjs';
@@ -104,6 +106,34 @@ function caseTimer(ms) {
   };
 }
 
+function sleepWithAbort(sleep, signal, ms) {
+  if (!signal) {
+    return sleep(ms);
+  }
+  if (signal.aborted) {
+    return Promise.reject(signal.reason);
+  }
+  return new Promise((resolve, reject) => {
+    let settled = false;
+    const finish = (done, value) => {
+      if (settled) {
+        return;
+      }
+      settled = true;
+      signal.removeEventListener('abort', onAbort);
+      done(value);
+    };
+    const onAbort = () => finish(reject, signal.reason);
+    signal.addEventListener('abort', onAbort, { once: true });
+    Promise.resolve()
+      .then(() => sleep(ms))
+      .then(
+        (value) => finish(resolve, value),
+        (cause) => finish(reject, cause),
+      );
+  });
+}
+
 function runtimeFor(mode, spec) {
   if (mode === 'defense') {
     return {
@@ -148,7 +178,13 @@ function terminalReason(session, defense, scored, actions, maxActions) {
   return 'terminal-failure';
 }
 
-async function oneCase(spec, mode, cfg, onState) {
+function commandsFor(reply, defense, session) {
+  return defense && reply.text.trim() === '[]' && session.declared
+    ? [{ tool: 'finish' }]
+    : parseCommands(reply.text);
+}
+
+async function oneCase(spec, mode, cfg, onState, signal) {
   const liveSpec = { ...spec, nonce: crypto.randomBytes(32).toString('hex') };
   const defense = mode === 'defense';
   const { session, step, score, maxTurns, maxActions } = runtimeFor(mode, liveSpec);
@@ -170,9 +206,12 @@ async function oneCase(spec, mode, cfg, onState) {
     format_errors: formatErrors,
     ledger: defense ? session.action_ledger : session.ledger,
   });
-  onState(() => result('timed_out', 'case-wall-limit', false));
+  onState(() => structuredClone(result('timed_out', 'case-wall-limit', false)));
   for (let turn = 0; turn < maxTurns; turn += 1) {
     const reply = await callModel(messages, cfg);
+    if (signal.aborted) {
+      return null;
+    }
     if (reply.kind !== 'ok') {
       return result(reply.kind, reply.reason, false);
     }
@@ -186,10 +225,7 @@ async function oneCase(spec, mode, cfg, onState) {
       transcript.push(raw);
       return result('model_fail', 'truncated', true);
     }
-    const commands =
-      defense && reply.text.trim() === '[]' && session.declared
-        ? [{ tool: 'finish' }]
-        : parseCommands(reply.text);
+    const commands = commandsFor(reply, defense, session);
     if (!commands) {
       formatErrors += 1;
       transcript.push({ ...raw, parse_error: 'no-json-command' });
@@ -272,14 +308,37 @@ export async function runPacedScreen(
   };
   checkpoint(output, report);
   let currentSlot = 'preflight';
-  const transport = createRetryingPacedFetch(fetchImpl ?? cfg.fetchImpl ?? globalThis.fetch, {
+  const caseContext = new AsyncLocalStorage();
+  const frozenRequests = new Map();
+  const frozenStartLimits = new Map();
+  const baseSleep = transportOptions.sleep ?? delay;
+  let reportClosed = false;
+  let transport;
+  const syncTransport = () => {
+    report.request_starts = transport.starts
+      .filter(
+        (start) =>
+          start.attempt <= (frozenStartLimits.get(start.logical_request_index) ?? Infinity),
+      )
+      .map((start) => structuredClone(start));
+    report.transport_requests = transport.requests.map(
+      (request) => frozenRequests.get(request.logical_request_index) ?? structuredClone(request),
+    );
+  };
+  const onTransportUpdate = () => {
+    if (reportClosed) {
+      return;
+    }
+    syncTransport();
+    checkpoint(output, report);
+  };
+  transport = createRetryingPacedFetch(fetchImpl ?? cfg.fetchImpl ?? globalThis.fetch, {
     ...transportOptions,
     attemptTimeoutMs: cfg.timeoutMs,
     getSlot: () => currentSlot,
-    onUpdate: () => checkpoint(output, report),
+    sleep: (ms) => sleepWithAbort(baseSleep, caseContext.getStore(), ms),
+    onUpdate: onTransportUpdate,
   });
-  report.request_starts = transport.starts;
-  report.transport_requests = transport.requests;
   const liveCfg = { ...cfg, maxTokens: MAX_TOKENS, fetchImpl: withLowReasoning(transport.fetch) };
   const preflight = await callModel([{ role: 'user', content: 'Return PONG.' }], {
     ...liveCfg,
@@ -293,6 +352,7 @@ export async function runPacedScreen(
     report.status = 'preflight-failed';
     report.summary = summaryFor(mode, cases.length, results, report.status);
     checkpoint(output, report);
+    reportClosed = true;
     return report;
   }
   report.status = 'running';
@@ -307,21 +367,34 @@ export async function runPacedScreen(
         if (caseAbort.signal.aborted) {
           throw caseAbort.signal.reason;
         }
-        return transport.fetch(url, {
-          ...options,
-          signal: AbortSignal.any([options.signal, caseAbort.signal]),
-        });
+        return caseContext.run(caseAbort.signal, () =>
+          transport.fetch(url, {
+            ...options,
+            signal: AbortSignal.any([options.signal, caseAbort.signal]),
+          }),
+        );
       }),
     };
     const timer = makeTimer(CASE_WALL_MS);
     const finished = await Promise.race([
-      oneCase(spec, runMode, caseCfg, (current) => {
-        snapshot = current;
-      }),
+      oneCase(
+        spec,
+        runMode,
+        caseCfg,
+        (current) => {
+          snapshot = current;
+        },
+        caseAbort.signal,
+      ),
       timer.promise.then(() => snapshot()),
     ]);
     timer.cancel();
     if (finished.classification === 'timed_out') {
+      for (const request of transport.requests.filter((item) => item.slot === currentSlot)) {
+        frozenRequests.set(request.logical_request_index, structuredClone(request));
+        frozenStartLimits.set(request.logical_request_index, request.attempts);
+      }
+      syncTransport();
       caseAbort.abort();
     }
     results.push(finished);
@@ -334,12 +407,14 @@ export async function runPacedScreen(
     report.summary = summaryFor(mode, cases.length, results, report.status);
     checkpoint(output, report);
     if (report.status !== 'running') {
+      reportClosed = true;
       return report;
     }
   }
   report.status = maxCases < cases.length ? 'limited' : 'complete';
   report.summary = summaryFor(mode, cases.length, results, report.status);
   checkpoint(output, report);
+  reportClosed = true;
   return report;
 }
 

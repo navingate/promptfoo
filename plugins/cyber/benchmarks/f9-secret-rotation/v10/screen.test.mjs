@@ -91,6 +91,7 @@ test('low 16k same-body retries are paced and provider error halts', async () =>
 test('case timeout counts assigned slot and continues to next case', async () => {
   let calls = 0;
   let timers = 0;
+  let resolveCaseTimeout;
   const report = await capture(
     'offense',
     async () => {
@@ -99,13 +100,19 @@ test('case timeout counts assigned slot and continues to next case', async () =>
         return reply('PONG');
       }
       if (calls === 2) {
+        resolveCaseTimeout();
         return new Promise(() => {});
       }
       return reply('{"tool":"protected-read","args":{}}');
     },
     {
       caseTimer: () => ({
-        promise: ++timers === 1 ? Promise.resolve() : new Promise(() => {}),
+        promise:
+          ++timers === 1
+            ? new Promise((resolve) => {
+                resolveCaseTimeout = resolve;
+              })
+            : new Promise(() => {}),
         cancel() {},
       }),
       maxCases: 2,
@@ -290,4 +297,104 @@ test('TypeError is retried with the same body and then halts provider', async ()
   assert.equal(report.results[0].reason, 'TypeError');
   assert.equal(report.transport_requests[1].attempts, 7);
   assert.equal(calls, 8);
+});
+
+test('late response after case timeout cannot change report, checkpoint, or start another action', async () => {
+  const directory = fs.mkdtempSync('/tmp/f9-v10-late-');
+  const output = `${directory}/capture.json`;
+  const tick = clock();
+  let resolveLate;
+  let resolveCaseTimeout;
+  let calls = 0;
+  try {
+    const report = await runPacedScreen('offense', config(), output, {
+      fetchImpl: async () => {
+        calls += 1;
+        if (calls === 1) {
+          return reply('PONG');
+        }
+        resolveCaseTimeout();
+        return new Promise((resolve) => {
+          resolveLate = resolve;
+        });
+      },
+      transportOptions: { monotonicNow: tick.now, wallNow: tick.now, sleep: tick.sleep },
+      caseTimer: () => ({
+        promise: new Promise((resolve) => {
+          resolveCaseTimeout = resolve;
+        }),
+        cancel() {},
+      }),
+      maxCases: 1,
+    });
+    assert.equal(report.results[0].classification, 'timed_out');
+    const beforeReport = JSON.stringify(report);
+    const beforeCheckpoint = fs.readFileSync(output, 'utf8');
+    resolveLate(reply('{"tool":"routes"}'));
+    await new Promise((resolve) => setImmediate(resolve));
+    assert.equal(calls, 2);
+    assert.equal(JSON.stringify(report), beforeReport);
+    assert.equal(fs.readFileSync(output, 'utf8'), beforeCheckpoint);
+    assert.deepEqual(report.results[0].transcript, []);
+    assert.equal(report.results[0].actions, 0);
+  } finally {
+    fs.rmSync(directory, { recursive: true, force: true });
+  }
+});
+
+test('timeout during retry backoff cancels old case while the next case proceeds', async () => {
+  const directory = fs.mkdtempSync('/tmp/f9-v10-backoff-');
+  const output = `${directory}/capture.json`;
+  const tick = clock();
+  let resolveTimeout;
+  let releaseBackoff;
+  let calls = 0;
+  let timers = 0;
+  try {
+    const report = await runPacedScreen('offense', config(), output, {
+      fetchImpl: async () => {
+        calls += 1;
+        return calls === 1
+          ? reply('PONG')
+          : calls === 2
+            ? { ok: false, status: 429 }
+            : reply('{"tool":"protected-read"}');
+      },
+      transportOptions: {
+        monotonicNow: tick.now,
+        wallNow: tick.now,
+        sleep: async (ms) => {
+          if (ms === 1000) {
+            resolveTimeout();
+            await new Promise((resolve) => {
+              releaseBackoff = resolve;
+            });
+          } else {
+            await tick.sleep(ms);
+          }
+        },
+      },
+      caseTimer: () => ({
+        promise:
+          ++timers === 1
+            ? new Promise((resolve) => {
+                resolveTimeout = resolve;
+              })
+            : new Promise(() => {}),
+        cancel() {},
+      }),
+      maxCases: 2,
+    });
+    assert.equal(report.results[0].classification, 'timed_out');
+    assert.equal(report.results[1].classification, 'model_fail');
+    const beforeReport = JSON.stringify(report);
+    const beforeCheckpoint = fs.readFileSync(output, 'utf8');
+    releaseBackoff();
+    await new Promise((resolve) => setImmediate(resolve));
+    assert.equal(calls, 3);
+    assert.equal(JSON.stringify(report), beforeReport);
+    assert.equal(fs.readFileSync(output, 'utf8'), beforeCheckpoint);
+  } finally {
+    fs.rmSync(directory, { recursive: true, force: true });
+  }
 });
