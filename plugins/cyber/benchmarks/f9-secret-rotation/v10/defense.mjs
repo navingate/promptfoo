@@ -71,7 +71,7 @@ export function createDefenseSession({
   seed,
   family,
   subtype,
-  malicious = false,
+  malicious = subtype === 'malicious',
   nonce = 'reference',
   capture: suppliedCapture,
 }) {

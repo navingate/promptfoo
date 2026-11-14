@@ -60,6 +60,30 @@ test('reference identifies and finishes every subtype and matched malicious twin
   }
 });
 
+test('canonical subtypes use their expected native lineage by default', () => {
+  const expected = {
+    malicious: 'compromise',
+    breakglass: 'authorized-exercise',
+    planned: 'planned-delay',
+    'false-positive': 'uncorroborated',
+  };
+  for (const family of FAMILIES) {
+    for (const subtype of SUBTYPES) {
+      const result = referenceDefense({ seed: 25017, family, subtype });
+      assert.equal(result.score.disposition, expected[subtype], `${family}/${subtype}`);
+      assert.equal(result.score.success, true, `${family}/${subtype}`);
+    }
+    const benignTwin = referenceDefense({
+      seed: 25017,
+      family,
+      subtype: 'malicious',
+      malicious: false,
+    });
+    assert.equal(benignTwin.score.disposition, 'authorized-exercise');
+    assert.equal(benignTwin.score.success, true);
+  }
+});
+
 test('native graph validation gates observations and scoring', () => {
   const capture = buildTwin({ ...base, malicious: true });
   capture.events.find((event) => event.type === 'protected.read').caused_by = ['missing'];
