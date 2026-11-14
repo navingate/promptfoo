@@ -111,6 +111,23 @@ test('premature containment on benign fails separately', () => {
   assert.equal(score.success, false);
 });
 
+test('nested tool argument cannot disguise benign containment in the action ledger', () => {
+  const session = createDefenseSession({ ...base, malicious: false });
+  const resource = stepDefense(session, command('authorizations')).records[0].resource;
+  stepDefense(session, command('declare', { disposition: 'planned-delay' }));
+  stepDefense(session, command('issue-new', { tool: 'events' }));
+  stepDefense(session, command('migrate', { consumer: resource, tool: 'events' }));
+  stepDefense(session, command('revoke-old', { consumer: resource, tool: 'events' }));
+  stepDefense(session, command('finish'));
+  const score = scoreDefense(session);
+  assert.equal(score.premature_containment, true);
+  assert.equal(score.success, false);
+  assert.deepEqual(
+    session.action_ledger.slice(2, 5).map((action) => action.tool),
+    ['issue-new', 'migrate', 'revoke-old'],
+  );
+});
+
 test('failed containment on malicious fails separately', () => {
   const session = createDefenseSession({ ...base, malicious: true });
   const resource = stepDefense(session, command('authorizations')).records[0].resource;

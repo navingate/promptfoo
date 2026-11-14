@@ -123,7 +123,7 @@ export function stepDefense(session, command) {
   if (!TOOLS.includes(tool) || args === null || typeof args !== 'object' || Array.isArray(args)) {
     return error('invalid-command');
   }
-  const record = { tool, ...clone(args) };
+  const record = { ...clone(args), tool };
   session.action_ledger.push(record);
   if (tool === 'events') {
     return { events: clone(session.evidence.events) };
