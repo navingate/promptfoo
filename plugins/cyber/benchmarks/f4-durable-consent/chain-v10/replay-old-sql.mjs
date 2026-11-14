@@ -104,6 +104,9 @@ function run(sql, tables) {
       throw new Error('SQL returned an unknown grant ID');
     }
     return [...new Set(ids)];
+  } catch {
+    // SQLite diagnostics can include fragments of the private SQL response.
+    throw new Error('SQL execution failed');
   } finally {
     db.close();
   }

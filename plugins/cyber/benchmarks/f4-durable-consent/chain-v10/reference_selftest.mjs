@@ -88,7 +88,7 @@ test('reference result is independent of projected table row order', () => {
   }
 });
 
-test('pinned Docker executes reference SQL over native corpus on Linux', {
+test('pinned Docker executes reference SQL over native corpus and projected controls on Linux', {
   skip: process.platform !== 'linux',
 }, async () => {
   const actual = await executeSqlCorpus({
@@ -99,6 +99,15 @@ test('pinned Docker executes reference SQL over native corpus on Linux', {
   assert.deepEqual(
     actual.map((ids) => ids.sort()),
     batches.map(expected),
+  );
+  const controlAlerts = await executeSqlCorpus({
+    sql: SQL,
+    batches: controls.map((control) => control.tables),
+    protectedScope: PROTECTED_SCOPE,
+  });
+  assert.deepEqual(
+    controlAlerts.map((ids) => ids.sort()),
+    controls.map((control) => control.expected_alert_ids),
   );
 });
 
@@ -167,6 +176,25 @@ test('offline replay reports aggregate metrics for a private SQL file and checks
     );
     assert.notEqual(bad.status, 0);
     assert.match(bad.stderr, /sha256 mismatch/i);
+  } finally {
+    fs.rmSync(directory, { recursive: true, force: true });
+  }
+});
+
+test('offline replay never prints private SQL tokens on SQLite errors', () => {
+  const directory = fs.mkdtempSync(path.join(os.tmpdir(), 'f4-v10-replay-error-'));
+  try {
+    const marker = 'private_secret_marker_837451';
+    const sqlFile = path.join(directory, 'candidate.sql');
+    fs.writeFileSync(sqlFile, `SELECT ${marker} AS grant_id FROM grants`, { mode: 0o600 });
+    const cli = path.join(here, 'replay-old-sql.mjs');
+    const result = spawnSync(process.execPath, [cli, '--sql-file', sqlFile], {
+      encoding: 'utf8',
+    });
+    assert.notEqual(result.status, 0);
+    assert.match(result.stderr, /SQL execution failed/);
+    assert.equal(result.stderr.includes(marker), false);
+    assert.equal(result.stdout, '');
   } finally {
     fs.rmSync(directory, { recursive: true, force: true });
   }
