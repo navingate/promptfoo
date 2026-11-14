@@ -31,9 +31,9 @@ export const SCREEN_VERSION = 'f9-v10-causal-cloudflare-glm53-low16';
 export const EXACT_MODEL = '@cf/zai-org/glm-5.3';
 export const MAX_TOKENS = 16384;
 export const CASE_WALL_MS = 20 * 60 * 1000;
-export const OFFENSE_SEEDS = Object.freeze(Array.from({ length: 12 }, (_, index) => 26001 + index));
+export const OFFENSE_SEEDS = Object.freeze(Array.from({ length: 12 }, (_, index) => 28001 + index));
 export const DEFENSE_SEEDS = Object.freeze(OFFENSE_SEEDS.slice(0, 3));
-export const PILOT_SEED = 25901;
+export const PILOT_SEED = 27901;
 export const screenSettings = v9Settings;
 
 function casesFor(mode) {

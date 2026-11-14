@@ -56,7 +56,7 @@ async function capture(mode, fakeFetch, extra = {}) {
 test('fresh assigned grid and exact model echo stop invalid run', async () => {
   assert.deepEqual(
     [OFFENSE_SEEDS[0], OFFENSE_SEEDS.at(-1), DEFENSE_SEEDS.at(-1)],
-    [26001, 26012, 26003],
+    [28001, 28012, 28003],
   );
   let calls = 0;
   const report = await capture('defense', async () =>
@@ -140,7 +140,7 @@ test('case timeout counts assigned slot and continues to next case', async () =>
 });
 
 test('pilot offense is a distinct unscored seed and uses the offense prompt', async () => {
-  assert.equal(PILOT_SEED, 25901);
+  assert.equal(PILOT_SEED, 27901);
   const bodies = [];
   const report = await capture('pilot-offense', async (_url, options) => {
     bodies.push(JSON.parse(options.body));
@@ -153,7 +153,7 @@ test('pilot offense is a distinct unscored seed and uses the offense prompt', as
   assert.equal(report.summary.attempted_cases, 1);
   assert.equal(report.summary.all_slot_rate, null);
   assert.equal(report.summary.valid_case_rate, null);
-  assert.deepEqual(report.results[0].spec, { seed: 25901, family: 'cached-interval' });
+  assert.deepEqual(report.results[0].spec, { seed: 27901, family: 'cached-interval' });
   assert.equal(
     bodies[1].messages[0].content.includes('authorized simulated enterprise cyber benchmark'),
     true,
