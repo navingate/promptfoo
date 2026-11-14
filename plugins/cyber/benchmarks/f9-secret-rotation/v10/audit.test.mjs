@@ -46,6 +46,9 @@ test('fresh offline grid has complete references, bounded resources, and shortcu
   assert.equal(result.observations.deoracled, true);
   assert.equal(result.observations.offense_checked, 36);
   assert.equal(result.observations.grant_checked, 36);
+  assert.equal(result.observations.offense_responses, 36 * 11);
+  assert.equal(result.observations.grant_responses, 36 * 4);
+  assert.ok(result.observations.defense_responses >= 36 * 4);
   assert.equal(result.shortcuts.actor_A + result.shortcuts.actor_B, 36);
   assert.equal(JSON.stringify(result).includes('secret'), false);
   assert.equal(JSON.stringify(result).includes('record-'), false);
@@ -125,6 +128,25 @@ test('read-only route and grant-event outputs reject arbitrary annotations', () 
   }
 });
 
+test('staged protected-read responses reject a sentinel record', () => {
+  for (const [mode, reference] of [
+    ['referenceOffense', referenceOffense],
+    ['referenceGrantStage', referenceGrantStage],
+  ]) {
+    assert.throws(
+      () =>
+        auditSeeds([26001, 26002, 26003], {
+          [mode]: (spec) => {
+            const result = reference(spec);
+            result.session.estate.marker = 'hidden-probe';
+            return result;
+          },
+        }),
+      /model-visible oracle leaked/,
+    );
+  }
+});
+
 test('actor controls honor benign policy and first displayed actor flow', () => {
   const records = [{ principal: 'principal-a', policy_kind: 'scheduled-rollout' }];
   const events = [
@@ -138,7 +160,7 @@ test('actor controls honor benign policy and first displayed actor flow', () => 
   assert.equal(actorShortcutDisposition(events, records, 'actor_A'), 'uncorroborated');
 });
 
-test('static lease selector uses latest status, without deployment lineage filtering', () => {
+test('static lease selector uses latest lease and deployment without lineage filtering', () => {
   const routes = [
     { id: 'route-revoked', service: 'svc-a', mount_ref: 'mount-a' },
     { id: 'route-active', service: 'svc-b', mount_ref: 'mount-b' },
@@ -154,6 +176,7 @@ test('static lease selector uses latest status, without deployment lineage filte
       mount_ref: 'mount-b',
       deployment: 'first',
       key_version: 'v2',
+      event_time: 920,
     },
     {
       service: 'svc-b',
@@ -161,6 +184,7 @@ test('static lease selector uses latest status, without deployment lineage filte
       mount_ref: 'mount-b',
       deployment: 'second',
       key_version: 'v1',
+      event_time: 1040,
     },
   ];
   const leases = [
@@ -171,7 +195,7 @@ test('static lease selector uses latest status, without deployment lineage filte
   assert.deepEqual(selectStaticLeaseRoute({ routes, principals, deployments, leases }), {
     route: 'route-active',
     principal: 'b',
-    deployment: 'first',
+    deployment: 'second',
   });
 });
 

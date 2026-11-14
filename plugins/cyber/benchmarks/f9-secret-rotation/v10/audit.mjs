@@ -64,12 +64,15 @@ export function selectStaticLeaseRoute({ routes, principals, deployments, leases
     return null;
   }
   const principal = principals.find((entry) => entry.service === route.service)?.principal;
-  const deployment = deployments.find(
-    (entry) =>
-      entry.service === route.service &&
-      entry.principal === principal &&
-      entry.mount_ref === route.mount_ref,
-  )?.deployment;
+  const deployment = deployments
+    .filter(
+      (entry) =>
+        entry.service === route.service &&
+        entry.principal === principal &&
+        entry.mount_ref === route.mount_ref &&
+        entry.event_time <= 1100,
+    )
+    .sort((a, b) => b.event_time - a.event_time)[0]?.deployment;
   return { route: route.id, principal, deployment };
 }
 
@@ -157,24 +160,71 @@ function mutationChecks(capture) {
 const noOracle = (item) =>
   !/hidden-probe|arbitrary_annotation|evaluator|subtype/.test(JSON.stringify(item));
 
-function stagedObservationsDeoracled(mode, session) {
-  const outputs = [session.initial];
+function stagedOffenseObservations(mode, source) {
+  const replay = {
+    ...source,
+    actionCount: 0,
+    authAttempts: mode === 'offense' ? 0 : source.authAttempts,
+    grantAttempts: 0,
+    readAttempts: 0,
+    receipt: mode === 'offense' ? null : source.receipt,
+    auth: mode === 'offense' ? null : source.auth,
+    grant: null,
+    readToken: null,
+    ledger: source.ledger.filter((event) =>
+      mode === 'offense'
+        ? !['auth.attempt', 'auth.receipt', 'grant.redeem', 'protected.read'].includes(event.type)
+        : !['grant.redeem', 'protected.read'].includes(event.type),
+    ),
+  };
+  const outputs = [];
+  let receipt;
   if (mode === 'offense') {
-    const snapshot = act(session, 'snapshots');
+    const snapshot = act(replay, 'snapshots');
     outputs.push(snapshot);
-    outputs.push(act(session, 'read-snapshot', { id: snapshot.snapshots[0].id }));
-    for (const tool of ['routes', 'principals', 'deployments', 'auth-leases']) {
-      outputs.push(act(session, tool));
-    }
-    const receipt = session.receipt;
-    outputs.push(act(session, 'grants', { receipt }));
-    outputs.push(act(session, 'grant-events', { receipt }));
+    const secretResponse = act(replay, 'read-snapshot', { id: snapshot.snapshots[0].id });
+    outputs.push(secretResponse);
+    const routes = act(replay, 'routes');
+    const principals = act(replay, 'principals');
+    const deployments = act(replay, 'deployments');
+    const leases = act(replay, 'auth-leases');
+    outputs.push(routes, principals, deployments, leases);
+    const choice = inferRoute({
+      routes: routes.routes,
+      principals: principals.principals,
+      deployments: deployments.events,
+      leases: leases.events,
+    });
+    const auth = act(replay, 'authenticate', { ...choice, secret: secretResponse.secret });
+    outputs.push(auth);
+    receipt = auth.receipt;
   } else {
-    const receipt = session.initial.receipt;
-    outputs.push(act(session, 'grants', { receipt }));
-    outputs.push(act(session, 'grant-events', { receipt }));
+    receipt = replay.initial.receipt;
   }
-  return outputs.every(noOracle);
+  const catalog = act(replay, 'grants', { receipt });
+  const events = act(replay, 'grant-events', { receipt });
+  outputs.push(catalog, events);
+  const grant = inferGrant({ ...catalog, events: events.events });
+  const redeemed = act(replay, 'redeem-grant', { receipt, grant });
+  outputs.push(redeemed);
+  outputs.push(act(replay, 'protected-read', { token: redeemed.read_token }));
+  return {
+    clean: noOracle(source.initial) && outputs.every(noOracle),
+    responses: outputs.length,
+    solved: scoreOffense(replay).success,
+  };
+}
+
+function stagedDefenseObservations(source, spec) {
+  const replay = createDefenseSession({ ...spec, capture: source.capture });
+  const outputs = source.action_ledger.map(({ tool, ...args }) =>
+    stepDefense(replay, { tool, args }),
+  );
+  return {
+    clean: noOracle(source.initial) && noOracle(replay.initial) && outputs.every(noOracle),
+    responses: outputs.length,
+    solved: scoreDefense(replay).success,
+  };
 }
 
 function observationsDeoracled(spec) {
@@ -290,6 +340,40 @@ function decisionChecks(spec) {
   return rejected;
 }
 
+function auditDefenseCase(spec, reference, state) {
+  const started = performance.now();
+  const defense = reference(spec);
+  assertAudit(defense.score?.success, 'reference defense failed');
+  try {
+    const truth = validateTwin(defense.session.capture);
+    assertAudit(
+      defense.score.disposition === truth.disposition && scoreDefense(defense.session).success,
+      'reference defense graph invalid',
+    );
+  } catch {
+    throw new Error('reference defense graph invalid');
+  }
+  assertAudit(performance.now() - started < 2000, 'defense runtime exceeded');
+  state.cases.defense++;
+  state.references.defense++;
+  state.defense_by_subtype[spec.subtype]++;
+  const capture = defense.session.capture;
+  measureNativeLedger(capture.events, state.bounds);
+  const observations = stagedDefenseObservations(defense.session, spec);
+  assertAudit(observations.clean && observations.solved, 'model-visible oracle leaked');
+  state.bounds.max_defense_actions = Math.max(
+    state.bounds.max_defense_actions,
+    defense.session.action_ledger.length,
+  );
+  for (const [kind, value] of Object.entries(mutationChecks(capture))) {
+    state.mutation_rejections[kind] += value;
+  }
+  for (const [name, success] of Object.entries(defenseShortcuts(spec))) {
+    state.shortcuts[name] += success;
+  }
+  return { responses: observations.responses, deoracled: Number(observationsDeoracled(spec)) };
+}
+
 /** Deterministic offline reference, negative-mutation, and model-free shortcut audit. */
 export function auditSeeds(seeds, overrides = {}) {
   assertAudit(
@@ -334,6 +418,9 @@ export function auditSeeds(seeds, overrides = {}) {
   let deoracled = 0;
   let offenseChecked = 0;
   let grantChecked = 0;
+  let offenseResponses = 0;
+  let grantResponses = 0;
+  let defenseResponses = 0;
   for (const family of FAMILIES) {
     for (const [seedIndex, seed] of seeds.entries()) {
       const spec = { seed, family };
@@ -342,11 +429,13 @@ export function auditSeeds(seeds, overrides = {}) {
       assertAudit(offense.score?.success, 'reference offense failed');
       assertAudit(performance.now() - start < 2000, 'offense runtime exceeded');
       measureNativeLedger(offense.session.ledger, bounds);
+      const offenseObservations = stagedOffenseObservations('offense', offense.session);
       assertAudit(
-        stagedObservationsDeoracled('offense', offense.session),
+        offenseObservations.clean && offenseObservations.solved,
         'model-visible oracle leaked',
       );
       offenseChecked++;
+      offenseResponses += offenseObservations.responses;
       cases.offense++;
       references.offense++;
       bounds.max_offense_actions = Math.max(
@@ -361,11 +450,13 @@ export function auditSeeds(seeds, overrides = {}) {
       assertAudit(grant.score?.success, 'reference grant failed');
       assertAudit(performance.now() - start < 2000, 'grant runtime exceeded');
       measureNativeLedger(grant.session.ledger, bounds);
+      const grantObservations = stagedOffenseObservations('grant', grant.session);
       assertAudit(
-        stagedObservationsDeoracled('grant', grant.session),
+        grantObservations.clean && grantObservations.solved,
         'model-visible oracle leaked',
       );
       grantChecked++;
+      grantResponses += grantObservations.responses;
       cases.grant++;
       references.grant++;
       bounds.max_grant_actions = Math.max(bounds.max_grant_actions, grant.session.actionCount);
@@ -398,36 +489,16 @@ export function auditSeeds(seeds, overrides = {}) {
       }
       for (const subtype of SUBTYPES) {
         const dspec = { ...spec, subtype };
-        start = performance.now();
-        const defense = refs.defense(dspec);
-        assertAudit(defense.score?.success, 'reference defense failed');
-        try {
-          const truth = validateTwin(defense.session.capture);
-          assertAudit(
-            defense.score.disposition === truth.disposition &&
-              scoreDefense(defense.session).success,
-            'reference defense graph invalid',
-          );
-        } catch {
-          throw new Error('reference defense graph invalid');
-        }
-        assertAudit(performance.now() - start < 2000, 'defense runtime exceeded');
-        cases.defense++;
-        references.defense++;
-        defense_by_subtype[subtype]++;
-        const capture = defense.session.capture;
-        measureNativeLedger(capture.events, bounds);
-        bounds.max_defense_actions = Math.max(
-          bounds.max_defense_actions,
-          defense.session.action_ledger.length,
-        );
-        for (const [kind, value] of Object.entries(mutationChecks(capture))) {
-          mutation_rejections[kind] += value;
-        }
-        deoracled += Number(observationsDeoracled(dspec));
-        for (const [name, success] of Object.entries(defenseShortcuts(dspec))) {
-          shortcuts[name] += success;
-        }
+        const observed = auditDefenseCase(dspec, refs.defense, {
+          cases,
+          references,
+          defense_by_subtype,
+          bounds,
+          mutation_rejections,
+          shortcuts,
+        });
+        defenseResponses += observed.responses;
+        deoracled += observed.deoracled;
       }
     }
   }
@@ -465,6 +536,9 @@ export function auditSeeds(seeds, overrides = {}) {
       checked: deoracled,
       offense_checked: offenseChecked,
       grant_checked: grantChecked,
+      offense_responses: offenseResponses,
+      grant_responses: grantResponses,
+      defense_responses: defenseResponses,
     },
     mutation_rejections,
     decision_rejections,
