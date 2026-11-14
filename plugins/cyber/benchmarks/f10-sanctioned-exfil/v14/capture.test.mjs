@@ -19,6 +19,8 @@ test('fixed seeds and native plan boundaries', () => {
       family: 'multi-identity-fanout',
       nonce: 'plan-test',
     }).world;
+    assert.throws(() => planForCount(world, 2));
+    assert.throws(() => planForCount(world, 3));
     for (const count of [
       world.policy.cumulative_aggregate_limit + 1,
       world.policy.cumulative_aggregate_limit + 3,
@@ -48,6 +50,7 @@ test('each seed has six native two-flow cases, a denied case, and balanced truth
       assert.equal(Object.keys(answer.labels).length, 2);
       assert.equal(visible.events.length, visible.receipts.length);
       assert.equal(proof.sink.length, visible.receipts.length);
+      assert.equal(proof.score.checks.payload_ok, true);
       for (const label of Object.values(answer.labels)) {
         counts[label] += 1;
       }
@@ -73,6 +76,20 @@ test('each seed has six native two-flow cases, a denied case, and balanced truth
     assert.equal(denied.proof.sink.length, 0);
     assert.equal(denied.visible.blocked_publish_attempts[0].reason, 'publisher-owner-mismatch');
   }
+});
+
+test('capture IDs use private entropy and explicit nonces replay native receipts', () => {
+  const first = produceCase(14001, 'bound-bulk');
+  const second = produceCase(14001, 'bound-bulk');
+  assert.notEqual(first.visible.capture_id, second.visible.capture_id);
+  assert.notEqual(first.proof.spec.nonce, second.proof.spec.nonce);
+  assert.notEqual(first.proof.captureNonce, second.proof.captureNonce);
+  assert.equal(first.visible.captureNonce, undefined);
+  const options = { nonce: 'shared-native-nonce', captureNonce: 'private-capture-nonce' };
+  const replay = produceCase(14001, 'bound-bulk', options);
+  assert.deepEqual(replay, produceCase(14001, 'bound-bulk', options));
+  assert.equal(replay.proof.spec.nonce, options.nonce);
+  assert.equal(replay.proof.captureNonce, options.captureNonce);
 });
 
 test('completed exports cite the intended job, with publisher and actor binding mismatches preserved', () => {
@@ -134,8 +151,22 @@ test('paired cases differ only in final cell overlap and labels', () => {
       ['alternate-over', 'alternate-boundary'],
       ['mixed-cap-cross', 'mixed-cap-safe'],
     ]) {
-      const fresh = produceCase(seed, freshKind);
-      const duplicate = produceCase(seed, duplicateKind);
+      const nonce = `paired-native-${seed}-${freshKind}`;
+      const fresh = produceCase(seed, freshKind, {
+        nonce,
+        captureNonce: `private-fresh-${seed}-${freshKind}`,
+      });
+      const duplicate = produceCase(seed, duplicateKind, {
+        nonce,
+        captureNonce: `private-duplicate-${seed}-${duplicateKind}`,
+      });
+      assert.notEqual(fresh.visible.capture_id, duplicate.visible.capture_id);
+      for (const field of ['report_ref', 'stage_ref', 'receipt_id']) {
+        assert.deepEqual(
+          fresh.visible.receipts.slice(0, -1).map((receipt) => receipt[field]),
+          duplicate.visible.receipts.slice(0, -1).map((receipt) => receipt[field]),
+        );
+      }
       assert.deepEqual(signature(fresh), signature(duplicate));
       assert.deepEqual(
         fresh.visible.events.slice(0, -1).map((e) => e.volume),

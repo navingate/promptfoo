@@ -1,4 +1,4 @@
-// Deterministic native defense captures. Only `visible` belongs in model observations.
+// Native defense captures. Explicit private nonces allow deterministic evaluator replay.
 import assert from 'node:assert/strict';
 import crypto from 'node:crypto';
 
@@ -32,10 +32,10 @@ export const CAPTURE_KINDS = [
 
 const hash = (value) => crypto.createHash('sha256').update(value).digest('hex');
 const cellKey = (row, column) => `${row}|${column}`;
-const caseId = (seed, kind) => `cap-${hash(`f10-v14|capture|${seed}|${kind}`).slice(0, 18)}`;
+const caseId = (captureNonce) => `cap-${hash(`f10-v14|capture|${captureNonce}`).slice(0, 18)}`;
 
 export function planForCount(world, count) {
-  assert.ok(Number.isInteger(count) && count >= 2);
+  assert.ok(Number.isInteger(count) && count >= 4);
   const identities = world.identities.slice(0, 2);
   const minFirst = Math.max(
     2 * Math.floor(count / 4),
@@ -171,15 +171,20 @@ function flowsFromEvents(captureId, events, policy) {
   return [...seen.values()];
 }
 
-export function produceCase(seed, kind) {
+export function produceCase(
+  seed,
+  kind,
+  {
+    nonce = crypto.randomBytes(32).toString('hex'),
+    captureNonce = crypto.randomBytes(32).toString('hex'),
+  } = {},
+) {
   if (!CAPTURE_SEEDS.includes(seed) || !CAPTURE_KINDS.includes(kind)) {
     throw new Error('unknown v14 capture seed or kind');
   }
-  const spec = {
-    seed,
-    family: 'multi-identity-fanout',
-    nonce: hash(`f10-v14|nonce|${seed}|${kind}`),
-  };
+  assert.ok(typeof nonce === 'string' && nonce.length > 0);
+  assert.ok(typeof captureNonce === 'string' && captureNonce.length > 0);
+  const spec = { seed, family: 'multi-identity-fanout', nonce };
   const world = createOffenseSession(spec).world;
   const A = world.policy.cumulative_aggregate_limit;
   const job = jobFor(world, seed, kind);
@@ -248,7 +253,7 @@ export function produceCase(seed, kind) {
       assert.equal(transcript.at(-1).publish.ok, true);
     }
   }
-  const capture_id = caseId(seed, kind);
+  const capture_id = caseId(captureNonce);
   const events = session.ledger.map((item) => item.event);
   const receipts = session.ledger.map((item) => item.receipt);
   const replay = runExportPlane(session.actions, session.world);
@@ -286,8 +291,11 @@ export function produceCase(seed, kind) {
     flows,
     denied_count: session.denied.length,
   };
+  const score = scoreOffenseSession(session);
+  assert.equal(score.checks.payload_ok, true);
   const proof = {
     capture_id,
+    captureNonce,
     kind,
     spec,
     plan,
@@ -298,7 +306,7 @@ export function produceCase(seed, kind) {
     sink: session.sink,
     denied: session.denied,
     sink_payload_sha256: hash(JSON.stringify(session.sink.map((item) => item.cells))),
-    score: scoreOffenseSession(session),
+    score,
   };
   return { visible, answer: { capture_id, seed, kind, labels }, proof };
 }
