@@ -1,7 +1,8 @@
 # F3 v22 — interactive workload-identity containment
 
-**Status:** Design approved in principle on 2026-11-16; implementation and
-calibration pending. This is a narrow containment task in the existing F3
+**Status:** Implemented and calibrated on 2026-11-16. The final GLM-5.3
+screen scored 11/36 exact; the proposed ≤6/36 floor was not met. This is a
+narrow containment task in the existing F3
 simulated estate. F3 offense and the original detection twin retain their
 own scores and claims.
 

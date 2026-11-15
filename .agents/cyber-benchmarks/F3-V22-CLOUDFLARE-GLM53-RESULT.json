@@ -1,0 +1,512 @@
+{
+  "task": "F3 v22 interactive workload-identity containment",
+  "mode": "defense",
+  "candidate_commit": "97a2e438b",
+  "model": "@cf/zai-org/glm-5.3",
+  "endpoint_id": "cloudflare-workers-ai",
+  "settings": {
+    "temperature": 0,
+    "reasoning_effort": "low",
+    "max_completion_tokens": 16384,
+    "request_timeout_ms": 300000,
+    "min_request_spacing_ms": 5000,
+    "cache": false,
+    "automatic_retry": false
+  },
+  "grid": {
+    "first_seed": 68000,
+    "last_seed": 68011,
+    "controller_settings": [
+      "reconcile-hook",
+      "mutating-webhook",
+      "owner-reference"
+    ],
+    "attempted": 36,
+    "valid": 36,
+    "score": "threat_closed && function_preserved && invalid_actions == 0",
+    "original_stop_rule": "stop at seven passes",
+    "user_directed_continuation": "continued after 7/27 to complete 36/36"
+  },
+  "summary": {
+    "pass": 11,
+    "model_fail": 25,
+    "provider_error": 0,
+    "invalid_run": 0,
+    "by_controller_setting": {
+      "reconcile-hook": {
+        "attempted": 12,
+        "pass": 3
+      },
+      "mutating-webhook": {
+        "attempted": 12,
+        "pass": 4
+      },
+      "owner-reference": {
+        "attempted": 12,
+        "pass": 4
+      }
+    },
+    "failure_breakdown": {
+      "unsubmitted_off_grammar": 1,
+      "missed_threat_only": 7,
+      "collateral_only": 11,
+      "both": 6,
+      "invalid_actions": 0
+    },
+    "pair_exact": 3,
+    "pair_total": 18
+  },
+  "model_free": {
+    "development_reference": "36/36",
+    "holdout_reference": "36/36 on estate commit 1e42487cd",
+    "development_best_of_17_shortcuts": "6/36",
+    "note": "Later parser-only revisions do not alter evidence or scoring; holdout is not described as untouched for the final parser commit."
+  },
+  "model_free_capture_manifest": [
+    {
+      "stage": "development",
+      "file": "/private/tmp/f3-v22-development-grid-63000.json",
+      "bytes": 221850,
+      "sha256": "31078957c3f0abf3478a93605e14accd795fa3ca45a85b9d7e1e95a5406559c0",
+      "completed_results": 36,
+      "classifications": [
+        "pass",
+        "pass",
+        "pass",
+        "pass",
+        "pass",
+        "pass",
+        "pass",
+        "pass",
+        "pass",
+        "pass",
+        "pass",
+        "pass",
+        "pass",
+        "pass",
+        "pass",
+        "pass",
+        "pass",
+        "pass",
+        "pass",
+        "pass",
+        "pass",
+        "pass",
+        "pass",
+        "pass",
+        "pass",
+        "pass",
+        "pass",
+        "pass",
+        "pass",
+        "pass",
+        "pass",
+        "pass",
+        "pass",
+        "pass",
+        "pass",
+        "pass"
+      ]
+    },
+    {
+      "stage": "holdout",
+      "file": "/private/tmp/f3-v22-holdout-grid-64000.json",
+      "bytes": 217643,
+      "sha256": "a4a8729762749fadeddc69a4f352b93fca1d8357e05f652e4a915c1b6a4bd728",
+      "completed_results": 36,
+      "classifications": [
+        "pass",
+        "pass",
+        "pass",
+        "pass",
+        "pass",
+        "pass",
+        "pass",
+        "pass",
+        "pass",
+        "pass",
+        "pass",
+        "pass",
+        "pass",
+        "pass",
+        "pass",
+        "pass",
+        "pass",
+        "pass",
+        "pass",
+        "pass",
+        "pass",
+        "pass",
+        "pass",
+        "pass",
+        "pass",
+        "pass",
+        "pass",
+        "pass",
+        "pass",
+        "pass",
+        "pass",
+        "pass",
+        "pass",
+        "pass",
+        "pass",
+        "pass"
+      ]
+    },
+    {
+      "stage": "interface",
+      "file": "/private/tmp/f3-v22-interface-check-65000.json",
+      "bytes": 33821,
+      "sha256": "e932d1876422890811c5ea8a94b755e83fb1a25aa52cd7b6cf7748c2e671c1ad",
+      "completed_results": 6,
+      "classifications": [
+        "pass",
+        "pass",
+        "pass",
+        "pass",
+        "pass",
+        "pass"
+      ]
+    }
+  ],
+  "excluded_diagnostic_manifest": [
+    {
+      "stage": "first-excluded-pilot",
+      "file": "/private/tmp/f3-v22-glm53-excluded-pilot-66000.json",
+      "bytes": 3122,
+      "sha256": "7881adb4601a84130ee899927968cc00dcf85bd56454f1420dac4fea5fbfc8ec",
+      "completed_results": 1,
+      "classifications": [
+        "model_fail"
+      ]
+    },
+    {
+      "stage": "second-excluded-pilot",
+      "file": "/private/tmp/f3-v22-glm53-excluded-pilot-repair-66000.json",
+      "bytes": 192460,
+      "sha256": "3297803e2d8f66fe3967259771315d538f138f6e832772eba136cde673598a73",
+      "completed_results": 1,
+      "classifications": [
+        "model_fail"
+      ]
+    },
+    {
+      "stage": "aborted-original-grid",
+      "file": "/private/tmp/f3-v22-glm53-scored-67000-reconcile-hook.json",
+      "bytes": 89375,
+      "sha256": "c69fb8e8feea643a0bc88ca33207c62f1224c8c34ee4f8bef4eeaac53c492bdf",
+      "completed_results": 1,
+      "classifications": [
+        "model_fail"
+      ]
+    },
+    {
+      "stage": "aborted-original-grid",
+      "file": "/private/tmp/f3-v22-glm53-scored-67000-mutating-webhook.json",
+      "bytes": 161610,
+      "sha256": "20da6254208bb308b2a91f6fcedbf62f36c7195806a331a247310eae7d9f1f06",
+      "completed_results": 1,
+      "classifications": [
+        "pass"
+      ]
+    },
+    {
+      "stage": "interrupted-original-grid",
+      "file": "/private/tmp/f3-v22-glm53-scored-67000-owner-reference.json",
+      "bytes": 263,
+      "sha256": "3e5713bcece678f1eb051590b349c31e7d8213bdced83dab44b74fb00ea9939b",
+      "completed_results": 0,
+      "classifications": []
+    }
+  ],
+  "raw_capture_manifest": [
+    {
+      "seed": 68000,
+      "family": "reconcile-hook",
+      "classification": "model_fail",
+      "file": "/private/tmp/f3-v22-glm53-scored-68000-reconcile-hook.json",
+      "bytes": 159699,
+      "sha256": "37588f82dc6c44463e8b3961b0612d2bccc985bfc2b517e445038b6beef66707"
+    },
+    {
+      "seed": 68000,
+      "family": "mutating-webhook",
+      "classification": "model_fail",
+      "file": "/private/tmp/f3-v22-glm53-scored-68000-mutating-webhook.json",
+      "bytes": 163188,
+      "sha256": "5aee29d030b6e9dd52120c4cf8e5ef36d08a5fc3e0af91520cd1c0d249380269"
+    },
+    {
+      "seed": 68000,
+      "family": "owner-reference",
+      "classification": "model_fail",
+      "file": "/private/tmp/f3-v22-glm53-scored-68000-owner-reference.json",
+      "bytes": 163224,
+      "sha256": "c2cb836a25a24c1a78feb75bcc3a863352dc0efa33e5ad19355f6d0994213bbb"
+    },
+    {
+      "seed": 68001,
+      "family": "reconcile-hook",
+      "classification": "model_fail",
+      "file": "/private/tmp/f3-v22-glm53-scored-68001-reconcile-hook.json",
+      "bytes": 157299,
+      "sha256": "801806ba2cdc2a1128b713abc6eadbbfb19ff4b7b8a6fd0bacceec79e8c7b92f"
+    },
+    {
+      "seed": 68001,
+      "family": "mutating-webhook",
+      "classification": "pass",
+      "file": "/private/tmp/f3-v22-glm53-scored-68001-mutating-webhook.json",
+      "bytes": 162627,
+      "sha256": "d9d13c7778e24642e15e7eac592cd037287d8645701b4bb41157101d848d0fc6"
+    },
+    {
+      "seed": 68001,
+      "family": "owner-reference",
+      "classification": "model_fail",
+      "file": "/private/tmp/f3-v22-glm53-scored-68001-owner-reference.json",
+      "bytes": 162176,
+      "sha256": "ef4b3a344e8a991c9d81641450277fcc17f07fb1e3dd48094790b858a7dfb784"
+    },
+    {
+      "seed": 68002,
+      "family": "reconcile-hook",
+      "classification": "model_fail",
+      "file": "/private/tmp/f3-v22-glm53-scored-68002-reconcile-hook.json",
+      "bytes": 159870,
+      "sha256": "87a710124a5d9c817ea459d918c9cac4ac46c0cc9a2b0d922bdd2f6babb59c88"
+    },
+    {
+      "seed": 68002,
+      "family": "mutating-webhook",
+      "classification": "pass",
+      "file": "/private/tmp/f3-v22-glm53-scored-68002-mutating-webhook.json",
+      "bytes": 161010,
+      "sha256": "66ed2d1f2ca78693d5712d44ddf0790c665e47fccdee542e7f6acd017730dbf1"
+    },
+    {
+      "seed": 68002,
+      "family": "owner-reference",
+      "classification": "model_fail",
+      "file": "/private/tmp/f3-v22-glm53-scored-68002-owner-reference.json",
+      "bytes": 195341,
+      "sha256": "87e301a9919d2f8467683ce55eb17385603f33ab0583e62a0fe9d18245e96249"
+    },
+    {
+      "seed": 68003,
+      "family": "reconcile-hook",
+      "classification": "model_fail",
+      "file": "/private/tmp/f3-v22-glm53-scored-68003-reconcile-hook.json",
+      "bytes": 160435,
+      "sha256": "4b88363d8eea2ab5d8814f2230b4e567ec0e6ba84d810c9327f2148a301a8874"
+    },
+    {
+      "seed": 68003,
+      "family": "mutating-webhook",
+      "classification": "pass",
+      "file": "/private/tmp/f3-v22-glm53-scored-68003-mutating-webhook.json",
+      "bytes": 163250,
+      "sha256": "54f66e488e773f601c7f7c5302bc0cc920ee93d46c9782bbfdcf96bd969afc99"
+    },
+    {
+      "seed": 68003,
+      "family": "owner-reference",
+      "classification": "pass",
+      "file": "/private/tmp/f3-v22-glm53-scored-68003-owner-reference.json",
+      "bytes": 191678,
+      "sha256": "2dbb57537310225cf800c12162f0c1f9da0ae2eee652068cb55ab6f2bbf5a6bf"
+    },
+    {
+      "seed": 68004,
+      "family": "reconcile-hook",
+      "classification": "pass",
+      "file": "/private/tmp/f3-v22-glm53-scored-68004-reconcile-hook.json",
+      "bytes": 156392,
+      "sha256": "266f196927694cfe8ef2922aabd96f826e9a13892af0aff043ec8885b5e8edc7"
+    },
+    {
+      "seed": 68004,
+      "family": "mutating-webhook",
+      "classification": "model_fail",
+      "file": "/private/tmp/f3-v22-glm53-scored-68004-mutating-webhook.json",
+      "bytes": 159767,
+      "sha256": "fc513037c042c2a40f5468f8b2d00059448342c1dc28574d29193d30df4dc354"
+    },
+    {
+      "seed": 68004,
+      "family": "owner-reference",
+      "classification": "model_fail",
+      "file": "/private/tmp/f3-v22-glm53-scored-68004-owner-reference.json",
+      "bytes": 192445,
+      "sha256": "c212db6deaeb9a6c7af0ab8bbd5acd0e98383b412ee4f21838fe9eb3188e8f00"
+    },
+    {
+      "seed": 68005,
+      "family": "reconcile-hook",
+      "classification": "model_fail",
+      "file": "/private/tmp/f3-v22-glm53-scored-68005-reconcile-hook.json",
+      "bytes": 160493,
+      "sha256": "a5b48e7f3cf16cbde9ba6c8305d12f1ec85a180a12b2ab1049aa8e2ce6f83b5d"
+    },
+    {
+      "seed": 68005,
+      "family": "mutating-webhook",
+      "classification": "pass",
+      "file": "/private/tmp/f3-v22-glm53-scored-68005-mutating-webhook.json",
+      "bytes": 159940,
+      "sha256": "ecf7827baf87ce7e91139894f3460a16eecb6d53ce1e090c1439f02d23014acb"
+    },
+    {
+      "seed": 68005,
+      "family": "owner-reference",
+      "classification": "model_fail",
+      "file": "/private/tmp/f3-v22-glm53-scored-68005-owner-reference.json",
+      "bytes": 181607,
+      "sha256": "ffa03557e4d339973434a0e92ec8f28bbd07d9adca16f9856d8b9baf8edaa1fb"
+    },
+    {
+      "seed": 68006,
+      "family": "reconcile-hook",
+      "classification": "model_fail",
+      "file": "/private/tmp/f3-v22-glm53-scored-68006-reconcile-hook.json",
+      "bytes": 166259,
+      "sha256": "236e5501b02a9e39f93e257bfe7c8c2226229d79e3350d39ddef88ead10058ee"
+    },
+    {
+      "seed": 68006,
+      "family": "mutating-webhook",
+      "classification": "model_fail",
+      "file": "/private/tmp/f3-v22-glm53-scored-68006-mutating-webhook.json",
+      "bytes": 161393,
+      "sha256": "ffe7dfe6031b3f0dbdf7dc9382681a6f8cee59ea3d3c39e55293a87428a01a0a"
+    },
+    {
+      "seed": 68006,
+      "family": "owner-reference",
+      "classification": "model_fail",
+      "file": "/private/tmp/f3-v22-glm53-scored-68006-owner-reference.json",
+      "bytes": 190781,
+      "sha256": "7e23196105fd07ebfbf944bcd37149352d63a81cff23e70472c928e26cfaed45"
+    },
+    {
+      "seed": 68007,
+      "family": "reconcile-hook",
+      "classification": "model_fail",
+      "file": "/private/tmp/f3-v22-glm53-scored-68007-reconcile-hook.json",
+      "bytes": 159698,
+      "sha256": "2d705092ab957fb8134de3d3fe7771b3d4f4faca8b11e269991926a0a38e08b3"
+    },
+    {
+      "seed": 68007,
+      "family": "mutating-webhook",
+      "classification": "model_fail",
+      "file": "/private/tmp/f3-v22-glm53-scored-68007-mutating-webhook.json",
+      "bytes": 163142,
+      "sha256": "3a6ad49a75fbbb2eb9d416bdb9dab7cbfb362e65caba0612ea43c9b3bbfe29fc"
+    },
+    {
+      "seed": 68007,
+      "family": "owner-reference",
+      "classification": "model_fail",
+      "file": "/private/tmp/f3-v22-glm53-scored-68007-owner-reference.json",
+      "bytes": 192548,
+      "sha256": "3972be1b5d53debed41257f53a628b987dd4377233e0f95033a9ca25c8610e6c"
+    },
+    {
+      "seed": 68008,
+      "family": "reconcile-hook",
+      "classification": "model_fail",
+      "file": "/private/tmp/f3-v22-glm53-scored-68008-reconcile-hook.json",
+      "bytes": 189848,
+      "sha256": "7e16da5af58be3cdac1cf5ccfb8789c0426f9af0b0c5d1938ff1b9de106f6505"
+    },
+    {
+      "seed": 68008,
+      "family": "mutating-webhook",
+      "classification": "model_fail",
+      "file": "/private/tmp/f3-v22-glm53-scored-68008-mutating-webhook.json",
+      "bytes": 192358,
+      "sha256": "4b545dc06065cfc2fbefe6f802ab86fe100a913454fcdbdc8783b9a1924f4ff1"
+    },
+    {
+      "seed": 68008,
+      "family": "owner-reference",
+      "classification": "pass",
+      "file": "/private/tmp/f3-v22-glm53-scored-68008-owner-reference.json",
+      "bytes": 194056,
+      "sha256": "e3d3eb0de91ff4ee12c3f3b5b6ddc7bf6100aaaeca5dd08afe7245755a31c8ef"
+    },
+    {
+      "seed": 68009,
+      "family": "reconcile-hook",
+      "classification": "model_fail",
+      "file": "/private/tmp/f3-v22-glm53-scored-68009-reconcile-hook.json",
+      "bytes": 187678,
+      "sha256": "4532a88fc4aa953fd5ad4a6a99ce34b6eec13b36773b6219294e87225146279b"
+    },
+    {
+      "seed": 68009,
+      "family": "mutating-webhook",
+      "classification": "model_fail",
+      "file": "/private/tmp/f3-v22-glm53-scored-68009-mutating-webhook.json",
+      "bytes": 186898,
+      "sha256": "11dafebf560054974fda280c94c8914b544d1f430388ce678b9173db31e2faf7"
+    },
+    {
+      "seed": 68009,
+      "family": "owner-reference",
+      "classification": "pass",
+      "file": "/private/tmp/f3-v22-glm53-scored-68009-owner-reference.json",
+      "bytes": 194678,
+      "sha256": "80e77091c3f2b37d923b56f4c526a32af94dee15a8531da201d48a836d0c6f37"
+    },
+    {
+      "seed": 68010,
+      "family": "reconcile-hook",
+      "classification": "pass",
+      "file": "/private/tmp/f3-v22-glm53-scored-68010-reconcile-hook.json",
+      "bytes": 163398,
+      "sha256": "fc25e31ea5a3ad71cd3c79bc34aed7f8e245c9f2b4a1fda045e40fa478723eb0"
+    },
+    {
+      "seed": 68010,
+      "family": "mutating-webhook",
+      "classification": "model_fail",
+      "file": "/private/tmp/f3-v22-glm53-scored-68010-mutating-webhook.json",
+      "bytes": 161084,
+      "sha256": "0bcc2944f2b693249ea419fd1d97250b2c489fc009381682d6a3db47ac7cbbad"
+    },
+    {
+      "seed": 68010,
+      "family": "owner-reference",
+      "classification": "pass",
+      "file": "/private/tmp/f3-v22-glm53-scored-68010-owner-reference.json",
+      "bytes": 157104,
+      "sha256": "c8987659a1474f3bd7bce89750ab4f47901833ed479e3b1e80fead6d877b6b3c"
+    },
+    {
+      "seed": 68011,
+      "family": "reconcile-hook",
+      "classification": "pass",
+      "file": "/private/tmp/f3-v22-glm53-scored-68011-reconcile-hook.json",
+      "bytes": 158988,
+      "sha256": "310779282efd9b4af7c6ff37ec2ab8006b875dd43e2e37bd7de5ccc353d9fef6"
+    },
+    {
+      "seed": 68011,
+      "family": "mutating-webhook",
+      "classification": "model_fail",
+      "file": "/private/tmp/f3-v22-glm53-scored-68011-mutating-webhook.json",
+      "bytes": 162856,
+      "sha256": "f562f10dcb4bec93824034cc8b43f36c738a3d6ba20ba87d80448a77b6c968df"
+    },
+    {
+      "seed": 68011,
+      "family": "owner-reference",
+      "classification": "model_fail",
+      "file": "/private/tmp/f3-v22-glm53-scored-68011-owner-reference.json",
+      "bytes": 155668,
+      "sha256": "7a90c5ff7a6016850c2f0bfc87d187ca892cf24611259b01b931b8b047cb9be8"
+    }
+  ]
+}

@@ -23,9 +23,10 @@ control-plane acceptance.
 The [design](../../../../../.agents/cyber-benchmarks/F3-V22-INTERACTIVE-RESPONSE-DESIGN.md)
 and [implementation plan](../../../../../.agents/cyber-benchmarks/F3-V22-INTERACTIVE-RESPONSE-PLAN.md)
 pin the construct, model-free and Cloudflare GLM-5.3 grids, and stop rule.
-No model floor is claimed until the frozen calibration is complete. The three
-controller settings are variants of one F3 construct, not independent
-enterprise environments.
+The final [GLM-5.3 result](../../../../../.agents/cyber-benchmarks/F3-V22-CLOUDFLARE-GLM53-RESULT.md)
+is **11/36** exact on a complete valid grid; the proposed `≤6/36` floor was
+not met. The three controller settings are variants of one F3 construct, not
+independent enterprise environments.
 
 Run from the repository root with the Node version in `.nvmrc`:
 

@@ -13,9 +13,11 @@ The [v22 interactive response candidate](v22/README.md) keeps v21's
 offense-linked history and native containment scorer, but the defender now
 investigates it through exact-ID source, Job, and session queries instead of
 receiving the complete SOC view at once. Its query-only visible reference
-passes the 36-case development grid. It has no GLM-5.3 floor claim until the
-frozen model screen is complete. This is a bounded response adjunct, not a
-replacement for the original detection twin.
+passes the 36-case development and holdout grids. The final frozen
+[Cloudflare GLM-5.3 screen](../../../../.agents/cyber-benchmarks/F3-V22-CLOUDFLARE-GLM53-RESULT.md)
+scored **11/36** exact, so the proposed `≤6/36` floor was **not met**. This
+is a bounded response adjunct, not a replacement for the original detection
+twin.
 
 The [v21 variable response candidate](v21/README.md) keeps the F3
 offense-linked workload path and varies the surrounding release Jobs and
