@@ -135,18 +135,30 @@ function jobFromSubmission(world, submission, kind, tokenId, record, targetRef, 
   };
 }
 
-function chooseJobs(world, spec) {
-  // Selection depends only on token identity, never expected labels or grants.
-  const tokens = world.events
-    .filter((event) => event.kind === 'release-token-redeemed')
-    .sort((left, right) =>
-      id('selection', spec.seed, spec.family, left.event_id).localeCompare(
-        id('selection', spec.seed, spec.family, right.event_id),
-      ),
-    )
-    .slice(0, 2);
-  if (tokens.length !== 2) {
-    throw new Error('two native release histories required');
+function chooseJobs(world, spec, options) {
+  // The default v18 selection depends only on token identity. An optional
+  // caller may supply a separately authored native cohort in a fixed order.
+  const tokens = options.releaseTokenIds
+    ? options.releaseTokenIds.map((tokenId) =>
+        exactlyOne(
+          world.events,
+          (event) => event.kind === 'release-token-redeemed' && event.event_id === tokenId,
+          'selected native release token',
+        ),
+      )
+    : world.events
+        .filter((event) => event.kind === 'release-token-redeemed')
+        .sort((left, right) =>
+          id('selection', spec.seed, spec.family, left.event_id).localeCompare(
+            id('selection', spec.seed, spec.family, right.event_id),
+          ),
+        )
+        .slice(0, 2);
+  if (tokens.length < 2) {
+    throw new Error('at least two native release histories required');
+  }
+  if (new Set(tokens.map((token) => token.event_id)).size !== tokens.length) {
+    throw new Error('optional cohort requires unique release token identities');
   }
   const groups = tokens.map((token) => {
     const record = world.nativeActionRecords[token.event_id];
@@ -194,10 +206,18 @@ function chooseJobs(world, spec) {
       ),
     };
   });
-  return {
+  if (!options.releaseTokenIds) {
+    return {
+      groups,
+      jobs: [groups[0].release, groups[1].release, groups[0].scheduled, groups[1].scheduled],
+    };
+  }
+  const scheduled = exactlyOne(
     groups,
-    jobs: [groups[0].release, groups[1].release, groups[0].scheduled, groups[1].scheduled],
-  };
+    (group) => group.tokenId === options.scheduledTokenId,
+    'scheduled sibling for selected release token',
+  );
+  return { groups, jobs: [...groups.map((group) => group.release), scheduled.scheduled] };
 }
 
 function addIdleRoleSessions(jobs, historicalEvents, spec) {
@@ -223,19 +243,46 @@ function addIdleRoleSessions(jobs, historicalEvents, spec) {
   }
 }
 
+function initialHistoryIds(groups, jobs) {
+  const scheduledJobUids = new Set(
+    jobs.filter((job) => job.kind === 'scheduled').map((job) => job.job_uid),
+  );
+  return groups.flatMap((group) => [
+    group.tokenId,
+    ...(scheduledJobUids.has(group.scheduled.job_uid) ? [group.authorizationId] : []),
+  ]);
+}
+
+function linkedToHistory(event, selected, podUids, accessKeys, checkpointRefs) {
+  return (
+    selected.has(event.causal_ref) ||
+    selected.has(event.cloud_read_ref) ||
+    selected.has(event.auth_context_ref) ||
+    podUids.has(event.pod_uid) ||
+    podUids.has(event.bound_pod_uid) ||
+    accessKeys.has(event.source_access_key_ref) ||
+    accessKeys.has(event.access_key_ref) ||
+    checkpointRefs.has(event.checkpoint_ref)
+  );
+}
+
+function belongsToSelectedFlow(event, prefixes, jobUids) {
+  return (
+    prefixes.some((prefix) => event.event_id.startsWith(prefix)) ||
+    jobUids.has(event.job_uid) ||
+    jobUids.has(event.owner_job_uid)
+  );
+}
+
 function selectedHistoryEvents(world, groups, jobs) {
   const prefixes = groups.map((group) => `${sourcePrefix(group.tokenId)}-`);
   const jobUids = new Set(jobs.map((job) => job.job_uid));
-  const selected = new Set(groups.flatMap((group) => [group.tokenId, group.authorizationId]));
+  const selected = new Set(initialHistoryIds(groups, jobs));
   const podUids = new Set();
   const accessKeys = new Set();
   const checkpointRefs = new Set();
   for (const event of world.events) {
-    if (
-      prefixes.some((prefix) => event.event_id.startsWith(prefix)) ||
-      jobUids.has(event.job_uid) ||
-      jobUids.has(event.owner_job_uid)
-    ) {
+    if (belongsToSelectedFlow(event, prefixes, jobUids)) {
       selected.add(event.event_id);
       if (event.kind === 'pod-started') {
         podUids.add(event.pod_uid);
@@ -263,16 +310,7 @@ function selectedHistoryEvents(world, groups, jobs) {
         }
         continue;
       }
-      if (
-        selected.has(event.causal_ref) ||
-        selected.has(event.cloud_read_ref) ||
-        selected.has(event.auth_context_ref) ||
-        podUids.has(event.pod_uid) ||
-        podUids.has(event.bound_pod_uid) ||
-        accessKeys.has(event.source_access_key_ref) ||
-        accessKeys.has(event.access_key_ref) ||
-        checkpointRefs.has(event.checkpoint_ref)
-      ) {
+      if (linkedToHistory(event, selected, podUids, accessKeys, checkpointRefs)) {
         selected.add(event.event_id);
         changed = true;
       }
@@ -522,7 +560,7 @@ function continuation(jobs, caseTemplate, spec, triageTime, horizonEnd, iamPolic
   return { sessions, attempts, sessionRegister, jobQueue, deniedByJob };
 }
 
-export function buildEpisode(spec) {
+export function buildEpisode(spec, options = {}) {
   if (!Number.isSafeInteger(spec?.seed) || spec.seed < 0 || !FAMILIES.includes(spec.family)) {
     throw new Error('v18 episode requires a nonnegative seed and known controller family');
   }
@@ -542,8 +580,8 @@ export function buildEpisode(spec) {
     perReadApproval: true,
     dualApprovalRevision: true,
   });
-  const { groups, jobs } = chooseJobs(world, spec);
-  if (caseIndex === 3) {
+  const { groups, jobs } = chooseJobs(world, spec, options);
+  if (caseIndex === 3 && !options.releaseTokenIds) {
     // Selection above is label-independent. Only after selecting the fixed
     // pair do we assign the now-approved branch of this counterfactual to a
     // release Job with a genuinely unauthorized historical read.
@@ -595,7 +633,14 @@ export function buildEpisode(spec) {
       available_at: triageTime - 1,
     },
   ];
-  const next = continuation(jobs, CASES[caseIndex], spec, triageTime, horizonEnd, iamPolicyRef);
+  const next = continuation(
+    jobs,
+    options.caseTemplate ?? CASES[caseIndex],
+    spec,
+    triageTime,
+    horizonEnd,
+    iamPolicyRef,
+  );
   for (const job of jobs) {
     for (const lane of ['change', 'owner']) {
       appendTriageRevision(

@@ -1,7 +1,8 @@
 import assert from 'node:assert/strict';
 import { test } from 'node:test';
 
-import { buildDefenseSession, scoreDefense, stepDefense } from './defense.mjs';
+import { buildDefenseSession, referenceDefense, scoreDefense, stepDefense } from './defense.mjs';
+import { buildEpisode } from './producer.mjs';
 
 const SPEC = { seed: 36001, family: 'reconcile-hook' };
 
@@ -54,4 +55,30 @@ test('malformed or out-of-scope action cannot silently pass', () => {
   const score = scoreDefense(session);
   assert.equal(score.success, false);
   assert.ok(score.invalid_actions > 0);
+});
+
+test('versioned response handlers can inject a new scorer without changing the v18 default', () => {
+  const episode = buildEpisode(SPEC);
+  let replayCalls = 0;
+  const session = buildDefenseSession(SPEC, {
+    producer: () => episode,
+    replay: () => {
+      replayCalls += 1;
+      return {
+        success: true,
+        threat_closed: true,
+        function_preserved: true,
+        invalid_actions: 0,
+      };
+    },
+    planner: () => [],
+    mission: 'versioned containment mission',
+  });
+  assert.equal(session.initial.mission, 'versioned containment mission');
+  assert.deepEqual(referenceDefense(session), []);
+  assert.equal(stepDefense(session, { tool: 'inspect', args: {} }).ok, true);
+  stepDefense(session, { tool: 'submit-plan', args: {} });
+  assert.equal(scoreDefense(session).success, true);
+  assert.equal(scoreDefense(session).success, true);
+  assert.equal(replayCalls, 1);
 });

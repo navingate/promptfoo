@@ -1,0 +1,7 @@
+import { RULE_GUIDE as V18_GUIDE } from '../v18/guide.mjs';
+
+export const RULE_GUIDE = `${V18_GUIDE}
+
+Additional incident policy for this version: a release credential is compromised if its causal completed source fetch came from an object revision whose authenticated writer lacked source approval at the fetch time. Treat the observed release-linked Job's future reads as unsafe in that case even when its Job approvals cover them. This is an incident-specific trust decision, not a cloud IAM bypass or proof that every missing approval in other environments is malicious. Independently scheduled Jobs have no release-token source provenance.
+
+Use the completed pre-redemption synced-secret read by the token actor to identify the exact source object UID/revision; another object may fetch the same remote secret and credential version without supplying this token. Find the authenticated object-spec-write for that exact revision. The source fetch names its original grant_snapshot_ref and controller_id. Source grants cover only the exact writer or completed group membership strictly before the fetch, exact action/resource, controller binding, and validity interval. A later approval cannot sanitize a credential already obtained through the unapproved source revision. Join the resulting credential to the redeemed release token and admitted Job; then apply the v18 Job/session/renewal containment rules. Event IDs are opaque and do not encode a shared flow prefix. No action on an old alert alone is needed when there is no future planned read.`;

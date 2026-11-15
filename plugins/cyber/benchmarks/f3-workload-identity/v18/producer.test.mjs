@@ -1,8 +1,9 @@
 import assert from 'node:assert/strict';
+import { createHash } from 'node:crypto';
 import { test } from 'node:test';
 
 import { FAMILIES } from '../shared/estate.mjs';
-import { captureNativeCoverage } from '../v9/defense.mjs';
+import { buildDefenseSession as buildNativeWorld, captureNativeCoverage } from '../v9/defense.mjs';
 import { buildEpisode } from './producer.mjs';
 
 function effectiveSnapshot(episode, job, lane, at) {
@@ -41,6 +42,106 @@ function approved(episode, attempt) {
     ).authorized;
   });
 }
+
+test('default v18 episodes remain byte-for-byte frozen when the optional cohort seam is added', () => {
+  for (const [spec, expected] of [
+    [
+      { seed: 41001, family: FAMILIES[0], caseIndex: 0 },
+      '54faa37efa195e0f1d44f9739e7fa1f65967449bda120a7f754125871b3b40ca',
+    ],
+    [
+      { seed: 41002, family: FAMILIES[1], caseIndex: 4 },
+      '9092bd7201313de6bdf50f6de885b72c28182a83d95546788da8d7793868397d',
+    ],
+  ]) {
+    const actual = createHash('sha256')
+      .update(JSON.stringify(buildEpisode(spec)))
+      .digest('hex');
+    assert.equal(actual, expected);
+  }
+});
+
+test('optional cohort selects three native release histories and one independent scheduled neighbor', () => {
+  const spec = { seed: 41001, family: FAMILIES[0], caseIndex: 0 };
+  const world = buildNativeWorld({
+    ...spec,
+    sourceAmbiguity: true,
+    sourceRevisionRace: true,
+    linkAmbiguity: true,
+    operationalCheckpoint: true,
+    jobRenewal: true,
+    approvalContext: true,
+    perReadApproval: true,
+    dualApprovalRevision: true,
+  });
+  const tokenIds = world.events
+    .filter((event) => event.kind === 'release-token-redeemed')
+    .slice(0, 3)
+    .map((event) => event.event_id);
+  const episode = buildEpisode(spec, {
+    releaseTokenIds: tokenIds,
+    scheduledTokenId: tokenIds[1],
+    caseTemplate: [
+      ['clean', null],
+      ['bad', null],
+      ['clean', null],
+      ['clean', null],
+    ],
+  });
+  assert.equal(episode.native.jobs.filter((job) => job.kind === 'release').length, 3);
+  assert.equal(episode.native.jobs.filter((job) => job.kind === 'scheduled').length, 1);
+  assert.deepEqual(
+    episode.native.jobs.filter((job) => job.kind === 'release').map((job) => job.token_ref),
+    tokenIds,
+  );
+  assert.equal(
+    episode.visible.events.filter((event) => event.kind === 'release-token-redeemed').length,
+    3,
+  );
+  assert.equal(
+    episode.visible.events.filter((event) => event.kind === 'scheduled-job-authorized').length,
+    1,
+  );
+  assert.deepEqual(
+    new Set(
+      episode.visible.events
+        .filter((event) => event.kind === 'job-submitted')
+        .map((event) => event.job_uid),
+    ),
+    new Set(episode.native.jobs.map((job) => job.job_uid)),
+  );
+  assert.equal(episode.native.attempts.length, 4);
+});
+
+test('optional cohort rejects duplicate release tokens and a scheduled sibling outside the selection', () => {
+  const spec = { seed: 41001, family: FAMILIES[0], caseIndex: 0 };
+  const world = buildNativeWorld({
+    ...spec,
+    sourceAmbiguity: true,
+    sourceRevisionRace: true,
+    linkAmbiguity: true,
+    operationalCheckpoint: true,
+    jobRenewal: true,
+    approvalContext: true,
+    perReadApproval: true,
+    dualApprovalRevision: true,
+  });
+  const tokens = world.events
+    .filter((event) => event.kind === 'release-token-redeemed')
+    .map((event) => event.event_id);
+  assert.throws(
+    () =>
+      buildEpisode(spec, {
+        releaseTokenIds: [tokens[0], tokens[0], tokens[1]],
+        scheduledTokenId: tokens[0],
+      }),
+    /unique release token/u,
+  );
+  assert.throws(
+    () => buildEpisode(spec, { releaseTokenIds: tokens.slice(0, 3), scheduledTokenId: tokens[4] }),
+    /selected release token/u,
+  );
+});
 
 test('four-job episode keeps two native release histories and two scheduled neighbors', () => {
   const episode = buildEpisode({ seed: 41001, family: FAMILIES[0], caseIndex: 0 });

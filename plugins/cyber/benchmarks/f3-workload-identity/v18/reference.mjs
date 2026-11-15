@@ -140,7 +140,7 @@ function approved(visible, jobUid, plan) {
   );
 }
 
-export function planReferenceContainment(visible) {
+export function planReferenceContainment(visible, additionalUnsafeJobs = new Set()) {
   if (
     !visible ||
     !Array.isArray(visible.events) ||
@@ -158,7 +158,7 @@ export function planReferenceContainment(visible) {
       continue;
     }
     const jobUid = findJobForSession(visible, session);
-    if (!approved(visible, jobUid, session.active_plan)) {
+    if (additionalUnsafeJobs.has(jobUid) || !approved(visible, jobUid, session.active_plan)) {
       actions.push({
         tool: 'deny-role-session',
         args: { role_arn: session.role_arn, role_session_name: session.role_session_name },
@@ -169,7 +169,10 @@ export function planReferenceContainment(visible) {
     if (!job.credential_renewal_pending || !job.renewal_plan) {
       continue;
     }
-    if (!approved(visible, job.job_uid, job.renewal_plan)) {
+    if (
+      additionalUnsafeJobs.has(job.job_uid) ||
+      !approved(visible, job.job_uid, job.renewal_plan)
+    ) {
       actions.push({ tool: 'pause-job', args: { job_uid: job.job_uid } });
     }
   }

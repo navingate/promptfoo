@@ -133,6 +133,20 @@ test('denies only an unauthorized live session while preserving a clean session 
   ]);
 });
 
+test('a separately evidenced unsafe release Job can be contained despite valid Job grants', () => {
+  const visible = fixture();
+  assert.deepEqual(planReferenceContainment(visible, new Set(['job-1'])), [
+    {
+      tool: 'deny-role-session',
+      args: { role_arn: 'role:shared', role_session_name: 'role-session-0' },
+    },
+    {
+      tool: 'deny-role-session',
+      args: { role_arn: 'role:shared', role_session_name: 'role-session-1' },
+    },
+  ]);
+});
+
 test('uses completed revisions effective at planned time and pauses only unauthorized renewal', () => {
   const visible = fixture();
   visible.session_register[0].active_plan = undefined;

@@ -75,11 +75,17 @@ function actionFromCommand(visible, command) {
   return null;
 }
 
-export function buildDefenseSession(spec) {
+export function buildDefenseSession(spec, options = {}) {
   if (!Number.isSafeInteger(spec?.seed) || typeof spec.family !== 'string') {
     throw new Error('v18 requires a seed and controller family');
   }
-  const episode = buildEpisode(spec);
+  const producer = options.producer ?? buildEpisode;
+  const replay = options.replay ?? replayContainment;
+  const planner = options.planner ?? planReferenceContainment;
+  if (![producer, replay, planner].every((value) => typeof value === 'function')) {
+    throw new Error('containment handlers must be functions');
+  }
+  const episode = producer(spec);
   if (!record(episode?.visible) || !record(episode?.native)) {
     throw new Error('v18 episode is missing visible or native state');
   }
@@ -88,9 +94,10 @@ export function buildDefenseSession(spec) {
     finished: false,
     initial: {
       mission:
+        options.mission ??
         'Contain future unauthorized protected-object reads from the observed workload identity chain while preserving every planned read of clean Jobs. Investigate source, release, Job, Pod, STS, approval and runtime status. Submit one bounded action plan. A paused Job can leave an issued session alive; denying a session cannot stop credential renewal; broad role revocation can interrupt approved work.',
       tools: {
-        inspect: { args: {}, returns: 'published triage evidence and signed next-step plans' },
+        inspect: { args: {}, returns: 'published triage evidence and next-step plans' },
         'pause-job': { args: { job_uid: 'admitted Job UID' } },
         'deny-role-session': {
           args: { role_arn: 'issued role ARN', role_session_name: 'issued session name' },
@@ -109,6 +116,8 @@ export function buildDefenseSession(spec) {
     actions: [],
     invalid: 0,
     score: null,
+    replay,
+    planner,
   });
   return session;
 }
@@ -118,7 +127,7 @@ export function referenceDefense(session) {
   if (!state) {
     throw new Error('unknown v18 defense session');
   }
-  return planReferenceContainment(structuredClone(state.visible));
+  return state.planner(structuredClone(state.visible));
 }
 
 export function stepDefense(session, command) {
@@ -175,7 +184,7 @@ export function scoreDefense(session) {
     return { success: false, reason: 'unsubmitted' };
   }
   if (state.score === null) {
-    const replay = replayContainment(state.native, state.actions);
+    const replay = state.replay(state.native, state.actions);
     state.score = {
       ...replay,
       invalid_actions: (replay.invalid_actions ?? 0) + state.invalid,
