@@ -2,6 +2,15 @@
 import { FAMILIES, sha256Hex, visibleGrant } from '../shared/estate.mjs';
 import { referenceRoute } from '../v3/offense.mjs';
 import { replayPhase } from '../v4/offense.mjs';
+import { deriveApprovalStreamRef, selectEffectiveApproval } from '../v17/approval_plane.mjs';
+import {
+  approvalPublications,
+  dualApprovalCase,
+  dualLaneGrants,
+  scheduleApprovalStreams,
+  verifyDualApprovalMatrix,
+  visibleApprovalSnapshots,
+} from '../v17/producer_helpers.mjs';
 import {
   authorizeScheduledJobWorld,
   createJobWorld,
@@ -371,6 +380,18 @@ function producerBackgroundRead(session, spec, index, afterTime, queueDelay, pro
       };
     }
   }
+  if (spec.dualApprovalRevision === true) {
+    world.defenseApprovalStreamRef = deriveApprovalStreamRef({
+      seed: spec.seed,
+      family: spec.family,
+      recordRef: `${scheduleId}|change`,
+    });
+    world.defenseOwnerApprovalStreamRef = deriveApprovalStreamRef({
+      seed: spec.seed,
+      family: spec.family,
+      recordRef: `${scheduleId}|owner`,
+    });
+  }
   const submission = stepJob(world, {
     tool: 'submit-job',
     args: {
@@ -394,6 +415,58 @@ function producerBackgroundRead(session, spec, index, afterTime, queueDelay, pro
   world.producerLatencies = structuredClone(producerLatencies);
   const clock = world.eventOffset + world.events.length;
   const actionTime = clock + queueDelay + 5 + producerLatencies.cloud;
+  let approvalStreams = null;
+  if (spec.dualApprovalRevision === true) {
+    const submitted = exactlyOne(
+      world.events,
+      (event) => event.kind === 'job-submitted' && event.job_uid === submission.job_uid,
+    );
+    const admitted = exactlyOne(
+      world.events,
+      (event) =>
+        event.kind === 'job-admission' &&
+        event.job_uid === submission.job_uid &&
+        event.outcome === 'admitted',
+    );
+    if (
+      !submitted?.owner_snapshot_ref ||
+      admitted?.approval_stream_ref !== world.defenseApprovalStreamRef ||
+      admitted?.owner_approval_stream_ref !== world.defenseOwnerApprovalStreamRef
+    ) {
+      throw new Error('scheduled Job approval binding missing');
+    }
+    const alternateAccount = world.serviceAccounts.find(
+      (item) => item.id !== route.service_account_id,
+    );
+    if (!alternateAccount) {
+      throw new Error('scheduled Job alternate workload missing');
+    }
+    approvalStreams = scheduleApprovalStreams({
+      seed: spec.seed,
+      family: spec.family,
+      recordPrefix: scheduleId,
+      baseRefs: { change: submitted.grant_snapshot_ref, owner: submitted.owner_snapshot_ref },
+      baseGrants: { change: world.grants, owner: world.grants },
+      states: {
+        change: [
+          [true, true],
+          [true, true],
+        ],
+        owner: [
+          [true, true],
+          [true, true],
+        ],
+      },
+      targetRef: world.policy.protected_target.remote_ref,
+      operationalRef: world.policy.benign_target.remote_ref,
+      route,
+      alternateAccountId: alternateAccount.id,
+      maxTime: actionTime,
+      auditStreamRef: membershipAuditStream(group),
+      failedTime: actionTime - 3,
+      completedTime: actionTime - 2,
+    });
+  }
   world.membershipLedger = membershipAuditEvents(
     group,
     world.principal,
@@ -407,6 +480,35 @@ function producerBackgroundRead(session, spec, index, afterTime, queueDelay, pro
   world.eventOffset += queueDelay;
   let capture = null;
   world.onCloudObjectRead = (cloud) => {
+    if (approvalStreams) {
+      const scope = {
+        kind: 'job',
+        service_account_id: route.service_account_id,
+        template_id: route.template_id,
+      };
+      const lanes = Object.fromEntries(
+        Object.entries(approvalStreams).map(([name, stream]) => {
+          const snapshot = selectEffectiveApproval(stream, cloud.event_time);
+          const result = captureNativeCoverage(
+            snapshot.grants,
+            world.membershipLedger,
+            world.principal,
+            cloud.action,
+            cloud.resource,
+            cloud.event_time,
+            scope,
+          );
+          return [name, { snapshot_ref: snapshot.snapshot_ref, authorized: result.authorized }];
+        }),
+      );
+      capture = {
+        action_time: cloud.event_time,
+        authorized: lanes.change.authorized && lanes.owner.authorized,
+        approval_lanes: lanes,
+        event_count: world.events.length,
+      };
+      return;
+    }
     capture = {
       ...captureNativeCoverage(
         world.grantSnapshots[create.grant_snapshot_ref],
@@ -447,7 +549,16 @@ function producerBackgroundRead(session, spec, index, afterTime, queueDelay, pro
       snapshot_ref: create.grant_snapshot_ref,
       grants: world.grantSnapshots[create.grant_snapshot_ref].map(visibleGrant),
       audit_stream_ref: membershipAuditStream(group),
+      ...(approvalStreams
+        ? { approval_stream_ref: approvalStreams.change.approval_stream_ref }
+        : {}),
     },
+    ...(approvalStreams
+      ? {
+          approvalSnapshots: visibleApprovalSnapshots(approvalStreams, visibleGrant),
+          approvalPublications: approvalPublications(approvalStreams),
+        }
+      : {}),
     membershipAudit: world.membershipLedger.map((event) => ({ ...event })),
     nativeRecord: {
       authorization_event_id: authorization.event_id,
@@ -485,7 +596,11 @@ function producerIncident(spec, variant, index) {
   const session = createOffenseSession({ ...spec, nonce });
   if (spec.approvalContext === true) {
     session.source.world.meta.telemetry_contract_id =
-      spec.perReadApproval === true ? 'f3-workload-events-v16' : 'f3-workload-events-v15';
+      spec.dualApprovalRevision === true
+        ? 'f3-workload-events-v17'
+        : spec.perReadApproval === true
+          ? 'f3-workload-events-v16'
+          : 'f3-workload-events-v15';
   }
   session.delegatedSnapshots = {};
   session.nativeActionCoverage = {};
@@ -515,6 +630,7 @@ function producerIncident(spec, variant, index) {
   }
   const sourceClock = session.source.events.length;
   const familyIndex = FAMILIES.indexOf(spec.family);
+  const dualCase = spec.dualApprovalRevision === true ? dualApprovalCase(spec, index) : null;
   const sourceCause = approvalCause(spec, index, 'source', variant.sourceAllowed);
   const sourceWriterAlternate =
     spec.approvalContext === true && (spec.seed + familyIndex + index) % 2 === 0;
@@ -749,28 +865,39 @@ function producerIncident(spec, variant, index) {
     throw new Error('producer Job pair missing');
   }
   const nearMisses = referenceJobNearMisses(job);
-  const jobCause = approvalCause(spec, index, 'job', variant.jobAllowed);
-  const operationalCause = operationalApprovalCause(spec, index, familyIndex);
+  const jobCause = dualCase ? null : approvalCause(spec, index, 'job', variant.jobAllowed);
+  const operationalCause = dualCase ? null : operationalApprovalCause(spec, index, familyIndex);
   const commonQueueDelay = producerLatency(spec, index, 'job-queue', LATENCY_SLOTS) * 2;
   const targetQueueDelay = commonQueueDelay;
   const jobCloudLatency = producerLatency(spec, index, 'job-cloud');
   const jobCheckpointLatency = producerLatency(spec, index, 'job-checkpoint');
   const jobProducerLatencies = { cloud: jobCloudLatency, checkpoint: jobCheckpointLatency };
-  const operationalBefore =
-    spec.linkAmbiguity === true && (spec.seed + familyIndex + index) % 2 === 0;
+  const operationalBefore = dualCase
+    ? dualCase.order === 'operational-first'
+    : spec.linkAmbiguity === true && (spec.seed + familyIndex + index) % 2 === 0;
+  const betweenReadInterval = dualCase
+    ? 3 +
+      (Number.parseInt(
+        sha256Hex(`f3v17|read-interval|${spec.seed}|${spec.family}|${index}`).slice(0, 8),
+        16,
+      ) %
+        4)
+    : 0;
   // Submission emits job-submitted and job-admission before the Pod starts.
   // The immutable approval interval is authored before that snapshot is taken.
   const predictedJobClock = job.eventOffset + job.events.length + 2;
-  const jobPlannedActionTime =
+  const baseJobPlannedActionTime =
     predictedJobClock +
     targetQueueDelay +
     5 +
     (spec.jobRenewal === true ? 3 : 0) +
     jobCloudLatency +
     (operationalBefore ? (spec.operationalCheckpoint === true ? 2 : 1) : 0);
+  const jobPlannedActionTime =
+    baseJobPlannedActionTime + (operationalBefore ? betweenReadInterval : 0);
   const operationalPlannedActionTime = operationalBefore
-    ? jobPlannedActionTime - (spec.operationalCheckpoint === true ? 2 : 1)
-    : jobPlannedActionTime + 1;
+    ? baseJobPlannedActionTime - (spec.operationalCheckpoint === true ? 2 : 1)
+    : jobPlannedActionTime + 1 + betweenReadInterval;
   if (spec.approvalContext === true) {
     const otherAccount = job.serviceAccounts.find((item) => item.id !== route.service_account_id);
     const otherTemplate = job.templates.find((item) => item.id !== route.template_id);
@@ -790,6 +917,15 @@ function producerIncident(spec, variant, index) {
       throw new Error('operational approval grant missing before submission');
     }
     for (const grant of job.grants) {
+      if (dualCase) {
+        grant.scope = {
+          service_account_id: route.service_account_id,
+          template_id: route.template_id,
+          valid_from: 0,
+          valid_until: Math.max(jobPlannedActionTime, operationalPlannedActionTime) + 100,
+        };
+        continue;
+      }
       if (grant === operationalGrant) {
         grant.scope = {
           service_account_id:
@@ -822,6 +958,43 @@ function producerIncident(spec, variant, index) {
             : jobPlannedActionTime + 100,
       };
     }
+  }
+  const maxJobReadTime = Math.max(jobPlannedActionTime, operationalPlannedActionTime);
+  const dualChangeBase = dualCase
+    ? dualLaneGrants(
+        job.grants,
+        dualCase.change[0],
+        job.policy.protected_target.remote_ref,
+        job.policy.benign_target.remote_ref,
+        route,
+        job.serviceAccounts.find((item) => item.id !== route.service_account_id).id,
+        maxJobReadTime,
+      )
+    : null;
+  const dualOwnerBase = dualCase
+    ? dualLaneGrants(
+        job.grants,
+        dualCase.owner[0],
+        job.policy.protected_target.remote_ref,
+        job.policy.benign_target.remote_ref,
+        route,
+        job.serviceAccounts.find((item) => item.id !== route.service_account_id).id,
+        maxJobReadTime,
+      )
+    : null;
+  if (dualCase) {
+    job.grants = structuredClone(dualChangeBase);
+    job.defenseApprovalStreamRef = deriveApprovalStreamRef({
+      seed: spec.seed,
+      family: spec.family,
+      recordRef: `${nonce}|change`,
+    });
+    job.defenseOwnerApprovalStreamRef = deriveApprovalStreamRef({
+      seed: spec.seed,
+      family: spec.family,
+      recordRef: `${nonce}|owner`,
+    });
+    job.defenseBetweenReadInterval = betweenReadInterval;
   }
   const submitted = stepOffense(session, {
     tool: 'submit-job',
@@ -871,6 +1044,55 @@ function producerIncident(spec, variant, index) {
   ) {
     throw new Error('native admitted submission does not match authored Job approval');
   }
+  if (
+    dualCase &&
+    (nativeSubmission.owner_snapshot_ref === undefined ||
+      nativeAdmission.approval_stream_ref !== job.defenseApprovalStreamRef ||
+      nativeAdmission.owner_approval_stream_ref !== job.defenseOwnerApprovalStreamRef)
+  ) {
+    throw new Error('trusted dual-approval admission binding missing');
+  }
+  let dualStreams = null;
+  if (dualCase) {
+    const firstReadTime = Math.min(jobPlannedActionTime, operationalPlannedActionTime);
+    const secondReadTime = Math.max(jobPlannedActionTime, operationalPlannedActionTime);
+    const failedTime = firstReadTime - 2;
+    const completedTime = firstReadTime + 1;
+    if (!(nativeAdmission.event_time < failedTime && completedTime < secondReadTime)) {
+      throw new Error('dual approval publication cannot be placed between native reads');
+    }
+    const alternateAccount = job.serviceAccounts.find(
+      (item) => item.id !== route.service_account_id,
+    );
+    if (!alternateAccount) {
+      throw new Error('dual approval alternate workload missing');
+    }
+    dualStreams = scheduleApprovalStreams({
+      seed: spec.seed,
+      family: spec.family,
+      recordPrefix: nonce,
+      baseRefs: {
+        change: nativeSubmission.grant_snapshot_ref,
+        owner: nativeSubmission.owner_snapshot_ref,
+      },
+      baseGrants: { change: dualChangeBase, owner: dualOwnerBase },
+      states: { change: dualCase.change, owner: dualCase.owner },
+      targetRef: job.policy.protected_target.remote_ref,
+      operationalRef: job.policy.benign_target.remote_ref,
+      route,
+      alternateAccountId: alternateAccount.id,
+      maxTime: maxJobReadTime,
+      auditStreamRef: membershipAuditStream(jobGroup),
+      failedTime,
+      completedTime,
+    });
+    if (
+      dualStreams.change.approval_stream_ref !== nativeAdmission.approval_stream_ref ||
+      dualStreams.owner.approval_stream_ref !== nativeAdmission.owner_approval_stream_ref
+    ) {
+      throw new Error('dual approval stream identity mismatch');
+    }
+  }
   const otherJobPrincipal = job.grants.find(
     (grant) => grant.writer_principal !== job.principal && grant.writer_principal !== jobGroup,
   )?.writer_principal;
@@ -916,6 +1138,7 @@ function producerIncident(spec, variant, index) {
   session.delegatedSnapshots[jobCreate.grant_snapshot_ref] = {
     grants: structuredClone(job.grantSnapshots[jobCreate.grant_snapshot_ref]),
     audit_stream_ref: membershipAuditStream(jobGroup),
+    ...(dualCase ? { approval_stream_ref: dualStreams.change.approval_stream_ref } : {}),
   };
   let jobCapture = null;
   const jobCaptures = new Map();
@@ -937,28 +1160,55 @@ function producerIncident(spec, variant, index) {
     ) {
       throw new Error('native admitted Pod identity does not match submission');
     }
-    const captured = {
-      ...captureNativeCoverage(
-        session.delegatedSnapshots[jobCreate.grant_snapshot_ref].grants,
-        job.membershipLedger,
-        spec.perReadApproval === true ? nativeSubmission.actor : job.principal,
-        cloud.action,
-        cloud.resource,
-        cloud.event_time,
-        spec.approvalContext === true
-          ? {
-              kind: 'job',
-              service_account_id:
-                spec.perReadApproval === true
-                  ? nativePod.service_account_id
-                  : route.service_account_id,
-              template_id:
-                spec.perReadApproval === true ? nativeSubmission.template_id : route.template_id,
-            }
-          : null,
-      ),
-      event_count: job.events.length,
-    };
+    const scope =
+      spec.approvalContext === true
+        ? {
+            kind: 'job',
+            service_account_id:
+              spec.perReadApproval === true
+                ? nativePod.service_account_id
+                : route.service_account_id,
+            template_id:
+              spec.perReadApproval === true ? nativeSubmission.template_id : route.template_id,
+          }
+        : null;
+    let captured;
+    if (dualStreams) {
+      const laneResults = Object.fromEntries(
+        Object.entries(dualStreams).map(([name, stream]) => {
+          const snapshot = selectEffectiveApproval(stream, cloud.event_time);
+          const result = captureNativeCoverage(
+            snapshot.grants,
+            job.membershipLedger,
+            nativeSubmission.actor,
+            cloud.action,
+            cloud.resource,
+            cloud.event_time,
+            scope,
+          );
+          return [name, { snapshot_ref: snapshot.snapshot_ref, authorized: result.authorized }];
+        }),
+      );
+      captured = {
+        action_time: cloud.event_time,
+        authorized: laneResults.change.authorized && laneResults.owner.authorized,
+        approval_lanes: laneResults,
+        event_count: job.events.length,
+      };
+    } else {
+      captured = {
+        ...captureNativeCoverage(
+          session.delegatedSnapshots[jobCreate.grant_snapshot_ref].grants,
+          job.membershipLedger,
+          spec.perReadApproval === true ? nativeSubmission.actor : job.principal,
+          cloud.action,
+          cloud.resource,
+          cloud.event_time,
+          scope,
+        ),
+        event_count: job.events.length,
+      };
+    }
     session.nativeActionCoverage[cloud.event_id] = captured;
     if (spec.perReadApproval === true) {
       jobCaptures.set(cloud.event_id, captured);
@@ -1069,6 +1319,7 @@ function producerIncident(spec, variant, index) {
         planned_action_time: jobPlannedActionTime,
         captured: structuredClone(jobCapture),
         checkpoint_event_id: targetCheckpoint.event_id,
+        ...(dualCase ? { approval_lanes: structuredClone(jobCapture.approval_lanes) } : {}),
         ...(jobCause ? { approval_cause: `job-${jobCause}` } : {}),
       },
       {
@@ -1077,12 +1328,14 @@ function producerIncident(spec, variant, index) {
         planned_action_time: operationalPlannedActionTime,
         captured: structuredClone(operationalCapture),
         checkpoint_event_id: operationalCheckpoint.event_id,
+        ...(dualCase ? { approval_lanes: structuredClone(operationalCapture.approval_lanes) } : {}),
         ...(operationalCause ? { approval_cause: `job-operational-${operationalCause}` } : {}),
       },
     ];
     if (
-      jobReads[0].captured.authorized !== variant.jobAllowed ||
-      jobReads[1].captured.authorized !== (operationalCause === null)
+      !dualCase &&
+      (jobReads[0].captured.authorized !== variant.jobAllowed ||
+        jobReads[1].captured.authorized !== (operationalCause === null))
     ) {
       throw new Error('native per-read Job approval diverges from authored scope');
     }
@@ -1142,9 +1395,18 @@ function producerIncident(spec, variant, index) {
       snapshot_ref,
       grants: snapshot.grants.map(visibleGrant),
       audit_stream_ref: snapshot.audit_stream_ref,
+      ...(snapshot.approval_stream_ref
+        ? { approval_stream_ref: snapshot.approval_stream_ref }
+        : {}),
     }),
   );
   grantSnapshots.push(background.grantSnapshot);
+  if (dualStreams) {
+    grantSnapshots.push(
+      ...visibleApprovalSnapshots(dualStreams, visibleGrant),
+      ...background.approvalSnapshots,
+    );
+  }
   const policySnapshots = [
     ...Object.entries(job.brokerSnapshots).map(([snapshot_ref, policy]) => ({
       snapshot_ref,
@@ -1160,6 +1422,14 @@ function producerIncident(spec, variant, index) {
   return {
     label,
     grantSnapshots,
+    ...(dualStreams
+      ? {
+          approvalPublications: [
+            ...approvalPublications(dualStreams),
+            ...background.approvalPublications,
+          ],
+        }
+      : {}),
     membershipAudit: [
       ...sourceWorld.membershipLedger,
       ...job.membershipLedger,
@@ -1262,8 +1532,16 @@ export function buildDefenseSession(spec) {
   ) {
     throw new Error('per-read approval requires scoped grants and two checkpointed Job reads');
   }
+  if (
+    spec.dualApprovalRevision === true &&
+    (spec.perReadApproval !== true || spec.jobRenewal !== true)
+  ) {
+    throw new Error('dual approval revision requires per-read Job session and renewal');
+  }
   const incidents = VARIANTS.map((variant, index) => producerIncident(spec, variant, index));
-  if (spec.perReadApproval === true) {
+  if (spec.dualApprovalRevision === true) {
+    verifyDualApprovalMatrix(incidents);
+  } else if (spec.perReadApproval === true) {
     verifyPerReadMatrix(incidents);
   }
   const expected = {};
@@ -1271,6 +1549,7 @@ export function buildDefenseSession(spec) {
   const grantSnapshots = [];
   const membershipAudit = [];
   const policySnapshots = [];
+  const approvalPublications = [];
   for (const incident of incidents) {
     const token = exactlyOne(incident.events, (event) => event.kind === 'release-token-redeemed');
     if (!token) {
@@ -1281,6 +1560,9 @@ export function buildDefenseSession(spec) {
     grantSnapshots.push(...incident.grantSnapshots);
     membershipAudit.push(...incident.membershipAudit);
     policySnapshots.push(...incident.policySnapshots);
+    if (spec.dualApprovalRevision === true) {
+      approvalPublications.push(...incident.approvalPublications);
+    }
   }
   const queues = incidents.map((incident) => [...incident.events]);
   const events = [];
@@ -1322,9 +1604,28 @@ export function buildDefenseSession(spec) {
   ) {
     throw new Error('producer policy snapshot collision');
   }
+  if (spec.dualApprovalRevision === true) {
+    approvalPublications.sort((left, right) =>
+      sha256Hex(
+        `f3v17|approval-arrival|${spec.seed}|${spec.family}|${left.event_id}`,
+      ).localeCompare(
+        sha256Hex(`f3v17|approval-arrival|${spec.seed}|${spec.family}|${right.event_id}`),
+      ),
+    );
+    approvalPublications.forEach((event, position) => {
+      event.arrival_order = position + 1;
+    });
+    if (
+      new Set(approvalPublications.map((event) => event.event_id)).size !==
+      approvalPublications.length
+    ) {
+      throw new Error('producer approval publication ID collision');
+    }
+  }
   return {
     events,
     grantSnapshots,
+    ...(spec.dualApprovalRevision === true ? { approvalPublications } : {}),
     membershipAudit,
     policySnapshots,
     expected,
@@ -1389,7 +1690,13 @@ export function stepDefense(session, command) {
     return { ok: true, events: session.events.filter((event) => event.kind === args.kind) };
   }
   if (command.tool === 'get-grants') {
-    return { ok: true, grant_snapshots: session.grantSnapshots };
+    return {
+      ok: true,
+      grant_snapshots: session.grantSnapshots,
+      ...(session.approvalPublications
+        ? { approval_publications: session.approvalPublications }
+        : {}),
+    };
   }
   if (command.tool === 'get-membership-audit') {
     return { ok: true, events: session.membershipAudit };

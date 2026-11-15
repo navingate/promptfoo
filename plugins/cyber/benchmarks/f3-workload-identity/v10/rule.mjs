@@ -37,6 +37,9 @@ const EVENT_FIELDS = new Set([
   'resource',
   'action',
   'grant_snapshot_ref',
+  'approval_stream_ref',
+  'owner_snapshot_ref',
+  'owner_approval_stream_ref',
   'verb',
   'auth_context_ref',
   'namespace',
@@ -192,6 +195,24 @@ REFERENCE_RULE_PER_READ_V2.joins.jobCloud = REFERENCE_RULE_PER_READ_V2.joins.job
   (clause) => !(clause.from === 'submission' && clause.left === 'resource'),
 );
 
+// V17 resolves the organizational approval effective at each completed read.
+// Cloud-read telemetry does not supply an approval snapshot reference.
+export const REFERENCE_RULE_PER_READ_V3 = structuredClone(REFERENCE_RULE_PER_READ_V2);
+REFERENCE_RULE_PER_READ_V3.version = 3;
+REFERENCE_RULE_PER_READ_V3.authorization.job.snapshot = {
+  mode: 'latest-completed-revision',
+  base: 'submission.grant_snapshot_ref',
+  stream: 'admission.approval_stream_ref',
+};
+REFERENCE_RULE_PER_READ_V3.authorization.owner = {
+  ...structuredClone(REFERENCE_RULE_PER_READ_V3.authorization.job),
+  snapshot: {
+    mode: 'latest-completed-revision',
+    base: 'submission.owner_snapshot_ref',
+    stream: 'admission.owner_approval_stream_ref',
+  },
+};
+
 export function readDecisionKey(tokenId, readId) {
   return JSON.stringify([tokenId, readId]);
 }
@@ -329,7 +350,7 @@ function fieldRef(ref, path, errors) {
   }
 }
 
-function validateJoins(joins, errors) {
+function validateJoins(joins, errors, version) {
   const joinNames = STAGES.map(([alias]) => alias);
   if (!keysOnly(joins, joinNames, 'rule.joins', errors)) {
     return;
@@ -348,23 +369,54 @@ function validateJoins(joins, errors) {
       if (!ALIASES.slice(0, stageIndex + 1).includes(clause.from)) {
         errors.push(`${path}.from must name a prior stage`);
       }
-      if (!EVENT_FIELDS.has(clause.left) || !EVENT_FIELDS.has(clause.right)) {
+      const allowed = (field) => EVENT_FIELDS.has(field) || (version === 3 && field === 'role_arn');
+      if (!allowed(clause.left) || !allowed(clause.right)) {
         errors.push(`${path} contains an unsafe or unknown field`);
       }
     }
   }
 }
 
+function validateApprovalSelector(selector, side, errors) {
+  const base = side === 'owner' ? 'submission.owner_snapshot_ref' : 'submission.grant_snapshot_ref';
+  if (!plain(selector)) {
+    if (selector !== base) {
+      errors.push(`${side} static approval snapshot must be ${base}`);
+    }
+    return;
+  }
+  if (
+    !keysOnly(selector, ['mode', 'base', 'stream'], `rule.authorization.${side}.snapshot`, errors)
+  ) {
+    return;
+  }
+  const stream =
+    side === 'owner' ? 'admission.owner_approval_stream_ref' : 'admission.approval_stream_ref';
+  if (selector.mode !== 'latest-completed-revision') {
+    errors.push(`${side} approval selector mode is invalid`);
+  }
+  if (selector.base !== base) {
+    errors.push(`${side} approval selector base is invalid`);
+  }
+  if (selector.stream !== stream) {
+    errors.push(`${side} approval selector stream is invalid`);
+  }
+}
+
 function validateCoveragePaths(auth, errors, version) {
-  for (const side of ['source', 'job']) {
+  for (const side of version === 3 ? ['source', 'job', 'owner'] : ['source', 'job']) {
     const fields =
-      version === 2
+      version >= 2
         ? [...AUTH_FIELDS, ...(side === 'source' ? ['controller'] : ['serviceAccount', 'template'])]
         : AUTH_FIELDS;
     if (!keysOnly(auth[side], fields, `rule.authorization.${side}`, errors)) {
       continue;
     }
     for (const field of fields) {
+      if (version === 3 && side !== 'source' && field === 'snapshot') {
+        validateApprovalSelector(auth[side].snapshot, side, errors);
+        continue;
+      }
       fieldRef(auth[side][field], `rule.authorization.${side}.${field}`, errors);
     }
   }
@@ -416,7 +468,14 @@ function validateMembership(membership, errors) {
 
 function validateAuthorization(auth, errors, version) {
   if (
-    !keysOnly(auth, ['source', 'job', 'grant', 'membership', 'alert'], 'rule.authorization', errors)
+    !keysOnly(
+      auth,
+      version === 3
+        ? ['source', 'job', 'owner', 'grant', 'membership', 'alert']
+        : ['source', 'job', 'grant', 'membership', 'alert'],
+      'rule.authorization',
+      errors,
+    )
   ) {
     return;
   }
@@ -448,7 +507,7 @@ function validateRuleVersion(rule, requiredVersion) {
   if (!['arrival_order', 'event_time'].includes(rule.correlationOrder)) {
     errors.push('rule.correlationOrder is invalid');
   }
-  validateJoins(rule.joins, errors);
+  validateJoins(rule.joins, errors, rule.version);
   validateAuthorization(rule.authorization, errors, rule.version);
   return { ok: errors.length === 0, errors };
 }
@@ -459,6 +518,10 @@ export function validateRule(rule) {
 
 export function validateRuleV2(rule) {
   return validateRuleVersion(rule, 2);
+}
+
+export function validateRuleV3(rule) {
+  return validateRuleVersion(rule, 3);
 }
 
 function scalar(value) {
@@ -527,17 +590,64 @@ function stageCandidates(
   });
 }
 
+function selectedApprovalSnapshot(evidence, context, selector, actionTime) {
+  const base = resolve(context, selector.base);
+  const stream = resolve(context, selector.stream);
+  if (!scalar(base) || !scalar(stream)) {
+    return null;
+  }
+  const ownedSnapshot = (ref) => {
+    const matches = evidence.grantSnapshots.filter((item) => item.snapshot_ref === ref);
+    return matches.length === 1 && matches[0].approval_stream_ref === stream;
+  };
+  if (!ownedSnapshot(base)) {
+    return null;
+  }
+  const revisions = evidence.approvalPublications
+    .filter(
+      (item) =>
+        item.approval_stream_ref === stream &&
+        item.outcome === 'completed' &&
+        Number.isSafeInteger(item.event_time) &&
+        item.event_time < actionTime,
+    )
+    .sort((left, right) => left.event_time - right.event_time);
+  let current = base;
+  let previousTime = -Infinity;
+  const seen = new Set([base]);
+  for (const revision of revisions) {
+    if (
+      !scalar(revision.event_id) ||
+      !Number.isSafeInteger(revision.arrival_order) ||
+      revision.event_time <= previousTime ||
+      revision.previous_snapshot_ref !== current ||
+      !scalar(revision.new_snapshot_ref) ||
+      seen.has(revision.new_snapshot_ref) ||
+      !ownedSnapshot(revision.new_snapshot_ref)
+    ) {
+      return null;
+    }
+    current = revision.new_snapshot_ref;
+    previousTime = revision.event_time;
+    seen.add(current);
+  }
+  return current;
+}
+
 function covered(evidence, context, config, auth, side, version) {
-  const snapshotRef = resolve(context, config.snapshot);
   const principal = resolve(context, config.principal);
   const action = resolve(context, config.action);
   const resource = resolve(context, config.resource);
   const time = resolve(context, config.time);
+  const snapshotRef =
+    version === 3 && side !== 'source' && plain(config.snapshot)
+      ? selectedApprovalSnapshot(evidence, context, config.snapshot, time)
+      : resolve(context, config.snapshot);
   if (![snapshotRef, principal, action, resource].every(scalar) || !Number.isSafeInteger(time)) {
     return null;
   }
   const binding =
-    version === 2
+    version >= 2
       ? side === 'source'
         ? { controller_id: resolve(context, config.controller) }
         : {
@@ -553,6 +663,12 @@ function covered(evidence, context, config, auth, side, version) {
     return null;
   }
   const snapshot = matches[0];
+  if (version === 3 && side !== 'source') {
+    const streamField = side === 'owner' ? 'owner_approval_stream_ref' : 'approval_stream_ref';
+    if (snapshot.approval_stream_ref !== context.admission?.[streamField]) {
+      return null;
+    }
+  }
   return snapshot.grants.some((grant) => {
     const grantPrincipal = auth.grant.principal
       .split('.')
@@ -596,7 +712,36 @@ function covered(evidence, context, config, auth, side, version) {
   });
 }
 
-function validEvidence(evidence) {
+function validApprovalPublications(evidence) {
+  if (
+    !Array.isArray(evidence.approvalPublications) ||
+    evidence.approvalPublications.length > 1_000
+  ) {
+    return false;
+  }
+  const seen = new Set(evidence.events.map((event) => event.event_id));
+  for (const publication of evidence.approvalPublications) {
+    if (
+      !plain(publication) ||
+      !scalar(publication.event_id) ||
+      seen.has(publication.event_id) ||
+      !scalar(publication.approval_stream_ref) ||
+      !Number.isSafeInteger(publication.event_time) ||
+      !Number.isSafeInteger(publication.arrival_order) ||
+      !scalar(publication.outcome) ||
+      (publication.outcome === 'completed' &&
+        (!scalar(publication.previous_snapshot_ref) ||
+          !scalar(publication.new_snapshot_ref) ||
+          publication.previous_snapshot_ref === publication.new_snapshot_ref))
+    ) {
+      return false;
+    }
+    seen.add(publication.event_id);
+  }
+  return true;
+}
+
+function validEvidence(evidence, version = 1) {
   return (
     plain(evidence) &&
     Array.isArray(evidence.events) &&
@@ -605,7 +750,8 @@ function validEvidence(evidence) {
     evidence.grantSnapshots.length <= 1_000 &&
     Array.isArray(evidence.membershipAudit) &&
     evidence.membershipAudit.length <= 10_000 &&
-    Array.isArray(evidence.policySnapshots)
+    Array.isArray(evidence.policySnapshots) &&
+    (version !== 3 || validApprovalPublications(evidence))
   );
 }
 
@@ -626,7 +772,18 @@ function classify(evidence, context, rule) {
     'job',
     rule.version,
   );
-  if (sourceCovered === null || jobCovered === null) {
+  const ownerCovered =
+    rule.version === 3
+      ? covered(
+          evidence,
+          context,
+          rule.authorization.owner,
+          rule.authorization,
+          'owner',
+          rule.version,
+        )
+      : true;
+  if (sourceCovered === null || jobCovered === null || ownerCovered === null) {
     return null;
   }
   const kmsCompleted =
@@ -639,8 +796,8 @@ function classify(evidence, context, rule) {
     );
   const sourceBad =
     sourceCovered === false &&
-    (rule.version === 2 || context.sourceWrite.actor === context.token.actor);
-  const jobBad = jobCovered === false && kmsCompleted;
+    (rule.version >= 2 || context.sourceWrite.actor === context.token.actor);
+  const jobBad = (!jobCovered || !ownerCovered) && kmsCompleted;
   if (sourceBad && jobBad) {
     return 'full-cascade';
   }
@@ -821,7 +978,18 @@ function perReadAlerts(evidence, context, rule) {
     'job',
     rule.version,
   );
-  if (sourceCovered === null || jobCovered === null) {
+  const ownerCovered =
+    rule.version === 3
+      ? covered(
+          evidence,
+          context,
+          rule.authorization.owner,
+          rule.authorization,
+          'owner',
+          rule.version,
+        )
+      : true;
+  if (sourceCovered === null || jobCovered === null || ownerCovered === null) {
     return null;
   }
   const downstreamSatisfied =
@@ -834,7 +1002,7 @@ function perReadAlerts(evidence, context, rule) {
     );
   return {
     sourceAlert: !sourceCovered,
-    jobAlert: !jobCovered && downstreamSatisfied,
+    jobAlert: (!jobCovered || !ownerCovered) && downstreamSatisfied,
   };
 }
 
@@ -861,14 +1029,14 @@ function readOutput(evidence, rule, paths) {
     : { error: 'authorization:missing-snapshot-or-field' };
 }
 
-export function executeRulePerReadV2(evidence, rule) {
-  const validation = validateRuleV2(rule);
+function executeRulePerReadVersion(evidence, rule, version) {
+  const validation = validateRuleVersion(rule, version);
   const result = { sourceAlerts: {}, jobAlerts: {}, proofs: {}, errors: {} };
   if (!validation.ok) {
     result.errors._rule = validation.errors;
     return result;
   }
-  if (!validEvidence(evidence)) {
+  if (!validEvidence(evidence, version)) {
     result.errors._evidence = ['evidence projection is missing or exceeds bounds'];
     return result;
   }
@@ -922,4 +1090,12 @@ export function executeRulePerReadV2(evidence, rule) {
     }
   }
   return result;
+}
+
+export function executeRulePerReadV2(evidence, rule) {
+  return executeRulePerReadVersion(evidence, rule, 2);
+}
+
+export function executeRulePerReadV3(evidence, rule) {
+  return executeRulePerReadVersion(evidence, rule, 3);
 }

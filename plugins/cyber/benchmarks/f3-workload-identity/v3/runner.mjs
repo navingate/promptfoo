@@ -120,6 +120,13 @@ import {
   stepDefense as stepV16Defense,
 } from '../v16/defense.mjs';
 import { RULE_GUIDE as V16_RULE_GUIDE } from '../v16/rule_guide.mjs';
+import {
+  buildDefenseSession as buildV17DefenseSession,
+  referenceDefense as referenceV17Defense,
+  scoreDefense as scoreV17Defense,
+  stepDefense as stepV17Defense,
+} from '../v17/defense.mjs';
+import { RULE_GUIDE as V17_RULE_GUIDE } from '../v17/rule_guide.mjs';
 import { parseCommands } from './commands.mjs';
 import { buildDefenseSession, referenceDefense, scoreDefense, stepDefense } from './defense.mjs';
 import {
@@ -182,8 +189,9 @@ function argsOf(argv) {
       'v14',
       'v15',
       'v16',
+      'v17',
     ].includes(args.version) ||
-    (['v11', 'v12', 'v13', 'v14', 'v15', 'v16'].includes(args.version) &&
+    (['v11', 'v12', 'v13', 'v14', 'v15', 'v16', 'v17'].includes(args.version) &&
       args.mode !== 'defense') ||
     args.seeds.some((s) => !Number.isSafeInteger(s))
   ) {
@@ -408,6 +416,14 @@ const MODULES = {
       step: stepV16Defense,
     },
   },
+  v17: {
+    defense: {
+      create: buildV17DefenseSession,
+      reference: referenceV17Defense,
+      score: scoreV17Defense,
+      step: stepV17Defense,
+    },
+  },
 };
 
 function mockRun(spec, mode, version, operations) {
@@ -423,7 +439,7 @@ function mockRun(spec, mode, version, operations) {
   const session = operations.create(spec);
   operations.step(
     session,
-    ['v10', 'v11', 'v12', 'v13', 'v14', 'v15', 'v16'].includes(version)
+    ['v10', 'v11', 'v12', 'v13', 'v14', 'v15', 'v16', 'v17'].includes(version)
       ? { tool: 'submit-rule', args: { rule: operations.reference(session) } }
       : { tool: 'submit', args: { labels: operations.reference(session) } },
   );
@@ -432,6 +448,9 @@ function mockRun(spec, mode, version, operations) {
 }
 
 function systemPrompt(args) {
+  if (args.version === 'v17' && args.mode === 'defense') {
+    return V17_RULE_GUIDE;
+  }
   if (args.version === 'v16' && args.mode === 'defense') {
     return V16_RULE_GUIDE;
   }
@@ -485,7 +504,7 @@ async function modelTurn(messages, cfg, version, mode) {
     return { issue: { classification: 'model_fail', reason: 'truncated' }, raw };
   }
   if (
-    ['v10', 'v11', 'v12', 'v13', 'v14', 'v15', 'v16'].includes(version) &&
+    ['v10', 'v11', 'v12', 'v13', 'v14', 'v15', 'v16', 'v17'].includes(version) &&
     mode === 'defense' &&
     Buffer.byteLength(response.text, 'utf8') > 128 * 1024
   ) {
@@ -495,7 +514,7 @@ async function modelTurn(messages, cfg, version, mode) {
     };
   }
   const commands =
-    ['v11', 'v12', 'v13', 'v14', 'v15', 'v16'].includes(version) && mode === 'defense'
+    ['v11', 'v12', 'v13', 'v14', 'v15', 'v16', 'v17'].includes(version) && mode === 'defense'
       ? parseV11Commands(response.text)
       : parseCommands(response.text);
   if (!commands) {
@@ -532,9 +551,19 @@ async function runOne(spec, args, cfg) {
     { role: 'user', content: initial },
   ];
   const transcript = [];
-  const maxTurns = ['v7', 'v8', 'v9', 'v10', 'v11', 'v12', 'v13', 'v14', 'v15', 'v16'].includes(
-    args.version,
-  )
+  const maxTurns = [
+    'v7',
+    'v8',
+    'v9',
+    'v10',
+    'v11',
+    'v12',
+    'v13',
+    'v14',
+    'v15',
+    'v16',
+    'v17',
+  ].includes(args.version)
     ? 60
     : args.version === 'v6'
       ? 50

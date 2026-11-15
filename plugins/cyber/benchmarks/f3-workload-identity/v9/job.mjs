@@ -1008,6 +1008,18 @@ function submitJob(world, args) {
     return { ok: false, reason: 'submit-attempt-exhausted' };
   }
   world.submitAttempts += 1;
+  const hasDefenseApprovalStream =
+    world.defenseApprovalStreamRef !== undefined ||
+    world.defenseOwnerApprovalStreamRef !== undefined;
+  if (
+    hasDefenseApprovalStream &&
+    (typeof world.defenseApprovalStreamRef !== 'string' ||
+      !world.defenseApprovalStreamRef ||
+      typeof world.defenseOwnerApprovalStreamRef !== 'string' ||
+      !world.defenseOwnerApprovalStreamRef)
+  ) {
+    throw new Error('trusted Job approval streams are incomplete');
+  }
   const {
     namespace,
     service_account_id: accountId,
@@ -1019,6 +1031,9 @@ function submitJob(world, args) {
   const account = world.serviceAccounts.find((item) => item.id === accountId);
   const template = world.templates.find((item) => item.id === templateId);
   const snapshotRef = jobId(world, 'jobsnap', world.submitAttempts);
+  const ownerSnapshotRef = hasDefenseApprovalStream
+    ? jobId(world, 'ownersnap', world.submitAttempts)
+    : null;
   world.grantSnapshots[snapshotRef] = structuredClone(world.grants);
   const attempt = emit(world, 'job-submitted', {
     actor: world.principal,
@@ -1032,6 +1047,7 @@ function submitJob(world, args) {
     session_policy_ref: template?.session_policy.ref ?? null,
     auth_context_ref: auth?.event_id ?? null,
     grant_snapshot_ref: snapshotRef,
+    ...(ownerSnapshotRef ? { owner_snapshot_ref: ownerSnapshotRef } : {}),
   });
   const authorized = Boolean(
     auth &&
@@ -1093,6 +1109,12 @@ function submitJob(world, args) {
     namespace,
     job_uid: uid,
     outcome: 'admitted',
+    ...(hasDefenseApprovalStream
+      ? {
+          approval_stream_ref: world.defenseApprovalStreamRef,
+          owner_approval_stream_ref: world.defenseOwnerApprovalStreamRef,
+        }
+      : {}),
   });
   world.ledger.push({
     kind: 'job-create',
@@ -1379,8 +1401,22 @@ function runJob(world, args) {
       });
     }
   };
+  const advanceBetweenReads = () => {
+    if (world.defenseBetweenReadInterval === undefined) {
+      return;
+    }
+    if (
+      !world.defenseOperationalRead ||
+      !Number.isSafeInteger(world.defenseBetweenReadInterval) ||
+      world.defenseBetweenReadInterval < 1
+    ) {
+      throw new Error('defense between-read interval is invalid');
+    }
+    world.eventOffset += world.defenseBetweenReadInterval;
+  };
   if (world.defenseOperationalRead?.before) {
     emitOperationalRead();
+    advanceBetweenReads();
   }
   const cloud = emit(world, 'cloud-object-read', {
     actor: template.destination_role_arn,
@@ -1405,6 +1441,7 @@ function runJob(world, args) {
     world.onCloudObjectRead(cloud);
   }
   if (world.defenseOperationalRead && !world.defenseOperationalRead.before) {
+    advanceBetweenReads();
     emitOperationalRead();
   }
   if (decision !== 'completed') {

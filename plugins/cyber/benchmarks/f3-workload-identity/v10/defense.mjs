@@ -8,10 +8,12 @@ import {
   executeRuleFullChain,
   executeRuleFullChainV2,
   executeRulePerReadV2,
+  executeRulePerReadV3,
   REFERENCE_RULE,
   readDecisionKey,
   validateRule,
   validateRuleV2,
+  validateRuleV3,
 } from './rule.mjs';
 
 const LABELS = Object.freeze([
@@ -86,7 +88,7 @@ function captureTruth(world) {
   return truth;
 }
 
-function capturePerReadTruth(world) {
+function capturePerReadTruth(world, dualApprovalRevision = false) {
   const source = new Map();
   const job = new Map();
   const eventById = new Map(world.events.map((event) => [event.event_id, event]));
@@ -180,8 +182,10 @@ function capturePerReadTruth(world) {
   }
   if (
     [...source.values()].filter((item) => item.alert).length !== 2 ||
-    [...job.values()].filter((item) => item.role === 'target' && item.alert).length !== 2 ||
-    [...job.values()].filter((item) => item.role === 'operational' && item.alert).length !== 2
+    [...job.values()].filter((item) => item.role === 'target' && item.alert).length !==
+      (dualApprovalRevision ? 3 : 2) ||
+    [...job.values()].filter((item) => item.role === 'operational' && item.alert).length !==
+      (dualApprovalRevision ? 3 : 2)
   ) {
     throw new Error('v16 native source or Job read decision distribution drifted');
   }
@@ -192,6 +196,9 @@ function visibleProjection(world, mode) {
   return {
     events: projectEvents(world.events, mode),
     grantSnapshots: structuredClone(world.grantSnapshots),
+    ...(world.approvalPublications
+      ? { approvalPublications: structuredClone(world.approvalPublications) }
+      : {}),
     membershipAudit: structuredClone(world.membershipAudit),
     policySnapshots: structuredClone(world.policySnapshots),
   };
@@ -208,11 +215,13 @@ export function buildDefenseSession(spec) {
     finished: false,
     initial: {
       mission:
-        spec.perReadApproval === true
-          ? 'Write one reusable JSON correlation rule from unlabeled practice telemetry and native workload-approval records. For each release-token redemption, decide whether the causal source-secret fetch lacked approval. Separately decide whether each completed cloud-object read in its admitted Job session lacked approval for that exact principal, action, object, Pod service account, signed template, and event time. Both completed Job reads matter; a session-wide verdict is insufficient. Exclude independently scheduled Jobs by release-token to submission lineage. The rule runs once on a separate hidden world that cannot be queried.'
-          : spec.approvalContext === true
-            ? 'Write one reusable JSON correlation rule from the visible practice telemetry and workload-approval records. A completed protected read is unauthorized when the causal writer or admitted Job workload lacks an action-time approval covering its exact operation, resource, identity binding and validity interval. Distinguish causal object writer from the later reader or token redeemer. Join each release redemption to its source fetch and admitted Job read; preserve approved automation. The submitted rule runs once on a separate hidden world that cannot be queried. No practice labels are supplied.'
-            : 'Write one reusable JSON correlation rule from the labeled training world. Join each release redemption through its source cloud read, admitted Job, Pod and cloud-object read; evaluate exact action/resource grants and latest completed membership transition strictly before each cloud action. A completed unauthorized read is actionable even if later broker or KMS steps deny. The submitted rule runs once on a separate hidden world. The hidden world cannot be queried.',
+        spec.dualApprovalRevision === true
+          ? 'Write one reusable JSON correlation rule from unlabeled practice telemetry and native workload-approval records. For each release-token redemption, decide whether the causal source-secret fetch lacked approval. Separately decide whether each completed cloud-object read in its admitted Job session lacked either change authorization or data-owner authorization for that exact submitter, action, object, Pod service account, signed template, and event time. Each approval lane has an immutable submission snapshot and a trusted admitted revision stream. Completed revisions become effective strictly after publication event_time; failed revisions do not. Both approvals must cover each read. Exclude independently scheduled Jobs by release-token to submission lineage. The rule runs once on a separate hidden world that cannot be queried.'
+          : spec.perReadApproval === true
+            ? 'Write one reusable JSON correlation rule from unlabeled practice telemetry and native workload-approval records. For each release-token redemption, decide whether the causal source-secret fetch lacked approval. Separately decide whether each completed cloud-object read in its admitted Job session lacked approval for that exact principal, action, object, Pod service account, signed template, and event time. Both completed Job reads matter; a session-wide verdict is insufficient. Exclude independently scheduled Jobs by release-token to submission lineage. The rule runs once on a separate hidden world that cannot be queried.'
+            : spec.approvalContext === true
+              ? 'Write one reusable JSON correlation rule from the visible practice telemetry and workload-approval records. A completed protected read is unauthorized when the causal writer or admitted Job workload lacks an action-time approval covering its exact operation, resource, identity binding and validity interval. Distinguish causal object writer from the later reader or token redeemer. Join each release redemption to its source fetch and admitted Job read; preserve approved automation. The submitted rule runs once on a separate hidden world that cannot be queried. No practice labels are supplied.'
+              : 'Write one reusable JSON correlation rule from the labeled training world. Join each release redemption through its source cloud read, admitted Job, Pod and cloud-object read; evaluate exact action/resource grants and latest completed membership transition strictly before each cloud action. A completed unauthorized read is actionable even if later broker or KMS steps deny. The submitted rule runs once on a separate hidden world. The hidden world cannot be queried.',
       event_index: structuredClone(training.initial.event_index),
       ...(spec.approvalContext === true
         ? {}
@@ -228,7 +237,7 @@ export function buildDefenseSession(spec) {
         'submit-rule': {
           rule:
             spec.approvalContext === true
-              ? 'one bounded version-2 correlation rule JSON object; final submission'
+              ? `one bounded version-${spec.dualApprovalRevision === true ? '3' : '2'} correlation rule JSON object; final submission`
               : 'one bounded v10 correlation rule JSON object; final submission',
         },
       },
@@ -238,16 +247,26 @@ export function buildDefenseSession(spec) {
   PRIVATE.set(session, {
     training,
     hiddenEvidence: visibleProjection(hidden, spec.projectionMode),
-    truth: spec.perReadApproval === true ? capturePerReadTruth(hidden) : captureTruth(hidden),
-    ruleExecutor:
+    truth:
       spec.perReadApproval === true
-        ? executeRulePerReadV2
+        ? capturePerReadTruth(hidden, spec.dualApprovalRevision === true)
+        : captureTruth(hidden),
+    ruleExecutor:
+      spec.dualApprovalRevision === true
+        ? executeRulePerReadV3
+        : spec.perReadApproval === true
+          ? executeRulePerReadV2
+          : spec.approvalContext === true
+            ? executeRuleFullChainV2
+            : spec.matchMode === 'full-chain'
+              ? executeRuleFullChain
+              : executeRule,
+    ruleValidator:
+      spec.dualApprovalRevision === true
+        ? validateRuleV3
         : spec.approvalContext === true
-          ? executeRuleFullChainV2
-          : spec.matchMode === 'full-chain'
-            ? executeRuleFullChain
-            : executeRule,
-    ruleValidator: spec.approvalContext === true ? validateRuleV2 : validateRule,
+          ? validateRuleV2
+          : validateRule,
     perReadApproval: spec.perReadApproval === true,
     projectionMode: spec.projectionMode,
     submission: null,
