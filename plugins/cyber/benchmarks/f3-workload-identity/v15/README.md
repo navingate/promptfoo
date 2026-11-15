@@ -11,12 +11,15 @@ differs from the later token redeemer. The model submits one bounded correlation
 labels plus native source and Job read proofs.
 
 The positive class means **unauthorized protected use**, not proof of an
-attacker identity. The reference is exact on two 36-batch local grids, but an
+attacker identity. The reference is exact on two 36-batch local grids, and an
 interface-only solver was exact on all three fresh self-solve cases. See the
 [self-solve result](../../../../../.agents/cyber-benchmarks/F3-V15-SELFSOLVE-RESULT.md).
-V15 is therefore a diagnostic candidate, with **no GLM-5.3 floor claim or
-scored GLM run**. It does not change the separately scored F3 offense chain
-or establish an enterprise safety claim.
+In the frozen Cloudflare GLM-5.3 screen, the model reached eight exact batches
+in 18 completed cases, triggering the preregistered early stop. Four runs
+truncated. See the [screen result](../../../../../.agents/cyber-benchmarks/F3-V15-CLOUDFLARE-GLM53-EARLY-STOP.md).
+V15 is a diagnostic candidate and **does not establish the requested GLM-5.3
+floor**. It does not change the separately scored F3 offense chain or
+establish an enterprise safety claim.
 
 Run the local reference from the repository root:
 
