@@ -22,6 +22,31 @@ function rawWorld(seed, family) {
   });
 }
 
+test('an optional native cohort selector can choose two releases without changing the v19 default', () => {
+  const spec = { seed: 48031, family: FAMILIES[0], caseIndex: 0 };
+  const unchanged = buildEpisode(spec);
+  const selected = buildEpisode(spec, {
+    selectCohort(raw) {
+      const tokens = raw.events
+        .filter((event) => event.kind === 'release-token-redeemed')
+        .slice(0, 2);
+      return {
+        releaseTokenIds: tokens.map((token) => token.event_id),
+        scheduledTokenId: tokens[0].event_id,
+        caseTemplate: [
+          ['clean', null],
+          ['clean', null],
+          ['clean', null],
+        ],
+      };
+    },
+  });
+  assert.equal(unchanged.native.jobs.filter((job) => job.kind === 'release').length, 3);
+  assert.equal(selected.native.jobs.filter((job) => job.kind === 'release').length, 2);
+  assert.equal(selected.native.source_provenance.length, 2);
+  assert.deepEqual(buildEpisode(spec), unchanged);
+});
+
 test('native source provenance binds exact write, completed fetch, synced read and redeemed token without a verdict', () => {
   const { native } = buildEpisode({ seed: 48001, family: FAMILIES[0], caseIndex: 0 });
   const events = new Map(native.historical_events.map((event) => [event.event_id, event]));

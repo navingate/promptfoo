@@ -227,22 +227,36 @@ function mappingContext(episode, provenance) {
   return { cloud, write, read, token, first: sameSecret[0] };
 }
 
-function mappingPlacement(episode, context, position) {
+function mappingPlacement(
+  episode,
+  context,
+  position,
+  { allowBufferedEarly = false, allowBufferedLate = false, earlyOffset = 4 } = {},
+) {
   const { cloud, read, first } = context;
   const events = episode.native.historical_events;
   if (position === 'early') {
     const orders = freeArrivalOrders(events, 0, first.arrival_order, 4);
-    if (!orders || first.event_time < 5) {
-      throw new Error('no native chronology for earlier operational mapping');
+    if (first.event_time <= earlyOffset) {
+      throw new Error('no native event-time slot for earlier operational mapping');
+    }
+    const bufferedOrders = allowBufferedEarly
+      ? Array.from(
+          { length: 4 },
+          (_, index) => Math.max(...events.map((event) => event.arrival_order)) + index + 1,
+        )
+      : null;
+    if (!orders && !bufferedOrders) {
+      throw new Error('no native arrival-order slot for earlier operational mapping');
     }
     return {
       times: [
-        first.event_time - 4,
-        first.event_time - 3,
-        first.event_time - 2,
-        first.event_time - 1,
+        first.event_time - earlyOffset,
+        first.event_time - earlyOffset + 1,
+        first.event_time - earlyOffset + 2,
+        first.event_time - earlyOffset + 3,
       ],
-      orders,
+      orders: orders ?? bufferedOrders,
     };
   }
   const createOrder = freeArrivalOrders(events, 0, first.arrival_order, 1);
@@ -253,6 +267,23 @@ function mappingPlacement(episode, context, position) {
     read.event_time - cloud.event_time < 4 ||
     first.event_time < 2
   ) {
+    if (allowBufferedLate && first.event_time >= 5 && cloud.event_time + 1 <= read.event_time) {
+      // An already configured neighboring object can reconcile before this
+      // source fetch and deliver its audit rows after the token's own rows.
+      // The fetch itself still happened after the causal fetch. When it
+      // shares the synced read's coarse timestamp it is an independent
+      // neighboring object fetch, with no causal edge to that read.
+      const nextOrder = Math.max(...events.map((event) => event.arrival_order)) + 1;
+      return {
+        times: [
+          first.event_time - 4,
+          first.event_time - 3,
+          first.event_time - 2,
+          cloud.event_time + 1,
+        ],
+        orders: [nextOrder, nextOrder + 1, nextOrder + 2, nextOrder + 3],
+      };
+    }
     return null;
   }
   return {
@@ -297,9 +328,10 @@ function mappingGrantSnapshot(episode, context, spec, position, approved) {
   };
 }
 
-function appendMapping(episode, spec, position, context, placement) {
+function appendMapping(episode, spec, position, context, placement, approvedOverride) {
   const { cloud, write, token } = context;
   const approved =
+    approvedOverride ??
     Number.parseInt(
       sha256Hex([
         'f3-v19-mapping-approval',
@@ -311,7 +343,7 @@ function appendMapping(episode, spec, position, context, placement) {
       16,
     ) %
       2 ===
-    0;
+      0;
   const snapshot = mappingGrantSnapshot(episode, context, spec, position, approved);
   const objectUid = mappingId('uid', spec, token.event_id, position, 'object').slice(0, 16);
   const objectName = mappingId('es', spec, token.event_id, position, 'name');
@@ -391,23 +423,90 @@ function appendMapping(episode, spec, position, context, placement) {
   );
 }
 
-function appendOperationalMappings(episode, spec) {
-  const ranked = rankProvenance(episode.native.source_provenance, spec, 'earlier-mapping');
-  const early = ranked[0];
-  const earlyContext = mappingContext(episode, early);
-  appendMapping(
-    episode,
-    spec,
-    'early',
-    earlyContext,
-    mappingPlacement(episode, earlyContext, 'early'),
-  );
-  const late = rankProvenance(episode.native.source_provenance, spec, 'later-mapping').find(
-    (provenance) => mappingPlacement(episode, mappingContext(episode, provenance), 'late') !== null,
-  );
-  if (late) {
-    const context = mappingContext(episode, late);
-    appendMapping(episode, spec, 'late', context, mappingPlacement(episode, context, 'late'));
+function appendOperationalMappings(episode, spec, policy) {
+  if (policy.approvalMode === 'split-neighbors') {
+    if (
+      !Array.isArray(policy.targetTokenRefs) ||
+      policy.targetTokenRefs.length !== 2 ||
+      new Set(policy.targetTokenRefs).size !== 2
+    ) {
+      throw new Error('balanced operational mappings need two distinct release tokens');
+    }
+    const contexts = policy.targetTokenRefs.map((tokenRef) =>
+      mappingContext(
+        episode,
+        exactlyOne(
+          episode.native.source_provenance,
+          (provenance) => provenance.token_ref === tokenRef,
+          'selected balanced mapping',
+        ),
+      ),
+    );
+    if (
+      !policy.targetTokenRefs.includes(policy.unauthorizedTokenRef) ||
+      !policy.targetTokenRefs.includes(policy.lateTokenRef) ||
+      ![0, 1].includes(policy.unauthorizedNeighborIndex)
+    ) {
+      throw new Error('balanced operational mapping needs one unapproved neighbor');
+    }
+    const approved = (context, index) =>
+      !(
+        context.token.event_id === policy.unauthorizedTokenRef &&
+        index === policy.unauthorizedNeighborIndex
+      );
+    for (const context of contexts) {
+      if (context.token.event_id === policy.lateTokenRef) {
+        for (let index = 0; index < 2; index += 1) {
+          const placement = mappingPlacement(episode, context, 'late', {
+            allowBufferedLate: true,
+          });
+          if (!placement) {
+            throw new Error(`balanced mapping has no later slot: ${spec.seed}/${spec.family}`);
+          }
+          appendMapping(
+            episode,
+            spec,
+            `late-${index}`,
+            context,
+            placement,
+            approved(context, index),
+          );
+        }
+      } else {
+        for (const [index, offset] of [4, 8].entries()) {
+          appendMapping(
+            episode,
+            spec,
+            `early-${index}`,
+            context,
+            mappingPlacement(episode, context, 'early', {
+              allowBufferedEarly: true,
+              earlyOffset: offset,
+            }),
+            approved(context, index),
+          );
+        }
+      }
+    }
+  } else {
+    const ranked = rankProvenance(episode.native.source_provenance, spec, 'earlier-mapping');
+    const early = ranked[0];
+    const earlyContext = mappingContext(episode, early);
+    appendMapping(
+      episode,
+      spec,
+      'early',
+      earlyContext,
+      mappingPlacement(episode, earlyContext, 'early'),
+    );
+    const late = rankProvenance(episode.native.source_provenance, spec, 'later-mapping').find(
+      (provenance) =>
+        mappingPlacement(episode, mappingContext(episode, provenance), 'late') !== null,
+    );
+    if (late) {
+      const context = mappingContext(episode, late);
+      appendMapping(episode, spec, 'late', context, mappingPlacement(episode, context, 'late'));
+    }
   }
   episode.native.historical_events.sort((left, right) => left.arrival_order - right.arrival_order);
   episode.visible.events.sort((left, right) => left.arrival_order - right.arrival_order);
@@ -491,17 +590,30 @@ function removeReleaseFuturePlans(episode) {
   }
 }
 
-export function buildEpisode(spec) {
+export function buildEpisode(spec, options = {}) {
   const caseIndex = spec.caseIndex ?? (spec.seed + FAMILIES.indexOf(spec.family)) % 7;
   const raw = historicalWorld(spec);
-  const episode = buildV18Episode(spec, selectedCohort(raw, spec, caseIndex));
+  const selectCohort = options.selectCohort ?? selectedCohort;
+  if (typeof selectCohort !== 'function') {
+    throw new Error('cohort selector must be a function');
+  }
+  const cohort = selectCohort(raw, spec, caseIndex);
+  const episode = buildV18Episode(spec, cohort);
   episode.native.source_provenance = episode.native.jobs
     .filter((job) => job.kind === 'release')
     .map((job) => provenanceForJob(raw, episode, job));
-  if (episode.native.source_provenance.length !== 3) {
-    throw new Error('v19 requires three native release source histories');
+  const expectedReleases = options.selectCohort ? cohort.releaseTokenIds.length : 3;
+  if (episode.native.source_provenance.length !== expectedReleases) {
+    throw new Error('release Jobs must all have native source histories');
   }
-  appendOperationalMappings(episode, spec);
+  const mappingPolicy =
+    typeof options.mappingPolicy === 'function'
+      ? options.mappingPolicy(cohort)
+      : (options.mappingPolicy ?? {});
+  if (!mappingPolicy || typeof mappingPolicy !== 'object' || Array.isArray(mappingPolicy)) {
+    throw new Error('operational mapping policy must be an object');
+  }
+  appendOperationalMappings(episode, spec, mappingPolicy);
   if (caseIndex === 6) {
     // A historical source alert with no future work is a least-privilege
     // diagnostic. Remove plans from ALL release Jobs to avoid leaking

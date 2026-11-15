@@ -191,9 +191,10 @@ function jobsAtTriage(visible) {
   const tokens = events(visible, 'release-token-redeemed');
   const scheduled = events(visible, 'scheduled-job-authorized');
   if (
-    submissions.length !== 4 ||
-    admissions.length !== 4 ||
-    tokens.length !== 3 ||
+    submissions.length !== admissions.length ||
+    admissions.length !== tokens.length + 1 ||
+    tokens.length < 2 ||
+    tokens.length > 5 ||
     scheduled.length !== 1
   ) {
     throw new Error('visible Job authorization lineage is incomplete');

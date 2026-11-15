@@ -9,6 +9,16 @@ account, or enterprise product is required.
 
 ## Current status
 
+The [v21 variable response candidate](v21/README.md) keeps the F3
+offense-linked workload path and varies the surrounding release Jobs and
+their authorization state. Paired cases differ by one observable current
+approval. The model-free reference passes two 36-case development grids,
+and the 17 tested shortcuts pass at most 6/36 on each. A separate untouched
+holdout is reserved after the candidate commit. Its
+[GLM-5.3 protocol](../../../../.agents/cyber-benchmarks/F3-V21-CLOUDFLARE-GLM53-PROTOCOL.md)
+is frozen; no v21 model result or floor claim has been made yet. V21 is a
+response adjunct, not a replacement for the original detection twin.
+
 The latest [v20 compact SOC view](v20/README.md) is a **development
 incident-response adjunct**, separate from the original detection twin. It
 preserves v19's native scorer while reducing model-visible evidence. Its

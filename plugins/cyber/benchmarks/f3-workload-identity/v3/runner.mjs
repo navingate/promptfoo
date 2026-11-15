@@ -148,6 +148,12 @@ import {
   stepDefense as stepV20Defense,
 } from '../v20/defense.mjs';
 import { RULE_GUIDE as V20_RULE_GUIDE } from '../v20/guide.mjs';
+import {
+  buildDefenseSession as buildV21DefenseSession,
+  referenceDefense as referenceV21Defense,
+  scoreDefense as scoreV21Defense,
+  stepDefense as stepV21Defense,
+} from '../v21/defense.mjs';
 import { parseCommands } from './commands.mjs';
 import { buildDefenseSession, referenceDefense, scoreDefense, stepDefense } from './defense.mjs';
 import {
@@ -214,8 +220,9 @@ function argsOf(argv) {
       'v18',
       'v19',
       'v20',
+      'v21',
     ].includes(args.version) ||
-    (['v11', 'v12', 'v13', 'v14', 'v15', 'v16', 'v17', 'v18', 'v19', 'v20'].includes(
+    (['v11', 'v12', 'v13', 'v14', 'v15', 'v16', 'v17', 'v18', 'v19', 'v20', 'v21'].includes(
       args.version,
     ) &&
       args.mode !== 'defense') ||
@@ -474,6 +481,14 @@ const MODULES = {
       step: stepV20Defense,
     },
   },
+  v21: {
+    defense: {
+      create: buildV21DefenseSession,
+      reference: referenceV21Defense,
+      score: scoreV21Defense,
+      step: stepV21Defense,
+    },
+  },
 };
 
 function mockRun(spec, mode, version, operations) {
@@ -487,7 +502,7 @@ function mockRun(spec, mode, version, operations) {
     };
   }
   const session = operations.create(spec);
-  if (version === 'v18' || version === 'v19' || version === 'v20') {
+  if (version === 'v18' || version === 'v19' || version === 'v20' || version === 'v21') {
     for (const action of operations.reference(session)) {
       operations.step(session, action);
     }
@@ -506,7 +521,7 @@ function mockRun(spec, mode, version, operations) {
 }
 
 function systemPrompt(args) {
-  if (args.version === 'v20' && args.mode === 'defense') {
+  if (args.mode === 'defense' && ['v20', 'v21'].includes(args.version)) {
     return V20_RULE_GUIDE;
   }
   if (args.version === 'v19' && args.mode === 'defense') {
@@ -571,7 +586,7 @@ async function modelTurn(messages, cfg, version, mode) {
     return { issue: { classification: 'model_fail', reason: 'truncated' }, raw };
   }
   if (
-    ['v10', 'v11', 'v12', 'v13', 'v14', 'v15', 'v16', 'v17', 'v18', 'v19', 'v20'].includes(
+    ['v10', 'v11', 'v12', 'v13', 'v14', 'v15', 'v16', 'v17', 'v18', 'v19', 'v20', 'v21'].includes(
       version,
     ) &&
     mode === 'defense' &&
@@ -583,8 +598,9 @@ async function modelTurn(messages, cfg, version, mode) {
     };
   }
   const commands =
-    ['v11', 'v12', 'v13', 'v14', 'v15', 'v16', 'v17', 'v18', 'v19', 'v20'].includes(version) &&
-    mode === 'defense'
+    ['v11', 'v12', 'v13', 'v14', 'v15', 'v16', 'v17', 'v18', 'v19', 'v20', 'v21'].includes(
+      version,
+    ) && mode === 'defense'
       ? parseV11Commands(response.text)
       : parseCommands(response.text);
   if (!commands) {
@@ -636,6 +652,7 @@ async function runOne(spec, args, cfg) {
     'v18',
     'v19',
     'v20',
+    'v21',
   ].includes(args.version)
     ? 60
     : args.version === 'v6'

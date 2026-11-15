@@ -166,7 +166,7 @@ function memberAt(visible, snapshot, grant, actor, time) {
   return transitions.at(-1)?.kind === 'group-member-added';
 }
 
-function candidateSourceApproved(visible, fetch) {
+export function candidateSourceApproved(visible, fetch) {
   const writer = eventsOf(visible, 'object-spec-write')
     .filter((event) => event.object_uid === fetch.object_uid && event.revision === fetch.revision)
     .sort((left, right) => right.event_time - left.event_time)[0];

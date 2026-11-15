@@ -71,8 +71,17 @@ function currentApproval(visible, submission, admission, lane) {
   };
 }
 
-export function projectVisible(episode) {
+export function projectVisible(episode, { minJobs = 4, maxJobs = 4 } = {}) {
   const { visible, native } = episode;
+  if (
+    !Number.isSafeInteger(minJobs) ||
+    !Number.isSafeInteger(maxJobs) ||
+    minJobs < 3 ||
+    maxJobs > 6 ||
+    minJobs > maxJobs
+  ) {
+    throw new Error('compact SOC job-count bounds must be within three to six');
+  }
   if (
     native.approval_publications.some(
       (publication) =>
@@ -92,8 +101,12 @@ export function projectVisible(episode) {
   const admissions = visible.events.filter(
     (event) => event.kind === 'job-admission' && event.outcome === 'admitted',
   );
-  if (admissions.length !== 4) {
-    throw new Error(`expected four admitted Jobs, found ${admissions.length}`);
+  if (admissions.length < minJobs || admissions.length > maxJobs) {
+    throw new Error(
+      minJobs === maxJobs
+        ? `expected ${minJobs === 4 ? 'four' : minJobs} admitted Jobs, found ${admissions.length}`
+        : `expected ${minJobs}-${maxJobs} admitted Jobs, found ${admissions.length}`,
+    );
   }
   if (new Set(admissions.map((admission) => admission.job_uid)).size !== admissions.length) {
     throw new Error('duplicate admitted Job in approval view');
