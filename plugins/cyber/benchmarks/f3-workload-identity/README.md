@@ -9,6 +9,14 @@ account, or enterprise product is required.
 
 ## Current status
 
+The [v22 interactive response candidate](v22/README.md) keeps v21's
+offense-linked history and native containment scorer, but the defender now
+investigates it through exact-ID source, Job, and session queries instead of
+receiving the complete SOC view at once. Its query-only visible reference
+passes the 36-case development grid. It has no GLM-5.3 floor claim until the
+frozen model screen is complete. This is a bounded response adjunct, not a
+replacement for the original detection twin.
+
 The [v21 variable response candidate](v21/README.md) keeps the F3
 offense-linked workload path and varies the surrounding release Jobs and
 their authorization state. Paired cases differ by one observable current

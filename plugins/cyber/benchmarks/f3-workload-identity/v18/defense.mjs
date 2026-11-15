@@ -48,7 +48,7 @@ function assertNoVisibleVerdict(value) {
   }
 }
 
-function actionFromCommand(visible, command) {
+export function actionFromCommand(visible, command) {
   const args = command.args;
   if (command.tool === 'pause-job' && hasExactly(args, ['job_uid'])) {
     if (visible.job_queue.some((job) => job.job_uid === args.job_uid)) {

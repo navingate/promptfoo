@@ -154,6 +154,13 @@ import {
   scoreDefense as scoreV21Defense,
   stepDefense as stepV21Defense,
 } from '../v21/defense.mjs';
+import {
+  buildDefenseSession as buildV22DefenseSession,
+  referenceDefense as referenceV22Defense,
+  scoreDefense as scoreV22Defense,
+  stepDefense as stepV22Defense,
+} from '../v22/defense.mjs';
+import { RULE_GUIDE as V22_RULE_GUIDE } from '../v22/guide.mjs';
 import { parseCommands } from './commands.mjs';
 import { buildDefenseSession, referenceDefense, scoreDefense, stepDefense } from './defense.mjs';
 import {
@@ -162,6 +169,12 @@ import {
   scoreOffenseSession,
   stepOffense,
 } from './offense.mjs';
+
+const COMPACT_RESPONSE_GUIDES = new Map([
+  ['v20', V20_RULE_GUIDE],
+  ['v21', V20_RULE_GUIDE],
+  ['v22', V22_RULE_GUIDE],
+]);
 
 function argsOf(argv) {
   const args = {
@@ -221,8 +234,9 @@ function argsOf(argv) {
       'v19',
       'v20',
       'v21',
+      'v22',
     ].includes(args.version) ||
-    (['v11', 'v12', 'v13', 'v14', 'v15', 'v16', 'v17', 'v18', 'v19', 'v20', 'v21'].includes(
+    (['v11', 'v12', 'v13', 'v14', 'v15', 'v16', 'v17', 'v18', 'v19', 'v20', 'v21', 'v22'].includes(
       args.version,
     ) &&
       args.mode !== 'defense') ||
@@ -489,6 +503,14 @@ const MODULES = {
       step: stepV21Defense,
     },
   },
+  v22: {
+    defense: {
+      create: buildV22DefenseSession,
+      reference: referenceV22Defense,
+      score: scoreV22Defense,
+      step: stepV22Defense,
+    },
+  },
 };
 
 function mockRun(spec, mode, version, operations) {
@@ -502,7 +524,7 @@ function mockRun(spec, mode, version, operations) {
     };
   }
   const session = operations.create(spec);
-  if (version === 'v18' || version === 'v19' || version === 'v20' || version === 'v21') {
+  if (['v18', 'v19', 'v20', 'v21', 'v22'].includes(version)) {
     for (const action of operations.reference(session)) {
       operations.step(session, action);
     }
@@ -521,8 +543,8 @@ function mockRun(spec, mode, version, operations) {
 }
 
 function systemPrompt(args) {
-  if (args.mode === 'defense' && ['v20', 'v21'].includes(args.version)) {
-    return V20_RULE_GUIDE;
+  if (args.mode === 'defense' && COMPACT_RESPONSE_GUIDES.has(args.version)) {
+    return COMPACT_RESPONSE_GUIDES.get(args.version);
   }
   if (args.version === 'v19' && args.mode === 'defense') {
     return V19_RULE_GUIDE;
@@ -586,9 +608,21 @@ async function modelTurn(messages, cfg, version, mode) {
     return { issue: { classification: 'model_fail', reason: 'truncated' }, raw };
   }
   if (
-    ['v10', 'v11', 'v12', 'v13', 'v14', 'v15', 'v16', 'v17', 'v18', 'v19', 'v20', 'v21'].includes(
-      version,
-    ) &&
+    [
+      'v10',
+      'v11',
+      'v12',
+      'v13',
+      'v14',
+      'v15',
+      'v16',
+      'v17',
+      'v18',
+      'v19',
+      'v20',
+      'v21',
+      'v22',
+    ].includes(version) &&
     mode === 'defense' &&
     Buffer.byteLength(response.text, 'utf8') > 128 * 1024
   ) {
@@ -598,7 +632,7 @@ async function modelTurn(messages, cfg, version, mode) {
     };
   }
   const commands =
-    ['v11', 'v12', 'v13', 'v14', 'v15', 'v16', 'v17', 'v18', 'v19', 'v20', 'v21'].includes(
+    ['v11', 'v12', 'v13', 'v14', 'v15', 'v16', 'v17', 'v18', 'v19', 'v20', 'v21', 'v22'].includes(
       version,
     ) && mode === 'defense'
       ? parseV11Commands(response.text)
@@ -653,6 +687,7 @@ async function runOne(spec, args, cfg) {
     'v19',
     'v20',
     'v21',
+    'v22',
   ].includes(args.version)
     ? 60
     : args.version === 'v6'
