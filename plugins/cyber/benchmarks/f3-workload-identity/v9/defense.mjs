@@ -40,6 +40,34 @@ function approvalCause(spec, index, side, allowed) {
   return causes[pick];
 }
 
+// V16 keeps the target and second tenant-object approvals independent. One
+// target-uncovered incident is also operational-uncovered; one target-covered
+// incident is operational-uncovered. Both resources retain covered neighbors.
+function operationalApprovalCause(spec, index, familyIndex) {
+  if (spec.perReadApproval !== true) {
+    return null;
+  }
+  const bothUncoveredIndex = (spec.seed + familyIndex) % 2 === 0 ? 0 : 4;
+  const operationalOnlyChoices = [1, 3, 5];
+  const operationalOnlyIndex =
+    operationalOnlyChoices[
+      Number.parseInt(
+        sha256Hex(`f3v16|operational-only|${spec.seed}|${spec.family}`).slice(0, 8),
+        16,
+      ) % operationalOnlyChoices.length
+    ];
+  if (index !== bothUncoveredIndex && index !== operationalOnlyIndex) {
+    return null;
+  }
+  const causes = ['service-account', 'template', 'expired', 'not-yet-valid'];
+  const pick =
+    Number.parseInt(
+      sha256Hex(`f3v16|operational-cause|${spec.seed}|${spec.family}|${index}`).slice(0, 8),
+      16,
+    ) % causes.length;
+  return causes[pick];
+}
+
 function producerLatency(spec, index, stage, slots = PRODUCER_LATENCY_SLOTS) {
   return (
     Number.parseInt(
@@ -456,7 +484,8 @@ function producerIncident(spec, variant, index) {
   const nonce = `v9-defense-capture|${spec.seed}|${spec.family}|${index}`;
   const session = createOffenseSession({ ...spec, nonce });
   if (spec.approvalContext === true) {
-    session.source.world.meta.telemetry_contract_id = 'f3-workload-events-v15';
+    session.source.world.meta.telemetry_contract_id =
+      spec.perReadApproval === true ? 'f3-workload-events-v16' : 'f3-workload-events-v15';
   }
   session.delegatedSnapshots = {};
   session.nativeActionCoverage = {};
@@ -721,6 +750,7 @@ function producerIncident(spec, variant, index) {
   }
   const nearMisses = referenceJobNearMisses(job);
   const jobCause = approvalCause(spec, index, 'job', variant.jobAllowed);
+  const operationalCause = operationalApprovalCause(spec, index, familyIndex);
   const commonQueueDelay = producerLatency(spec, index, 'job-queue', LATENCY_SLOTS) * 2;
   const targetQueueDelay = commonQueueDelay;
   const jobCloudLatency = producerLatency(spec, index, 'job-cloud');
@@ -738,13 +768,41 @@ function producerIncident(spec, variant, index) {
     (spec.jobRenewal === true ? 3 : 0) +
     jobCloudLatency +
     (operationalBefore ? (spec.operationalCheckpoint === true ? 2 : 1) : 0);
+  const operationalPlannedActionTime = operationalBefore
+    ? jobPlannedActionTime - (spec.operationalCheckpoint === true ? 2 : 1)
+    : jobPlannedActionTime + 1;
   if (spec.approvalContext === true) {
     const otherAccount = job.serviceAccounts.find((item) => item.id !== route.service_account_id);
     const otherTemplate = job.templates.find((item) => item.id !== route.template_id);
     if (!otherAccount || !otherTemplate) {
       throw new Error('Job approval identity near miss missing');
     }
+    const operationalGrant =
+      spec.perReadApproval === true
+        ? exactlyOne(
+            job.grants,
+            (grant) =>
+              grant.writer_principal === job.principal &&
+              grant.task.remote_ref === job.policy.benign_target.remote_ref,
+          )
+        : null;
+    if (spec.perReadApproval === true && !operationalGrant) {
+      throw new Error('operational approval grant missing before submission');
+    }
     for (const grant of job.grants) {
+      if (grant === operationalGrant) {
+        grant.scope = {
+          service_account_id:
+            operationalCause === 'service-account' ? otherAccount.id : route.service_account_id,
+          template_id: operationalCause === 'template' ? otherTemplate.id : route.template_id,
+          valid_from: operationalCause === 'not-yet-valid' ? operationalPlannedActionTime + 1 : 0,
+          valid_until:
+            operationalCause === 'expired'
+              ? operationalPlannedActionTime
+              : operationalPlannedActionTime + 100,
+        };
+        continue;
+      }
       grant.scope = {
         service_account_id:
           grant.writer_principal === jobGroup && jobCause === 'service-account'
@@ -782,6 +840,37 @@ function producerIncident(spec, variant, index) {
     job.ledger,
     (event) => event.kind === 'job-create' && event.outcome === 'admitted',
   );
+  const nativeSubmission =
+    spec.perReadApproval === true
+      ? exactlyOne(
+          job.events,
+          (event) => event.kind === 'job-submitted' && event.job_uid === submitted.job_uid,
+        )
+      : null;
+  const nativeAdmission =
+    spec.perReadApproval === true
+      ? exactlyOne(
+          job.events,
+          (event) =>
+            event.kind === 'job-admission' &&
+            event.job_uid === submitted.job_uid &&
+            event.outcome === 'admitted',
+        )
+      : null;
+  if (
+    spec.perReadApproval === true &&
+    (!nativeSubmission ||
+      !nativeAdmission ||
+      !jobCreate ||
+      nativeAdmission.event_id !== jobCreate.admission_event_id ||
+      nativeAdmission.causal_ref !== nativeSubmission.event_id ||
+      nativeSubmission.actor !== job.principal ||
+      nativeSubmission.service_account_id !== route.service_account_id ||
+      nativeSubmission.template_id !== route.template_id ||
+      nativeSubmission.grant_snapshot_ref !== jobCreate.grant_snapshot_ref)
+  ) {
+    throw new Error('native admitted submission does not match authored Job approval');
+  }
   const otherJobPrincipal = job.grants.find(
     (grant) => grant.writer_principal !== job.principal && grant.writer_principal !== jobGroup,
   )?.writer_principal;
@@ -794,7 +883,10 @@ function producerIncident(spec, variant, index) {
   }
   job.producerLatencies = jobProducerLatencies;
   if (spec.linkAmbiguity === true) {
-    job.defenseOperationalRead = { before: operationalBefore };
+    job.defenseOperationalRead = {
+      before: operationalBefore,
+      ...(spec.perReadApproval === true ? { capture: true } : {}),
+    };
   }
   if (spec.operationalCheckpoint === true) {
     job.defenseOperationalCheckpoint = true;
@@ -826,26 +918,54 @@ function producerIncident(spec, variant, index) {
     audit_stream_ref: membershipAuditStream(jobGroup),
   };
   let jobCapture = null;
+  const jobCaptures = new Map();
   job.onCloudObjectRead = (cloud) => {
-    jobCapture = {
+    if (spec.perReadApproval === true && cloud.outcome !== 'completed') {
+      throw new Error('per-read approval capture requires a completed native cloud read');
+    }
+    const nativePod =
+      spec.perReadApproval === true
+        ? exactlyOne(
+            job.events,
+            (event) => event.kind === 'pod-started' && event.owner_job_uid === submitted.job_uid,
+          )
+        : null;
+    if (
+      spec.perReadApproval === true &&
+      (nativePod?.service_account_id !== nativeSubmission.service_account_id ||
+        typeof nativePod?.pod_uid !== 'string')
+    ) {
+      throw new Error('native admitted Pod identity does not match submission');
+    }
+    const captured = {
       ...captureNativeCoverage(
         session.delegatedSnapshots[jobCreate.grant_snapshot_ref].grants,
         job.membershipLedger,
-        job.principal,
+        spec.perReadApproval === true ? nativeSubmission.actor : job.principal,
         cloud.action,
         cloud.resource,
         cloud.event_time,
         spec.approvalContext === true
           ? {
               kind: 'job',
-              service_account_id: route.service_account_id,
-              template_id: route.template_id,
+              service_account_id:
+                spec.perReadApproval === true
+                  ? nativePod.service_account_id
+                  : route.service_account_id,
+              template_id:
+                spec.perReadApproval === true ? nativeSubmission.template_id : route.template_id,
             }
           : null,
       ),
       event_count: job.events.length,
     };
-    session.nativeActionCoverage[cloud.event_id] = jobCapture;
+    session.nativeActionCoverage[cloud.event_id] = captured;
+    if (spec.perReadApproval === true) {
+      jobCaptures.set(cloud.event_id, captured);
+    }
+    if (cloud.resource === job.policy.protected_target.remote_ref) {
+      jobCapture = captured;
+    }
   };
   const run = stepOffense(session, { tool: 'run-job', args: { job_uid: submitted.job_uid } });
   delete job.onCloudObjectRead;
@@ -888,6 +1008,84 @@ function producerIncident(spec, variant, index) {
   }
   if (!jobCapture || jobCapture.action_time !== jobCloud.event_time) {
     throw new Error('native Job action capture missing');
+  }
+  let jobReads = null;
+  if (spec.perReadApproval === true) {
+    const operationalCloud = job.events.find(
+      (event) => event.event_id === operationalNative?.read_event_id,
+    );
+    const operationalCheckpoint = exactlyOne(
+      job.events,
+      (event) =>
+        event.kind === 'job-checkpoint-created' &&
+        event.cloud_read_event_id === operationalCloud?.event_id,
+    );
+    const operationalCheckpointLedger = exactlyOne(
+      job.ledger,
+      (event) =>
+        event.kind === 'job-operational-checkpoint' &&
+        event.read_event_id === operationalCloud?.event_id,
+    );
+    const targetCheckpoint = exactlyOne(
+      job.events,
+      (event) =>
+        event.kind === 'job-checkpoint-created' && event.cloud_read_event_id === jobCloud.event_id,
+    );
+    const operationalCapture = jobCaptures.get(operationalCloud?.event_id);
+    if (
+      operationalCloud?.kind !== 'cloud-object-read' ||
+      operationalCloud.outcome !== 'completed' ||
+      operationalCloud.resource !== job.policy.benign_target.remote_ref ||
+      operationalCloud.event_time !== operationalPlannedActionTime ||
+      jobCloud.event_time !== jobPlannedActionTime ||
+      jobCaptures.size !== 2 ||
+      jobCaptures.get(jobCloud.event_id) !== jobCapture ||
+      operationalCapture?.action_time !== operationalCloud.event_time ||
+      operationalCheckpoint?.event_id !== operationalCheckpointLedger?.checkpoint_event_id ||
+      targetCheckpoint?.causal_ref !== jobCloud.event_id ||
+      operationalCheckpoint?.causal_ref !== operationalCloud.event_id ||
+      targetCheckpoint?.job_uid !== submitted.job_uid ||
+      operationalCheckpoint?.job_uid !== submitted.job_uid ||
+      operationalNative?.authorization_snapshot_ref !==
+        operationalCloud.authorization_snapshot_ref ||
+      operationalNative?.access_key_ref !== operationalCloud.access_key_ref ||
+      operationalCloud.access_key_ref !== jobCloud.access_key_ref ||
+      operationalCloud.causal_ref !== jobCloud.causal_ref
+    ) {
+      throw new Error('native per-read Job capture or lineage missing');
+    }
+    const action = (cloud) => ({
+      event_id: cloud.event_id,
+      event_time: cloud.event_time,
+      arrival_order: cloud.arrival_order,
+      actor: nativeSubmission.actor,
+      action: cloud.action,
+      resource: cloud.resource,
+    });
+    jobReads = [
+      {
+        role: 'target',
+        action: action(jobCloud),
+        planned_action_time: jobPlannedActionTime,
+        captured: structuredClone(jobCapture),
+        checkpoint_event_id: targetCheckpoint.event_id,
+        ...(jobCause ? { approval_cause: `job-${jobCause}` } : {}),
+      },
+      {
+        role: 'operational',
+        action: action(operationalCloud),
+        planned_action_time: operationalPlannedActionTime,
+        captured: structuredClone(operationalCapture),
+        checkpoint_event_id: operationalCheckpoint.event_id,
+        ...(operationalCause ? { approval_cause: `job-operational-${operationalCause}` } : {}),
+      },
+    ];
+    if (
+      jobReads[0].captured.authorized !== variant.jobAllowed ||
+      jobReads[1].captured.authorized !== (operationalCause === null)
+    ) {
+      throw new Error('native per-read Job approval diverges from authored scope');
+    }
   }
   const backgroundOrderBit = (index + Math.floor(index / 4)) % 2;
   const backgroundSlow =
@@ -1005,6 +1203,7 @@ function producerIncident(spec, variant, index) {
         planned_action_time: jobPlannedActionTime,
         captured: structuredClone(jobCapture),
         ...(spec.approvalContext === true && jobCause ? { approval_cause: `job-${jobCause}` } : {}),
+        ...(jobReads ? { reads: jobReads } : {}),
       },
       ...(operationalNative ? { operational: structuredClone(operationalNative) } : {}),
       background: background.nativeRecord,
@@ -1023,8 +1222,50 @@ function producerIncident(spec, variant, index) {
   };
 }
 
+function verifyPerReadMatrix(incidents) {
+  const combinations = new Set();
+  const uncovered = { source: 0, target: 0, operational: 0 };
+  for (const incident of incidents) {
+    const record = incident.nativeActionRecords;
+    const reads = record.job.reads;
+    if (reads?.length !== 2 || reads[0].role !== 'target' || reads[1].role !== 'operational') {
+      throw new Error('native per-read Job population is incomplete');
+    }
+    const targetCovered = reads[0].captured.authorized;
+    const operationalCovered = reads[1].captured.authorized;
+    if (targetCovered && !operationalCovered && record.source.captured.authorized !== true) {
+      throw new Error('operational-only counterfactual must have a covered source read');
+    }
+    combinations.add(`${targetCovered}/${operationalCovered}`);
+    uncovered.source += Number(record.source.captured.authorized === false);
+    uncovered.target += Number(targetCovered === false);
+    uncovered.operational += Number(operationalCovered === false);
+  }
+  if (
+    incidents.length !== 6 ||
+    uncovered.source !== 2 ||
+    uncovered.target !== 2 ||
+    uncovered.operational !== 2 ||
+    combinations.size !== 4 ||
+    !['false/false', 'false/true', 'true/false', 'true/true'].every((key) => combinations.has(key))
+  ) {
+    throw new Error('native per-read approval counterfactual matrix is incomplete');
+  }
+}
+
 export function buildDefenseSession(spec) {
+  if (
+    spec.perReadApproval === true &&
+    (spec.approvalContext !== true ||
+      spec.linkAmbiguity !== true ||
+      spec.operationalCheckpoint !== true)
+  ) {
+    throw new Error('per-read approval requires scoped grants and two checkpointed Job reads');
+  }
   const incidents = VARIANTS.map((variant, index) => producerIncident(spec, variant, index));
+  if (spec.perReadApproval === true) {
+    verifyPerReadMatrix(incidents);
+  }
   const expected = {};
   const nativeActionRecords = {};
   const grantSnapshots = [];

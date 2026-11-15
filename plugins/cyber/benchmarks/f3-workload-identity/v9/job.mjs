@@ -1330,6 +1330,13 @@ function runJob(world, args) {
       ...(operationalDecision === 'completed' ? {} : { reason: operationalDecision }),
       causal_ref: activeRole.event_id,
     });
+    if (
+      world.defenseOperationalRead?.capture === true &&
+      operational.outcome === 'completed' &&
+      typeof world.onCloudObjectRead === 'function'
+    ) {
+      world.onCloudObjectRead(operational);
+    }
     world.ledger.push({
       kind: 'job-operational-read',
       job_uid: job.uid,

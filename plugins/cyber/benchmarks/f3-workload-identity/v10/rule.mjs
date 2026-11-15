@@ -184,6 +184,18 @@ REFERENCE_RULE_V2.authorization.source.controller = 'sourceCloud.controller_id';
 REFERENCE_RULE_V2.authorization.job.serviceAccount = 'pod.service_account_id';
 REFERENCE_RULE_V2.authorization.job.template = 'submission.template_id';
 
+// V16 classifies every completed read in the release-linked Job session.
+// The same bounded v2 rule remains valid; only the target-only resource join
+// is removed so one token can resolve two native read/checkpoint paths.
+export const REFERENCE_RULE_PER_READ_V2 = structuredClone(REFERENCE_RULE_V2);
+REFERENCE_RULE_PER_READ_V2.joins.jobCloud = REFERENCE_RULE_PER_READ_V2.joins.jobCloud.filter(
+  (clause) => !(clause.from === 'submission' && clause.left === 'resource'),
+);
+
+export function readDecisionKey(tokenId, readId) {
+  return JSON.stringify([tokenId, readId]);
+}
+
 function plain(value) {
   return (
     value !== null &&
@@ -790,4 +802,124 @@ export function executeRuleFullChain(evidence, rule) {
 
 export function executeRuleFullChainV2(evidence, rule) {
   return executeRuleFullChainVersion(evidence, rule, 2);
+}
+
+function perReadAlerts(evidence, context, rule) {
+  const sourceCovered = covered(
+    evidence,
+    context,
+    rule.authorization.source,
+    rule.authorization,
+    'source',
+    rule.version,
+  );
+  const jobCovered = covered(
+    evidence,
+    context,
+    rule.authorization.job,
+    rule.authorization,
+    'job',
+    rule.version,
+  );
+  if (sourceCovered === null || jobCovered === null) {
+    return null;
+  }
+  const downstreamSatisfied =
+    rule.authorization.alert.downstream === 'none' ||
+    evidence.events.some(
+      (event) =>
+        event.kind === 'kms-decrypt' &&
+        event.cloud_read_ref === context.jobCloud.event_id &&
+        event.outcome === 'completed',
+    );
+  return {
+    sourceAlert: !sourceCovered,
+    jobAlert: !jobCovered && downstreamSatisfied,
+  };
+}
+
+function readOutput(evidence, rule, paths) {
+  const outputs = new Map();
+  for (const context of paths) {
+    const alerts = perReadAlerts(evidence, context, rule);
+    if (alerts === null) {
+      continue;
+    }
+    const proof = {
+      source_read_event_id: context.sourceCloud.event_id,
+      job_read_event_id: context.jobCloud.event_id,
+      checkpoint_event_id: context.checkpoint.event_id,
+    };
+    const key = JSON.stringify([alerts.sourceAlert, alerts.jobAlert, proof]);
+    outputs.set(key, { ...alerts, proof });
+    if (outputs.size > 1) {
+      return { error: 'path:ambiguous' };
+    }
+  }
+  return outputs.size === 1
+    ? { output: outputs.values().next().value }
+    : { error: 'authorization:missing-snapshot-or-field' };
+}
+
+export function executeRulePerReadV2(evidence, rule) {
+  const validation = validateRuleV2(rule);
+  const result = { sourceAlerts: {}, jobAlerts: {}, proofs: {}, errors: {} };
+  if (!validation.ok) {
+    result.errors._rule = validation.errors;
+    return result;
+  }
+  if (!validEvidence(evidence)) {
+    result.errors._evidence = ['evidence projection is missing or exceeds bounds'];
+    return result;
+  }
+  for (const token of evidence.events.filter((event) => event.kind === 'release-token-redeemed')) {
+    if (typeof token.event_id !== 'string') {
+      continue;
+    }
+    const expanded = expandCompletePaths(evidence, rule, token);
+    if (expanded.error) {
+      result.sourceAlerts[token.event_id] = null;
+      result.errors[token.event_id] = [expanded.error];
+      continue;
+    }
+    const byRead = new Map();
+    const sourceOutputs = new Map();
+    for (const context of expanded.paths) {
+      const readId = context.jobCloud.event_id;
+      if (!byRead.has(readId)) {
+        byRead.set(readId, []);
+      }
+      byRead.get(readId).push(context);
+      const sourceCovered = covered(
+        evidence,
+        context,
+        rule.authorization.source,
+        rule.authorization,
+        'source',
+        rule.version,
+      );
+      if (sourceCovered !== null) {
+        const proof = context.sourceCloud.event_id;
+        sourceOutputs.set(JSON.stringify([!sourceCovered, proof]), !sourceCovered);
+      }
+    }
+    if (sourceOutputs.size === 1) {
+      result.sourceAlerts[token.event_id] = sourceOutputs.values().next().value;
+    } else {
+      result.sourceAlerts[token.event_id] = null;
+      result.errors[token.event_id] = [
+        sourceOutputs.size === 0 ? 'authorization:missing-snapshot-or-field' : 'path:ambiguous',
+      ];
+    }
+    for (const [readId, paths] of byRead) {
+      const key = readDecisionKey(token.event_id, readId);
+      const outcome = readOutput(evidence, rule, paths);
+      result.jobAlerts[key] = outcome.output?.jobAlert ?? null;
+      result.proofs[key] = outcome.output?.proof ?? null;
+      if (outcome.error) {
+        result.errors[key] = [outcome.error];
+      }
+    }
+  }
+  return result;
 }
