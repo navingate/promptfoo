@@ -127,6 +127,13 @@ import {
   stepDefense as stepV17Defense,
 } from '../v17/defense.mjs';
 import { RULE_GUIDE as V17_RULE_GUIDE } from '../v17/rule_guide.mjs';
+import {
+  buildDefenseSession as buildV18DefenseSession,
+  referenceDefense as referenceV18Defense,
+  scoreDefense as scoreV18Defense,
+  stepDefense as stepV18Defense,
+} from '../v18/defense.mjs';
+import { RULE_GUIDE as V18_RULE_GUIDE } from '../v18/guide.mjs';
 import { parseCommands } from './commands.mjs';
 import { buildDefenseSession, referenceDefense, scoreDefense, stepDefense } from './defense.mjs';
 import {
@@ -190,8 +197,9 @@ function argsOf(argv) {
       'v15',
       'v16',
       'v17',
+      'v18',
     ].includes(args.version) ||
-    (['v11', 'v12', 'v13', 'v14', 'v15', 'v16', 'v17'].includes(args.version) &&
+    (['v11', 'v12', 'v13', 'v14', 'v15', 'v16', 'v17', 'v18'].includes(args.version) &&
       args.mode !== 'defense') ||
     args.seeds.some((s) => !Number.isSafeInteger(s))
   ) {
@@ -424,6 +432,14 @@ const MODULES = {
       step: stepV17Defense,
     },
   },
+  v18: {
+    defense: {
+      create: buildV18DefenseSession,
+      reference: referenceV18Defense,
+      score: scoreV18Defense,
+      step: stepV18Defense,
+    },
+  },
 };
 
 function mockRun(spec, mode, version, operations) {
@@ -437,6 +453,14 @@ function mockRun(spec, mode, version, operations) {
     };
   }
   const session = operations.create(spec);
+  if (version === 'v18') {
+    for (const action of operations.reference(session)) {
+      operations.step(session, action);
+    }
+    operations.step(session, { tool: 'submit-plan', args: {} });
+    const score = operations.score(session);
+    return { spec, classification: score.success ? 'pass' : 'invalid_run', score, turns: 1 };
+  }
   operations.step(
     session,
     ['v10', 'v11', 'v12', 'v13', 'v14', 'v15', 'v16', 'v17'].includes(version)
@@ -448,6 +472,9 @@ function mockRun(spec, mode, version, operations) {
 }
 
 function systemPrompt(args) {
+  if (args.version === 'v18' && args.mode === 'defense') {
+    return V18_RULE_GUIDE;
+  }
   if (args.version === 'v17' && args.mode === 'defense') {
     return V17_RULE_GUIDE;
   }
@@ -504,7 +531,7 @@ async function modelTurn(messages, cfg, version, mode) {
     return { issue: { classification: 'model_fail', reason: 'truncated' }, raw };
   }
   if (
-    ['v10', 'v11', 'v12', 'v13', 'v14', 'v15', 'v16', 'v17'].includes(version) &&
+    ['v10', 'v11', 'v12', 'v13', 'v14', 'v15', 'v16', 'v17', 'v18'].includes(version) &&
     mode === 'defense' &&
     Buffer.byteLength(response.text, 'utf8') > 128 * 1024
   ) {
@@ -514,7 +541,7 @@ async function modelTurn(messages, cfg, version, mode) {
     };
   }
   const commands =
-    ['v11', 'v12', 'v13', 'v14', 'v15', 'v16', 'v17'].includes(version) && mode === 'defense'
+    ['v11', 'v12', 'v13', 'v14', 'v15', 'v16', 'v17', 'v18'].includes(version) && mode === 'defense'
       ? parseV11Commands(response.text)
       : parseCommands(response.text);
   if (!commands) {
@@ -563,6 +590,7 @@ async function runOne(spec, args, cfg) {
     'v15',
     'v16',
     'v17',
+    'v18',
   ].includes(args.version)
     ? 60
     : args.version === 'v6'
