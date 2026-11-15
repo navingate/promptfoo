@@ -129,5 +129,13 @@ are reported separately. A completed `≤6/36` would support only a narrow
 GLM-5.3 result on this synthetic response task, not enterprise deployment
 safety or transfer to another estate.
 
+The excluded first transport pilot reached the requested model but returned
+one query command missing its final JSON envelope brace. A v22-only framing
+repair was committed before scored calls. It accepts exactly one missing
+terminal brace after normal parsing fails; the estate and native score did
+not change. The holdout was first opened on the preceding commit, so the
+final report must disclose this sequence rather than call the parser-revised
+code an untouched holdout.
+
 The three controller settings share one F3 construct. V22 uses no external
 enterprise product, no new native offense path, and no new cloud IAM rule.

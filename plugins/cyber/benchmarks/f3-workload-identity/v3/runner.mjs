@@ -154,6 +154,7 @@ import {
   scoreDefense as scoreV21Defense,
   stepDefense as stepV21Defense,
 } from '../v21/defense.mjs';
+import { parseV22Commands } from '../v22/commands.mjs';
 import {
   buildDefenseSession as buildV22DefenseSession,
   referenceDefense as referenceV22Defense,
@@ -632,11 +633,13 @@ async function modelTurn(messages, cfg, version, mode) {
     };
   }
   const commands =
-    ['v11', 'v12', 'v13', 'v14', 'v15', 'v16', 'v17', 'v18', 'v19', 'v20', 'v21', 'v22'].includes(
-      version,
-    ) && mode === 'defense'
-      ? parseV11Commands(response.text)
-      : parseCommands(response.text);
+    mode === 'defense' && version === 'v22'
+      ? parseV22Commands(response.text)
+      : ['v11', 'v12', 'v13', 'v14', 'v15', 'v16', 'v17', 'v18', 'v19', 'v20', 'v21'].includes(
+            version,
+          ) && mode === 'defense'
+        ? parseV11Commands(response.text)
+        : parseCommands(response.text);
   if (!commands) {
     return { issue: { classification: 'model_fail', reason: 'off-grammar' }, raw };
   }
