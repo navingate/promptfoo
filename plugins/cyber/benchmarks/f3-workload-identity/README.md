@@ -9,6 +9,15 @@ account, or enterprise product is required.
 
 ## Current status
 
+The latest [v20 compact SOC view](v20/README.md) is a **development
+incident-response adjunct**, separate from the original detection twin. It
+preserves v19's native scorer while reducing model-visible evidence. Its
+bounded Cloudflare GLM-5.3 diagnostic passed 3/6 complete cases, and a
+model-free shortcut passed 13/36 and 15/36 on two grids. It is valid and
+winnable, but **does not meet the proposed defense floor**. The [v20 result](../../../../.agents/cyber-benchmarks/F3-V20-SOC-VIEW-RESULT.md)
+records the evidence and stop decision. V19's previous model pilot truncated
+before a plan and is not a scored failure.
+
 The [v18 live-containment defense candidate](v18/README.md) scores whether a
 defender can stop future unauthorized reads while preserving approved Jobs
 sharing a cloud role. Its local implementation and self-solve are complete;

@@ -141,6 +141,13 @@ import {
   stepDefense as stepV19Defense,
 } from '../v19/defense.mjs';
 import { RULE_GUIDE as V19_RULE_GUIDE } from '../v19/guide.mjs';
+import {
+  buildDefenseSession as buildV20DefenseSession,
+  referenceDefense as referenceV20Defense,
+  scoreDefense as scoreV20Defense,
+  stepDefense as stepV20Defense,
+} from '../v20/defense.mjs';
+import { RULE_GUIDE as V20_RULE_GUIDE } from '../v20/guide.mjs';
 import { parseCommands } from './commands.mjs';
 import { buildDefenseSession, referenceDefense, scoreDefense, stepDefense } from './defense.mjs';
 import {
@@ -206,8 +213,11 @@ function argsOf(argv) {
       'v17',
       'v18',
       'v19',
+      'v20',
     ].includes(args.version) ||
-    (['v11', 'v12', 'v13', 'v14', 'v15', 'v16', 'v17', 'v18', 'v19'].includes(args.version) &&
+    (['v11', 'v12', 'v13', 'v14', 'v15', 'v16', 'v17', 'v18', 'v19', 'v20'].includes(
+      args.version,
+    ) &&
       args.mode !== 'defense') ||
     args.seeds.some((s) => !Number.isSafeInteger(s))
   ) {
@@ -456,6 +466,14 @@ const MODULES = {
       step: stepV19Defense,
     },
   },
+  v20: {
+    defense: {
+      create: buildV20DefenseSession,
+      reference: referenceV20Defense,
+      score: scoreV20Defense,
+      step: stepV20Defense,
+    },
+  },
 };
 
 function mockRun(spec, mode, version, operations) {
@@ -469,7 +487,7 @@ function mockRun(spec, mode, version, operations) {
     };
   }
   const session = operations.create(spec);
-  if (version === 'v18' || version === 'v19') {
+  if (version === 'v18' || version === 'v19' || version === 'v20') {
     for (const action of operations.reference(session)) {
       operations.step(session, action);
     }
@@ -488,6 +506,9 @@ function mockRun(spec, mode, version, operations) {
 }
 
 function systemPrompt(args) {
+  if (args.version === 'v20' && args.mode === 'defense') {
+    return V20_RULE_GUIDE;
+  }
   if (args.version === 'v19' && args.mode === 'defense') {
     return V19_RULE_GUIDE;
   }
@@ -550,7 +571,9 @@ async function modelTurn(messages, cfg, version, mode) {
     return { issue: { classification: 'model_fail', reason: 'truncated' }, raw };
   }
   if (
-    ['v10', 'v11', 'v12', 'v13', 'v14', 'v15', 'v16', 'v17', 'v18', 'v19'].includes(version) &&
+    ['v10', 'v11', 'v12', 'v13', 'v14', 'v15', 'v16', 'v17', 'v18', 'v19', 'v20'].includes(
+      version,
+    ) &&
     mode === 'defense' &&
     Buffer.byteLength(response.text, 'utf8') > 128 * 1024
   ) {
@@ -560,7 +583,7 @@ async function modelTurn(messages, cfg, version, mode) {
     };
   }
   const commands =
-    ['v11', 'v12', 'v13', 'v14', 'v15', 'v16', 'v17', 'v18', 'v19'].includes(version) &&
+    ['v11', 'v12', 'v13', 'v14', 'v15', 'v16', 'v17', 'v18', 'v19', 'v20'].includes(version) &&
     mode === 'defense'
       ? parseV11Commands(response.text)
       : parseCommands(response.text);
@@ -612,6 +635,7 @@ async function runOne(spec, args, cfg) {
     'v17',
     'v18',
     'v19',
+    'v20',
   ].includes(args.version)
     ? 60
     : args.version === 'v6'
