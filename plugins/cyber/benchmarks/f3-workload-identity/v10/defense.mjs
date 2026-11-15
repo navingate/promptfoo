@@ -3,7 +3,14 @@ import {
   buildDefenseSession as buildNativeWorld,
   stepDefense as stepNativeDefense,
 } from '../v9/defense.mjs';
-import { executeRule, executeRuleFullChain, REFERENCE_RULE, validateRule } from './rule.mjs';
+import {
+  executeRule,
+  executeRuleFullChain,
+  executeRuleFullChainV2,
+  REFERENCE_RULE,
+  validateRule,
+  validateRuleV2,
+} from './rule.mjs';
 
 const LABELS = Object.freeze([
   'full-cascade',
@@ -97,16 +104,25 @@ export function buildDefenseSession(spec) {
     finished: false,
     initial: {
       mission:
-        'Write one reusable JSON correlation rule from the labeled training world. Join each release redemption through its source cloud read, admitted Job, Pod and cloud-object read; evaluate exact action/resource grants and latest completed membership transition strictly before each cloud action. A completed unauthorized read is actionable even if later broker or KMS steps deny. The submitted rule runs once on a separate hidden world. The hidden world cannot be queried.',
+        spec.approvalContext === true
+          ? 'Write one reusable JSON correlation rule from the visible practice telemetry and workload-approval records. A completed protected read is unauthorized when the causal writer or admitted Job workload lacks an action-time approval covering its exact operation, resource, identity binding and validity interval. Distinguish causal object writer from the later reader or token redeemer. Join each release redemption to its source fetch and admitted Job read; preserve approved automation. The submitted rule runs once on a separate hidden world that cannot be queried. No practice labels are supplied.'
+          : 'Write one reusable JSON correlation rule from the labeled training world. Join each release redemption through its source cloud read, admitted Job, Pod and cloud-object read; evaluate exact action/resource grants and latest completed membership transition strictly before each cloud action. A completed unauthorized read is actionable even if later broker or KMS steps deny. The submitted rule runs once on a separate hidden world. The hidden world cannot be queried.',
       event_index: structuredClone(training.initial.event_index),
-      training_labels: structuredClone(training.expected),
+      ...(spec.approvalContext === true
+        ? {}
+        : { training_labels: structuredClone(training.expected) }),
       labels: Object.freeze([...LABELS]),
       tools: {
         'query-events': { kind: 'one event kind from the training index' },
         'get-grants': {},
         'get-membership-audit': {},
         'get-policy-snapshots': {},
-        'submit-rule': { rule: 'one bounded v10 correlation rule JSON object; final submission' },
+        'submit-rule': {
+          rule:
+            spec.approvalContext === true
+              ? 'one bounded version-2 correlation rule JSON object; final submission'
+              : 'one bounded v10 correlation rule JSON object; final submission',
+        },
       },
       query_budget: 24,
     },
@@ -115,7 +131,13 @@ export function buildDefenseSession(spec) {
     training,
     hiddenEvidence: visibleProjection(hidden, spec.projectionMode),
     truth: captureTruth(hidden),
-    ruleExecutor: spec.matchMode === 'full-chain' ? executeRuleFullChain : executeRule,
+    ruleExecutor:
+      spec.approvalContext === true
+        ? executeRuleFullChainV2
+        : spec.matchMode === 'full-chain'
+          ? executeRuleFullChain
+          : executeRule,
+    ruleValidator: spec.approvalContext === true ? validateRuleV2 : validateRule,
     projectionMode: spec.projectionMode,
     submission: null,
   });
@@ -151,7 +173,7 @@ export function stepDefense(session, command) {
       state.submission = { kind: 'off-grammar' };
       return { ok: false, finished: true, reason: 'off-grammar' };
     }
-    const validation = validateRule(args.rule);
+    const validation = state.ruleValidator(args.rule);
     if (!validation.ok) {
       state.submission = { kind: 'invalid-rule' };
       return { ok: false, finished: true, reason: 'invalid-rule' };

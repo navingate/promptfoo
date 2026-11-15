@@ -9,6 +9,14 @@ account, or enterprise product is required.
 
 ## Current status
 
+The [v15 policy-aware defense candidate](v15/README.md) adds native
+controller and Job workload approvals at action time, with matched completed
+reads and an unlabeled practice world. Its reference is exact on two 36-batch
+grids, but an interface-only solver passed all three fresh self-solve cases.
+No GLM-5.3 screen or floor claim has been made for v15. The next meaningful
+pressure is per-read assessment of all completed Job accesses, including
+same-session reads outside the declared resource.
+
 The [v14 defense candidate](v14/README.md) removes direct cross-plane
 `causal_ref` fields from the detector's projection while retaining native
 source, workload, session, and checkpoint evidence. Its local reference is

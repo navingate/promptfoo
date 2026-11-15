@@ -521,7 +521,12 @@ export function visibleWorkload(w) {
   return { principal: w.principal, namespace: w.namespace, rbac_verbs: [...w.rbac_verbs] };
 }
 export function visibleGrant(g) {
-  return { grant_id: g.grant_id, writer_principal: g.writer_principal, task: { ...g.task } };
+  return {
+    grant_id: g.grant_id,
+    writer_principal: g.writer_principal,
+    task: { ...g.task },
+    ...(g.scope ? { scope: { ...g.scope } } : {}),
+  };
 }
 export function visibleObject(o) {
   return { name: o.name, uid: o.uid, annotations: { ...o.annotations }, spec: { ...o.spec } };
@@ -619,6 +624,7 @@ function hasNativeTelemetry(world) {
     'f3-workload-events-v7',
     'f3-workload-events-v8',
     'f3-workload-events-v9',
+    'f3-workload-events-v15',
   ].includes(world.meta.telemetry_contract_id);
 }
 

@@ -24,6 +24,22 @@ const MAX_QUERIES = 24;
 const LATENCY_SLOTS = 18;
 const PRODUCER_LATENCY_SLOTS = 24;
 
+function approvalCause(spec, index, side, allowed) {
+  if (spec.approvalContext !== true || allowed) {
+    return null;
+  }
+  const causes =
+    side === 'source'
+      ? ['membership', 'controller', 'expired', 'not-yet-valid']
+      : ['membership', 'service-account', 'template', 'expired', 'not-yet-valid'];
+  const pick =
+    Number.parseInt(
+      sha256Hex(`f3v15|approval-cause|${spec.seed}|${spec.family}|${index}|${side}`).slice(0, 8),
+      16,
+    ) % causes.length;
+  return causes[pick];
+}
+
 function producerLatency(spec, index, stage, slots = PRODUCER_LATENCY_SLOTS) {
   return (
     Number.parseInt(
@@ -41,7 +57,15 @@ function exactlyOne(items, predicate) {
 // The producer applies its own completed audit ledger at the emitted cloud
 // action, with membership initially absent. This capture is native truth;
 // the visible classifier later reconstructs the state independently.
-export function captureNativeCoverage(grants, ledger, principal, action, resource, actionTime) {
+export function captureNativeCoverage(
+  grants,
+  ledger,
+  principal,
+  action,
+  resource,
+  actionTime,
+  scope = null,
+) {
   const membership = new Map();
   for (const event of [...ledger].sort((left, right) => left.event_time - right.event_time)) {
     if (event.outcome !== 'completed' || event.event_time >= actionTime) {
@@ -58,6 +82,17 @@ export function captureNativeCoverage(grants, ledger, principal, action, resourc
       (grant) =>
         grant.task.action === action &&
         grant.task.remote_ref === resource &&
+        (!scope ||
+          (grant.scope &&
+            Number.isSafeInteger(grant.scope.valid_from) &&
+            Number.isSafeInteger(grant.scope.valid_until) &&
+            grant.scope.valid_from <= actionTime &&
+            actionTime < grant.scope.valid_until &&
+            (scope.kind === 'source'
+              ? grant.scope.controller_id === scope.controller_id
+              : scope.kind === 'job' &&
+                grant.scope.service_account_id === scope.service_account_id &&
+                grant.scope.template_id === scope.template_id))) &&
         (grant.writer_principal === principal ||
           membership.get(`${grant.writer_principal}\0${principal}`) === true),
     ),
@@ -141,7 +176,7 @@ function queueSourceReconcile(session, count) {
   }
 }
 
-function nativeSourceBad(session) {
+function nativeSourceBad(session, approvalContext = false) {
   const world = session.source.world;
   const actor = session.source.initial.principal;
   const targetObject = exactlyOne(
@@ -186,7 +221,8 @@ function nativeSourceBad(session) {
   return Boolean(
     cloud &&
       sourceAction &&
-      writer?.authenticated_writer === actor &&
+      (approvalContext || writer?.authenticated_writer === actor) &&
+      typeof writer?.authenticated_writer === 'string' &&
       snapshot &&
       capture?.action_time === sourceAction.event_time &&
       capture.authorized === false,
@@ -295,6 +331,18 @@ function producerBackgroundRead(session, spec, index, afterTime, queueDelay, pro
     throw new Error('background scheduler authorization missing');
   }
   const route = referenceJobRoute(world);
+  if (spec.approvalContext === true) {
+    const plannedReadTime =
+      world.eventOffset + world.events.length + 2 + queueDelay + 5 + producerLatencies.cloud;
+    for (const grant of world.grants) {
+      grant.scope = {
+        service_account_id: route.service_account_id,
+        template_id: route.template_id,
+        valid_from: 0,
+        valid_until: plannedReadTime + 100,
+      };
+    }
+  }
   const submission = stepJob(world, {
     tool: 'submit-job',
     args: {
@@ -339,6 +387,13 @@ function producerBackgroundRead(session, spec, index, afterTime, queueDelay, pro
         cloud.action,
         cloud.resource,
         cloud.event_time,
+        spec.approvalContext === true
+          ? {
+              kind: 'job',
+              service_account_id: route.service_account_id,
+              template_id: route.template_id,
+            }
+          : null,
       ),
       event_count: world.events.length,
     };
@@ -400,10 +455,19 @@ function interleaveJobEvents(target, background, backgroundFirst) {
 function producerIncident(spec, variant, index) {
   const nonce = `v9-defense-capture|${spec.seed}|${spec.family}|${index}`;
   const session = createOffenseSession({ ...spec, nonce });
+  if (spec.approvalContext === true) {
+    session.source.world.meta.telemetry_contract_id = 'f3-workload-events-v15';
+  }
   session.delegatedSnapshots = {};
   session.nativeActionCoverage = {};
   const sourceWorld = session.source.world;
   const actor = session.source.initial.principal;
+  const delegatedWriter = sourceWorld.grants.find(
+    (grant) =>
+      grant.writer_principal !== actor &&
+      grant.task.action === sourceWorld.protected_target.action &&
+      grant.task.remote_ref === sourceWorld.protected_target.remote_ref,
+  )?.writer_principal;
   const sourceGroup = configureDelegation(
     sourceWorld.grants,
     actor,
@@ -416,18 +480,23 @@ function producerIncident(spec, variant, index) {
   );
   const sourceSnapshotRef = `srcsnap-${sha256Hex(`f3v9|source-snapshot|${nonce}`).slice(0, 16)}`;
   sourceWorld.meta.grant_snapshot_ref = sourceSnapshotRef;
-  session.sourceGrantSnapshots[sourceSnapshotRef] = structuredClone(sourceWorld.grants);
   const firstWriter = sourceWorld.workloads.find((workload) => !workload.compromised)?.principal;
-  if (!firstWriter) {
+  if (!firstWriter || !delegatedWriter) {
     throw new Error('missing approved source writer');
   }
   const sourceClock = session.source.events.length;
   const familyIndex = FAMILIES.indexOf(spec.family);
+  const sourceCause = approvalCause(spec, index, 'source', variant.sourceAllowed);
+  const sourceWriterAlternate =
+    spec.approvalContext === true && (spec.seed + familyIndex + index) % 2 === 0;
   const sourceQueueDelay = producerLatency(spec, index, 'source-queue', 12);
   const sourceCloudLatency = producerLatency(spec, index, 'source-cloud');
   const sourceReadLatency = producerLatency(spec, index, 'source-read');
   const sourceAmbiguity = spec.sourceAmbiguity === true;
-  const sourceRevisionRace = spec.sourceRevisionRace === true;
+  // A distinct causal writer can perform the final patch while the original
+  // principal later reads and redeems the token. Keep its source trace native.
+  const sourceRevisionRace = spec.sourceRevisionRace === true && !sourceWriterAlternate;
+  const causalWriter = sourceWriterAlternate ? delegatedWriter : actor;
   if (sourceAmbiguity || sourceRevisionRace) {
     session.source.producerLimits = { writes: sourceAmbiguity ? 3 : 2, turns: 30 };
     sourceWorld.budget.induce = 1 + Number(sourceAmbiguity) + Number(sourceRevisionRace);
@@ -459,11 +528,42 @@ function producerIncident(spec, variant, index) {
     sourceEventCount +
     sourceFetchCount * sourceCloudLatency +
     (sourceAmbiguity ? sourceReadLatency : 0);
+  if (spec.approvalContext === true) {
+    const route = referenceRoute(sourceWorld);
+    const otherController = sourceWorld.controllers.find((item) => item.id !== route.controller_id);
+    if (!otherController) {
+      throw new Error('source controller approval near miss missing');
+    }
+    for (const grant of sourceWorld.grants) {
+      grant.scope = {
+        controller_id:
+          grant.writer_principal === sourceGroup && sourceCause === 'controller'
+            ? otherController.id
+            : route.controller_id,
+        valid_from:
+          grant.writer_principal === sourceGroup && sourceCause === 'not-yet-valid'
+            ? sourcePlannedActionTime + 1
+            : 0,
+        valid_until:
+          grant.writer_principal === sourceGroup && sourceCause === 'expired'
+            ? sourcePlannedActionTime
+            : sourcePlannedActionTime + 100,
+      };
+    }
+  }
+  session.sourceGrantSnapshots[sourceSnapshotRef] = structuredClone(sourceWorld.grants);
   sourceWorld.membershipLedger = membershipAuditEvents(
     sourceGroup,
-    actor,
-    firstWriter,
-    sourcePlannedActionTime - (variant.sourceAllowed ? 0 : 2),
+    causalWriter,
+    sourceWriterAlternate ? actor : firstWriter,
+    sourcePlannedActionTime -
+      (spec.approvalContext === true
+        ? sourceCause === 'membership'
+          ? 2
+          : 0
+        : variant.sourceAllowed
+          ? 0
+          : 2),
     spec.seed,
     spec.family,
     index,
@@ -508,7 +608,8 @@ function producerIncident(spec, variant, index) {
   replayPhase(session.base, 'source', {
     objectName: sourceObjectName,
     extraPatch: !sourceRevisionRace,
-    firstWriterPrincipal: sourceRevisionRace ? null : firstWriter,
+    firstWriterPrincipal: sourceWriterAlternate ? actor : sourceRevisionRace ? null : firstWriter,
+    writerPrincipal: sourceWriterAlternate ? delegatedWriter : null,
     read: false,
   });
   if (sourceRevisionRace) {
@@ -555,6 +656,16 @@ function producerIncident(spec, variant, index) {
   if (!sourceCloud) {
     throw new Error('redeemed source cloud fetch binding missing');
   }
+  const causalWrite = exactlyOne(
+    sourceWorld.audit,
+    (event) =>
+      event.object_uid === sourceCloud.object_uid &&
+      event.revision === sourceCloud.revision &&
+      ['create', 'patch'].includes(event.verb),
+  );
+  if (!causalWrite || causalWrite.authenticated_writer !== causalWriter) {
+    throw new Error('source causal writer and approval principal disagree');
+  }
   for (const event of session.source.events.filter(
     (candidate) => candidate.kind === 'cloud-secret-attempt',
   )) {
@@ -575,10 +686,13 @@ function producerIncident(spec, variant, index) {
     ...captureNativeCoverage(
       session.delegatedSnapshots[sourceCloud.grant_snapshot_ref].grants,
       sourceWorld.membershipLedger,
-      actor,
+      causalWrite.authenticated_writer,
       sourceCloud.action,
       sourceCloud.resource,
       sourceCloud.event_time,
+      spec.approvalContext === true
+        ? { kind: 'source', controller_id: sourceCloud.controller_id }
+        : null,
     ),
     event_count: sourceCloud.arrival_order,
   };
@@ -606,6 +720,51 @@ function producerIncident(spec, variant, index) {
     throw new Error('producer Job pair missing');
   }
   const nearMisses = referenceJobNearMisses(job);
+  const jobCause = approvalCause(spec, index, 'job', variant.jobAllowed);
+  const commonQueueDelay = producerLatency(spec, index, 'job-queue', LATENCY_SLOTS) * 2;
+  const targetQueueDelay = commonQueueDelay;
+  const jobCloudLatency = producerLatency(spec, index, 'job-cloud');
+  const jobCheckpointLatency = producerLatency(spec, index, 'job-checkpoint');
+  const jobProducerLatencies = { cloud: jobCloudLatency, checkpoint: jobCheckpointLatency };
+  const operationalBefore =
+    spec.linkAmbiguity === true && (spec.seed + familyIndex + index) % 2 === 0;
+  // Submission emits job-submitted and job-admission before the Pod starts.
+  // The immutable approval interval is authored before that snapshot is taken.
+  const predictedJobClock = job.eventOffset + job.events.length + 2;
+  const jobPlannedActionTime =
+    predictedJobClock +
+    targetQueueDelay +
+    5 +
+    (spec.jobRenewal === true ? 3 : 0) +
+    jobCloudLatency +
+    (operationalBefore ? (spec.operationalCheckpoint === true ? 2 : 1) : 0);
+  if (spec.approvalContext === true) {
+    const otherAccount = job.serviceAccounts.find((item) => item.id !== route.service_account_id);
+    const otherTemplate = job.templates.find((item) => item.id !== route.template_id);
+    if (!otherAccount || !otherTemplate) {
+      throw new Error('Job approval identity near miss missing');
+    }
+    for (const grant of job.grants) {
+      grant.scope = {
+        service_account_id:
+          grant.writer_principal === jobGroup && jobCause === 'service-account'
+            ? otherAccount.id
+            : route.service_account_id,
+        template_id:
+          grant.writer_principal === jobGroup && jobCause === 'template'
+            ? otherTemplate.id
+            : route.template_id,
+        valid_from:
+          grant.writer_principal === jobGroup && jobCause === 'not-yet-valid'
+            ? jobPlannedActionTime + 1
+            : 0,
+        valid_until:
+          grant.writer_principal === jobGroup && jobCause === 'expired'
+            ? jobPlannedActionTime
+            : jobPlannedActionTime + 100,
+      };
+    }
+  }
   const submitted = stepOffense(session, {
     tool: 'submit-job',
     args: {
@@ -630,14 +789,10 @@ function producerIncident(spec, variant, index) {
     throw new Error('delegated Job grant inputs missing');
   }
   const jobClock = job.eventOffset + job.events.length;
-  const commonQueueDelay = producerLatency(spec, index, 'job-queue', LATENCY_SLOTS) * 2;
-  const targetQueueDelay = commonQueueDelay;
-  const jobCloudLatency = producerLatency(spec, index, 'job-cloud');
-  const jobCheckpointLatency = producerLatency(spec, index, 'job-checkpoint');
-  const jobProducerLatencies = { cloud: jobCloudLatency, checkpoint: jobCheckpointLatency };
+  if (jobClock !== predictedJobClock) {
+    throw new Error('Job approval clock and admitted submission disagree');
+  }
   job.producerLatencies = jobProducerLatencies;
-  const operationalBefore =
-    spec.linkAmbiguity === true && (spec.seed + familyIndex + index) % 2 === 0;
   if (spec.linkAmbiguity === true) {
     job.defenseOperationalRead = { before: operationalBefore };
   }
@@ -648,18 +803,18 @@ function producerIncident(spec, variant, index) {
     job.defenseJobRenewal = true;
   }
   // run-job emits Pod, credential request, web STS, role STS, then cloud read.
-  const jobPlannedActionTime =
-    jobClock +
-    targetQueueDelay +
-    5 +
-    (spec.jobRenewal === true ? 3 : 0) +
-    jobCloudLatency +
-    (operationalBefore ? (spec.operationalCheckpoint === true ? 2 : 1) : 0);
   job.membershipLedger = membershipAuditEvents(
     jobGroup,
     job.principal,
     otherJobPrincipal,
-    jobPlannedActionTime - (variant.jobAllowed ? 0 : 2),
+    jobPlannedActionTime -
+      (spec.approvalContext === true
+        ? jobCause === 'membership'
+          ? 2
+          : 0
+        : variant.jobAllowed
+          ? 0
+          : 2),
     spec.seed,
     spec.family,
     index,
@@ -680,6 +835,13 @@ function producerIncident(spec, variant, index) {
         cloud.action,
         cloud.resource,
         cloud.event_time,
+        spec.approvalContext === true
+          ? {
+              kind: 'job',
+              service_account_id: route.service_account_id,
+              template_id: route.template_id,
+            }
+          : null,
       ),
       event_count: job.events.length,
     };
@@ -767,7 +929,7 @@ function producerIncident(spec, variant, index) {
       throw new Error(`producer artifact read failed: ${read.reason}`);
     }
   }
-  const sourceBad = nativeSourceBad(session);
+  const sourceBad = nativeSourceBad(session, spec.approvalContext === true);
   const jobBad = nativeJobBad(session);
   const label =
     sourceBad && jobBad
@@ -816,13 +978,16 @@ function producerIncident(spec, variant, index) {
           event_id: sourceCloud.event_id,
           event_time: sourceCloud.event_time,
           arrival_order: sourceCloud.arrival_order,
-          actor,
+          actor: spec.approvalContext === true ? causalWrite.authenticated_writer : actor,
           action: sourceCloud.action,
           resource: sourceCloud.resource,
         },
         scheduled_at_clock: sourceClock,
         planned_action_time: sourcePlannedActionTime,
         captured: structuredClone(sourceCapture),
+        ...(spec.approvalContext === true && sourceCause
+          ? { approval_cause: `source-${sourceCause}` }
+          : {}),
       },
       job: {
         grants: structuredClone(session.delegatedSnapshots[jobCreate.grant_snapshot_ref].grants),
@@ -839,6 +1004,7 @@ function producerIncident(spec, variant, index) {
         scheduled_at_clock: jobClock,
         planned_action_time: jobPlannedActionTime,
         captured: structuredClone(jobCapture),
+        ...(spec.approvalContext === true && jobCause ? { approval_cause: `job-${jobCause}` } : {}),
       },
       ...(operationalNative ? { operational: structuredClone(operationalNative) } : {}),
       background: background.nativeRecord,

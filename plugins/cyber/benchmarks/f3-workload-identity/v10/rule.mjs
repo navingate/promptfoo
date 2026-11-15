@@ -161,6 +161,29 @@ export const REFERENCE_RULE = {
   },
 };
 
+// V15 uses the same bounded correlation path as v14, with an additional
+// workload-approval decision at the two completed read boundaries.
+export const REFERENCE_RULE_V2 = structuredClone(REFERENCE_RULE);
+REFERENCE_RULE_V2.version = 2;
+for (const [alias, left] of [
+  ['sourceReconcile', 'causal_ref'],
+  ['sourceWrite', 'causal_ref'],
+  ['request', 'event_id'],
+  ['webSts', 'event_id'],
+  ['roleSts', 'event_id'],
+  ['jobCloud', 'event_id'],
+]) {
+  REFERENCE_RULE_V2.joins[alias] = REFERENCE_RULE_V2.joins[alias].filter(
+    (clause) => clause.left !== left,
+  );
+}
+REFERENCE_RULE_V2.joins.sourceWrite = REFERENCE_RULE_V2.joins.sourceWrite.filter(
+  (clause) => !(clause.from === 'token' && clause.left === 'actor'),
+);
+REFERENCE_RULE_V2.authorization.source.controller = 'sourceCloud.controller_id';
+REFERENCE_RULE_V2.authorization.job.serviceAccount = 'pod.service_account_id';
+REFERENCE_RULE_V2.authorization.job.template = 'submission.template_id';
+
 function plain(value) {
   return (
     value !== null &&
@@ -320,12 +343,16 @@ function validateJoins(joins, errors) {
   }
 }
 
-function validateCoveragePaths(auth, errors) {
+function validateCoveragePaths(auth, errors, version) {
   for (const side of ['source', 'job']) {
-    if (!keysOnly(auth[side], AUTH_FIELDS, `rule.authorization.${side}`, errors)) {
+    const fields =
+      version === 2
+        ? [...AUTH_FIELDS, ...(side === 'source' ? ['controller'] : ['serviceAccount', 'template'])]
+        : AUTH_FIELDS;
+    if (!keysOnly(auth[side], fields, `rule.authorization.${side}`, errors)) {
       continue;
     }
-    for (const field of AUTH_FIELDS) {
+    for (const field of fields) {
       fieldRef(auth[side][field], `rule.authorization.${side}.${field}`, errors);
     }
   }
@@ -375,13 +402,13 @@ function validateMembership(membership, errors) {
   }
 }
 
-function validateAuthorization(auth, errors) {
+function validateAuthorization(auth, errors, version) {
   if (
     !keysOnly(auth, ['source', 'job', 'grant', 'membership', 'alert'], 'rule.authorization', errors)
   ) {
     return;
   }
-  validateCoveragePaths(auth, errors);
+  validateCoveragePaths(auth, errors, version);
   validateMembership(auth.membership, errors);
   const alert = auth.alert;
   if (keysOnly(alert, ['readOutcome', 'downstream'], 'rule.authorization.alert', errors)) {
@@ -394,7 +421,7 @@ function validateAuthorization(auth, errors) {
   }
 }
 
-export function validateRule(rule) {
+function validateRuleVersion(rule, requiredVersion) {
   const errors = [];
   jsonSafety(rule, errors);
   if (errors.length) {
@@ -403,15 +430,23 @@ export function validateRule(rule) {
   if (!keysOnly(rule, ['version', 'correlationOrder', 'joins', 'authorization'], 'rule', errors)) {
     return { ok: false, errors };
   }
-  if (rule.version !== 1) {
-    errors.push('rule.version must be 1');
+  if (rule.version !== requiredVersion) {
+    errors.push(`rule.version must be ${requiredVersion}`);
   }
   if (!['arrival_order', 'event_time'].includes(rule.correlationOrder)) {
     errors.push('rule.correlationOrder is invalid');
   }
   validateJoins(rule.joins, errors);
-  validateAuthorization(rule.authorization, errors);
+  validateAuthorization(rule.authorization, errors, rule.version);
   return { ok: errors.length === 0, errors };
+}
+
+export function validateRule(rule) {
+  return validateRuleVersion(rule, 1);
+}
+
+export function validateRuleV2(rule) {
+  return validateRuleVersion(rule, 2);
 }
 
 function scalar(value) {
@@ -480,13 +515,25 @@ function stageCandidates(
   });
 }
 
-function covered(evidence, context, config, auth) {
+function covered(evidence, context, config, auth, side, version) {
   const snapshotRef = resolve(context, config.snapshot);
   const principal = resolve(context, config.principal);
   const action = resolve(context, config.action);
   const resource = resolve(context, config.resource);
   const time = resolve(context, config.time);
   if (![snapshotRef, principal, action, resource].every(scalar) || !Number.isSafeInteger(time)) {
+    return null;
+  }
+  const binding =
+    version === 2
+      ? side === 'source'
+        ? { controller_id: resolve(context, config.controller) }
+        : {
+            service_account_id: resolve(context, config.serviceAccount),
+            template_id: resolve(context, config.template),
+          }
+      : null;
+  if (binding && !Object.values(binding).every(scalar)) {
     return null;
   }
   const matches = evidence.grantSnapshots.filter((item) => item.snapshot_ref === snapshotRef);
@@ -502,6 +549,18 @@ function covered(evidence, context, config, auth) {
     const grantResource = auth.grant.resource.split('.').reduce((item, key) => item?.[key], grant);
     if (grantAction !== action || grantResource !== resource || !scalar(grantPrincipal)) {
       return false;
+    }
+    if (binding) {
+      const scope = grant.scope;
+      if (
+        !plain(scope) ||
+        !Number.isSafeInteger(scope.valid_from) ||
+        !Number.isSafeInteger(scope.valid_until) ||
+        !(scope.valid_from <= time && time < scope.valid_until) ||
+        Object.entries(binding).some(([field, value]) => scope[field] !== value)
+      ) {
+        return false;
+      }
     }
     if (grantPrincipal === principal) {
       return true;
@@ -539,8 +598,22 @@ function validEvidence(evidence) {
 }
 
 function classify(evidence, context, rule) {
-  const sourceCovered = covered(evidence, context, rule.authorization.source, rule.authorization);
-  const jobCovered = covered(evidence, context, rule.authorization.job, rule.authorization);
+  const sourceCovered = covered(
+    evidence,
+    context,
+    rule.authorization.source,
+    rule.authorization,
+    'source',
+    rule.version,
+  );
+  const jobCovered = covered(
+    evidence,
+    context,
+    rule.authorization.job,
+    rule.authorization,
+    'job',
+    rule.version,
+  );
   if (sourceCovered === null || jobCovered === null) {
     return null;
   }
@@ -552,7 +625,9 @@ function classify(evidence, context, rule) {
         event.cloud_read_ref === context.jobCloud.event_id &&
         event.outcome === 'completed',
     );
-  const sourceBad = context.sourceWrite.actor === context.token.actor && sourceCovered === false;
+  const sourceBad =
+    sourceCovered === false &&
+    (rule.version === 2 || context.sourceWrite.actor === context.token.actor);
   const jobBad = jobCovered === false && kmsCompleted;
   if (sourceBad && jobBad) {
     return 'full-cascade';
@@ -681,8 +756,8 @@ function uniqueCompleteOutput(evidence, rule, paths) {
     : { error: 'authorization:missing-snapshot-or-field' };
 }
 
-export function executeRuleFullChain(evidence, rule) {
-  const validation = validateRule(rule);
+function executeRuleFullChainVersion(evidence, rule, requiredVersion) {
+  const validation = validateRuleVersion(rule, requiredVersion);
   const result = { labels: {}, proofs: {}, errors: {} };
   if (!validation.ok) {
     result.errors._rule = validation.errors;
@@ -707,4 +782,12 @@ export function executeRuleFullChain(evidence, rule) {
     }
   }
   return result;
+}
+
+export function executeRuleFullChain(evidence, rule) {
+  return executeRuleFullChainVersion(evidence, rule, 1);
+}
+
+export function executeRuleFullChainV2(evidence, rule) {
+  return executeRuleFullChainVersion(evidence, rule, 2);
 }
