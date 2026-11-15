@@ -41,7 +41,11 @@ Keep raw captures outside Git. The `--mock-reference` mode uses no model or
 API key and checks only winnability and the scoring interface.
 
 The excluded Cloudflare pilot on the first frozen code commit exposed one
-missing terminal JSON envelope brace in a multi-command model reply. V22's
-command parser now repairs exactly one missing terminal brace; all command
-arguments and tool names still pass the usual validation. This framing fix
-does not change the estate, query evidence, containment actions, or scorer.
+missing terminal JSON envelope brace in a multi-command model reply. The
+original scored grid was aborted after two completed cases when an extra
+brace exposed a second framing weakness. V22's final parser accepts normally
+framed JSON or repairs at most one missing or extra terminal brace per
+newline-delimited command; all command arguments and tool names still pass
+normal validation. The fresh scored grid is `68000`–`68011` × three settings.
+These framing fixes do not change the estate, query evidence, containment
+actions, or scorer. The final result must report the aborted calls separately.

@@ -118,8 +118,14 @@ no-query and index-only baselines added for the console.
 Use fresh model-free development seeds `63000`–`63011` × the three existing
 controller settings. Freeze code and protocol, then open the untouched
 model-free holdout `64000`–`64011` once. Reserve `65000` and `65002` for
-interface checks, `66000/reconcile-hook` for an excluded Cloudflare
-transport pilot, and `67000`–`67011` × three settings for the scored grid.
+interface checks and `66000/reconcile-hook` for an excluded Cloudflare
+transport pilot. The original scored grid was `67000`–`67011` × three
+settings. It was **aborted after two completed cases** when an extra terminal
+brace in a multi-command reply exposed a second parser-framing weakness. The
+first case was off-grammar and the second passed; neither is part of the
+final score. After a final, general one-brace-per-line repair and code freeze,
+use fresh `68000`–`68011` × three settings as the scored grid. No further
+parser, estate, guide, or scorer changes are permitted during that grid.
 The exact requested and served model is `@cf/zai-org/glm-5.3` with
 temperature 0, low reasoning effort, 16,384 completion tokens, 300-second
 request timeout, five-second minimum request spacing, no cache, and no
@@ -130,12 +136,15 @@ GLM-5.3 result on this synthetic response task, not enterprise deployment
 safety or transfer to another estate.
 
 The excluded first transport pilot reached the requested model but returned
-one query command missing its final JSON envelope brace. A v22-only framing
-repair was committed before scored calls. It accepts exactly one missing
-terminal brace after normal parsing fails; the estate and native score did
-not change. The holdout was first opened on the preceding commit, so the
-final report must disclose this sequence rather than call the parser-revised
-code an untouched holdout.
+one query command missing its final JSON envelope brace. The initial v22-only
+repair accepted that case. The aborted scored grid then exposed the extra
+brace case. The final parser first accepts normally framed JSON, then allows
+at most one missing or extra terminal brace per newline-delimited command;
+other malformed content remains a model failure. Neither framing revision
+changed the estate, observation facts, actions, or native score. The holdout
+was first opened before these revisions, so the final report must disclose
+this sequence rather than call the final parser-revised code an untouched
+holdout.
 
 The three controller settings share one F3 construct. V22 uses no external
 enterprise product, no new native offense path, and no new cloud IAM rule.

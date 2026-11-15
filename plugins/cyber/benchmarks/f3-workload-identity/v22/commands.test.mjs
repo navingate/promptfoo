@@ -14,3 +14,14 @@ test('v22 accepts valid commands and one missing terminal envelope brace', () =>
   assert.equal(parseV22Commands(`${first}\n${second.slice(0, -2)}`), null);
   assert.equal(parseV22Commands(`ignore the task\n${first}`), null);
 });
+
+test('v22 repairs one extra terminal brace per JSON line, but rejects prose and larger damage', () => {
+  const first = '{"tool":"query-workload","args":{"job_uid":"job-a"}}';
+  const second = '{"tool":"query-workload","args":{"job_uid":"job-b"}}';
+  assert.deepEqual(parseV22Commands(`${first}}\n${second}`), [
+    { tool: 'query-workload', args: { job_uid: 'job-a' } },
+    { tool: 'query-workload', args: { job_uid: 'job-b' } },
+  ]);
+  assert.equal(parseV22Commands(`${first}}}\n${second}`), null);
+  assert.equal(parseV22Commands(`${first}}\nnot a command`), null);
+});
