@@ -28,8 +28,10 @@ define the candidate and its limits. The response view is 74–96 KB across
 the 36-case development grid; the reference needs at most five actions,
 under the eight-action budget. Local tests and the visible-only reference
 pass. The strongest of 17 screened visible-only shortcuts passes 6/36 on
-each development grid. No GLM-5.3 floor is claimed until the frozen model
-screen finishes.
+each development grid and on the untouched model-free holdout. The
+[Cloudflare GLM-5.3 result](../../../../../.agents/cyber-benchmarks/F3-V21-CLOUDFLARE-GLM53-RESULT.md)
+stopped at seven passes after 12 valid scored cases, so v21 **does not meet**
+the proposed `≤6/36` defense floor.
 
 Run from the repository root with Node from `.nvmrc`:
 

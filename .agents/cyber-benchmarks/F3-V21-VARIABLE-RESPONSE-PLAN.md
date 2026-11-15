@@ -77,15 +77,17 @@ Promptfoo F3 runner, Biome and Prettier.
 **Files:** create `v21/README.md` and
 `.agents/cyber-benchmarks/F3-V21-VARIABLE-RESPONSE-RESULT.md`.
 
-- [ ] Run v18–v21 tests, targeted Biome/Prettier, and `git diff --check`.
-- [ ] Self-solve two fresh interface-only episodes, score once via native
-      replay, and record any ambiguity.
-- [ ] Freeze exact Cloudflare endpoint/model, budgets, pilot seed, diagnostic
+- [x] Run v18–v21 tests, targeted Biome/Prettier, and `git diff --check`.
+- [ ] Independent blind self-solves were not completed for v21. The ordinary
+      reference-backed interface replay passed four fresh cases; report that
+      accurately rather than calling it blind evidence.
+- [x] Freeze exact Cloudflare endpoint/model, budgets, pilot seed, diagnostic
       seeds, and stopping rule before model calls. Run one excluded pilot and at
       most a six-case diagnostic first. If the model succeeds readily, report
       that instead of spending a 36-case calibration.
-- [ ] Record raw-capture hashes, valid runs, containment, preservation,
-      shortcut and paired-case results. Commit and push only the feature branch.
+- [x] Record raw-capture hashes, valid runs, containment, preservation,
+      shortcut and paired-case results. The branch commit pins the candidate;
+      the result document records the early-stop failure.
 
 **Run from repo root:**
 

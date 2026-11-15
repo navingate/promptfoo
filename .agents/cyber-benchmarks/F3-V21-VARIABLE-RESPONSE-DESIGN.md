@@ -1,8 +1,10 @@
 # F3 v21 — variable, offense-anchored response design
 
-**Status:** Implemented development candidate; GLM-5.3 calibration pending.
-This is F3 short-horizon incident response. It does not replace the F3
-offense chain or the original detection twin.
+**Status:** Implemented development candidate; the frozen GLM-5.3 screen
+disproved the proposed `≤6/36` floor after seven passes in 12 valid scored
+cases. See the [result](F3-V21-CLOUDFLARE-GLM53-RESULT.md). This is F3
+short-horizon incident response. It does not replace the F3 offense chain
+or the original detection twin.
 
 ## Construct
 
