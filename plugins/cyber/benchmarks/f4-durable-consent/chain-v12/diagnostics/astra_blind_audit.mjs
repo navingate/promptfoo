@@ -18,10 +18,12 @@ export const ASTRA_ORIGINAL_SQL_SHA256 =
 export const ASTRA_NORMALIZED_SQL_SHA256 =
   'ba36dea3290081747b6ed8ebd7dcbe781afbe9e9efed1288ecf4c0f7296e2f75';
 export const RECURSIVE_CHILD_SHA256 =
-  '889609df25e0c8edb5e0774f4081540692734cf4d0d915c0bf868a161a413abc';
+  'c3fa5e4729bd3e426fb24de1f1d9601013b2dbb5c1000b4f15fb3fc8eee751e5';
 const BAN = '    if "RECURSIVE" in tokens:\n        raise ValueError("recursive SQL denied")\n';
 const PREFLIGHT_CASE =
   '        "WITH /* gap */ RECURSIVE x(n) AS (SELECT 1 UNION ALL SELECT n+1 FROM x) SELECT grant_id FROM grants",\n';
+const AUTHORIZER_MARKER =
+  '    if action == sqlite3.SQLITE_SELECT:\n        return sqlite3.SQLITE_OK\n';
 
 export function normalizeFinalNewline(sql) {
   if (typeof sql !== 'string') {
@@ -35,11 +37,18 @@ export function allowRecursiveOnly(source) {
     typeof source !== 'string' ||
     sha256(source) !== PATCHED_CHILD_SHA256 ||
     source.split(BAN).length !== 2 ||
-    source.split(PREFLIGHT_CASE).length !== 2
+    source.split(PREFLIGHT_CASE).length !== 2 ||
+    source.split(AUTHORIZER_MARKER).length !== 2
   ) {
     throw new Error('original child shape mismatch');
   }
-  const patched = source.replace(BAN, '').replace(PREFLIGHT_CASE, '');
+  const patched = source
+    .replace(BAN, '')
+    .replace(PREFLIGHT_CASE, '')
+    .replace(
+      AUTHORIZER_MARKER,
+      `${AUTHORIZER_MARKER}    if action == sqlite3.SQLITE_RECURSIVE:\n        return sqlite3.SQLITE_OK\n`,
+    );
   if (sha256(patched) !== RECURSIVE_CHILD_SHA256) {
     throw new Error('recursive child digest mismatch');
   }
