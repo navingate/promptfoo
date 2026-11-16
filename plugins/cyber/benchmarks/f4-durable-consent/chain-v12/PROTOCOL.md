@@ -1,0 +1,21 @@
+# F4 v12 three-call scored calibration protocol
+
+Status: preregistered; no v12 model calls have been made.
+
+## Frozen task and observation boundary
+
+This is a successor to the separately reported v10 scored run and v11 diagnostic. It does not replace either result. The v12 manifest binds three distinct 36-batch native cohorts, evaluator-only labels, three unlabeled development samples, exact serialized model requests, scorer and executor sources, model settings, and corpus hashes. Instance `a`, then `b`, then `c` will each receive one fresh Cloudflare `@cf/zai-org/glm-5.3` request. There are exactly three planned model calls, no retry, no replacement, no answer repair, and no score-dependent adjustment between calls.
+
+The model receives the unchanged six-table v9 system prompt and one instance-specific four-capture development sample. It sees no held-out v12 rows, labels, seed schedule, reference SQL, score, or prior response. The response may be raw SQL or one complete outer `sql` code fence. The parser removes only that fence and surrounding whitespace. Other prose, nested or multiple fences, missing or truncated content, and SQL longer than 8192 bytes fail formatting. The pinned Linux Docker executor requires a single read-only query and applies resource, network, filesystem, and literal-ID restrictions. The same submitted SQL is scored on all 36 native batches and 16 projected controls for its instance.
+
+## Required preflight and private handling
+
+An uncredentialed Linux preflight must pass at the exact commit used by the live job before any Cloudflare secret is available. It pulls the pinned Docker image and runs **all** `chain-v12/*_selftest.mjs` files, including frozen-cohort validation, counterfactual and de-oracle checks, shortcut rejection, the visible-plane reference at 36/36 native batches and 16/16 controls for each of `a`, `b`, and `c` through the Linux Docker executor, and screen checks. It also runs the v12 reporter and workflow gate tests. Any preflight failure blocks live.
+
+The live job requires the exact branch, repository and actor gates, the first GitHub run attempt, `F4_V12_LIVE_ENABLED=true`, successful preflight, and the existing branch-restricted `f4-v10-calibration` environment. A GitHub job rerun cannot repeat the live calls. Cloudflare secrets exist only on the live request step. The screen reserves each raw record outside Git with mode `0600` in a mode `0700` private directory, freezes response and normalized SQL before execution, and makes one transport attempt at most. Raw SQL, response, and credentials never enter Actions logs or Git. The reporter imports the existing v10 encryption primitive and writes one encrypted envelope per produced raw record with the checked-in public key. Only encrypted envelopes are eligible for artifact upload. The private key remains outside Git.
+
+All three instance outcomes must be reported, including `format_fail`, `provider_error`, `executor_fail`, process failure, or a missing raw record. A model or invalid outcome does not trigger a retry or replacement; the workflow continues to the next instance and marks the final job failed if any instance is unscored. `scored_valid` requires one transport attempt and a `pass` or `model_fail` score with integer native exact counts from 0 through 36 and control exact counts from 0 through 16 of 16. Other outcomes remain distinct and unscored.
+
+## Decision rule and claim limit
+
+The pre-registered substantive floor criterion is **at most 6/36 exact native batches on each of three scored submissions**. It is evaluated only if all three one-shot submissions are scored. A format, provider, executor, or process failure leaves the floor claim unestablished. Results above 6/36 also leave it unestablished. Report each attempt's outcome, exact native and control counts, TP/FP/FN and survivor/revoked false alarms, request/response/SQL hashes, and any duplicate SQL hashes. The 36 batches under one SQL rule are correlated, so these are three model attempts, not 108 independent attempts. The claim is limited to this endpoint, prompt, budget, and run date; formal G0–G7 and enterprise deployment claims remain separate.

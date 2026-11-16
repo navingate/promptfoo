@@ -1,0 +1,124 @@
+name: F4 v12 scored calibration
+
+on:
+  push:
+    branches:
+      - codex/f4-detection-rule-v10-candidate
+    paths:
+      - .github/workflows/f4-v12-calibration.yml
+      - .github/scripts/f4-v12-calibration-report.mjs
+      - .github/scripts/f4-v12-calibration-report.test.mjs
+      - .github/scripts/f4-v12-calibration-workflow.test.mjs
+      - .github/scripts/f4-v10-calibration-report.mjs
+      - .github/scripts/f4-v10-calibration-public.pem
+      - plugins/cyber/benchmarks/f4-durable-consent/chain-v12/**
+
+permissions:
+  contents: read
+
+concurrency:
+  group: f4-v12-calibration-${{ github.ref }}
+  cancel-in-progress: false
+
+jobs:
+  preflight:
+    if: github.repository == 'navingate/promptfoo' && github.actor == 'navingate' && github.ref == 'refs/heads/codex/f4-detection-rule-v10-candidate'
+    runs-on: ubuntu-24.04
+    timeout-minutes: 30
+    permissions:
+      contents: read
+    steps:
+      - name: Check out the triggering commit
+        uses: actions/checkout@df4cb1c069e1874edd31b4311f1884172cec0e10 # v6
+        with:
+          ref: ${{ github.sha }}
+          persist-credentials: false
+      - name: Use repository Node version
+        uses: actions/setup-node@48b55a011bda9f5d6aeb4c2d9c7362e8dae4041e # v6
+        with:
+          node-version-file: .nvmrc
+      - name: Verify exact checkout
+        run: test "$(git rev-parse HEAD)" = "$GITHUB_SHA"
+      - name: Pull pinned Linux SQL sandbox image
+        run: docker pull python@sha256:78387bc3881b8273120a12ebe6c1ab22b018ccc2c9adf565ae1ac9b536e184ea
+      - name: Verify every frozen v12 cohort, reference, and screen test
+        run: node --test plugins/cyber/benchmarks/f4-durable-consent/chain-v12/*_selftest.mjs
+      - name: Verify v12 encrypted reporting and workflow gates
+        run: node --test .github/scripts/f4-v12-calibration-*.test.mjs
+
+  live:
+    if: needs.preflight.result == 'success' && github.run_attempt == 1 && vars.F4_V12_LIVE_ENABLED == 'true' && github.repository == 'navingate/promptfoo' && github.actor == 'navingate' && github.ref == 'refs/heads/codex/f4-detection-rule-v10-candidate'
+    needs: preflight
+    runs-on: ubuntu-24.04
+    timeout-minutes: 45
+    permissions:
+      contents: read
+    environment:
+      name: f4-v10-calibration
+      deployment: false
+    steps:
+      - name: Check out the same triggering commit
+        uses: actions/checkout@df4cb1c069e1874edd31b4311f1884172cec0e10 # v6
+        with:
+          ref: ${{ github.sha }}
+          persist-credentials: false
+      - name: Use repository Node version
+        uses: actions/setup-node@48b55a011bda9f5d6aeb4c2d9c7362e8dae4041e # v6
+        with:
+          node-version-file: .nvmrc
+      - name: Verify exact checkout
+        run: test "$(git rev-parse HEAD)" = "$GITHUB_SHA"
+      - name: Pull pinned Linux SQL sandbox image
+        run: docker pull python@sha256:78387bc3881b8273120a12ebe6c1ab22b018ccc2c9adf565ae1ac9b536e184ea
+      - name: Make three sequential one-shot requests and encrypt each raw record
+        env:
+          CLOUDFLARE_OPENAI_BASE_URL: ${{ secrets.CLOUDFLARE_OPENAI_BASE_URL }}
+          CLOUDFLARE_API_KEY: ${{ secrets.CLOUDFLARE_API_KEY }}
+        run: |
+          set -euo pipefail
+          if [[ -z "$CLOUDFLARE_OPENAI_BASE_URL" || -z "$CLOUDFLARE_API_KEY" ]]; then
+            echo 'F4 v12 Cloudflare environment secrets are missing'
+            exit 1
+          fi
+          umask 077
+          private_dir="${RUNNER_TEMP}/f4-v12-${GITHUB_RUN_ID}-${GITHUB_RUN_ATTEMPT}"
+          mkdir -m 700 "$private_dir"
+          mkdir -m 700 "$private_dir/encrypted"
+          any_invalid=0
+          for instance in a b c; do
+            raw_path="$private_dir/${instance}-raw.json"
+            envelope_path="$private_dir/encrypted/${instance}.json"
+            set +e
+            node plugins/cyber/benchmarks/f4-durable-consent/chain-v12/screen.mjs \
+              --slot-assigned --instance "$instance" --output "$raw_path" \
+              > "$private_dir/${instance}-screen.stdout" 2> "$private_dir/${instance}-screen.stderr"
+            screen_status=$?
+            set -e
+            echo "F4 v12 instance ${instance} screen process exit: ${screen_status}"
+            if [[ -s "$raw_path" ]]; then
+              set +e
+              node .github/scripts/f4-v12-calibration-report.mjs \
+                "$raw_path" "$envelope_path" .github/scripts/f4-v10-calibration-public.pem
+              report_status=$?
+              set -e
+              echo "F4 v12 instance ${instance} encrypted report process exit: ${report_status}"
+              if [[ "$screen_status" -ne 0 || "$report_status" -ne 0 ]]; then
+                any_invalid=1
+              fi
+            else
+              echo "F4 v12 instance ${instance} produced no private record"
+              any_invalid=1
+            fi
+          done
+          if [[ "$any_invalid" -ne 0 ]]; then
+            echo 'F4 v12 run has one or more invalid submissions; all planned instances were attempted'
+            exit 1
+          fi
+      - name: Retain only encrypted v12 calibration evidence
+        if: always()
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7
+        with:
+          name: f4-v12-encrypted-results
+          path: ${{ runner.temp }}/f4-v12-${{ github.run_id }}-${{ github.run_attempt }}/encrypted/*.json
+          if-no-files-found: ignore
+          retention-days: 30
