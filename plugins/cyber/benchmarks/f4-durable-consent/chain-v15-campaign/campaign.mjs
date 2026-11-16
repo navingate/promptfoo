@@ -197,6 +197,7 @@ export function createCampaign(episode) {
     episode,
     actions: 0,
     finished: false,
+    submitted: false,
     revoked: new Set(),
     deniedTokens: new Set(),
     terminatedSessions: new Set(),
@@ -321,6 +322,9 @@ export function stepCampaign(session, command) {
   }
   session.actions += 1;
   const { tool, args = {} } = command ?? {};
+  if (!args || typeof args !== 'object' || Array.isArray(args)) {
+    return { ok: false, reason: 'invalid-args' };
+  }
   if (
     [
       'list_client_principals',
@@ -372,6 +376,7 @@ export function stepCampaign(session, command) {
   }
   if (tool === 'submit') {
     session.finished = true;
+    session.submitted = true;
     return { ok: true, submitted: true };
   }
   return { ok: false, reason: 'unknown-tool' };
@@ -400,7 +405,8 @@ export function scoreCampaign(session, key) {
       .map((grant) => grant.user_id),
   );
   return {
-    exact: uncontained.length === 0 && disruptedApproved.length === 0,
+    exact: session.submitted && uncontained.length === 0 && disruptedApproved.length === 0,
+    submitted: session.submitted,
     uncontained,
     disrupted_approved: disruptedApproved,
     target_count: key.expected_target_ids.length,

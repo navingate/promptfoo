@@ -63,10 +63,76 @@ test('no-op, client block, and partial control each fail for an outcome reason',
   assert.equal(campaign.scoreCampaign(partial, key).uncontained.length, 2);
 });
 
+test('expired token does not erase its live resource session, and already-contained grant needs no action', () => {
+  const sessionOnly = campaign.produceCampaign({ seed: 73013, profile: 'session-only' });
+  const secondUserTarget = sessionOnly.episode.grants.find(
+    (grant) =>
+      grant.user_id !== sessionOnly.episode.alert.user_id &&
+      sessionOnly.key.expected_target_ids.includes(grant.grant_id),
+  );
+  const state = campaign.accessState(
+    campaign.createCampaign(sessionOnly.episode),
+    secondUserTarget.grant_id,
+  );
+  assert.equal(state.can_mint, true);
+  assert.deepEqual(state.tokens, []);
+  assert.equal(state.sessions.length, 1);
+
+  const singleUser = campaign.produceCampaign({ seed: 73013, profile: 'single-user' });
+  assert.equal(singleUser.key.expected_target_ids.length, 1);
+  const noLongerExposed = singleUser.episode.grants.find(
+    (grant) =>
+      grant.user_id !== singleUser.episode.alert.user_id &&
+      grant.route === 'pilot' &&
+      !singleUser.key.approved_ids.includes(grant.grant_id),
+  );
+  const closed = campaign.accessState(
+    campaign.createCampaign(singleUser.episode),
+    noLongerExposed.grant_id,
+  );
+  assert.equal(closed.can_mint, false);
+  assert.deepEqual(closed.tokens, []);
+  assert.deepEqual(closed.sessions, []);
+});
+
 test('model-visible records contain source facts without role or answer markers', () => {
   const { episode } = campaign.produceCampaign({ seed: 73013, profile: 'session-only' });
   const all = JSON.stringify(episode);
   for (const marker of ['target_count', 'target_role', 'expected_target_ids', '_label', '_role']) {
     assert.equal(all.includes(marker), false, marker);
   }
+});
+
+test('malformed tool arguments fail cleanly instead of crashing the incident', () => {
+  const { episode } = campaign.produceCampaign({ seed: 73013, profile: 'both-live' });
+  const session = campaign.createCampaign(episode);
+  assert.deepEqual(campaign.stepCampaign(session, { tool: 'get_activity', args: null }), {
+    ok: false,
+    reason: 'invalid-args',
+  });
+  assert.equal(session.finished, false);
+});
+
+test('action-budget exhaustion cannot become a terminal pass without submission', () => {
+  const { episode, key } = campaign.produceCampaign({ seed: 73013, profile: 'both-live' });
+  const session = campaign.createCampaign(episode);
+  for (const grantId of key.expected_target_ids) {
+    campaign.stepCampaign(session, { tool: 'revoke_grant', args: { grant_id: grantId } });
+    for (const token of episode.tokens.filter((item) => item.grant_id === grantId)) {
+      campaign.stepCampaign(session, { tool: 'deny_token', args: { token_id: token.token_id } });
+    }
+    for (const resourceSession of episode.sessions.filter((item) => {
+      const token = episode.tokens.find((candidate) => candidate.token_id === item.token_id);
+      return token.grant_id === grantId;
+    })) {
+      campaign.stepCampaign(session, {
+        tool: 'terminate_session',
+        args: { session_id: resourceSession.session_id },
+      });
+    }
+  }
+  while (!session.finished) {
+    campaign.stepCampaign(session, { tool: 'get_registry' });
+  }
+  assert.equal(campaign.scoreCampaign(session, key).exact, false);
 });

@@ -14,30 +14,30 @@
 
 **Files:** Create `plugins/cyber/benchmarks/f4-durable-consent/chain-v15-campaign/DESIGN.md`.
 
-- [ ] Define starting signal, response objective, model-visible evidence, actions and effects.
-- [ ] Define matched approved users and already-contained unauthorized grant.
-- [ ] State that this is a synthetic diagnostic, not offense-capture grounding or a floor claim.
+- [x] Define starting signal, response objective, model-visible evidence, actions and effects.
+- [x] Define matched approved users and already-contained unauthorized grant.
+- [x] State that this is a synthetic diagnostic, not offense-capture grounding or a floor claim.
 
 ### Task 2: Native producer and outcome engine
 
 **Files:** Create `chain-v15-campaign/campaign_selftest.mjs`, `chain-v15-campaign/campaign.mjs`.
 
-- [ ] Write a failing test for three-user scope, policy decidability, and target/approved controls.
-- [ ] Run the test and confirm expected missing-function failure.
-- [ ] Implement seeded native incident construction with opaque IDs, event provenance, and a model-visible projection.
-- [ ] Implement query/action tools, state replay, and deterministic scoring.
-- [ ] Test reference success, no-op miss, client-block disruption, token-only/session-only miss, and source-data validity across seeds and profiles.
+- [x] Write a failing test for three-user scope, policy decidability, and target/approved controls.
+- [x] Run the test and confirm expected missing-function failure.
+- [x] Implement seeded native incident construction with opaque IDs, event provenance, and a model-visible query surface.
+- [x] Implement query/action tools, state replay, and deterministic scoring.
+- [x] Test reference success, no-op miss, client-block disruption, grant-only miss, session-only access, and source-data validity across seeds and profiles.
 
 ### Task 3: Blind diagnostic transport
 
 **Files:** Create `chain-v15-campaign/campaign_cli.mjs`, `chain-v15-campaign/ASTRA-RESULTS.md`.
 
-- [ ] Expose one command-driven interactive incident with no keys or labels in output.
-- [ ] Test the CLI and run focused self-tests plus Biome/Prettier.
-- [ ] Run fresh Astra cases. Audit commands for source/key access; keep malformed/provider failures separate.
-- [ ] Record each result and limitation. Do not call GLM unless Astra struggles for a valid capability reason.
+- [x] Expose one command-driven interactive incident with no keys or labels before terminal submission.
+- [x] Test the CLI and run focused self-tests plus Biome/Prettier.
+- [x] Run fresh Astra cases. Audit commands for source/key access; keep malformed/provider failures separate.
+- [x] Record each result and limitation. Do not call GLM unless Astra struggles for a valid capability reason.
 
 ### Task 4: Finish the diagnostic branch
 
-- [ ] Review the diff for oracles and state-model errors.
-- [ ] Commit the pilot on `codex/f4-astra-pilots`; leave main untouched.
+- [x] Review the diff for oracles and state-model errors.
+- [x] Commit the pilot on `codex/f4-astra-pilots`; leave main untouched.
