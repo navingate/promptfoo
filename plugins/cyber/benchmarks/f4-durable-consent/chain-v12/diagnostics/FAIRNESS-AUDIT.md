@@ -20,4 +20,16 @@ The replay uses the unchanged v12 native cohorts, evaluator keys, projected cont
 - A low score after the correction would show that this particular trivia error did not explain the poor score. It would **not** prove the benchmark is fair on its own; the blind solve and visible-data/label audit remain necessary.
 - The three corrected replays are correlated post-hoc probes. They do not replace three fresh, valid scored submissions.
 
-Status: diagnostic pending.
+## Result (2026-11-16)
+
+The [exact-commit Linux Actions run](https://github.com/navingate/promptfoo/actions/runs/43928304765) passed its credential-free reference preflight and all three corrected-SQL replays. There were zero new model requests.
+
+| Instance | Native exact batches | Controls exact |  TP |  FP |  FN |
+| -------- | -------------------: | -------------: | --: | --: | --: |
+| A        |                36/36 |          14/16 |  90 |   0 |   0 |
+| B        |                36/36 |          15/16 |  90 |   0 |   0 |
+| C        |                36/36 |          16/16 |  90 |   0 |   0 |
+
+The original v12 model submissions remain **0/36, 0/36, and one unscored executor failure**. The diagnostic shows that changing the SQLite JSON type literal alone moves each rule to 36/36 on its native cohort. A and B still miss one or two projected controls, so this is not a claim that their original submissions passed the full task. It is decisive evidence that the native 0/36 scores were dominated by an under-specified SQL dialect detail. The v12 three-valid-submission floor remains unestablished. Do not use v12 as evidence that GLM-5.3 is floored on consent-detection reasoning.
+
+The temporary SQL environment secrets and workflow gate variables were removed after the run; subsequent listings returned empty.
