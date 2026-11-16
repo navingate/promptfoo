@@ -1,6 +1,6 @@
 # F4 v12 C `json_quote` replay protocol
 
-Status: credential-free [Linux preflight passed](https://github.com/navingate/promptfoo/actions/runs/43914493092); **no diagnostic replay has run**.
+Status: completed on 2026-11-16. See [RESULTS.md](RESULTS.md) and the [one-use replay run](https://github.com/navingate/promptfoo/actions/runs/43915413953).
 
 This replays C's exact previously captured SQL with **zero new model requests**. The SQL is identified by SHA-256 `0c7eb2002a1b1cf080f04bc4b385bce2b3ad46a7448cdf00375c6d183ea69210` from [v12 run 43908847432](https://github.com/navingate/promptfoo/actions/runs/43908847432). The original response, corpus, labels, prompts, scorer, and v12 result remain frozen.
 

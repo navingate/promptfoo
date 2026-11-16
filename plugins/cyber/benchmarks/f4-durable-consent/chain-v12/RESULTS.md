@@ -30,6 +30,8 @@ A and B each caught all 90 malicious grants, but flagged 295 and 296 legitimate 
 
 C returned a complete SQL submission with a normal `stop` finish reason, but the pinned executor rejected its `json_quote` call as an unauthorized function before producing a score. This is an evaluation-contract mismatch worth fixing in a **new frozen version**: the model-facing prompt says JSON functions are available, while the executor allows only a subset and does not name it in the prompt. C must remain unscored in v12; assigning it 0/36 afterward would change the preregistered rule.
 
+A subsequent [one-use offline diagnostic](diagnostics/RESULTS.md) replayed C's exact captured SQL after adding only `json_quote` to a copy of the isolated executor. It scored 0/36 native batches and 14/16 controls, with 90 TP and 296 FP. The diagnostic made zero new model calls and does not change C's original unscored v12 status or the floor verdict below.
+
 ## Failure analysis and claim limit
 
 Both scored SQL rules compare `json_type(...)` with `'string'` in their registry-selector logic (four comparisons in A, five in B). SQLite returns `'text'` for a JSON string, verified independently with SQLite. This likely caused authorized survivor grants to be treated as unauthorized; the rules were **not** replayed after a correction, so it is not established as the sole error. Their very similar false-positive pattern limits what these two 0/36 results say about the harder incident-correlation reasoning. They are clear failures of the submitted SQL on the frozen task, but a broader claim that GLM-5.3 cannot solve the cyber-detection construct requires a fairer follow-up screen.
