@@ -1,4 +1,5 @@
 import assert from 'node:assert/strict';
+import crypto from 'node:crypto';
 import fs from 'node:fs';
 import os from 'node:os';
 import path from 'node:path';
@@ -15,6 +16,8 @@ const checkoutRoot = path.resolve(repoRoot, '../..');
 const manifest = JSON.parse(fs.readFileSync(path.join(here, 'manifest.json'), 'utf8'));
 const sql = 'SELECT grant_id FROM grants WHERE 0';
 const config = { endpoint: 'https://mock.invalid/v1', apiKey: 'mock-key' };
+const cloudflareEndpoint = `https://api.cloudflare.com/client/v4/accounts/${'a'.repeat(32)}/ai/v1`;
+const sha256 = (value) => crypto.createHash('sha256').update(value).digest('hex');
 const response = (content, { model = screen.MODEL_ID, finishReason = 'stop' } = {}) => ({
   ok: true,
   status: 200,
@@ -220,15 +223,75 @@ test('preflight and assigned slot gate precede any model request', async () => {
   }
 });
 
-test('Cloudflare configuration requires an HTTPS endpoint', () => {
-  assert.throws(
-    () =>
-      screen.cloudflareConfig({
-        CLOUDFLARE_OPENAI_BASE_URL: 'http://mock.invalid/v1',
-        CLOUDFLARE_API_KEY: 'mock',
-      }),
-    /HTTPS/,
-  );
+test('Cloudflare configuration accepts only the exact account AI v1 API endpoint', () => {
+  const accepted = screen.cloudflareConfig({
+    CLOUDFLARE_OPENAI_BASE_URL: `${cloudflareEndpoint}/`,
+    CLOUDFLARE_API_KEY: 'mock',
+  });
+  assert.equal(accepted.endpoint, cloudflareEndpoint);
+  assert.equal(accepted.endpointSha256, sha256(cloudflareEndpoint));
+  for (const endpoint of [
+    cloudflareEndpoint.replace('https:', 'http:'),
+    cloudflareEndpoint.replace('api.cloudflare.com', 'evil.example'),
+    cloudflareEndpoint.replace('api.cloudflare.com', 'api.cloudflare.com.evil.example'),
+    cloudflareEndpoint.replace('/ai/v1', '/ai/v2'),
+    cloudflareEndpoint.replace('a'.repeat(32), 'not-an-account-id'),
+    cloudflareEndpoint.replace('api.cloudflare.com', 'api.cloudflare.com:8443'),
+    cloudflareEndpoint.replace('https://', 'https://user:password@'),
+    `${cloudflareEndpoint}?redirect=evil`,
+    `${cloudflareEndpoint}#fragment`,
+  ]) {
+    assert.throws(
+      () =>
+        screen.cloudflareConfig({
+          CLOUDFLARE_OPENAI_BASE_URL: endpoint,
+          CLOUDFLARE_API_KEY: 'mock',
+        }),
+      /Cloudflare endpoint/,
+      endpoint,
+    );
+  }
+});
+
+test('live mode rejects injection hooks before reserving output or making a request', async () => {
+  const dir = privateDir();
+  try {
+    let hookCalls = 0;
+    for (const [name, value] of Object.entries({
+      preflight: async () => {
+        hookCalls += 1;
+        return {};
+      },
+      execute: async () => {
+        hookCalls += 1;
+        return [];
+      },
+      request: async () => {
+        hookCalls += 1;
+        return response(sql);
+      },
+      pace: async () => {
+        hookCalls += 1;
+      },
+    })) {
+      const output = path.join(dir, `${name}.json`);
+      await assert.rejects(
+        screen.runScreen({
+          instance: 'a',
+          slotAssigned: true,
+          output,
+          env: {},
+          [name]: value,
+        }),
+        /live screen may not override/,
+        name,
+      );
+      assert.equal(fs.existsSync(output), false, name);
+    }
+    assert.equal(hookCalls, 0);
+  } finally {
+    fs.rmSync(dir, { recursive: true, force: true });
+  }
 });
 
 test('private output rejects either checkout and existing files before any request', async () => {
@@ -273,10 +336,9 @@ test('one no-cache HTTPS request uses the exact frozen body and one attempt', as
     let calls = 0;
     let gap = null;
     const result = await screen.runScreen({
+      mock: true,
       instance: 'b',
-      slotAssigned: true,
       output: path.join(dir, 'result.json'),
-      env: { CLOUDFLARE_OPENAI_BASE_URL: config.endpoint, CLOUDFLARE_API_KEY: config.apiKey },
       preflight: async () => ({}),
       pace: async (ms) => {
         gap = ms;
@@ -310,6 +372,7 @@ test('one no-cache HTTPS request uses the exact frozen body and one attempt', as
     assert.equal(calls, 1);
     assert.equal(gap, 5000);
     assert.equal(result.transport_attempts, 1);
+    assert.equal(result.endpoint_sha256, sha256(config.endpoint));
     assert.equal(result.score.projected_controls.total, 16);
     assert.equal(fs.statSync(path.join(dir, 'result.json')).mode & 0o777, 0o600);
   } finally {

@@ -72,18 +72,27 @@ export function cloudflareConfig(env = process.env) {
   if (!env.CLOUDFLARE_OPENAI_BASE_URL || !env.CLOUDFLARE_API_KEY) {
     throw new Error('Cloudflare endpoint and API key required');
   }
-  const endpoint = env.CLOUDFLARE_OPENAI_BASE_URL.replace(/\/+$/u, '');
-  const parsed = new URL(endpoint);
+  let parsed;
+  try {
+    parsed = new URL(env.CLOUDFLARE_OPENAI_BASE_URL);
+  } catch {
+    throw new Error('Cloudflare endpoint must be the HTTPS account AI v1 API URL');
+  }
+  const endpointPath = parsed.pathname.replace(/\/+$/u, '');
   if (
     parsed.protocol !== 'https:' ||
+    parsed.hostname !== 'api.cloudflare.com' ||
+    parsed.port ||
     parsed.username ||
     parsed.password ||
     parsed.search ||
-    parsed.hash
+    parsed.hash ||
+    !/^\/client\/v4\/accounts\/[a-f0-9]{32}\/ai\/v1$/iu.test(endpointPath)
   ) {
-    throw new Error('Cloudflare endpoint must use HTTPS');
+    throw new Error('Cloudflare endpoint must be the HTTPS account AI v1 API URL');
   }
-  return { endpoint, apiKey: env.CLOUDFLARE_API_KEY };
+  const endpoint = `${parsed.origin}${endpointPath}`;
+  return { endpoint, endpointSha256: sha256(endpoint), apiKey: env.CLOUDFLARE_API_KEY };
 }
 
 // biome-ignore lint/style/noRestrictedGlobals: standalone benchmark with an injectable request for mocked tests
@@ -164,6 +173,7 @@ function baseRecord(instance, preflight = null) {
     instance,
     model: MODEL_ID,
     endpoint_id: ENDPOINT_ID,
+    endpoint_sha256: null,
     transport_attempts: 0,
     preflight,
     submission: null,
@@ -172,25 +182,33 @@ function baseRecord(instance, preflight = null) {
 }
 
 export async function runScreen(options = {}) {
-  if (!options.mock && options.slotAssigned !== true) {
+  const mock = options.mock === true;
+  if (!mock && options.slotAssigned !== true) {
     throw new Error('live F4 v12 screen requires an assigned Cloudflare slot');
   }
   const instance = options.instance;
   if (!Object.hasOwn(INSTANCE_CONFIGS, instance)) {
     throw new Error('one frozen v12 instance is required');
   }
-  if (options.mock && typeof options.request !== 'function') {
+  if (mock && typeof options.request !== 'function') {
     throw new Error('mock screen requires an injected request');
   }
-  if (!options.mock && options.manifest) {
-    throw new Error('live screen may not override the frozen manifest');
+  if (
+    !mock &&
+    ['manifest', 'preflight', 'execute', 'request', 'pace'].some((name) =>
+      Object.hasOwn(options, name),
+    )
+  ) {
+    throw new Error('live screen may not override the frozen executor or request');
   }
   const target = outputPath(options.output);
   const outputFd = fs.openSync(target, 'wx', 0o600);
   try {
     let preflight;
     try {
-      preflight = await (options.preflight ?? preflightSqlExecutor)();
+      preflight = await (mock
+        ? (options.preflight ?? preflightSqlExecutor)
+        : preflightSqlExecutor)();
     } catch {
       const record = baseRecord(instance);
       record.score = {
@@ -205,7 +223,8 @@ export async function runScreen(options = {}) {
     let manifest;
     try {
       manifest =
-        options.manifest ?? JSON.parse(fs.readFileSync(path.join(here, 'manifest.json'), 'utf8'));
+        (mock ? options.manifest : null) ??
+        JSON.parse(fs.readFileSync(path.join(here, 'manifest.json'), 'utf8'));
       corpus = verifyManifest(manifest)[instance];
       if (
         corpus.batches.length !== 36 ||
@@ -235,8 +254,12 @@ export async function runScreen(options = {}) {
     };
     let config;
     try {
-      config = options.mock
-        ? { endpoint: 'https://mock.invalid/v1', apiKey: 'mock' }
+      config = mock
+        ? {
+            endpoint: 'https://mock.invalid/v1',
+            endpointSha256: sha256('https://mock.invalid/v1'),
+            apiKey: 'mock',
+          }
         : cloudflareConfig(options.env);
     } catch {
       record.submission = {
@@ -246,19 +269,24 @@ export async function runScreen(options = {}) {
       writePrivateRecord(outputFd, record);
       return record;
     }
-    if (!options.mock) {
-      const pace = options.pace ?? ((ms) => new Promise((resolve) => setTimeout(resolve, ms)));
+    record.endpoint_sha256 = config.endpointSha256;
+    if (!mock || options.pace) {
+      const pace = mock ? options.pace : (ms) => new Promise((resolve) => setTimeout(resolve, ms));
       await pace(REQUEST_GAP_MS);
     }
     record.transport_attempts = 1;
-    record.submission = await requestSql(config, corpus.requestBodyJson, options.request);
+    record.submission = await requestSql(
+      config,
+      corpus.requestBodyJson,
+      mock ? options.request : undefined,
+    );
     // Persist the exact response and normalized SQL before any model SQL is executed.
     writePrivateRecord(outputFd, record);
     if (record.submission.classification !== 'submitted') {
       return record;
     }
     try {
-      const executor = options.execute ?? executeSqlCorpus;
+      const executor = mock ? (options.execute ?? executeSqlCorpus) : executeSqlCorpus;
       const alerts = await executor({
         sql: record.submission.normalized_sql,
         batches: corpus.projected,
