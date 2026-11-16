@@ -1,0 +1,593 @@
+{
+  "origin": "frozen-v10-native-batch-15-first-four",
+  "tables": {
+    "grants": [
+      {
+        "capture_id": "capture-v10-43961aade0bccd98",
+        "grant_id": "grant-atk-5bef3e9d54",
+        "client_id": "client-atk-5bef3e9d",
+        "tenant": "external",
+        "principal_binding": "user-781",
+        "scopes_json": "[\"reports.export\"]",
+        "catalog_scopes_json": "[\"reports.read\",\"reports.export\"]",
+        "approval_route": "admin-approved",
+        "grantor_type": "admin-consent",
+        "verification_state": "catalog-approved",
+        "issue_time": 950,
+        "refresh_lineage": "rl-grant-atk-5bef3e9d54"
+      },
+      {
+        "capture_id": "capture-v10-f578e3582cf9478c",
+        "grant_id": "grant-atk-48d070886e",
+        "client_id": "client-atk-48d07088",
+        "tenant": "external",
+        "principal_binding": "user-781",
+        "scopes_json": "[\"reports.read\",\"reports.export\",\"audit.export\"]",
+        "catalog_scopes_json": "[\"reports.read\",\"reports.export\"]",
+        "approval_route": "admin-approved",
+        "grantor_type": "admin-consent",
+        "verification_state": "catalog-approved",
+        "issue_time": 950,
+        "refresh_lineage": "rl-grant-atk-48d070886e"
+      },
+      {
+        "capture_id": "capture-v10-4207f3b30db2257d",
+        "grant_id": "grant-atk-b2dcc92789",
+        "client_id": "client-atk-b2dcc927",
+        "tenant": "external",
+        "principal_binding": "user-781",
+        "scopes_json": "[\"reports.export\"]",
+        "catalog_scopes_json": "[\"reports.read\",\"reports.export\"]",
+        "approval_route": "self-service-elevated",
+        "grantor_type": "partner-consent",
+        "verification_state": "verified",
+        "issue_time": 950,
+        "refresh_lineage": "rl-grant-atk-b2dcc92789"
+      },
+      {
+        "capture_id": "capture-v10-c729a747ad68bf0c",
+        "grant_id": "grant-atk-d0b93232f3",
+        "client_id": "client-atk-d0b93232",
+        "tenant": "internal",
+        "principal_binding": "user-781",
+        "scopes_json": "[\"reports.read\",\"reports.export\"]",
+        "catalog_scopes_json": "[\"reports.read\",\"reports.export\"]",
+        "approval_route": "self-service-standard",
+        "grantor_type": "user-consent",
+        "verification_state": "unverified",
+        "issue_time": 950,
+        "refresh_lineage": "rl-grant-atk-d0b93232f3"
+      }
+    ],
+    "events": [
+      {
+        "capture_id": "capture-v10-43961aade0bccd98",
+        "event_id": "evt-52d379fc88ccf939b81bae75",
+        "caused_by_event_id": null,
+        "grant_id": null,
+        "kind": "app-registered",
+        "time": 900,
+        "resource": null,
+        "credential_lineage": null,
+        "export_ref": null
+      },
+      {
+        "capture_id": "capture-v10-43961aade0bccd98",
+        "event_id": "evt-5d6fa1aef5fd73223066ca30",
+        "caused_by_event_id": "evt-52d379fc88ccf939b81bae75",
+        "grant_id": "grant-atk-5bef3e9d54",
+        "kind": "delegated-grant-created",
+        "time": 950,
+        "resource": null,
+        "credential_lineage": null,
+        "export_ref": null
+      },
+      {
+        "capture_id": "capture-v10-43961aade0bccd98",
+        "event_id": "evt-b28310263d437f02eab6c14e",
+        "caused_by_event_id": "evt-5d6fa1aef5fd73223066ca30",
+        "grant_id": null,
+        "kind": "compromised-user-remediated",
+        "time": 1000,
+        "resource": null,
+        "credential_lineage": null,
+        "export_ref": null
+      },
+      {
+        "capture_id": "capture-v10-43961aade0bccd98",
+        "event_id": "evt-v4-78d73c206081ffc16c1c8880",
+        "caused_by_event_id": "evt-b28310263d437f02eab6c14e",
+        "grant_id": "grant-atk-5bef3e9d54",
+        "kind": "access-token-issued",
+        "time": 1010,
+        "resource": null,
+        "credential_lineage": "rl-grant-atk-5bef3e9d54",
+        "export_ref": null
+      },
+      {
+        "capture_id": "capture-v10-43961aade0bccd98",
+        "event_id": "evt-v4-afdc608a5e9f9e990d277a5b",
+        "caused_by_event_id": "evt-v4-78d73c206081ffc16c1c8880",
+        "grant_id": "grant-atk-5bef3e9d54",
+        "kind": "protected-export-call",
+        "time": 1025,
+        "resource": "reports.export",
+        "credential_lineage": "rl-grant-atk-5bef3e9d54",
+        "export_ref": "export-v4-d2afd1b281072a3de24775fc"
+      },
+      {
+        "capture_id": "capture-v10-43961aade0bccd98",
+        "event_id": "evt-v4-b90f29ebf6a05f8789a9473e",
+        "caused_by_event_id": "evt-v4-afdc608a5e9f9e990d277a5b",
+        "grant_id": "grant-atk-5bef3e9d54",
+        "kind": "export-read",
+        "time": 1030,
+        "resource": null,
+        "credential_lineage": null,
+        "export_ref": "export-v4-d2afd1b281072a3de24775fc"
+      },
+      {
+        "capture_id": "capture-v10-f578e3582cf9478c",
+        "event_id": "evt-c9b409048ccf88f8a7abfc88",
+        "caused_by_event_id": null,
+        "grant_id": null,
+        "kind": "app-registered",
+        "time": 900,
+        "resource": null,
+        "credential_lineage": null,
+        "export_ref": null
+      },
+      {
+        "capture_id": "capture-v10-f578e3582cf9478c",
+        "event_id": "evt-d784b8aa111d0ca92dc8ae04",
+        "caused_by_event_id": "evt-c9b409048ccf88f8a7abfc88",
+        "grant_id": "grant-atk-48d070886e",
+        "kind": "delegated-grant-created",
+        "time": 950,
+        "resource": null,
+        "credential_lineage": null,
+        "export_ref": null
+      },
+      {
+        "capture_id": "capture-v10-f578e3582cf9478c",
+        "event_id": "evt-2e98ecb72e00b0a35ad47960",
+        "caused_by_event_id": "evt-d784b8aa111d0ca92dc8ae04",
+        "grant_id": null,
+        "kind": "compromised-user-remediated",
+        "time": 1000,
+        "resource": null,
+        "credential_lineage": null,
+        "export_ref": null
+      },
+      {
+        "capture_id": "capture-v10-f578e3582cf9478c",
+        "event_id": "evt-9a295cca996930a310e91b1b",
+        "caused_by_event_id": "evt-2e98ecb72e00b0a35ad47960",
+        "grant_id": "grant-atk-48d070886e",
+        "kind": "access-token-issued",
+        "time": 1010,
+        "resource": null,
+        "credential_lineage": "rl-grant-atk-48d070886e",
+        "export_ref": null
+      },
+      {
+        "capture_id": "capture-v10-f578e3582cf9478c",
+        "event_id": "evt-0ac5d955fdfe0427cd066186",
+        "caused_by_event_id": "evt-9a295cca996930a310e91b1b",
+        "grant_id": "grant-atk-48d070886e",
+        "kind": "protected-export-call",
+        "time": 1025,
+        "resource": "reports.export",
+        "credential_lineage": "rl-grant-atk-48d070886e",
+        "export_ref": "export-4f14d0d62186b9a832f2de51"
+      },
+      {
+        "capture_id": "capture-v10-f578e3582cf9478c",
+        "event_id": "evt-3e2f01352390383cd3d37973",
+        "caused_by_event_id": "evt-0ac5d955fdfe0427cd066186",
+        "grant_id": "grant-atk-48d070886e",
+        "kind": "export-read",
+        "time": 1030,
+        "resource": null,
+        "credential_lineage": null,
+        "export_ref": "export-4f14d0d62186b9a832f2de51"
+      },
+      {
+        "capture_id": "capture-v10-4207f3b30db2257d",
+        "event_id": "evt-f60c3c20ad1ba6e8dd5380ef",
+        "caused_by_event_id": null,
+        "grant_id": null,
+        "kind": "app-registered",
+        "time": 900,
+        "resource": null,
+        "credential_lineage": null,
+        "export_ref": null
+      },
+      {
+        "capture_id": "capture-v10-4207f3b30db2257d",
+        "event_id": "evt-93f330e897f9988d1981717a",
+        "caused_by_event_id": "evt-f60c3c20ad1ba6e8dd5380ef",
+        "grant_id": "grant-atk-b2dcc92789",
+        "kind": "delegated-grant-created",
+        "time": 950,
+        "resource": null,
+        "credential_lineage": null,
+        "export_ref": null
+      },
+      {
+        "capture_id": "capture-v10-4207f3b30db2257d",
+        "event_id": "evt-51fedee4123522431c192a86",
+        "caused_by_event_id": "evt-93f330e897f9988d1981717a",
+        "grant_id": null,
+        "kind": "compromised-user-remediated",
+        "time": 1000,
+        "resource": null,
+        "credential_lineage": null,
+        "export_ref": null
+      },
+      {
+        "capture_id": "capture-v10-4207f3b30db2257d",
+        "event_id": "evt-v4-6e9efc7787d0ffd34e0028c2",
+        "caused_by_event_id": "evt-51fedee4123522431c192a86",
+        "grant_id": "grant-atk-b2dcc92789",
+        "kind": "access-token-issued",
+        "time": 1010,
+        "resource": null,
+        "credential_lineage": "rl-grant-atk-b2dcc92789",
+        "export_ref": null
+      },
+      {
+        "capture_id": "capture-v10-4207f3b30db2257d",
+        "event_id": "evt-v4-0974398195f975a1d40addbf",
+        "caused_by_event_id": "evt-v4-6e9efc7787d0ffd34e0028c2",
+        "grant_id": "grant-atk-b2dcc92789",
+        "kind": "protected-export-call",
+        "time": 1025,
+        "resource": "reports.export",
+        "credential_lineage": "rl-grant-atk-b2dcc92789",
+        "export_ref": "export-v4-91ee5dfafc67561452443463"
+      },
+      {
+        "capture_id": "capture-v10-4207f3b30db2257d",
+        "event_id": "evt-v4-d1da5ef3ba46a3231a09e688",
+        "caused_by_event_id": "evt-v4-0974398195f975a1d40addbf",
+        "grant_id": "grant-atk-b2dcc92789",
+        "kind": "export-read",
+        "time": 1030,
+        "resource": null,
+        "credential_lineage": null,
+        "export_ref": "export-v4-91ee5dfafc67561452443463"
+      },
+      {
+        "capture_id": "capture-v10-c729a747ad68bf0c",
+        "event_id": "evt-369b0e090da390ba5e3840c7",
+        "caused_by_event_id": null,
+        "grant_id": null,
+        "kind": "app-registered",
+        "time": 900,
+        "resource": null,
+        "credential_lineage": null,
+        "export_ref": null
+      },
+      {
+        "capture_id": "capture-v10-c729a747ad68bf0c",
+        "event_id": "evt-79c2374f201687991538020b",
+        "caused_by_event_id": "evt-369b0e090da390ba5e3840c7",
+        "grant_id": "grant-atk-d0b93232f3",
+        "kind": "delegated-grant-created",
+        "time": 950,
+        "resource": null,
+        "credential_lineage": null,
+        "export_ref": null
+      },
+      {
+        "capture_id": "capture-v10-c729a747ad68bf0c",
+        "event_id": "evt-31309f33760661bd81ba2ba3",
+        "caused_by_event_id": "evt-79c2374f201687991538020b",
+        "grant_id": null,
+        "kind": "compromised-user-remediated",
+        "time": 1000,
+        "resource": null,
+        "credential_lineage": null,
+        "export_ref": null
+      },
+      {
+        "capture_id": "capture-v10-c729a747ad68bf0c",
+        "event_id": "evt-b32d29fd7743597d383d32e6",
+        "caused_by_event_id": "evt-31309f33760661bd81ba2ba3",
+        "grant_id": "grant-atk-d0b93232f3",
+        "kind": "access-token-issued",
+        "time": 1010,
+        "resource": null,
+        "credential_lineage": "rl-grant-atk-d0b93232f3",
+        "export_ref": null
+      },
+      {
+        "capture_id": "capture-v10-c729a747ad68bf0c",
+        "event_id": "evt-b962d378841c4466d51d287b",
+        "caused_by_event_id": "evt-b32d29fd7743597d383d32e6",
+        "grant_id": "grant-atk-d0b93232f3",
+        "kind": "protected-export-call",
+        "time": 1025,
+        "resource": "reports.export",
+        "credential_lineage": "rl-grant-atk-d0b93232f3",
+        "export_ref": "export-6efdabb2e5dcf50dd24efc31"
+      },
+      {
+        "capture_id": "capture-v10-c729a747ad68bf0c",
+        "event_id": "evt-f9016bc06f44a760e60c247f",
+        "caused_by_event_id": "evt-b962d378841c4466d51d287b",
+        "grant_id": "grant-atk-d0b93232f3",
+        "kind": "export-read",
+        "time": 1030,
+        "resource": null,
+        "credential_lineage": null,
+        "export_ref": "export-6efdabb2e5dcf50dd24efc31"
+      }
+    ],
+    "registry": [
+      {
+        "capture_id": "capture-v10-43961aade0bccd98",
+        "policy_entry_id": "policy-v10-caea1a15d3b7f3727a8a9513",
+        "client_or_app_selector": "\"client-atk-5bef3e9d\"",
+        "tenant_selector": "\"external\"",
+        "principal_selector": "\"user-781-other\"",
+        "scope_selector": "[\"reports.export\"]",
+        "approval_route_selector": "\"admin-approved\"",
+        "valid_from": 0,
+        "valid_until": null,
+        "revoked_at": null
+      },
+      {
+        "capture_id": "capture-v10-43961aade0bccd98",
+        "policy_entry_id": "policy-0825700f1d6a30d032998ef9",
+        "client_or_app_selector": "\"client-atk-5bef3e9d\"",
+        "tenant_selector": "\"external\"",
+        "principal_selector": "\"user-781\"",
+        "scope_selector": "[\"reports.export\"]",
+        "approval_route_selector": "\"self-service-elevated\"",
+        "valid_from": 0,
+        "valid_until": 949,
+        "revoked_at": null
+      },
+      {
+        "capture_id": "capture-v10-43961aade0bccd98",
+        "policy_entry_id": "policy-9d0877b3848800847583d8f8",
+        "client_or_app_selector": "\"client-atk-5bef3e9d\"",
+        "tenant_selector": "\"external\"",
+        "principal_selector": "\"user-781\"",
+        "scope_selector": "[\"reports.export\"]",
+        "approval_route_selector": "\"self-service-elevated\"",
+        "valid_from": 0,
+        "valid_until": null,
+        "revoked_at": null
+      },
+      {
+        "capture_id": "capture-v10-43961aade0bccd98",
+        "policy_entry_id": "policy-1c7fb6e7c76e60bb197a703c",
+        "client_or_app_selector": "\"client-atk-5bef3e9d\"",
+        "tenant_selector": "\"external\"",
+        "principal_selector": "\"user-781\"",
+        "scope_selector": "[\"reports.read\"]",
+        "approval_route_selector": "\"self-service-elevated\"",
+        "valid_from": 0,
+        "valid_until": null,
+        "revoked_at": null
+      },
+      {
+        "capture_id": "capture-v10-f578e3582cf9478c",
+        "policy_entry_id": "policy-e9576beb804d35129f2e5802",
+        "client_or_app_selector": "\"client-atk-48d07088\"",
+        "tenant_selector": "\"external\"",
+        "principal_selector": "\"user-781\"",
+        "scope_selector": "[\"reports.export\"]",
+        "approval_route_selector": "\"self-service-elevated\"",
+        "valid_from": 0,
+        "valid_until": 949,
+        "revoked_at": null
+      },
+      {
+        "capture_id": "capture-v10-f578e3582cf9478c",
+        "policy_entry_id": "policy-72b871432727584e4090b22c",
+        "client_or_app_selector": "\"client-atk-48d07088\"",
+        "tenant_selector": "\"external\"",
+        "principal_selector": "\"user-781\"",
+        "scope_selector": "[\"reports.read\"]",
+        "approval_route_selector": "\"self-service-elevated\"",
+        "valid_from": 0,
+        "valid_until": 949,
+        "revoked_at": null
+      },
+      {
+        "capture_id": "capture-v10-f578e3582cf9478c",
+        "policy_entry_id": "policy-v10-d6252478cc4bc727b89221d9",
+        "client_or_app_selector": "\"client-atk-48d07088\"",
+        "tenant_selector": "\"internal\"",
+        "principal_selector": "\"user-781\"",
+        "scope_selector": "[\"reports.read\",\"reports.export\",\"audit.export\"]",
+        "approval_route_selector": "\"admin-approved\"",
+        "valid_from": 0,
+        "valid_until": null,
+        "revoked_at": null
+      },
+      {
+        "capture_id": "capture-v10-f578e3582cf9478c",
+        "policy_entry_id": "policy-b54792950db38bd8bf9a0957",
+        "client_or_app_selector": "\"client-atk-48d07088\"",
+        "tenant_selector": "\"external\"",
+        "principal_selector": "\"user-781-other\"",
+        "scope_selector": "[\"reports.export\"]",
+        "approval_route_selector": "\"self-service-elevated\"",
+        "valid_from": 0,
+        "valid_until": 949,
+        "revoked_at": null
+      },
+      {
+        "capture_id": "capture-v10-4207f3b30db2257d",
+        "policy_entry_id": "policy-f9de26f1cb774feeb4f6d17b",
+        "client_or_app_selector": "\"client-atk-b2dcc927\"",
+        "tenant_selector": "\"external\"",
+        "principal_selector": "\"user-781\"",
+        "scope_selector": "[\"reports.read\"]",
+        "approval_route_selector": "\"self-service-elevated\"",
+        "valid_from": 0,
+        "valid_until": null,
+        "revoked_at": null
+      },
+      {
+        "capture_id": "capture-v10-4207f3b30db2257d",
+        "policy_entry_id": "policy-4ef8913650f4ff2ca2bbcd76",
+        "client_or_app_selector": "\"client-atk-b2dcc927\"",
+        "tenant_selector": "\"external\"",
+        "principal_selector": "\"user-781-other\"",
+        "scope_selector": "[\"reports.export\"]",
+        "approval_route_selector": "\"self-service-elevated\"",
+        "valid_from": 0,
+        "valid_until": null,
+        "revoked_at": null
+      },
+      {
+        "capture_id": "capture-v10-4207f3b30db2257d",
+        "policy_entry_id": "policy-v10-668c1054aba408ed1d26aee7",
+        "client_or_app_selector": "\"client-atk-b2dcc927\"",
+        "tenant_selector": "\"internal\"",
+        "principal_selector": "\"user-781\"",
+        "scope_selector": "[\"reports.export\"]",
+        "approval_route_selector": "\"self-service-elevated\"",
+        "valid_from": 0,
+        "valid_until": null,
+        "revoked_at": null
+      },
+      {
+        "capture_id": "capture-v10-4207f3b30db2257d",
+        "policy_entry_id": "policy-5cb64049e901b8fe8d60f938",
+        "client_or_app_selector": "\"client-atk-b2dcc927\"",
+        "tenant_selector": "\"external\"",
+        "principal_selector": "\"user-781\"",
+        "scope_selector": "[\"reports.export\"]",
+        "approval_route_selector": "\"self-service-elevated\"",
+        "valid_from": 0,
+        "valid_until": null,
+        "revoked_at": null
+      },
+      {
+        "capture_id": "capture-v10-c729a747ad68bf0c",
+        "policy_entry_id": "policy-5a8185c019be47ced2aa652a",
+        "client_or_app_selector": "\"client-atk-d0b93232\"",
+        "tenant_selector": "\"external\"",
+        "principal_selector": "\"user-781\"",
+        "scope_selector": "[\"reports.export\"]",
+        "approval_route_selector": "\"admin-approved\"",
+        "valid_from": 0,
+        "valid_until": null,
+        "revoked_at": null
+      },
+      {
+        "capture_id": "capture-v10-c729a747ad68bf0c",
+        "policy_entry_id": "policy-b014b86942e5d1ad4635c357",
+        "client_or_app_selector": "\"client-atk-d0b93232\"",
+        "tenant_selector": "\"external\"",
+        "principal_selector": "\"user-781\"",
+        "scope_selector": "[\"reports.read\"]",
+        "approval_route_selector": "\"self-service-elevated\"",
+        "valid_from": 0,
+        "valid_until": null,
+        "revoked_at": null
+      },
+      {
+        "capture_id": "capture-v10-c729a747ad68bf0c",
+        "policy_entry_id": "policy-1ebb7a9e0ab57319d87670c3",
+        "client_or_app_selector": "\"client-atk-d0b93232\"",
+        "tenant_selector": "\"external\"",
+        "principal_selector": "\"user-781-other\"",
+        "scope_selector": "[\"reports.export\"]",
+        "approval_route_selector": "\"self-service-elevated\"",
+        "valid_from": 0,
+        "valid_until": null,
+        "revoked_at": null
+      },
+      {
+        "capture_id": "capture-v10-c729a747ad68bf0c",
+        "policy_entry_id": "policy-v10-42d8fe33a035d8dc08a2e8f3",
+        "client_or_app_selector": "\"client-atk-d0b93232\"",
+        "tenant_selector": "\"internal\"",
+        "principal_selector": "\"user-781\"",
+        "scope_selector": "[\"reports.read\",\"reports.export\"]",
+        "approval_route_selector": "\"self-service-standard\"",
+        "valid_from": 0,
+        "valid_until": 949,
+        "revoked_at": null
+      }
+    ],
+    "base_policy": [
+      {
+        "capture_id": "capture-v10-43961aade0bccd98",
+        "grantor_type": "admin-consent",
+        "approval_route": "admin-approved",
+        "verification_state": "catalog-approved",
+        "scopes_within_catalog": 1
+      },
+      {
+        "capture_id": "capture-v10-f578e3582cf9478c",
+        "grantor_type": "admin-consent",
+        "approval_route": "admin-approved",
+        "verification_state": "catalog-approved",
+        "scopes_within_catalog": 1
+      },
+      {
+        "capture_id": "capture-v10-4207f3b30db2257d",
+        "grantor_type": "admin-consent",
+        "approval_route": "admin-approved",
+        "verification_state": "catalog-approved",
+        "scopes_within_catalog": 1
+      },
+      {
+        "capture_id": "capture-v10-c729a747ad68bf0c",
+        "grantor_type": "admin-consent",
+        "approval_route": "admin-approved",
+        "verification_state": "catalog-approved",
+        "scopes_within_catalog": 1
+      }
+    ],
+    "remediation": [
+      {
+        "capture_id": "capture-v10-43961aade0bccd98",
+        "reset_time": 1000,
+        "compromised_user": "user-781"
+      },
+      {
+        "capture_id": "capture-v10-f578e3582cf9478c",
+        "reset_time": 1000,
+        "compromised_user": "user-781"
+      },
+      {
+        "capture_id": "capture-v10-4207f3b30db2257d",
+        "reset_time": 1000,
+        "compromised_user": "user-781"
+      },
+      {
+        "capture_id": "capture-v10-c729a747ad68bf0c",
+        "reset_time": 1000,
+        "compromised_user": "user-781"
+      }
+    ],
+    "revoked_grants": [
+      {
+        "capture_id": "capture-v10-43961aade0bccd98",
+        "grant_id": "grant-09fa991eab33"
+      },
+      {
+        "capture_id": "capture-v10-f578e3582cf9478c",
+        "grant_id": "grant-09fa991eab33"
+      },
+      {
+        "capture_id": "capture-v10-4207f3b30db2257d",
+        "grant_id": "grant-09fa991eab33"
+      },
+      {
+        "capture_id": "capture-v10-c729a747ad68bf0c",
+        "grant_id": "grant-09fa991eab33"
+      }
+    ]
+  }
+}
