@@ -1,8 +1,9 @@
 # F4 v10 defense calibration kickoff
 
-**Date:** 2026-11-16. **Status:** Frozen candidate passed its Linux/Docker
-preflight; the v10 live model call is pending. This note changes no prompt,
-estate, labels, reference SQL, scorer, or frozen source hash.
+**Date:** 2026-11-16. **Status:** The frozen candidate passed Linux/Docker
+preflight and completed one live model call. See [RESULTS.md](RESULTS.md).
+This note changes no prompt, estate, labels, reference SQL, scorer, or frozen
+source hash.
 
 ## Why F4 is next
 
