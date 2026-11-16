@@ -32,21 +32,24 @@ This is still the F4 durable-consent incident, not a new attack chain.
   before this note. Its frozen manifest and scoring-path files were not
   changed.
 
-## Next execution on the existing Linux runner
+## Execution on a GitHub Actions Linux runner
 
-1. Check out the same branch and use the Node version in `.nvmrc`.
-2. Provide the existing gitignored Cloudflare endpoint/token environment
-   on that host; do not put the token in a command line, output file, or Git.
-3. Confirm local Docker is available and the pinned Python image is already
-   present. Run the v10 selftests, including the Linux integration test.
-4. Run the frozen `chain-v10/screen.mjs` once with `--slot-assigned` and a
-   new private `--output` path outside the repository. The screen performs
-   its own preflight, verifies hashes, freezes the raw SQL before executing
-   it, and makes at most one Cloudflare request with no retry.
-5. Hash and inspect the private output; report exact batches, TP/FP/FN,
-   false positives on same-user survivors and revoked grants, zero-malicious
-   false alarms, projected-control exactness, and the failure category.
-   Keep the raw SQL and token outside Git.
+The branch-limited [F4 v10 Actions workflow](../../../../../../.github/workflows/f4-v10-calibration.yml)
+uses Ubuntu 24.04 and the repository's Node version. Its uncredentialed job
+pulls the pinned Python image and runs the candidate selftests, including the
+Linux/Docker integration check. The live job requires the explicit repository
+variable `F4_V10_LIVE_ENABLED=true` and the `f4-v10-calibration` environment,
+restricted to this branch. The environment holds the temporary
+`CLOUDFLARE_OPENAI_BASE_URL` and `CLOUDFLARE_API_KEY` secrets. The live job
+passes those values only to the frozen screen step.
+
+The screen writes its raw model response and score to a mode-0700 directory
+under `/tmp`, outside the checkout and Git. The CI reporter prints only aggregate counts and
+the raw file's SHA-256. It encrypts the raw file with the checked-in public
+key and retains only the encrypted artifact for audit. The matching private
+key stays outside the repository. The screen makes at most one request; a
+preflight failure makes none. After the run, inspect the decrypted result
+locally, record the outcome, and remove the temporary environment secrets.
 
 Do not change v10's prompt, parser, corpus, scorer, or threshold after the
 live call. If it misses the defense floor, use the returned SQL and the
