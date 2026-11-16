@@ -1,6 +1,6 @@
 # F4 v12 three-call scored calibration protocol
 
-Status: preregistered; no v12 model calls have been made.
+Status: completed on 2026-11-16. See [RESULTS.md](RESULTS.md): two valid 0/36 scores and one unscored executor rejection; the three-valid-submission floor criterion was not established.
 
 ## Frozen task and observation boundary
 
