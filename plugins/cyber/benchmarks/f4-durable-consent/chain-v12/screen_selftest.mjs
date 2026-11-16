@@ -87,6 +87,16 @@ test('manifest has the exact exhaustive source set and three full request bindin
   }
 });
 
+test('manifest plans three total calls, one for each frozen instance', () => {
+  assert.equal(manifest.planned_model_calls, 3);
+  assert.equal(manifestTools.generateManifest().planned_model_calls, 3);
+  assert.deepEqual(Object.keys(manifest.instances).sort(), ['a', 'b', 'c']);
+  assert.throws(
+    () => manifestTools.verifyManifest({ ...manifest, planned_model_calls: 1 }),
+    /planned_model_calls setting mismatch/,
+  );
+});
+
 test('missing, extra, and altered source bindings fail closed', () => {
   const missing = structuredClone(manifest);
   delete missing.source_sha256['shared/estate.mjs'];

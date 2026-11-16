@@ -60,7 +60,7 @@ const SETTINGS = Object.freeze({
   stream: REQUEST_SETTINGS.stream,
   cache_policy: 'cf-aig-skip-cache:true',
   request_gap_ms: 5000,
-  planned_model_calls: 1,
+  planned_model_calls: 3,
   retry_policy: 'none',
 });
 
