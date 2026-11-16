@@ -1,0 +1,75 @@
+name: F4 v12 post-hoc SQL fairness diagnostic
+
+on:
+  push:
+    branches:
+      - codex/f4-detection-rule-v10-candidate
+    paths:
+      - .github/workflows/f4-v12-fairness-audit.yml
+      - plugins/cyber/benchmarks/f4-durable-consent/chain-v12/diagnostics/fairness_audit.mjs
+      - plugins/cyber/benchmarks/f4-durable-consent/chain-v12/diagnostics/fairness_audit_selftest.mjs
+
+permissions:
+  contents: read
+
+concurrency:
+  group: f4-v12-fairness-audit-${{ github.ref }}
+  cancel-in-progress: false
+
+jobs:
+  preflight:
+    if: github.repository == 'navingate/promptfoo' && github.actor == 'navingate' && github.ref == 'refs/heads/codex/f4-detection-rule-v10-candidate'
+    runs-on: ubuntu-24.04
+    timeout-minutes: 30
+    permissions:
+      contents: read
+    steps:
+      - name: Check out triggering commit
+        uses: actions/checkout@df4cb1c069e1874edd31b4311f1884172cec0e10 # v6
+        with:
+          ref: ${{ github.sha }}
+          persist-credentials: false
+      - name: Use repository Node version
+        uses: actions/setup-node@48b55a011bda9f5d6aeb4c2d9c7362e8dae4041e # v6
+        with:
+          node-version-file: .nvmrc
+      - name: Verify exact checkout
+        run: test "$(git rev-parse HEAD)" = "$GITHUB_SHA"
+      - name: Pull pinned Linux SQL sandbox image
+        run: docker pull python@sha256:78387bc3881b8273120a12ebe6c1ab22b018ccc2c9adf565ae1ac9b536e184ea
+      - name: Check frozen reference, patched executor, and fairness bindings
+        run: |
+          node --test plugins/cyber/benchmarks/f4-durable-consent/chain-v12/reference_selftest.mjs
+          node --test plugins/cyber/benchmarks/f4-durable-consent/chain-v12/diagnostics/jsonquote_replay_selftest.mjs
+          node --test plugins/cyber/benchmarks/f4-durable-consent/chain-v12/diagnostics/fairness_audit_selftest.mjs
+
+  replay:
+    if: needs.preflight.result == 'success' && github.run_attempt == 1 && vars.F4_V12_FAIRNESS_ENABLED == 'true' && vars.F4_V12_FAIRNESS_SHA == github.sha && github.repository == 'navingate/promptfoo' && github.actor == 'navingate' && github.ref == 'refs/heads/codex/f4-detection-rule-v10-candidate'
+    needs: preflight
+    runs-on: ubuntu-24.04
+    timeout-minutes: 30
+    permissions:
+      contents: read
+    environment:
+      name: f4-v10-calibration
+      deployment: false
+    steps:
+      - name: Check out same triggering commit
+        uses: actions/checkout@df4cb1c069e1874edd31b4311f1884172cec0e10 # v6
+        with:
+          ref: ${{ github.sha }}
+          persist-credentials: false
+      - name: Use repository Node version
+        uses: actions/setup-node@48b55a011bda9f5d6aeb4c2d9c7362e8dae4041e # v6
+        with:
+          node-version-file: .nvmrc
+      - name: Verify exact checkout
+        run: test "$(git rev-parse HEAD)" = "$GITHUB_SHA"
+      - name: Pull pinned Linux SQL sandbox image
+        run: docker pull python@sha256:78387bc3881b8273120a12ebe6c1ab22b018ccc2c9adf565ae1ac9b536e184ea
+      - name: Score only the three exact mechanical SQL corrections
+        env:
+          F4_GLM_A_TEXT_SQL: ${{ secrets.F4_GLM_A_TEXT_SQL }}
+          F4_GLM_B_TEXT_SQL: ${{ secrets.F4_GLM_B_TEXT_SQL }}
+          F4_GLM_C_TEXT_SQL: ${{ secrets.F4_GLM_C_TEXT_SQL }}
+        run: node plugins/cyber/benchmarks/f4-durable-consent/chain-v12/diagnostics/fairness_audit.mjs

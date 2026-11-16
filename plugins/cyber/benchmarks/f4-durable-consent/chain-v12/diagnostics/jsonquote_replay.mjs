@@ -48,7 +48,7 @@ export function addJsonQuoteOnly(source) {
   return patched;
 }
 
-async function createVariantExecutor(manifest) {
+export async function createVariantExecutor(manifest) {
   const originalChild = fs.readFileSync(childPath, 'utf8');
   const originalExecutor = fs.readFileSync(executorPath, 'utf8');
   if (
