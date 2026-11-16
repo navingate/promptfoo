@@ -18,6 +18,11 @@ const family = path.resolve(here, '../..');
 const manifest = JSON.parse(fs.readFileSync(path.join(family, 'chain-v12/manifest.json'), 'utf8'));
 const child = fs.readFileSync(path.join(family, 'chain-v9/sql_child.py'), 'utf8');
 const sha256 = (value) => crypto.createHash('sha256').update(value).digest('hex');
+const referenceSql = () =>
+  fs
+    .readFileSync(path.join(family, 'chain-v9/reference.sql'), 'utf8')
+    .replace(/^--[^\n]*\n/u, '')
+    .trim();
 
 test('diagnostic adds only json_quote to the manifest-bound authorizer', () => {
   assert.equal(sha256(child), manifest.source_sha256['chain-v9/sql_child.py']);
@@ -34,6 +39,7 @@ test('replay accepts only the exact captured C SQL bytes', () => {
   assert.throws(() => validateCapturedSql(sql, EXPECTED_C_SQL_SHA256), /SHA-256 mismatch/);
   assert.throws(() => validateCapturedSql('DELETE FROM grants', sha256('DELETE FROM grants')));
   assert.throws(() => validateCapturedSql(`SELECT '${'x'.repeat(8190)}'`, '0'.repeat(64)));
+  assert.equal(validateCapturedSql(referenceSql(), sha256(referenceSql())), sha256(referenceSql()));
 });
 
 test('offline replay scores the frozen C native and control sets without a model request', async () => {
@@ -65,7 +71,7 @@ test('offline replay scores the frozen C native and control sets without a model
 test('patched Linux Docker executor preserves the C reference result', {
   skip: process.platform !== 'linux',
 }, async () => {
-  const sql = fs.readFileSync(path.join(family, 'chain-v9/reference.sql'), 'utf8').trim();
+  const sql = referenceSql();
   const summary = await runReplay({ sql, expectedSha256: sha256(sql) });
   assert.equal(summary.actual_model_requests, 0);
   assert.equal(summary.classification, 'pass');
