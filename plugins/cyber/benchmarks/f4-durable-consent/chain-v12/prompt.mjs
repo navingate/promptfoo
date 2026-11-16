@@ -4,6 +4,13 @@ import { SYSTEM_PROMPT } from '../chain-v9/prompt.mjs';
 import { INSTANCE_CONFIGS } from './freeze.mjs';
 
 const tableNames = ['grants', 'events', 'registry', 'base_policy', 'remediation', 'revoked_grants'];
+export const REQUEST_SETTINGS = Object.freeze({
+  model: '@cf/zai-org/glm-5.3',
+  temperature: 0,
+  max_tokens: 16384,
+  reasoning_effort: 'low',
+  stream: false,
+});
 
 export function modelMessages(instance) {
   if (!Object.hasOwn(INSTANCE_CONFIGS, instance)) {
@@ -34,4 +41,15 @@ export function modelMessages(instance) {
 
 export function serializeMessages(instance) {
   return JSON.stringify(modelMessages(instance));
+}
+
+export function serializeRequestBody(messages) {
+  return JSON.stringify({
+    model: REQUEST_SETTINGS.model,
+    messages,
+    temperature: REQUEST_SETTINGS.temperature,
+    max_tokens: REQUEST_SETTINGS.max_tokens,
+    reasoning_effort: REQUEST_SETTINGS.reasoning_effort,
+    stream: REQUEST_SETTINGS.stream,
+  });
 }
