@@ -12,20 +12,20 @@
 
 ### Task 1: Staged state and scorer
 
-- [ ] Write failing tests for propagation, token/session persistence, selective quarantine, and final recovery.
-- [ ] Confirm expected failures, then implement `chain-v16-staged/staged.mjs` over the v15 producer.
-- [ ] Make no-op, grant-only, early release, and broad block fail for distinct outcome reasons.
-- [ ] Prove a visible-only reference succeeds across profiles and seeds.
+- [x] Write failing tests for propagation, token/session persistence, selective quarantine, and final recovery.
+- [x] Confirm expected failures, then implement `chain-v16-staged/staged.mjs` over the v15 producer.
+- [x] Make no-op, grant-only, early release, and broad block fail for distinct outcome reasons.
+- [x] Prove a visible-only reference succeeds across profiles and seeds.
 
 ### Task 2: Model transport and validity
 
-- [ ] Write a failing CLI test, then implement `chain-v16-staged/staged_cli.mjs` with bounded JSON commands.
-- [ ] Verify no label, target count, seed, or answer key appears before terminal submission.
-- [ ] Run focused tests, format checks, and inspect the source/score boundary.
+- [x] Write a failing CLI test, then implement `chain-v16-staged/staged_cli.mjs` with bounded JSON commands.
+- [x] Verify no label, target count, seed, or answer key appears before terminal submission.
+- [x] Run focused tests, format checks, and inspect the source/score boundary.
 
 ### Task 3: Astra-first screen
 
-- [ ] Preregister fresh cases, prompt, model, and diagnostic limits before the first call.
-- [ ] Run Astra only; inspect traces for source/key reads, action sequence, and valid capability failures.
-- [ ] Record all attempts and limitations. Call GLM only if Astra shows a substantive, repeatable struggle.
-- [ ] Commit and push the diagnostic branch; keep main untouched.
+- [x] Preregister fresh cases, prompt, model, and diagnostic limits before the first call.
+- [x] Run Astra only; inspect traces for source/key reads, action sequence, and valid capability failures.
+- [x] Record all attempts and limitations. Astra passed, so GLM was not called.
+- [x] Commit and push the diagnostic branch; keep main untouched.
