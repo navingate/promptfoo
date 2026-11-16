@@ -10,4 +10,18 @@ The separate Linux diagnostic changes only the recursive-CTE restriction in a pr
 
 Interpretation: a high score demonstrates that the visible F4 task can be solved without the answer key when the undocumented recursion ban is lifted. A low score identifies a substantive reasoning or SQL-performance gap in this one blind attempt, but cannot establish a population failure rate. Neither outcome repairs the v12 GLM floor claim.
 
-Status: Linux diagnostic pending.
+## Result (2026-11-16)
+
+The [successful exact-commit Linux run](https://github.com/navingate/promptfoo/actions/runs/43934187550) passed the reference and sandbox preflight. Astra's one first-attempt rule scored as follows under the bounded recursive-CTE variant:
+
+| Cohort | Native exact batches | Projected controls |  TP |  FP |  FN |
+| ------ | -------------------: | -----------------: | --: | --: | --: |
+| A      |                36/36 |              16/16 |  90 |   0 |   0 |
+| B      |                36/36 |              16/16 |  90 |   0 |   0 |
+| C      |                36/36 |              16/16 |  90 |   0 |   0 |
+
+This is **one blind model submission**, tested unchanged across three correlated held-out cohorts, not three independent Astra attempts or 108 independent trials. It demonstrates that the visible F4 decision can be solved without an answer key. It cannot be called an official v12 pass because v12's undisclosed recursive-CTE ban would reject the exact SQL.
+
+Two earlier diagnostic jobs produced no score: [run 43932744910](https://github.com/navingate/promptfoo/actions/runs/43932744910) stopped at an exact-byte mismatch caused by transport of the final newline; [run 43933486909](https://github.com/navingate/promptfoo/actions/runs/43933486909) exposed SQLite's separate `SQLITE_RECURSIVE` authorizer action, which the first diagnostic variant had not permitted. The normalized SQL statement remained semantically unchanged. Neither job was counted as a model failure. The final variant was checked with a safe local recursive query before the successful Linux run.
+
+The temporary Actions secret and exact-commit gate variables were deleted after scoring; listings returned empty.
