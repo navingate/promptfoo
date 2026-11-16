@@ -23,6 +23,12 @@ artifact using the existing checked-in public key. The matching private
 key stays outside Git. Temporary environment secrets and the live gate are
 deleted immediately after the run.
 
+The [uncredentialed Linux preflight](https://github.com/navingate/promptfoo/actions/runs/43830805905)
+passed the unchanged v10 suite (36/36), the encrypted-report suite (3/3),
+and the new response-capture suite (3/3), with the Docker integration test
+executed. Both live jobs were skipped in that run. This documentation-only
+update triggers the separately approved diagnostic call.
+
 If v11 produces valid SQL, its native and projected-control score is a
 separate diagnostic measurement. If it fails formatting, inspect the
 encrypted response locally to distinguish a code fence, prose, and the
