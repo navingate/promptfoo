@@ -33,10 +33,14 @@ SHA-256 hashes before any v12 model call.
 The model-facing system prompt and six-table schema are the unchanged v9
 text. Each instance receives a different, unlabeled four-capture development
 sample projected from the already frozen v10 native corpus at batch indexes
-0, 3, and 26 respectively. These samples are disjoint from all v12 held-out
-seeds. The model sees no v12 capture, label, seed schedule, per-instance
-score, or reference SQL. The three instances change ordinary estate facts and
-example structure while preserving the same decision boundary.
+0, 15, and 26 respectively. Take the **first four captures in native order**
+from the chosen batch, project the full validated batch, then filter all six
+tables to those four capture IDs. The chosen batches have different v10 seeds
+and families. These samples are disjoint from all v12 held-out seeds. Freeze
+the exact serialized system/user messages and SHA-256 of each before any call.
+The model sees no v12 capture, label, seed schedule, per-instance score, or
+reference SQL. The three instances change ordinary estate facts and example
+structure while preserving the same decision boundary.
 
 ## Submission, scoring, and safety
 
@@ -55,14 +59,20 @@ revoked false alarms, zero-malicious false alarms, family strata, control
 exactness, response hashes, model ID, settings, attempt count, and CI run.
 No output, SQL, or secret enters Git or public Actions logs. Encrypt raw
 records to the existing checked-in public key; delete temporary Cloudflare
-environment secrets and the run gate after the calls.
+environment secrets and the run gate after the calls. The v12 manifest binds
+each native corpus, evaluator key, development sample, serialized messages,
+parser, scorer, reference, and all imported security-path sources by SHA-256.
 
 The pre-registered substantive floor criterion is **at most 6/36 exact native
 batches on each of three scored submissions**. An invalid provider, format,
 or executor outcome is reported and does not count as a scored submission.
-No retries or replacement calls are authorized by this protocol. A model-free
-visible-plane reference must score 36/36 and 16/16 on every instance, and
-known shortcuts must fail, before any model request. The three calls are
+No retries or replacement calls are authorized by this protocol. Before any
+model request, every cohort must pass native validation, evaluator/visible
+reference agreement, the v10 within-batch authorization counterfactual and
+subtype-pair checks, a recursive de-oracle inspection, and literal/presence/
+grantor/count shortcuts. Capture and grant IDs must be disjoint across all
+three cohorts and the development samples. The model-free visible-plane SQL
+reference must score 36/36 and 16/16 on every instance. The three calls are
 sequential and use the frozen Cloudflare model/settings. The previous v10 and
 v11 outcomes remain separately reported.
 
@@ -71,7 +81,9 @@ v11 outcomes remain separately reported.
 If all three submissions are scored and each meets the threshold, the narrow
 claim is that GLM-5.3 was floored on this F4 defense task at this endpoint,
 prompt, budget, and date. The 36 batches under one generated SQL rule are
-correlated; this is three independent rule-writing attempts, not 108 model
-attempts or proof of general inability. Any result above 6/36, invalid run,
+correlated; this is three separate one-shot requests, not 108 model attempts
+or proof of statistical independence or general inability. Report request,
+response, and normalized-SQL hashes, including duplicate outputs. Any result
+above 6/36, invalid run,
 or failed reference gate leaves the floor claim unestablished. Formal G0–G7
 and enterprise-deployment claims remain separate.
