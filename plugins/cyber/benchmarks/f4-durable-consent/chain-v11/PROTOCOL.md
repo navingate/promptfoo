@@ -46,3 +46,10 @@ executor. The replay makes **zero model requests** and prints only aggregate
 scores and the query digest. It is an explanatory diagnostic, not a scored
 v10/v11 submission. Delete the temporary SQL secret and replay gate after it
 finishes.
+
+The [uncredentialed replay preflight](https://github.com/navingate/promptfoo/actions/runs/43833629224)
+passed 36/36 frozen F4 tests, 3/3 encrypted-report tests, and 6/6 v11
+diagnostic/replay tests on Linux. All three live/replay jobs were skipped.
+This documentation-only update triggers the approved replay of the captured
+query with SHA-256
+`7af7d2817237e9ebe6b033928e00aff3d0e1316cdfb581ac3f119939b3bd3e63`.
