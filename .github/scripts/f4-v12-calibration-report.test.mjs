@@ -109,6 +109,23 @@ test('pass requires all native batches and controls exact', async () => {
   assert.equal(summarizeRecord(record, Buffer.from('{}')).scored_valid, true);
 });
 
+test('model failure cannot claim a perfect native and control score', async () => {
+  const { summarizeRecord } = await reporter();
+  const record = scoredRecord();
+  record.score.totals.exact_batches = 36;
+  record.score.totals.fp = 0;
+  record.score.totals.fn = 0;
+  record.score.totals.fp_on_survivor = 0;
+  record.score.totals.fp_on_revoked = 0;
+  record.score.totals.zero_malicious_fp = 0;
+  record.score.projected_controls.exact = 16;
+  record.score.projected_controls.pass = true;
+  assert.equal(summarizeRecord(record, Buffer.from('{}')).scored_valid, false);
+  record.score.projected_controls.exact = 15;
+  record.score.projected_controls.pass = false;
+  assert.equal(summarizeRecord(record, Buffer.from('{}')).scored_valid, true);
+});
+
 test('missing, fractional, negative, oversized and inconsistent counts are unscored', async () => {
   const { summarizeRecord } = await reporter();
   for (const value of [undefined, 1.5, -1, 37, '6']) {

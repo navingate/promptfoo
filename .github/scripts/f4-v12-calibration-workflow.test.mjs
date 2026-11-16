@@ -22,9 +22,10 @@ test('push is limited to the exact branch and all v12 task paths', () => {
 
 test('both jobs gate the exact repository, actor, branch, and same push SHA', () => {
   for (const job of [preflight, live]) {
-    assert.match(job, /github\.repository == 'navingate\/promptfoo'/);
-    assert.match(job, /github\.actor == 'navingate'/);
-    assert.match(job, /github\.ref == 'refs\/heads\/codex\/f4-detection-rule-v10-candidate'/);
+    const condition = job.match(/^\s+if: ([^\n]+)/m)?.[1] ?? '';
+    assert.match(condition, /github\.repository == 'navingate\/promptfoo'/);
+    assert.match(condition, /github\.actor == 'navingate'/);
+    assert.match(condition, /github\.ref == 'refs\/heads\/codex\/f4-detection-rule-v10-candidate'/);
     assert.match(job, /timeout-minutes: \d+/);
     assert.match(job, /ref: \$\{\{ github\.sha \}\}/);
     assert.match(job, /persist-credentials: false/);
@@ -49,8 +50,11 @@ test('credential-free Linux preflight covers every v12 selftest and reporter gat
 
 test('live gate makes three sequential no-retry calls with private files and encrypted-only uploads', () => {
   assert.match(live, /needs: preflight/);
-  assert.match(live, /vars\.F4_V12_LIVE_ENABLED == 'true'/);
-  assert.match(live, /github\.run_attempt == 1/);
+  const liveCondition = live.match(/^\s+if: ([^\n]+)/m)?.[1] ?? '';
+  assert.match(liveCondition, /needs\.preflight\.result == 'success'/);
+  assert.match(liveCondition, /vars\.F4_V12_LIVE_ENABLED == 'true'/);
+  assert.match(liveCondition, /vars\.F4_V12_APPROVED_SHA == github\.sha/);
+  assert.match(liveCondition, /github\.run_attempt == 1/);
   assert.match(live, /name: f4-v10-calibration/);
   assert.match(live, /for instance in a b c; do/);
   assert.equal((live.match(/chain-v12\/screen\.mjs/g) ?? []).length, 1);
@@ -58,10 +62,15 @@ test('live gate makes three sequential no-retry calls with private files and enc
   assert.match(live, /--slot-assigned/);
   assert.match(live, /umask 077/);
   assert.match(live, /mkdir -m 700/);
+  assert.match(live, /private_dir="\/tmp\/f4-v12-\$\{GITHUB_RUN_ID\}-\$\{GITHUB_RUN_ATTEMPT\}"/);
   assert.match(live, /screen_status=\$\?/);
   assert.match(live, /f4-v12-calibration-report\.mjs/);
   assert.match(live, /if: always\(\)/);
-  assert.match(live, /\/encrypted\/\*\.json/);
+  assert.match(
+    live,
+    /path: \/tmp\/f4-v12-\$\{\{ github\.run_id \}\}-\$\{\{ github\.run_attempt \}\}\/encrypted\/\*\.json/,
+  );
+  assert.doesNotMatch(live, /RUNNER_TEMP|runner\.temp/);
   assert.doesNotMatch(live, /\bcat\b|\btee\b|--retry|raw\.json\s*\n\s*if-no-files-found/);
   assert.equal((live.match(/secrets\.CLOUDFLARE_API_KEY/g) ?? []).length, 1);
   assert.equal((live.match(/secrets\.CLOUDFLARE_OPENAI_BASE_URL/g) ?? []).length, 1);

@@ -54,9 +54,11 @@ export function summarizeRecord(record, raw) {
     fpOnRevoked <= fp &&
     zeroMaliciousFp <= fp &&
     controls?.pass === (controlsExact === 16);
+  const nativeExactConsistent = (exactBatches === 36) === (fp === 0 && fn === 0);
   const classificationConsistent =
-    outcome === 'model_fail' ||
-    (exactBatches === 36 && controlsExact === 16 && fp === 0 && fn === 0);
+    nativeExactConsistent &&
+    ((outcome === 'pass' && exactBatches === 36 && controlsExact === 16) ||
+      (outcome === 'model_fail' && (fp > 0 || fn > 0 || controlsExact < 16)));
   const scoredValid =
     instances.has(record?.instance) &&
     record?.screen_id === 'f4-detection-rule-v12-glm53-low16' &&
