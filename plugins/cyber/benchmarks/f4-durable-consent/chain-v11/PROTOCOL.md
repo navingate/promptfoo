@@ -34,3 +34,15 @@ separate diagnostic measurement. If it fails formatting, inspect the
 encrypted response locally to distinguish a code fence, prose, and the
 8192-byte limit. Do not relax the v10 scoring boundary or claim a defense
 capability floor from a single malformed submission.
+
+## Mechanical SQL replay, if the response is one fenced block
+
+A single fenced SQL block can be de-fenced locally without editing the query.
+The exact de-fenced bytes are identified by SHA-256. An optional CI replay
+accepts those bytes as a temporary environment secret, verifies the digest,
+and injects them as a mock response into the **unchanged v10 screen**. That
+screen still verifies the frozen corpus and uses the pinned Linux Docker SQL
+executor. The replay makes **zero model requests** and prints only aggregate
+scores and the query digest. It is an explanatory diagnostic, not a scored
+v10/v11 submission. Delete the temporary SQL secret and replay gate after it
+finishes.

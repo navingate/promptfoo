@@ -143,3 +143,35 @@ jobs:
           path: /tmp/f4-v11-${{ github.run_id }}-${{ github.run_attempt }}/f4-v11-encrypted.json
           if-no-files-found: ignore
           retention-days: 30
+
+  replay:
+    if: vars.F4_V11_REPLAY_ENABLED == 'true' && vars.F4_V10_LIVE_ENABLED != 'true' && vars.F4_V11_DIAGNOSTIC_ENABLED != 'true' && github.repository == 'navingate/promptfoo' && github.actor == 'navingate'
+    needs: preflight
+    runs-on: ubuntu-24.04
+    timeout-minutes: 20
+    environment:
+      name: f4-v10-calibration
+      deployment: false
+    steps:
+      - name: Check out frozen candidate
+        uses: actions/checkout@df4cb1c069e1874edd31b4311f1884172cec0e10 # v6
+        with:
+          persist-credentials: false
+      - name: Use repository Node version
+        uses: actions/setup-node@48b55a011bda9f5d6aeb4c2d9c7362e8dae4041e # v6
+        with:
+          node-version-file: .nvmrc
+      - name: Pull pinned SQL sandbox image
+        run: docker pull python@sha256:78387bc3881b8273120a12ebe6c1ab22b018ccc2c9adf565ae1ac9b536e184ea
+      - name: Replay exact de-fenced SQL with zero model requests
+        env:
+          F4_V11_DEFENCED_SQL: ${{ secrets.F4_V11_DEFENCED_SQL }}
+        run: |
+          if [[ -z "$F4_V11_DEFENCED_SQL" ]]; then
+            echo 'F4 replay SQL environment secret is missing'
+            exit 1
+          fi
+          private_dir="/tmp/f4-v11-replay-${GITHUB_RUN_ID}-${GITHUB_RUN_ATTEMPT}"
+          mkdir -m 700 "$private_dir"
+          node plugins/cyber/benchmarks/f4-durable-consent/chain-v11/replay-sql.mjs \
+            --output "$private_dir/replay.json"
