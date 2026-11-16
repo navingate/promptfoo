@@ -1,4 +1,4 @@
-name: F4 v10 calibration
+name: F4 consent calibration
 
 on:
   push:
@@ -10,6 +10,7 @@ on:
       - .github/scripts/f4-v10-calibration-report.test.mjs
       - .github/scripts/f4-v10-calibration-public.pem
       - plugins/cyber/benchmarks/f4-durable-consent/chain-v10/KICKOFF.md
+      - plugins/cyber/benchmarks/f4-durable-consent/chain-v11/**
 
 permissions:
   contents: read
@@ -38,9 +39,11 @@ jobs:
         run: node --test .github/scripts/f4-v10-calibration-report.test.mjs
       - name: Verify frozen F4 candidate and Linux Docker executor
         run: node --test plugins/cyber/benchmarks/f4-durable-consent/chain-v10/*_selftest.mjs
+      - name: Verify diagnostic response capture
+        run: node --test plugins/cyber/benchmarks/f4-durable-consent/chain-v11/*_selftest.mjs
 
   live:
-    if: vars.F4_V10_LIVE_ENABLED == 'true' && github.repository == 'navingate/promptfoo' && github.actor == 'navingate'
+    if: vars.F4_V10_LIVE_ENABLED == 'true' && vars.F4_V11_DIAGNOSTIC_ENABLED != 'true' && github.repository == 'navingate/promptfoo' && github.actor == 'navingate'
     needs: preflight
     runs-on: ubuntu-24.04
     timeout-minutes: 20
@@ -87,5 +90,56 @@ jobs:
         with:
           name: f4-v10-encrypted-result
           path: /tmp/f4-v10-${{ github.run_id }}-${{ github.run_attempt }}/f4-v10-encrypted.json
+          if-no-files-found: ignore
+          retention-days: 30
+
+  diagnostic:
+    if: vars.F4_V11_DIAGNOSTIC_ENABLED == 'true' && vars.F4_V10_LIVE_ENABLED != 'true' && github.repository == 'navingate/promptfoo' && github.actor == 'navingate'
+    needs: preflight
+    runs-on: ubuntu-24.04
+    timeout-minutes: 20
+    environment:
+      name: f4-v10-calibration
+      deployment: false
+    steps:
+      - name: Check out frozen candidate
+        uses: actions/checkout@df4cb1c069e1874edd31b4311f1884172cec0e10 # v6
+        with:
+          persist-credentials: false
+      - name: Use repository Node version
+        uses: actions/setup-node@48b55a011bda9f5d6aeb4c2d9c7362e8dae4041e # v6
+        with:
+          node-version-file: .nvmrc
+      - name: Pull pinned SQL sandbox image
+        run: docker pull python@sha256:78387bc3881b8273120a12ebe6c1ab22b018ccc2c9adf565ae1ac9b536e184ea
+      - name: Make one response-captured Cloudflare request
+        env:
+          CLOUDFLARE_OPENAI_BASE_URL: ${{ secrets.CLOUDFLARE_OPENAI_BASE_URL }}
+          CLOUDFLARE_API_KEY: ${{ secrets.CLOUDFLARE_API_KEY }}
+        run: |
+          if [[ -z "$CLOUDFLARE_OPENAI_BASE_URL" || -z "$CLOUDFLARE_API_KEY" ]]; then
+            echo 'F4 Cloudflare environment secrets are missing'
+            exit 1
+          fi
+          private_dir="/tmp/f4-v11-${GITHUB_RUN_ID}-${GITHUB_RUN_ATTEMPT}"
+          mkdir -m 700 "$private_dir"
+          set +e
+          node plugins/cyber/benchmarks/f4-durable-consent/chain-v11/diagnostic-screen.mjs \
+            --slot-assigned --output "$private_dir/f4-v11-raw.json" \
+            > "$private_dir/f4-v11-screen.stdout" 2> "$private_dir/f4-v11-screen.stderr"
+          screen_status=$?
+          set -e
+          echo "F4 diagnostic process exit: $screen_status"
+          test -s "$private_dir/f4-v11-raw.json"
+          node .github/scripts/f4-v10-calibration-report.mjs \
+            "$private_dir/f4-v11-raw.json" \
+            "$private_dir/f4-v11-encrypted.json" \
+            .github/scripts/f4-v10-calibration-public.pem
+      - name: Retain encrypted diagnostic evidence
+        if: always()
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7
+        with:
+          name: f4-v11-encrypted-diagnostic
+          path: /tmp/f4-v11-${{ github.run_id }}-${{ github.run_attempt }}/f4-v11-encrypted.json
           if-no-files-found: ignore
           retention-days: 30
