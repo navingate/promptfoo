@@ -33,7 +33,7 @@ export function validateBoundSql(sql, expectedSha256) {
   return expectedSha256;
 }
 
-async function scoreOne(executor, corpus, sql, instance) {
+export async function scoreOne(executor, corpus, sql, instance) {
   const nativeAlerts = await executor.executeSqlCorpus({
     sql,
     batches: corpus.projected,
@@ -86,7 +86,11 @@ export async function runCorrectedGlmAudit(env = process.env) {
       try {
         scored.push(await scoreOne(variant.module, corpora[instance], sql, instance));
       } catch {
-        scored.push({ instance, classification: 'executor_fail', reason: 'corrected SQL rejected' });
+        scored.push({
+          instance,
+          classification: 'executor_fail',
+          reason: 'corrected SQL rejected',
+        });
       }
     }
     return {

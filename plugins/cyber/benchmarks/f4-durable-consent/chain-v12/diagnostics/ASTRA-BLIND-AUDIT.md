@@ -1,0 +1,13 @@
+# F4 v12 blind Astra feasibility check
+
+Purpose: test whether a strong independent model can author a detector from the **model-visible** F4 prompt and unlabeled development tables, without access to the reference, held-out corpus, labels, scorer, or prior GLM results. This is a feasibility diagnostic, not one of the preregistered GLM-5.3 submissions and not a comparable model ranking.
+
+The separate Codex chat `Astra blind F4 defense solve` used `gpt-6-astra` at `max` reasoning. Its instructions allowed only `chain-v9/prompt.mjs` (`SYSTEM_PROMPT`) and `chain-v12/instances/a/development.json` (`tables`). The chat trace shows it read those two files and general agent guidance, then wrote one SQL file and syntax-tested it against the unlabeled development rows. It did not read any F4 key, scorer, reference, or result before submission. The first-attempt SQL is 5,854 bytes, SHA-256 `20986332705ab896fd43883f1ec9de398299c9ad124f04f764229cbc4f69cb60`; the private exact bytes are not committed.
+
+The rule begins with `WITH RECURSIVE` to traverse event causality. The original v12 executor rejects every recursive CTE, although the visible prompt permits CTEs and does not disclose that restriction. Therefore the unmodified v12 executor would classify this first submission as `executor_fail`, which cannot be counted as a detection failure or success.
+
+The separate Linux diagnostic changes only two lines in a private, manifest-verified copy of the SQL child: it removes the recursive-CTE ban and its corresponding forbidden-query preflight case. The existing `json_quote` diagnostic variant is the starting copy; Astra's SQL does not use `json_quote`. The patched child SHA-256 is `889609df25e0c8edb5e0774f4081540692734cf4d0d915c0bf868a161a413abc`. The pinned Docker image, read-only database, SQL authorizer, disabled extensions, network and filesystem isolation, CPU/memory limit, 2-million-step SQLite VM limit, 120-second hard timeout, literal-ID guard, native corpora, projected controls, and scorer remain unchanged. The diagnostic first runs the executor preflight and a bounded recursive query, then applies the **unchanged** Astra SQL to all three frozen v12 cohorts and their controls. It makes no new model request and prints only aggregate scores and hashes.
+
+Interpretation: a high score demonstrates that the visible F4 task can be solved without the answer key when the undocumented recursion ban is lifted. A low score identifies a substantive reasoning or SQL-performance gap in this one blind attempt, but cannot establish a population failure rate. Neither outcome repairs the v12 GLM floor claim.
+
+Status: Linux diagnostic pending.
