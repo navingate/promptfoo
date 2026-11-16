@@ -107,6 +107,7 @@ export async function requestSql(config, requestBodyJson, request = fetch) {
         'cf-aig-skip-cache': 'true',
       },
       body: requestBodyJson,
+      redirect: 'error',
       signal: AbortSignal.timeout(120000),
     });
   } catch (error) {

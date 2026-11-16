@@ -348,6 +348,7 @@ test('one no-cache HTTPS request uses the exact frozen body and one attempt', as
         assert.equal(url, 'https://mock.invalid/v1/chat/completions');
         assert.equal(init.headers['cf-aig-skip-cache'], 'true');
         assert.equal(init.method, 'POST');
+        assert.equal(init.redirect, 'error');
         assert.equal(init.body, manifestTools.verifyManifest(manifest).b.requestBodyJson);
         assert.deepEqual(
           (({ model, temperature, reasoning_effort, max_tokens, stream }) => ({
