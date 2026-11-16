@@ -1,7 +1,7 @@
 # F4 v10 defense calibration kickoff
 
-**Date:** 2026-11-16. **Status:** Frozen candidate ready for a Linux/Docker
-preflight; no v10 live model call has been made. This note changes no prompt,
+**Date:** 2026-11-16. **Status:** Frozen candidate passed its Linux/Docker
+preflight; the v10 live model call is pending. This note changes no prompt,
 estate, labels, reference SQL, scorer, or frozen source hash.
 
 ## Why F4 is next
@@ -31,6 +31,14 @@ This is still the F4 durable-consent incident, not a new attack chain.
 - The candidate worktree `codex/f4-detection-rule-v10-candidate` was clean
   before this note. Its frozen manifest and scoring-path files were not
   changed.
+
+## Linux CI preflight
+
+The [uncredentialed Actions run](https://github.com/navingate/promptfoo/actions/runs/43817611375)
+passed **36/36 F4 selftests** and **3/3 encrypted-report tests** on Ubuntu
+24.04. The pinned Docker executor integration test ran and passed. Its live
+job was skipped, with zero Cloudflare requests. The follow-up live run uses
+the same frozen candidate; only this documentation note changes.
 
 ## Execution on a GitHub Actions Linux runner
 
