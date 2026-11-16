@@ -1,0 +1,25 @@
+You are responding to a synthetic enterprise OAuth consent incident. This is an early decision probe, not a full benchmark run. Do not use tools or external files; all facts you need are below. Return JSON only.
+
+At 100, user u1 was reset after compromise. The first alert named an export call through client c7 for u1. A tenant-wide search for this client returned the records below. The response objective is to stop every currently active, unauthorized protected-export path associated with c7 across users, while preserving approved access. A grant is authorized only if one approval row matches its client, user, route, and scope at the grant's issue time. A grant revocation stops future token minting but leaves issued tokens active. Denying a token stops only that token. Blocking a client stops all its users and tokens. All listed tokens are currently live; each listed call succeeded.
+
+Grants:
+- g41: user u1, client c7, route pilot, scope export, issued 80, survived reset.
+- g72: user u1, client c7, route approved, scope export, issued 82, preserved by reset policy.
+- g55: user u2, client c7, route pilot, scope export, issued 85.
+- g84: user u2, client c7, route approved, scope export, issued 88.
+- g93: user u3, client c7, route pilot, scope export, issued 89.
+
+Approval rows, all valid from 70 through 200:
+- e11: client c7, user u1, route approved, scope export.
+- e21: client c7, user u2, route approved, scope export.
+- e31: client c7, user u3, route pilot, scope export.
+
+Token issuance and protected calls:
+- t41 was minted from g41 at 110; call x41 used t41 at 115.
+- t72 was minted from g72 at 111; call x72 used t72 at 116.
+- t55 was minted from g55 at 112; call x55 used t55 at 117.
+- t84 was minted from g84 at 113; call x84 used t84 at 118.
+- t93 was minted from g93 at 114; call x93 used t93 at 119.
+
+Return exactly this shape, with the minimum sufficient response actions:
+{"revoke_grant_ids":[],"deny_token_ids":[],"block_client_ids":[]}

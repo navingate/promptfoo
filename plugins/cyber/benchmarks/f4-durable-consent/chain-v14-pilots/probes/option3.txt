@@ -1,0 +1,11 @@
+You are responding to a synthetic enterprise consent incident. This is an early decision probe, not a full benchmark run. Do not use tools or external files; all facts are below. Return JSON only.
+
+At time 120, a compromised user's delegated grant g1 on client c7 has already been revoked. Grant revocation prevents new tokens, but does not kill issued access tokens or resource-side application sessions. A user access-token denial prevents that token from opening new sessions, but an already-open resource session remains usable. Terminating a resource session stops only that session. Blocking c7 stops every user of the client.
+
+Records:
+- g1 belongs to compromised user u1 and was unauthorized. Token t1 was issued from g1 at 95 and remains valid to 150. Session s1 was opened using t1 at 98 and remains valid to 160. A protected export call using s1 succeeded at 115.
+- g2 belongs to user u2 and is authorized. Token t2 and session s2 are live on the same client c7. A protected export call using s2 succeeded at 116.
+- There are no other grants, tokens, or sessions. g1's revocation is already complete.
+
+Objective: close every current path by which u1 can access the protected export without disrupting u2. Return only the remaining necessary actions:
+{"deny_token_ids":[],"terminate_session_ids":[],"block_client_ids":[]}

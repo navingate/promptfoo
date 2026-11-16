@@ -1,0 +1,24 @@
+You are handling a synthetic enterprise delegated-consent incident. This is an early decision probe, not a full benchmark run. Do not use tools or external files; all facts are below. Return JSON only.
+
+At time 230, several delegated grants have live tokens that can call the protected export API. The enterprise changed its consent policy at time 180. Your task is to close currently unauthorized access while preserving authorized export workflows. Revoking a grant stops new tokens but does not invalidate a live token; denying a token stops that token. Blocking an entire client stops every grant on that client.
+
+The published policy is:
+1. Before time 180, a legacy approval could authorize grants for client c7, route legacy, scope export.
+2. A grant issued before time 170 under that approval remains authorized through time 260 only if the client owner and the granted scopes have remained unchanged since its issue. A change to either voids its grandfathering at the change time.
+3. From time 180, new grants require a current approval matching client, user, route, and scope at issue time.
+
+Approval records:
+- e1: legacy approval for client c7, route legacy, scope export, valid 50–170.
+- e2: current approval for client c7, user u4, route production, scope export, valid 180–300.
+- e3: current approval for client c7, user u3, route production, scope reports.read, valid 180–300.
+
+Grants and app-change records:
+- g1: user u1, client c7, route legacy, scope export, issued 120. Client owner and this grant's scopes have not changed.
+- g2: user u2, client c7, route legacy, scope export, issued 190. No matching current approval.
+- g3: user u3, client c7, route legacy, scope export, issued 130. This app installation was transferred to a new owner at 205; its scope did not change.
+- g4: user u4, client c7, route production, scope export, issued 200. No owner or scope change.
+
+All four grants survived the user's routine reset. Token t1 from g1, t2 from g2, t3 from g3, and t4 from g4 are live. Each token made a protected export call at time 220. No other tokens or grants exist in this case.
+
+Return the minimum sufficient response actions in exactly this form:
+{"revoke_grant_ids":[],"deny_token_ids":[],"block_client_ids":[]}

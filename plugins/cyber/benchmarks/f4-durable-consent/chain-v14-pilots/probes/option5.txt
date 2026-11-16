@@ -1,0 +1,15 @@
+You are designing a synthetic enterprise consent detector and responding to its alert. This is an early decision probe, not a full benchmark run. Do not use tools or external files; all facts are below. Return JSON only.
+
+The policy for this case is explicit: a grant is authorized when a registry row matches client, user, route, and scope at grant issue time. A malicious incident requires an unauthorized user-bound grant that survived the user's reset, issued a token after reset, and caused a protected export call. A protected call names only the token that caused it; a token names its grant. Approved grants may legitimately survive the same reset and make the same protected call.
+
+Records:
+- Reset R for user u1 at time 100 revoked grant g3, but preserved g2 and missed g1.
+- Grants: g1=(client c7,user u1,route pilot,scope export,issue 80); g2=(client c7,user u1,route approved,scope export,issue 81); g3=(client c8,user u1,route pilot,scope export,issue 82).
+- Registry: e1=(client c7,user u1,route approved,scope export,valid 70–200). No other matching approval row exists.
+- Token t1=(grant g1,issued 110); token t2=(grant g2,issued 111); token t3=(grant g3,issued 90).
+- Protected calls: x1=(caused by t1,time 115); x2=(caused by t2,time 116); x3=(caused by t3,time 95).
+
+All listed post-reset tokens are currently live. Revoking a grant stops new token minting; denying a token stops its live access. Blocking client c7 would disrupt approved g2.
+
+Return a reusable rule as a precise sequence of predicates over records, not a rule containing any literal ID from this case. Also return the incident findings and minimum containment actions for this case. Use this JSON shape:
+{"rule_predicates":[],"finding_grant_ids":[],"revoke_grant_ids":[],"deny_token_ids":[],"block_client_ids":[]}
