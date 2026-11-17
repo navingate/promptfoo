@@ -10,12 +10,22 @@ import { produceContinuity } from './continuity.mjs';
 import { parsePlan, renderOneShot, scoreOneShot } from './oneshot.mjs';
 
 export const MODEL_ID = '@cf/zai-org/glm-5.3';
-const SETTINGS = Object.freeze({
+const MAX_SETTINGS = Object.freeze({
   temperature: 0,
   max_completion_tokens: 16384,
   reasoning_effort: 'max',
   stream: false,
 });
+const LOW_SETTINGS = Object.freeze({ ...MAX_SETTINGS, reasoning_effort: 'low' });
+const settingsFor = (variant) => {
+  if (variant === 'max') {
+    return MAX_SETTINGS;
+  }
+  if (variant === 'low') {
+    return LOW_SETTINGS;
+  }
+  throw new Error('screen variant must be max or low');
+};
 const CASES = Object.freeze([
   {
     profile: 'both-live',
@@ -60,7 +70,7 @@ export function cloudflareConfig(env = process.env) {
   return { endpoint: `${base}/chat/completions`, apiKey, endpoint_id: sha256(base).slice(0, 16) };
 }
 
-export function buildRequest(prompt, config) {
+export function buildRequest(prompt, config, variant = 'max') {
   return {
     method: 'POST',
     headers: {
@@ -71,7 +81,7 @@ export function buildRequest(prompt, config) {
     body: JSON.stringify({
       model: MODEL_ID,
       messages: [{ role: 'user', content: prompt }],
-      ...SETTINGS,
+      ...settingsFor(variant),
     }),
     signal: AbortSignal.timeout(180000),
   };
@@ -84,6 +94,7 @@ function writePrivate(file, content) {
 /** One planned request; every transport or model failure remains a separate result. */
 export async function runCase({
   index,
+  variant = 'max',
   env = process.env,
   // biome-ignore lint/style/noRestrictedGlobals: standalone diagnostic uses an injectable request without the core build
   request = fetch,
@@ -92,6 +103,7 @@ export async function runCase({
   if (!Number.isInteger(index) || index < 0 || index >= CASES.length) {
     throw new Error('case index must be 0..3');
   }
+  const settings = settingsFor(variant);
   const selected = CASES[index];
   const { episode, key } = produceContinuity(selected);
   const prompt = renderOneShot(episode);
@@ -108,7 +120,7 @@ export async function runCase({
   ) {
     throw new Error('model prompt contains a local credential or path marker');
   }
-  const prefix = path.join(outputDir, `f4-v17-glm53-e${index}`);
+  const prefix = path.join(outputDir, `f4-v17-glm53${variant === 'low' ? '-low' : ''}-e${index}`);
   const paths = {
     attempt: `${prefix}.attempt.json`,
     raw: `${prefix}.raw.json`,
@@ -125,7 +137,7 @@ export async function runCase({
       profile: selected.profile,
       seed: selected.seed,
       model: MODEL_ID,
-      settings: SETTINGS,
+      settings,
       endpoint_host: 'api.cloudflare.com',
       endpoint_id: config.endpoint_id,
       prompt_sha256: promptSha,
@@ -138,7 +150,7 @@ export async function runCase({
     seed: selected.seed,
     model: MODEL_ID,
     endpoint_id: config.endpoint_id,
-    settings: SETTINGS,
+    settings,
     prompt_sha256: promptSha,
     status: 'provider_error',
     reason: null,
@@ -150,7 +162,7 @@ export async function runCase({
   };
   let response;
   try {
-    response = await request(config.endpoint, buildRequest(prompt, config));
+    response = await request(config.endpoint, buildRequest(prompt, config, variant));
   } catch (error) {
     result.reason = error?.name ?? 'transport-error';
     writePrivate(paths.result, `${JSON.stringify(result, null, 2)}\n`);
@@ -213,7 +225,8 @@ export async function runCase({
 
 if (process.argv[1] && import.meta.url === pathToFileURL(process.argv[1]).href) {
   const index = Number(process.argv[2]);
-  runCase({ index })
+  const variant = process.argv[3] ?? 'max';
+  runCase({ index, variant })
     .then((result) => {
       process.stdout.write(
         `${JSON.stringify({

@@ -5,7 +5,7 @@ import path from 'node:path';
 import { test } from 'node:test';
 
 import { produceContinuity, referenceContinuity } from './continuity.mjs';
-import { MODEL_ID, buildRequest, cloudflareConfig, runCase } from './glm53_screen.mjs';
+import { buildRequest, cloudflareConfig, MODEL_ID, runCase } from './glm53_screen.mjs';
 
 const fakeEnv = {
   CLOUDFLARE_OPENAI_BASE_URL: 'https://api.cloudflare.com/client/v4/accounts/test/ai/v1',
@@ -24,6 +24,9 @@ test('Cloudflare request is pinned to HTTPS, model, settings, and cache bypass',
   assert.equal(body.reasoning_effort, 'max');
   assert.equal(body.max_completion_tokens, 16384);
   assert.deepEqual(body.messages, [{ role: 'user', content: 'synthetic prompt' }]);
+  const low = JSON.parse(buildRequest('synthetic prompt', config, 'low').body);
+  assert.equal(low.reasoning_effort, 'low');
+  assert.equal(low.max_completion_tokens, 16384);
   for (const env of [
     { ...fakeEnv, CLOUDFLARE_OPENAI_BASE_URL: 'http://api.cloudflare.com/ai/v1' },
     { ...fakeEnv, CLOUDFLARE_OPENAI_BASE_URL: 'https://example.com/ai/v1' },
@@ -41,7 +44,10 @@ test('one model request scores exact and persists evidence without the token', a
     let calls = 0;
     const request = async (_url, options) => {
       calls += 1;
-      assert.equal(JSON.parse(options.body).messages[0].content.includes(episode.alert.alert_id), true);
+      assert.equal(
+        JSON.parse(options.body).messages[0].content.includes(episode.alert.alert_id),
+        true,
+      );
       return {
         ok: true,
         status: 200,
@@ -56,10 +62,16 @@ test('one model request scores exact and persists evidence without the token', a
     assert.equal(calls, 1);
     assert.equal(result.status, 'scored');
     assert.equal(result.score.exact, true);
-    assert.equal(result.prompt_sha256, '85f1a6dbb90e792bafc43503af289b5ae78e77686ee28b4dbe96b2064019e8d7');
+    assert.equal(
+      result.prompt_sha256,
+      '85f1a6dbb90e792bafc43503af289b5ae78e77686ee28b4dbe96b2064019e8d7',
+    );
     assert.equal(fs.readdirSync(directory).length >= 3, true);
     for (const file of fs.readdirSync(directory)) {
-      assert.equal(fs.readFileSync(path.join(directory, file), 'utf8').includes(fakeEnv.CLOUDFLARE_API_KEY), false);
+      assert.equal(
+        fs.readFileSync(path.join(directory, file), 'utf8').includes(fakeEnv.CLOUDFLARE_API_KEY),
+        false,
+      );
     }
     await assert.rejects(() => runCase({ index: 0, env: fakeEnv, request, outputDir: directory }));
     assert.equal(calls, 1);
@@ -89,5 +101,32 @@ test('served-model mismatch and malformed content stay separate from scored miss
     } finally {
       fs.rmSync(directory, { recursive: true, force: true });
     }
+  }
+});
+
+test('low-reasoning variant uses separate immutable case artifacts', async () => {
+  const directory = fs.mkdtempSync(path.join(os.tmpdir(), 'f4-glm53-screen-test-'));
+  try {
+    const request = async () => ({
+      ok: true,
+      status: 200,
+      json: async () => ({
+        model: MODEL_ID,
+        choices: [{ finish_reason: 'stop', message: { content: '[{"tool":"submit","args":{}}]' } }],
+      }),
+    });
+    const result = await runCase({
+      index: 3,
+      variant: 'low',
+      env: fakeEnv,
+      request,
+      outputDir: directory,
+    });
+    assert.equal(result.status, 'scored');
+    assert.equal(result.settings.reasoning_effort, 'low');
+    assert.equal(fs.existsSync(path.join(directory, 'f4-v17-glm53-low-e3.result.json')), true);
+    assert.equal(fs.existsSync(path.join(directory, 'f4-v17-glm53-e3.result.json')), false);
+  } finally {
+    fs.rmSync(directory, { recursive: true, force: true });
   }
 });
