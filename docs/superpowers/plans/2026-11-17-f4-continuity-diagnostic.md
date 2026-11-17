@@ -27,7 +27,7 @@
 
 - [x] Write a failing test for one-shot prompt rendering without labels, key, or target count.
 - [x] Render only source facts and control semantics; parse an ordered JSON action plan fail-closed.
-- [ ] Freeze fixed profiles, seeds, prompt, model, and error semantics before calling Astra.
+- [x] Freeze fixed profiles, seeds, prompt, model, and error semantics before calling Astra.
 - [ ] Run one fresh Astra attempt per fixed case; retain every raw trace and report provider/format errors separately.
 - [ ] Inspect exact action failures and report whether any are real capability pressure. Do not call GLM unless Astra shows repeatable substantive struggle.
 
