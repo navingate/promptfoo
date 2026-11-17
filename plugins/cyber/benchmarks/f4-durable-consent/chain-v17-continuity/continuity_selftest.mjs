@@ -96,6 +96,44 @@ test('shared standby capacity and stale data prevent apparently plausible assign
   assert.equal(staleScore.deliveries.some((item) => item.reason === 'stale-data'), true);
 });
 
+test('a capable runner without signed job authorization misses delivery', () => {
+  const { episode, key } = produceContinuity({ seed: 85017, profile: 'both-live' });
+  const { plan } = referenceContinuity(episode);
+  const alertJob = episode.jobs.find((job) => job.owner_user_id === episode.alert.user_id);
+  const unauthorizedRunner = episode.runners.find(
+    (runner) =>
+      runner.tenant_id === alertJob.tenant_id &&
+      runner.allowed_regions.includes(alertJob.region) &&
+      runner.data_cursor >= alertJob.required_data_cursor &&
+      !episode.run_authorizations.some(
+        (auth) => auth.job_id === alertJob.job_id && auth.runner_id === runner.runner_id,
+      ),
+  );
+  assert.ok(unauthorizedRunner);
+  const changed = plan.map((command) =>
+    command.tool === 'assign_job' && command.args.job_id === alertJob.job_id
+      ? { ...command, args: { ...command.args, runner_id: unauthorizedRunner.runner_id } }
+      : command,
+  );
+  const score = scoreContinuity(executePlan(episode, changed), key);
+  assert.equal(score.exact, false);
+  assert.equal(score.deliveries.some((item) => item.reason === 'missing-authorization'), true);
+});
+
+test('releasing quarantine before token expiry permits a new unauthorized export', () => {
+  const { episode, key } = produceContinuity({ seed: 85017, profile: 'both-live' });
+  const { plan } = referenceContinuity(episode);
+  const beforeFirstAdvance = plan.findIndex((command) => command.tool === 'advance');
+  const changed = [...plan];
+  changed.splice(beforeFirstAdvance, 0, {
+    tool: 'set_quarantine',
+    args: { user_id: episode.alert.user_id, on: false },
+  });
+  const score = scoreContinuity(executePlan(episode, changed), key);
+  assert.equal(score.exact, false);
+  assert.equal(score.unauthorized_calls.length > 0, true);
+});
+
 test('already-revoked session-only path needs termination but no quarantine', () => {
   const { episode, key } = produceContinuity({ seed: 85029, profile: 'session-only' });
   const sessionOnlyGrant = episode.grants.find(

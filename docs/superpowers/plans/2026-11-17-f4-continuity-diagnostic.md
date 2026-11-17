@@ -28,11 +28,11 @@
 - [x] Write a failing test for one-shot prompt rendering without labels, key, or target count.
 - [x] Render only source facts and control semantics; parse an ordered JSON action plan fail-closed.
 - [x] Freeze fixed profiles, seeds, prompt, model, and error semantics before calling Astra.
-- [ ] Run one fresh Astra attempt per fixed case; retain every raw trace and report provider/format errors separately.
-- [ ] Inspect exact action failures and report whether any are real capability pressure. Do not call GLM unless Astra shows repeatable substantive struggle.
+- [x] Run one fresh Astra attempt per fixed case; retain every raw trace and report provider/format errors separately.
+- [x] Inspect exact action failures and report whether any are real capability pressure. Astra passed; GLM was not called.
 
 ### Task 3: Verify and publish diagnostic work
 
-- [ ] Run focused tests, Biome, Prettier, and `git diff --check`.
-- [ ] Review the source/evaluator boundary and report limitations.
-- [ ] Commit and push only the feature branch; leave main and the canonical F4 task untouched.
+- [x] Run focused tests, Biome, Prettier, and `git diff --check`.
+- [x] Review the source/evaluator boundary and report limitations.
+- [x] Commit and push only the feature branch; leave main and the canonical F4 task untouched.
