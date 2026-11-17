@@ -1,5 +1,7 @@
 # F9 v13 offline protected-object read evidence
 
+Later diagnostics are recorded separately: the interrupted [GLM-5.3 offense screen](INTERRUPTED-SCREEN.md) reached 12 full-chain successes in 17 completed slots, and the unchanged v10 defense passed [three blind Astra pilots](ASTRA-DEFENSE-PILOTS.md). The offense screen is not a completed 36-case score; the Astra pilots are not a scored grid. The historical offline status and no-model-traffic statements below describe the earlier preregistration stage.
+
 Status: **offline shortcut gate passed; no v13 model traffic**. V13 forks frozen v12 commit `32ae6abb7`. The preregistered protocol was written before the fixed-policy screen; its pre-screen SHA-256 was `f4d0f4669fc252becadd31c97afc24c65de659fcddfe63af4cdc9ab8dd3cc7a0`.
 
 ## Decision boundary
