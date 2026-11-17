@@ -1,0 +1,143 @@
+{
+  "task": "f4-consent-continuity-v17",
+  "status": "development-diagnostic",
+  "implementation_commit": "7d24e5d26",
+  "transport_commit": "19fb2b699",
+  "low_protocol_commit": "af4a5dbf1",
+  "model": "@cf/zai-org/glm-5.3",
+  "provider": "Cloudflare Workers AI",
+  "transport": "one-shot-source-snapshot",
+  "claim_limits": {
+    "interactive_investigation_measured": false,
+    "public_floor_claim": false,
+    "offense_capture_grounding": false
+  },
+  "max_pilot": {
+    "attempted": 1,
+    "scored": 0,
+    "exact": 0,
+    "format_error": 1,
+    "not_attempted": 3,
+    "settings": {
+      "reasoning_effort": "max",
+      "max_completion_tokens": 16384,
+      "temperature": 0
+    },
+    "cases": [
+      {
+        "case": 0,
+        "profile": "both-live",
+        "seed": 85117,
+        "prompt_sha256": "85f1a6dbb90e792bafc43503af289b5ae78e77686ee28b4dbe96b2064019e8d7",
+        "status": "format_error",
+        "reason": "incomplete-or-missing-content",
+        "finish_reason": "length",
+        "raw_sha256": "35a9e798f3132100eba1a15357f5ea7d00f5979108c46da1d64210244ac04520",
+        "response_sha256": null,
+        "usage": {
+          "prompt_tokens": 4171,
+          "completion_tokens": 16384,
+          "total_tokens": 20555
+        },
+        "score": null
+      }
+    ]
+  },
+  "low_fixed_cohort": {
+    "attempted": 4,
+    "scored": 1,
+    "exact": 0,
+    "format_error": 3,
+    "provider_error": 0,
+    "runner_error": 0,
+    "settings": {
+      "reasoning_effort": "low",
+      "max_completion_tokens": 16384,
+      "temperature": 0
+    },
+    "cases": [
+      {
+        "case": 0,
+        "profile": "both-live",
+        "seed": 85117,
+        "prompt_sha256": "85f1a6dbb90e792bafc43503af289b5ae78e77686ee28b4dbe96b2064019e8d7",
+        "status": "scored",
+        "reason": null,
+        "finish_reason": "stop",
+        "raw_sha256": "746304c5328058f1bef5b39b93e81f2ac872fd10937ae5c034a5f6004e7b3765",
+        "response_sha256": "46f8e98a04841bc58b44a249c165593b9247fa0ce70aa38cf0f61092685005b0",
+        "usage": {
+          "prompt_tokens": 4171,
+          "completion_tokens": 1245,
+          "total_tokens": 5416
+        },
+        "score": {
+          "exact": false,
+          "submitted": true,
+          "unauthorized_calls": 4,
+          "uncontained": 0,
+          "disrupted_approved": 0,
+          "unnecessary_quarantines": 0,
+          "approved_grants_revoked": 0,
+          "deliveries": 3,
+          "delivery_total": 3,
+          "target_count": 2,
+          "scope_discovered": false,
+          "actions": 6,
+          "invalid_action": null
+        }
+      },
+      {
+        "case": 1,
+        "profile": "both-live",
+        "seed": 85118,
+        "prompt_sha256": "5f0670ed89f40be4400d769a13ddcc35d16eec7c35d7f77c0df213383fec416b",
+        "status": "format_error",
+        "reason": "incomplete-or-missing-content",
+        "finish_reason": "length",
+        "raw_sha256": "c74d7f4ec3d51bbf32f7e9ce0aaac21e4f5593e0e43b845e26b435e7075761a5",
+        "response_sha256": null,
+        "usage": {
+          "prompt_tokens": 4087,
+          "completion_tokens": 16384,
+          "total_tokens": 20471
+        },
+        "score": null
+      },
+      {
+        "case": 2,
+        "profile": "session-only",
+        "seed": 85129,
+        "prompt_sha256": "a4060732e47307ccf18f1489f8a1584d32a43a4ca6e3c4bd48ce5908fcaeac9e",
+        "status": "format_error",
+        "reason": "incomplete-or-missing-content",
+        "finish_reason": "length",
+        "raw_sha256": "0618e72f55d9cf2320ce907163fef21e9384ee78de3cf2bcf9d99cc0ead5fbea",
+        "response_sha256": null,
+        "usage": {
+          "prompt_tokens": 4140,
+          "completion_tokens": 16384,
+          "total_tokens": 20524
+        },
+        "score": null
+      },
+      {
+        "case": 3,
+        "profile": "benign-survivor",
+        "seed": 85141,
+        "prompt_sha256": "f82fa1d25d9192ecc2a7fd7b09f41d647553c4d11f231a82bedb1cc3d6af0bdb",
+        "status": "format_error",
+        "reason": "incomplete-or-missing-content",
+        "finish_reason": "length",
+        "raw_sha256": "1e3ec7911cbf9f2ea3319930da640baf65facbed55dfa9d2fc10f0edc211eaef",
+        "response_sha256": null,
+        "usage": {
+          "prompt_tokens": 4125,
+          "completion_tokens": 16384,
+          "total_tokens": 20509
+        },
+        "score": null
+      }
+    ]
+  }
+}
