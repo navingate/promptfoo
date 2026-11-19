@@ -208,6 +208,48 @@ test('a successful response missing from the native transcript halts as invalid'
   });
 });
 
+test('an incomplete audit retains earlier raw response evidence in private output', async () => {
+  await withOutput(async ({ output }) => {
+    const emitted = [];
+    const result = await runScreen({
+      output,
+      env: {
+        CLOUDFLARE_OPENAI_BASE_URL: 'https://gateway.example/v1',
+        CLOUDFLARE_API_KEY: 'fixture',
+      },
+      request: async () => providerResponse({ content: 'private-response' }),
+      spawnCase: async ({ request }) => {
+        await request('https://gateway.example/v1/chat/completions', { body: requestBody() });
+        return {
+          exitCode: 0,
+          capture: null,
+          audit: [{ event: 'start', sequence: 2, started_ms: 5000 }],
+          auditText: '{"event":"start","sequence":2,"started_ms":5000}\n',
+        };
+      },
+      log: (line) => emitted.push(line),
+    });
+    assert.equal(result.summary.attempted, 1);
+    assert.equal(result.summary.invalid_run, 1);
+    assert.equal(result.results[0].reason, 'transport-audit-corrupt');
+    const raw = JSON.parse(fs.readFileSync(output, 'utf8'));
+    assert.equal(fs.statSync(output).mode & 0o777, 0o600);
+    assert.equal(raw.results[0].transport.audit_corrupt, true);
+    assert.equal(raw.results[0].transport.raw_events[2].event, 'start');
+    const priorResponse = raw.results[0].transport.raw_events[1];
+    assert.equal(
+      JSON.parse(priorResponse.response_body).choices[0].message.content,
+      'private-response',
+    );
+    assert.equal(hashText(priorResponse.response_body), priorResponse.response_sha256);
+    assert.equal(
+      raw.results[0].transport.audit_sidecar,
+      '{"event":"start","sequence":2,"started_ms":5000}\n',
+    );
+    assert.ok(emitted.every((line) => !line.includes('private-response')));
+  });
+});
+
 function actionBudgetChild(overrides = {}) {
   return async ({ spec, request }) => {
     const { omitPriorResponse = false, ...nativeOverrides } = overrides;
@@ -549,6 +591,31 @@ test('a symlinked parent into another worktree is rejected', async () => {
       runScreen({ output: path.join(link, 'raw.json') }),
       /outside the repository/u,
     );
+  });
+});
+
+test('a swapped output-parent symlink cannot redirect raw output into Git', async () => {
+  await withOutput(async ({ dir }) => {
+    const approved = path.join(dir, 'approved');
+    const checkout = path.join(dir, 'checkout');
+    fs.mkdirSync(approved);
+    fs.mkdirSync(checkout);
+    fs.writeFileSync(path.join(checkout, '.git'), 'gitdir: /tmp/fixture\n');
+    const link = path.join(dir, 'selected');
+    fs.symlinkSync(approved, link, 'dir');
+    const result = await runScreen({
+      output: path.join(link, 'raw.json'),
+      mockReference: true,
+      spawnCase: async () => {
+        fs.rmSync(link);
+        fs.symlinkSync(checkout, link, 'dir');
+        return { exitCode: 1 };
+      },
+    });
+    assert.equal(result.summary.invalid_run, 1);
+    assert.equal(fs.existsSync(path.join(checkout, 'raw.json')), false);
+    assert.equal(fs.existsSync(path.join(approved, 'raw.json')), true);
+    assert.equal(fs.statSync(path.join(approved, 'raw.json')).mode & 0o777, 0o600);
   });
 });
 

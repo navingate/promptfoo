@@ -59,7 +59,7 @@ function validateOutput(output) {
       throw new Error('raw screen output must be outside the repository');
     }
   }
-  return resolved;
+  return path.join(canonicalParent, path.basename(resolved));
 }
 
 function validateTemporaryRoot(root) {
@@ -154,18 +154,21 @@ async function spawnNativeCase({ args, env, outputFile, auditFile }) {
   const capture = fs.existsSync(outputFile)
     ? parseJsonOrNull(fs.readFileSync(outputFile, 'utf8'))
     : null;
-  const audit = fs.existsSync(auditFile)
-    ? fs
-        .readFileSync(auditFile, 'utf8')
+  const auditText = fs.existsSync(auditFile) ? fs.readFileSync(auditFile, 'utf8') : '';
+  const audit = auditText
+    ? auditText
         .trim()
         .split('\n')
         .filter(Boolean)
         .map((line) => parseJsonOrNull(line))
     : [];
-  return { exitCode, stderr, capture, audit };
+  return { exitCode, stderr, capture, audit, auditText };
 }
 
 function persist(output, summary, results) {
+  if (validateOutput(output) !== output) {
+    throw new Error('raw screen output destination changed');
+  }
   const temporary = `${output}.${process.pid}.${crypto.randomBytes(6).toString('hex')}.tmp`;
   const handle = fs.openSync(temporary, 'wx', 0o600);
   try {
@@ -176,11 +179,49 @@ function persist(output, summary, results) {
     fs.closeSync(handle);
   }
   try {
+    if (validateOutput(output) !== output) {
+      throw new Error('raw screen output destination changed');
+    }
     fs.renameSync(temporary, output);
   } catch (error) {
     fs.rmSync(temporary, { force: true });
     throw error;
   }
+}
+
+function readAudit(localEvents, child) {
+  const rawEvents = [...localEvents, ...(child?.audit ?? [])];
+  try {
+    return { requests: combineAudit(rawEvents), rawEvents, corrupt: false };
+  } catch {
+    return { requests: [], rawEvents, corrupt: true };
+  }
+}
+
+function corruptAuditCase(spec, child, rawEvents) {
+  return {
+    spec,
+    classification: 'invalid_run',
+    reason: 'transport-audit-corrupt',
+    score: null,
+    transcript: [],
+    turns: rawEvents.filter((event) => event?.event === 'start').length,
+    actions: 0,
+    transport: {
+      requests: [],
+      audit_corrupt: true,
+      raw_events: rawEvents,
+      ...(typeof child?.auditText === 'string'
+        ? {
+            audit_sidecar: child.auditText,
+            audit_sidecar_sha256: hash(child.auditText),
+          }
+        : {}),
+    },
+    ...(Array.isArray(child?.capture?.results) && child.capture.results.length === 1
+      ? { native_result: child.capture.results[0] }
+      : {}),
+  };
 }
 
 export async function runScreen(options = {}) {
@@ -245,19 +286,16 @@ export async function runScreen(options = {}) {
       } catch {
         child = { exitCode: null, capture: null, audit: [], stderr: '' };
       }
-      let audit;
-      try {
-        audit = combineAudit([...localEvents, ...(child?.audit ?? [])]);
-      } catch {
-        audit = [];
-      }
+      const { requests: audit, rawEvents, corrupt } = readAudit(localEvents, child);
       if (audit.length > 0) {
         lastStart = Math.max(
           lastStart ?? Number.NEGATIVE_INFINITY,
           ...audit.map((entry) => entry.started_ms),
         );
       }
-      const result = classifyCase(spec, child, audit, mockReference, lastObservedStart);
+      const result = corrupt
+        ? corruptAuditCase(spec, child, rawEvents)
+        : classifyCase(spec, child, audit, mockReference, lastObservedStart);
       if (audit.length > 0) {
         lastObservedStart = audit.at(-1).started_ms;
       }
