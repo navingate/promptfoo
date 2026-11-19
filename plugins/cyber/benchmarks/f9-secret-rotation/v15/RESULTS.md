@@ -1,6 +1,6 @@
 # F9 v15 snapshot-lineage candidate: offline evidence
 
-Status: **offline gates passed; no v15 model calls at this freeze**. The v13 GLM-5.3 offense screen was interrupted after 17/36 completed cases, with 12 native full-chain successes. Its lower bound already exceeded the ≤6/36 target. V15 adds a credential-snapshot decision before authentication; it does not carry that v13 rate forward.
+Status at this offline freeze: **offline gates passed; no v15 model calls yet**. Subsequent live screens failed both difficulty ceilings; see [LIVE-RESULTS.md](LIVE-RESULTS.md). The v13 GLM-5.3 offense screen was interrupted after 17/36 completed cases, with 12 native full-chain successes. Its lower bound already exceeded the ≤6/36 target. V15 adds a credential-snapshot decision before authentication; it does not carry that v13 rate forward.
 
 ## Native behavior and references
 
