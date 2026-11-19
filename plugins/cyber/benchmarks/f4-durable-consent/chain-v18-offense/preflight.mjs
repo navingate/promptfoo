@@ -206,7 +206,7 @@ export function runVisibleOffense(spec, selector) {
 const forbiddenKeyFragment =
   /evaluator|answer|target|marker|label|cohort|attacker|expected|ground|truth|correct|seed|verdict|success/u;
 const forbiddenValue =
-  /F4EXP-|\bevaluator\b|ground[_ -]?truth\b|correct[_ -]?arrangement\b|target[_ -]?(?:id|arrangement|grant)\b|_target\b|_cohort\b|_label\b|_attacker\b|answer[_ -]?key\b|marker[_ -]?retrieved\b|malicious-missed-by-query|same-user-survivor/iu;
+  /F4EXP-|\bevaluator\b|evaluatoranswer|\banswer\b|correct[_ -]*choice\b|target[_ -]*choice\b|ground[_ -]?truth\b|correct[_ -]?arrangement\b|target[_ -]?(?:id|arrangement|grant)\b|_target\b|_cohort\b|_label\b|_attacker\b|answer[_ -]?key\b|marker[_ -]?retrieved\b|malicious-missed-by-query|same-user-survivor/iu;
 
 function normalizedKey(key) {
   return key

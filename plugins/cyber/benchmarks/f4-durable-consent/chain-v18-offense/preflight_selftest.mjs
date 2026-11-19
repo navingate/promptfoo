@@ -293,6 +293,7 @@ test('observation audit rejects nested evaluator fields and any early or misplac
   assert.equal(audit.pre_read_records, 11);
   assert.equal(audit.authorized_read_values, 1);
   assert.equal(modelPrompt('offense').includes(solved.session.exportValue), false);
+  assert.match(solved.transcript[0].result.query.principal_query, /A correct principal query/u);
 
   const leakedKey = structuredClone(solved.transcript);
   leakedKey[2].result.registrations[0].nested = { answer_key: 'hidden' };
@@ -315,12 +316,23 @@ test('observation audit rejects nested evaluator fields and any early or misplac
       key,
     );
   }
-  const leakedAnswerText = structuredClone(solved.transcript);
-  leakedAnswerText[2].result.registrations[0].note = `evaluator answer: ${solved.session.registration.arrangement_id}`;
-  assert.throws(
-    () => auditVisibleObservations(solved.session, leakedAnswerText),
-    /observation leak/u,
-  );
+  for (const hint of [
+    'answer:',
+    'correct choice:',
+    'correctChoice:',
+    'evaluatoranswer:',
+    'target choice:',
+    'targetChoice:',
+    'evaluator answer:',
+  ]) {
+    const leakedAnswerText = structuredClone(solved.transcript);
+    leakedAnswerText[2].result.registrations[0].note = `${hint} ${solved.session.registration.arrangement_id}`;
+    assert.throws(
+      () => auditVisibleObservations(solved.session, leakedAnswerText),
+      /observation leak/u,
+      hint,
+    );
+  }
   const misplacedTargetField = structuredClone(solved.transcript);
   misplacedTargetField[1].result.applications[0].target_principal = 'hidden';
   assert.throws(
