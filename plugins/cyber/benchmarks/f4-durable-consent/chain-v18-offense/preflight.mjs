@@ -66,33 +66,227 @@ function commentSegment(source, start) {
   };
 }
 
-function withoutComments(source) {
-  let scrubbed = '';
-  for (let index = 0; index < source.length; index += 1) {
-    const current = source[index];
-    const next = source[index + 1];
-    if (current === '"' || current === "'" || current === '`') {
-      const segment = quotedSegment(source, index);
-      scrubbed += segment.text;
-      index = segment.end;
-    } else if (current === '/' && (next === '/' || next === '*')) {
-      const segment = commentSegment(source, index);
-      scrubbed += segment.text;
-      index = segment.end;
+const identifierStart = /[$_\p{ID_Start}]/u;
+const identifierPart = /[$_\p{ID_Continue}\u200c\u200d]/u;
+const regexpPrefixes = new Set([
+  '(',
+  '[',
+  '{',
+  '=',
+  '=>',
+  ':',
+  ',',
+  ';',
+  '!',
+  '?',
+  'return',
+  'throw',
+  'case',
+  'yield',
+  'await',
+]);
+
+function skipRegexp(source, state) {
+  let characterClass = false;
+  state.index += 1;
+  while (state.index < source.length) {
+    const character = source[state.index];
+    if (character === '\\') {
+      state.index += 2;
+    } else if (character === '[') {
+      characterClass = true;
+      state.index += 1;
+    } else if (character === ']') {
+      characterClass = false;
+      state.index += 1;
+    } else if (character === '/' && !characterClass) {
+      state.index += 1;
+      while (identifierPart.test(source[state.index] ?? '')) {
+        state.index += 1;
+      }
+      return;
     } else {
-      scrubbed += current;
+      state.index += 1;
     }
   }
-  return scrubbed;
+  throw new Error('source binding mismatch: unterminated regexp');
+}
+
+function scanTemplate(source, state) {
+  state.index += 1;
+  while (state.index < source.length) {
+    const character = source[state.index];
+    if (character === '\\') {
+      state.index += 2;
+    } else if (character === '`') {
+      state.index += 1;
+      return;
+    } else if (character === '$' && source[state.index + 1] === '{') {
+      state.index += 2;
+      scanCode(source, state, true);
+    } else {
+      state.index += 1;
+    }
+  }
+  throw new Error('source binding mismatch: unterminated template');
+}
+
+function scanQuoted(source, state) {
+  const segment = quotedSegment(source, state.index);
+  state.tokens.push({ kind: 'string', value: segment.text.slice(1, -1) });
+  state.index = segment.end + 1;
+}
+
+function scanIdentifier(source, state) {
+  const start = state.index++;
+  while (identifierPart.test(source[state.index] ?? '')) {
+    state.index += 1;
+  }
+  state.tokens.push({ kind: 'identifier', value: source.slice(start, state.index) });
+}
+
+function scanPunctuator(source, state) {
+  const character = source[state.index];
+  const punctuator = character === '=' && source[state.index + 1] === '>' ? '=>' : character;
+  state.tokens.push({ kind: 'punctuator', value: punctuator });
+  state.index += punctuator.length;
+  return Number(character === '{') - Number(character === '}');
+}
+
+function scanCode(source, state, inTemplateExpression = false) {
+  let braces = 0;
+  while (state.index < source.length) {
+    const character = source[state.index];
+    const next = source[state.index + 1];
+    if (/\s/u.test(character)) {
+      state.index += 1;
+    } else if (character === '/' && (next === '/' || next === '*')) {
+      state.index = commentSegment(source, state.index).end + 1;
+    } else if (character === '"' || character === "'") {
+      scanQuoted(source, state);
+    } else if (character === '`') {
+      scanTemplate(source, state);
+    } else if (character === '/' && regexpPrefixes.has(state.tokens.at(-1)?.value ?? '(')) {
+      skipRegexp(source, state);
+      state.tokens.push({ kind: 'regexp', value: '/' });
+    } else if (identifierStart.test(character)) {
+      scanIdentifier(source, state);
+    } else if (character === '}' && inTemplateExpression && braces === 0) {
+      state.index += 1;
+      return;
+    } else {
+      braces += scanPunctuator(source, state);
+    }
+  }
+  if (inTemplateExpression) {
+    throw new Error('source binding mismatch: unterminated template expression');
+  }
+}
+
+function sourceTokens(source) {
+  const state = { index: 0, tokens: [] };
+  scanCode(source, state);
+  return state.tokens;
+}
+
+function afterNamedBindings(tokens, start) {
+  if (tokens[start]?.value === '*') {
+    if (tokens[start + 1]?.value !== 'as' || tokens[start + 2]?.kind !== 'identifier') {
+      throw new Error('source binding mismatch: unsupported namespace import');
+    }
+    return start + 3;
+  }
+  if (tokens[start]?.value !== '{') {
+    throw new Error(
+      `source binding mismatch: unsupported import bindings: ${tokens[start]?.value}`,
+    );
+  }
+  let braces = 1;
+  let index = start + 1;
+  while (index < tokens.length && braces > 0) {
+    braces += Number(tokens[index].value === '{') - Number(tokens[index].value === '}');
+    index += 1;
+  }
+  if (braces !== 0) {
+    throw new Error('source binding mismatch: unclosed import bindings');
+  }
+  return index;
+}
+
+function moduleSpecifier(token) {
+  if (token?.kind !== 'string' || token.value.includes('\\')) {
+    throw new Error('source binding mismatch: unsupported module specifier');
+  }
+  return token.value.startsWith('./') || token.value.startsWith('../') ? token.value : null;
+}
+
+function importedPath(tokens, start) {
+  const next = tokens[start + 1];
+  if (next?.value === '.') {
+    return null;
+  }
+  if (next?.value === '(') {
+    if (tokens[start + 2]?.kind !== 'string') {
+      throw new Error('source binding mismatch: nonliteral dynamic import');
+    }
+    return { path: moduleSpecifier(tokens[start + 2]), end: start + 2 };
+  }
+  if (next?.kind === 'string') {
+    return { path: moduleSpecifier(next), end: start + 1 };
+  }
+  let afterBindings = start + 1;
+  if (tokens[afterBindings]?.kind === 'identifier') {
+    afterBindings += 1;
+    if (tokens[afterBindings]?.value === ',') {
+      afterBindings = afterNamedBindings(tokens, afterBindings + 1);
+    }
+  } else {
+    afterBindings = afterNamedBindings(tokens, afterBindings);
+  }
+  if (tokens[afterBindings]?.value !== 'from') {
+    throw new Error('source binding mismatch: import without from');
+  }
+  return { path: moduleSpecifier(tokens[afterBindings + 1]), end: afterBindings + 1 };
+}
+
+function reexportedPath(tokens, start) {
+  const next = tokens[start + 1];
+  if (!['*', '{'].includes(next?.value)) {
+    return null;
+  }
+  let afterBindings = start + 2;
+  if (next.value === '*') {
+    if (tokens[afterBindings]?.value === 'as') {
+      afterBindings += 2;
+    }
+  } else {
+    afterBindings = afterNamedBindings(tokens, start + 1);
+  }
+  if (tokens[afterBindings]?.value !== 'from') {
+    return { path: null, end: afterBindings - 1 };
+  }
+  return { path: moduleSpecifier(tokens[afterBindings + 1]), end: afterBindings + 1 };
 }
 
 export function localImports(source) {
-  const visible = withoutComments(source);
-  return [
-    ...visible.matchAll(/^\s*import\s+(?:[^;]*?\s+from\s+)?['"](\.{1,2}\/[^'"]+)['"]\s*;/gmu),
-    ...visible.matchAll(/^\s*export\s+(?:\*|\{[^;]*?\})\s+from\s+['"](\.{1,2}\/[^'"]+)['"]\s*;/gmu),
-    ...visible.matchAll(/\bimport\s*\(\s*['"](\.{1,2}\/[^'"]+)['"]\s*\)/gu),
-  ].map((match) => match[1]);
+  const tokens = sourceTokens(source);
+  const imports = [];
+  for (let index = 0; index < tokens.length; index += 1) {
+    const token = tokens[index];
+    const found =
+      token.kind === 'identifier' && token.value === 'import' && tokens[index - 1]?.value !== '.'
+        ? importedPath(tokens, index)
+        : token.kind === 'identifier' && token.value === 'export'
+          ? reexportedPath(tokens, index)
+          : null;
+    if (found) {
+      if (found.path) {
+        imports.push(found.path);
+      }
+      index = found.end;
+    }
+  }
+  return imports;
 }
 
 export function sourceClosure(roots = sourceRoots) {

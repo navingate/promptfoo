@@ -1,4 +1,5 @@
 import assert from 'node:assert/strict';
+import { spawnSync } from 'node:child_process';
 import crypto from 'node:crypto';
 import fs from 'node:fs';
 import os from 'node:os';
@@ -213,6 +214,61 @@ test('source closure discovers comment-separated imports and rejects outside sym
     fs.rmSync(link, { force: true });
     fs.rmSync(external, { recursive: true, force: true });
   }
+});
+
+test('source closure follows semicolonless imports and namespace reexports', async () => {
+  const { localImports, sourceClosure } = await import('./preflight.mjs');
+  const source = [
+    "import { named } from './named.mjs'",
+    "import './side-effect.mjs'",
+    "export * as namespace from './namespace.mjs'",
+    "export { named as other } from './named.mjs'",
+    'const quoted = "import \'./ignored.mjs\'"',
+    "const template = `export * as ignored from './ignored.mjs'`",
+  ].join('\n');
+  assert.deepEqual(localImports(source), [
+    './named.mjs',
+    './side-effect.mjs',
+    './namespace.mjs',
+    './named.mjs',
+  ]);
+
+  const fixture = fs.mkdtempSync(path.join(here, 'source-closure-fixture-'));
+  try {
+    fs.writeFileSync(path.join(fixture, 'entry.mjs'), source);
+    for (const name of ['named.mjs', 'side-effect.mjs', 'namespace.mjs']) {
+      fs.writeFileSync(path.join(fixture, name), 'export const named = 1\n');
+    }
+    const syntax = spawnSync(process.execPath, ['--check', path.join(fixture, 'entry.mjs')], {
+      encoding: 'utf8',
+    });
+    assert.equal(syntax.status, 0, syntax.stderr);
+    const relative = path.relative(familyRoot, fixture);
+    assert.deepEqual(
+      sourceClosure([path.join(relative, 'entry.mjs')]),
+      ['entry.mjs', 'named.mjs', 'namespace.mjs', 'side-effect.mjs'].map((name) =>
+        path.join(relative, name),
+      ),
+    );
+  } finally {
+    fs.rmSync(fixture, { recursive: true, force: true });
+  }
+});
+
+test('import discovery ignores literal text and fails closed on computed imports', async () => {
+  const { localImports } = await import('./preflight.mjs');
+  const source = [
+    "const keyword = 'import' && true",
+    'const quoted = "import(\'./ignored-string.mjs\')"',
+    "const regex = /import\\('\\.\\/ignored-regex\\.mjs'\\)/",
+    "const template = `import('./ignored-template.mjs')`",
+    "const actual = `${await import('./dynamic.mjs')}`",
+  ].join('\n');
+  assert.deepEqual(localImports(source), ['./dynamic.mjs']);
+  assert.throws(
+    () => localImports('await import(variable)'),
+    /source binding mismatch: nonliteral dynamic import/u,
+  );
 });
 
 test('source binding rejects changed, omitted, extra, and malformed hashes', async () => {
