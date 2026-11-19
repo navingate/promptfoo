@@ -62,6 +62,14 @@ function validateOutput(output) {
   return resolved;
 }
 
+function validateTemporaryRoot(root) {
+  const canonical = fs.realpathSync.native(root);
+  if (inside(fs.realpathSync.native(repoRoot), canonical) || gitCheckoutAncestor(canonical)) {
+    throw new Error('temporary root must be outside the repository');
+  }
+  return canonical;
+}
+
 function cloudflareConfig(env) {
   const endpoint = env?.CLOUDFLARE_OPENAI_BASE_URL?.replace(/\/+$/u, '');
   const apiKey = env?.CLOUDFLARE_API_KEY;
@@ -85,11 +93,11 @@ async function verifyManifest(mockReference, injectedChild) {
   return hash(manifestBytes);
 }
 
-function childEnvironment(config, auditFile, mockReference) {
+function childEnvironment(config, auditFile, mockReference, tempDir) {
   const env = {
     PATH: process.env.PATH,
     HOME: process.env.HOME,
-    TMPDIR: os.tmpdir(),
+    TMPDIR: tempDir,
   };
   if (mockReference) {
     return env;
@@ -177,6 +185,7 @@ function persist(output, summary, results) {
 
 export async function runScreen(options = {}) {
   const output = validateOutput(options.output);
+  const tempRoot = validateTemporaryRoot(options.tempRoot ?? os.tmpdir());
   const mockReference = options.mockReference === true;
   const injectedChild = typeof options.spawnCase === 'function';
   const manifestSha256 = await verifyManifest(mockReference, injectedChild);
@@ -186,7 +195,7 @@ export async function runScreen(options = {}) {
   const log = options.log ?? ((line) => process.stdout.write(`${line}\n`));
   const spawnCase = options.spawnCase ?? spawnNativeCase;
   const request = options.request;
-  const tempDir = fs.mkdtempSync(path.join(os.tmpdir(), 'f4-v18-offense-'));
+  const tempDir = fs.mkdtempSync(path.join(tempRoot, 'f4-v18-offense-'));
   fs.chmodSync(tempDir, 0o700);
   const results = [];
   let lastStart = null;
@@ -228,7 +237,7 @@ export async function runScreen(options = {}) {
         child = await spawnCase({
           spec,
           args: childArguments(spec, outputFile, mockReference),
-          env: childEnvironment(config, auditFile, mockReference),
+          env: childEnvironment(config, auditFile, mockReference, tempDir),
           outputFile,
           auditFile,
           request: auditedRequest,

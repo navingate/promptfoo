@@ -15,7 +15,6 @@ import { runScreen as runRawScreen } from './screen.mjs';
 
 const here = path.dirname(fileURLToPath(import.meta.url));
 const repoRoot = path.resolve(here, '../../../../..');
-const mainRoot = path.resolve(repoRoot, '../..');
 const model = REQUEST_SETTINGS.model_id;
 const checks = [
   'created_this_run',
@@ -522,23 +521,85 @@ test('an output path inside the repository is rejected before any request', asyn
   assert.equal(fs.existsSync(output), false);
 });
 
-for (const checkout of [mainRoot, path.join(mainRoot, '.worktrees/f4-astra-pilots')]) {
-  test(`output under another Git checkout is rejected: ${path.basename(checkout)}`, async () => {
-    assert.equal(fs.existsSync(path.join(checkout, '.git')), true);
-    const output = path.join(checkout, 'f4-review-should-not-write.json');
-    await assert.rejects(runScreen({ output }), /outside the repository/u);
-    assert.equal(fs.existsSync(output), false);
+for (const marker of ['directory', 'file']) {
+  test(`output under a temporary Git checkout with a .git ${marker} is rejected`, async () => {
+    await withOutput(async ({ dir }) => {
+      const checkout = path.join(dir, 'checkout');
+      fs.mkdirSync(checkout);
+      if (marker === 'directory') {
+        fs.mkdirSync(path.join(checkout, '.git'));
+      } else {
+        fs.writeFileSync(path.join(checkout, '.git'), 'gitdir: /tmp/fixture\n');
+      }
+      const output = path.join(checkout, 'raw.json');
+      await assert.rejects(runScreen({ output }), /outside the repository/u);
+      assert.equal(fs.existsSync(output), false);
+    });
   });
 }
 
 test('a symlinked parent into another worktree is rejected', async () => {
   await withOutput(async ({ dir }) => {
+    const checkout = path.join(dir, 'worktree');
+    fs.mkdirSync(checkout);
+    fs.writeFileSync(path.join(checkout, '.git'), 'gitdir: /tmp/fixture\n');
     const link = path.join(dir, 'sibling');
-    fs.symlinkSync(path.join(mainRoot, '.worktrees/f4-astra-pilots'), link, 'dir');
+    fs.symlinkSync(checkout, link, 'dir');
     await assert.rejects(
-      runScreen({ output: path.join(link, 'f4-review-should-not-write.json') }),
+      runScreen({ output: path.join(link, 'raw.json') }),
       /outside the repository/u,
     );
+  });
+});
+
+for (const kind of ['direct', 'symlink']) {
+  test(`temporary root ${kind} into a Git checkout is rejected before raw files`, async () => {
+    await withOutput(async ({ dir, output }) => {
+      const checkout = path.join(dir, 'checkout');
+      fs.mkdirSync(checkout);
+      fs.writeFileSync(path.join(checkout, '.git'), 'gitdir: /tmp/fixture\n');
+      const link = path.join(dir, 'linked-checkout');
+      fs.symlinkSync(checkout, link, 'dir');
+      const tempRoot = kind === 'direct' ? checkout : link;
+      const originalEntries = fs.readdirSync(checkout);
+      await assert.rejects(
+        runScreen({
+          output,
+          tempRoot,
+          mockReference: true,
+          spawnCase: async () => ({ exitCode: 1 }),
+        }),
+        /temporary root must be outside the repository/u,
+      );
+      assert.deepEqual(fs.readdirSync(checkout), originalEntries);
+      assert.equal(fs.existsSync(output), false);
+    });
+  });
+}
+
+test('an external temporary root keeps child files private', async () => {
+  await withOutput(async ({ dir, output }) => {
+    let observed = false;
+    const { summary } = await runScreen({
+      output,
+      tempRoot: dir,
+      env: {
+        CLOUDFLARE_OPENAI_BASE_URL: 'https://gateway.example/v1',
+        CLOUDFLARE_API_KEY: 'fixture',
+      },
+      request: async () => providerResponse({ status: 429 }),
+      spawnCase: async (options) => {
+        observed = true;
+        assert.equal(path.dirname(path.dirname(options.outputFile)), fs.realpathSync.native(dir));
+        assert.equal(options.env.TMPDIR, path.dirname(options.outputFile));
+        assert.equal(fs.statSync(path.dirname(options.outputFile)).mode & 0o777, 0o700);
+        assert.equal(fs.statSync(options.auditFile).mode & 0o777, 0o600);
+        return await fakeChild()(options);
+      },
+    });
+    assert.equal(observed, true);
+    assert.equal(summary.provider_error, 1);
+    assert.equal(summary.invalid_run, 0);
   });
 });
 
