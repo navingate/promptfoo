@@ -74,17 +74,24 @@ function affectedUsers(spec, ids) {
 function grantRoles(spec, ids) {
   const roles = [];
   for (const [index, userId] of affectedUsers(spec, ids).entries()) {
-    if (spec.profile !== 'benign') {
-      roles.push({
-        role: spec.profile === 'mint-plus-session-only' && index === 1 ? 'session-only' : 'mint',
-        userId,
-      });
-    }
-    roles.push({ role: 'survivor', userId });
-    roles.push({ role: 'revoked', userId });
-    if (spec.profile === 'benign') {
-      roles.push({ role: 'inert-blind', userId });
-    }
+    const calledRole =
+      spec.profile === 'benign'
+        ? 'approved-call'
+        : spec.profile === 'mint-plus-session-only' && index === 1
+          ? 'session-only'
+          : 'mint';
+    const local = [
+      { role: calledRole, userId },
+      { role: 'survivor', userId },
+      { role: 'revoked', userId },
+      { role: 'inert-blind', userId },
+    ];
+    local.sort((a, b) =>
+      sha(`${ids.salt}|${userId}|grant-order|${a.role}`).localeCompare(
+        sha(`${ids.salt}|${userId}|grant-order|${b.role}`),
+      ),
+    );
+    roles.push(...local);
   }
   roles.push({ role: 'base-approved', userId: ids.approvedUser });
   return roles;
@@ -96,8 +103,10 @@ function pairedGrantShape(ids, userId) {
     Number.parseInt(sha(`${base}|route`).slice(0, 2), 16) % 2 === 0
       ? 'self-service-standard'
       : 'self-service-elevated';
-  const sameRoute = Number.parseInt(sha(`${base}|selector`).slice(0, 2), 16) % 2 === 0;
-  return { route, sameRoute };
+  const mode = ['route', 'scope', 'tenant'][
+    Number.parseInt(sha(`${base}|selector`).slice(0, 2), 16) % 3
+  ];
+  return { route, mode };
 }
 
 function alternateRoute(route) {
@@ -119,21 +128,25 @@ function makeGrant(role, index, spec, ids) {
   const issueTime = 900 + index;
   const pair = pairedGrantShape(ids, role.userId);
   const unauthorized = ['mint', 'session-only', 'inert-blind'].includes(role.role);
-  const broadScope =
-    role.role === 'revoked' ||
-    (role.role === 'survivor' && !pair.sameRoute) ||
-    (unauthorized && pair.sameRoute);
+  const targetLike = unauthorized || role.role === 'approved-call';
+  const broadScope = role.role === 'revoked' || (targetLike && pair.mode === 'scope');
+  const tenant =
+    role.role === 'inert-blind'
+      ? opaque('tenant', `${ids.salt}|inert-blind-tenant`)
+      : targetLike && pair.mode === 'tenant'
+        ? opaque('tenant', `${ids.salt}|cross-tenant`)
+        : ids.tenant;
   return {
     ...nativeTemplate,
     grant_id: grantId,
     client_id: ids.clientId,
-    tenant: ids.tenant,
+    tenant,
     principal_binding: role.userId,
     scopes: broadScope ? ['reports.read', PROTECTED_SCOPE] : [PROTECTED_SCOPE],
     approval_route:
       role.role === 'base-approved'
         ? 'admin-approved'
-        : (unauthorized || role.role === 'revoked') && !pair.sameRoute
+        : role.role === 'revoked' || (targetLike && pair.mode === 'route')
           ? alternateRoute(pair.route)
           : pair.route,
     grantor_type: role.role === 'base-approved' ? 'admin-consent' : 'user-consent',
@@ -173,7 +186,7 @@ function makeRegistry(grants, roles, ids) {
   const beforeEveryIssuance = Math.min(...grants.map((grant) => grant.issue_time)) - 1;
   for (const [index, grant] of grants.entries()) {
     const role = roles[index].role;
-    if (role === 'survivor') {
+    if (role === 'survivor' || role === 'approved-call') {
       rows.push(registryRow(grant, ids, 'approved'));
     } else if (role === 'mint' || role === 'session-only' || role === 'inert-blind') {
       rows.push(registryRow(grant, ids, 'expired-near-miss', { valid_until: beforeEveryIssuance }));
@@ -311,11 +324,32 @@ function baseEvent(eventId, kind, sourceTime, causedBy = null) {
   return { event_id: eventId, kind, source_time: sourceTime, caused_by_event_id: causedBy };
 }
 
-function makeEvents(grants, roles, resets, operations, ids, spec) {
+function callTimesByGrant(grants, roles, ids) {
+  const called = grants.filter(
+    (_grant, index) => !['revoked', 'inert-blind'].includes(roles[index].role),
+  );
+  const times = new Map();
+  for (const [userIndex, userId] of [ids.userA, ids.userB, ids.approvedUser].entries()) {
+    const userGrants = called
+      .filter((grant) => grant.principal_binding === userId)
+      .sort((a, b) =>
+        sha(`${ids.salt}|${a.grant_id}|call-order`).localeCompare(
+          sha(`${ids.salt}|${b.grant_id}|call-order`),
+        ),
+      );
+    for (const [callIndex, grant] of userGrants.entries()) {
+      times.set(grant.grant_id, 1040 + userIndex * 4 + callIndex * 2);
+    }
+  }
+  return times;
+}
+
+function makeEvents(grants, roles, resets, operations, ids) {
   const events = [];
   const grantById = new Map(grants.map((grant) => [grant.grant_id, grant]));
   const jobById = new Map(operations.jobs.map((job) => [job.job_id, job]));
   const resetByUser = new Map(resets.map((reset) => [reset.compromised_user, reset]));
+  const callTimes = callTimesByGrant(grants, roles, ids);
   const tokens = [];
   const sessions = [];
   for (const grant of grants) {
@@ -381,7 +415,7 @@ function makeEvents(grants, roles, resets, operations, ids, spec) {
       credential_lineage: grant.refresh_lineage,
       expires_at_tick: token.expires_at_tick,
     });
-    const callTime = 1040 + index * 2;
+    const callTime = callTimes.get(grant.grant_id);
     const callEventId = opaque('evt', `${ids.salt}|${grant.grant_id}|call`);
     events.push({
       ...baseEvent(callEventId, 'protected-export-call', callTime, tokenEventId),
@@ -389,19 +423,6 @@ function makeEvents(grants, roles, resets, operations, ids, spec) {
       token_event_id: tokenEventId,
       resource: PROTECTED_SCOPE,
     });
-    if (spec.profile === 'benign' && role === 'survivor') {
-      events.push({
-        ...baseEvent(
-          opaque('evt', `${ids.salt}|${grant.grant_id}|approved-repeat-call`),
-          'protected-export-call',
-          callTime + 1,
-          tokenEventId,
-        ),
-        client_id: grant.client_id,
-        token_event_id: tokenEventId,
-        resource: PROTECTED_SCOPE,
-      });
-    }
     if (role !== 'base-approved') {
       const sessionId = opaque('resource-session', `${ids.salt}|${grant.grant_id}`);
       const sessionEventId = opaque('evt', `${ids.salt}|${grant.grant_id}|resource-session`);
@@ -1087,7 +1108,7 @@ export function produceResponse(spec) {
   const registry = makeRegistry(grants, roles, ids);
   const resets = makeResets(grants, registry, spec, ids);
   const operations = makeOperations(grants, roles, ids, spec);
-  const activity = makeEvents(grants, roles, resets, operations, ids, spec);
+  const activity = makeEvents(grants, roles, resets, operations, ids);
   const publicFacts = {
     client: {
       client_id: ids.clientId,

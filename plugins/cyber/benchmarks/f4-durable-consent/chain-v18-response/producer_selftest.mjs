@@ -33,6 +33,42 @@ function sourceKeyNames(value, names = new Set()) {
   return names;
 }
 
+function calledRowsForUser(publicFacts, userId) {
+  const eventById = byId(publicFacts.events, 'event_id');
+  const grantById = byId(publicFacts.grants, 'grant_id');
+  const reset = publicFacts.resets.find((item) => item.compromised_user === userId);
+  return publicFacts.events
+    .filter(
+      (event) => event.kind === 'protected-export-call' && event.source_time > reset.reset_time,
+    )
+    .map((call) => {
+      const token = eventById.get(call.token_event_id);
+      const grant = grantById.get(token.grant_id);
+      return { call, token, grant, reset };
+    })
+    .filter((row) => row.grant.principal_binding === userId)
+    .sort(
+      (a, b) =>
+        a.call.source_time - b.call.source_time || a.call.event_id.localeCompare(b.call.event_id),
+    );
+}
+
+function citedFinding(row) {
+  return {
+    grant_id: row.grant.grant_id,
+    created_event_id: row.grant.created_event_id,
+    reset_event_id: row.reset.reset_event_id,
+    token_event_id: row.token.event_id,
+    call_event_id: row.call.event_id,
+  };
+}
+
+function sameFindings(candidate, expected) {
+  const ordered = (items) =>
+    [...items].sort((a, b) => a.call_event_id.localeCompare(b.call_event_id));
+  return JSON.stringify(ordered(candidate)) === JSON.stringify(ordered(expected));
+}
+
 test('response grid has 36 unseen balanced incidents and hidden-lag branches', async () => {
   const { GRID } = await modules();
   assert.equal(GRID.length, 36);
@@ -514,6 +550,100 @@ test('scope-presence literal cannot identify the unauthorized post-reset calls',
   assert.ok(benignFalsePositives > 0, 'scope-only shortcut must flag a benign export');
   assert.ok(positiveMisses > 0, 'scope-only shortcut must miss a positive finding');
   assert.ok(shortcutExact <= 12, `scope-only shortcut solved ${shortcutExact}/36`);
+});
+
+test('called-grant count and first or last call cannot reveal the findings', async () => {
+  const { GRID, produceResponse } = await modules();
+  const exact = { first: 0, last: 0 };
+  const positiveMisses = { first: 0, last: 0 };
+  const benignFalsePositives = { first: 0, last: 0 };
+  let targetFirstGrant = 0;
+  let targetLastGrant = 0;
+  let callOrderMatchesGrantOrder = 0;
+  let callOrderDiffersFromGrantOrder = 0;
+  for (const spec of GRID) {
+    const { native, key } = produceResponse(spec);
+    const groups = native.public.resets.map((reset) => {
+      const rows = calledRowsForUser(native.public, reset.compromised_user);
+      return [...new Map(rows.map((row) => [row.grant.grant_id, row])).values()];
+    });
+    assert.ok(
+      groups.every((rows) => rows.length === 2),
+      `${spec.seed}: distinct called grants`,
+    );
+    for (const rows of groups) {
+      const target = rows.find((row) => key.target_grant_ids.includes(row.grant.grant_id));
+      if (target) {
+        const issueOrder = [...rows].sort((a, b) => a.grant.issue_time - b.grant.issue_time);
+        targetFirstGrant += Number(issueOrder[0].grant.grant_id === target.grant.grant_id);
+        targetLastGrant += Number(issueOrder[1].grant.grant_id === target.grant.grant_id);
+        callOrderMatchesGrantOrder += Number(
+          issueOrder[0].grant.grant_id === rows[0].grant.grant_id,
+        );
+        callOrderDiffersFromGrantOrder += Number(
+          issueOrder[0].grant.grant_id !== rows[0].grant.grant_id,
+        );
+      }
+    }
+    for (const position of ['first', 'last']) {
+      const candidate = groups.map((rows) =>
+        citedFinding(position === 'first' ? rows[0] : rows[1]),
+      );
+      exact[position] += Number(sameFindings(candidate, key.expected_findings));
+      positiveMisses[position] += Number(
+        key.expected_findings.some(
+          (finding) => !candidate.some((item) => item.call_event_id === finding.call_event_id),
+        ),
+      );
+      benignFalsePositives[position] += Number(
+        key.expected_findings.length === 0 && candidate.length > 0,
+      );
+    }
+  }
+  assert.ok(targetFirstGrant > 0 && targetLastGrant > 0, 'target position must vary');
+  assert.ok(
+    callOrderMatchesGrantOrder > 0 && callOrderDiffersFromGrantOrder > 0,
+    'call order must vary independently of grant order',
+  );
+  for (const position of ['first', 'last']) {
+    assert.ok(positiveMisses[position] > 0, `${position} shortcut must miss a target`);
+    assert.ok(benignFalsePositives[position] > 0, `${position} shortcut must flag benign`);
+    assert.ok(exact[position] <= 12, `${position} shortcut solved ${exact[position]}/36`);
+  }
+});
+
+test('route and scope compound cannot replace the authorization join', async () => {
+  const { GRID, produceResponse } = await modules();
+  let exact = 0;
+  let positiveMisses = 0;
+  let benignFalsePositives = 0;
+  for (const spec of GRID) {
+    const { native, key } = produceResponse(spec);
+    const candidate = native.public.resets.flatMap((reset) => {
+      const rows = [
+        ...new Map(
+          calledRowsForUser(native.public, reset.compromised_user).map((row) => [
+            row.grant.grant_id,
+            row,
+          ]),
+        ).values(),
+      ];
+      const sameRoute = new Set(rows.map((row) => row.grant.approval_route)).size === 1;
+      return rows
+        .filter((row) => row.grant.scopes.includes('reports.read') === sameRoute)
+        .map(citedFinding);
+    });
+    exact += Number(sameFindings(candidate, key.expected_findings));
+    positiveMisses += Number(
+      key.expected_findings.some(
+        (finding) => !candidate.some((item) => item.call_event_id === finding.call_event_id),
+      ),
+    );
+    benignFalsePositives += Number(key.expected_findings.length === 0 && candidate.length > 0);
+  }
+  assert.ok(positiveMisses > 0, 'compound must miss a positive finding');
+  assert.ok(benignFalsePositives > 0, 'compound must flag a benign export');
+  assert.ok(exact <= 12, `route/scope compound solved ${exact}/36`);
 });
 
 test('native validation rejects contradictory cross-record lineage and runner eligibility', async () => {

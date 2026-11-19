@@ -43,12 +43,17 @@ verify source identity, event causality, full reset-query recomputation, strict
 record schemas, all four strata, benign near misses, and byte-identical public
 sources under each unscored both-live lag swap.
 
-Affected grant pairs vary route and scope independently of authorization:
-some approved protected calls use the elevated route or broad scope, while some
-unauthorized calls use the standard route or narrow scope. A literal route or
-scope test cannot replace the complete registry join. Native validation also
-checks token, session, job, runner, and signed eligibility references across
-their source records before the engine accepts an incident.
+Affected grant pairs vary route, scope, and tenant independently of
+authorization: some approved protected calls use the elevated route or broad
+scope, while some unauthorized calls use the standard route or narrow scope.
+Every reset user has two distinct post-reset called grants. Both calls are
+approved in benign incidents; positive incidents have one unauthorized and one
+approved call. Grant order and call source-time order vary independently, while
+the inert blind-spot and query-revoked unauthorized grants remain present.
+Literal route, scope, count, and order rules cannot replace the complete
+registry join. Native validation also checks token, session, job, runner, and
+signed eligibility references across their source records before the engine
+accepts an incident.
 
 ## Evaluator-only and deferred sources
 
