@@ -90,6 +90,20 @@ function grantRoles(spec, ids) {
   return roles;
 }
 
+function pairedGrantShape(ids, userId) {
+  const base = `${ids.salt}|${userId}|authorization-pair`;
+  const route =
+    Number.parseInt(sha(`${base}|route`).slice(0, 2), 16) % 2 === 0
+      ? 'self-service-standard'
+      : 'self-service-elevated';
+  const sameRoute = Number.parseInt(sha(`${base}|selector`).slice(0, 2), 16) % 2 === 0;
+  return { route, sameRoute };
+}
+
+function alternateRoute(route) {
+  return route === 'self-service-standard' ? 'self-service-elevated' : 'self-service-standard';
+}
+
 function makeGrant(role, index, spec, ids) {
   const defect = FAMILY_DEFECT[spec.family];
   const blind = role.role !== 'revoked';
@@ -103,19 +117,25 @@ function makeGrant(role, index, spec, ids) {
   const { _attacker_created_this_run: _privateCreationFlag, ...nativeTemplate } = template;
   const grantId = opaque('grant', `${ids.salt}|${role.role}|${role.userId}`);
   const issueTime = 900 + index;
+  const pair = pairedGrantShape(ids, role.userId);
+  const unauthorized = ['mint', 'session-only', 'inert-blind'].includes(role.role);
+  const broadScope =
+    role.role === 'revoked' ||
+    (role.role === 'survivor' && !pair.sameRoute) ||
+    (unauthorized && pair.sameRoute);
   return {
     ...nativeTemplate,
     grant_id: grantId,
     client_id: ids.clientId,
     tenant: ids.tenant,
     principal_binding: role.userId,
-    scopes: [PROTECTED_SCOPE],
+    scopes: broadScope ? ['reports.read', PROTECTED_SCOPE] : [PROTECTED_SCOPE],
     approval_route:
-      role.role === 'survivor'
-        ? 'self-service-standard'
-        : role.role === 'base-approved'
-          ? 'admin-approved'
-          : 'self-service-elevated',
+      role.role === 'base-approved'
+        ? 'admin-approved'
+        : (unauthorized || role.role === 'revoked') && !pair.sameRoute
+          ? alternateRoute(pair.route)
+          : pair.route,
     grantor_type: role.role === 'base-approved' ? 'admin-consent' : 'user-consent',
     verification_state: role.role === 'base-approved' ? 'catalog-approved' : 'unverified',
     owner_principal: ids.clientOwner,
@@ -161,7 +181,8 @@ function makeRegistry(grants, roles, ids) {
     } else if (role === 'revoked') {
       rows.push(
         registryRow(grant, ids, 'route-near-miss', {
-          approval_route_selector: 'self-service-standard',
+          approval_route_selector: alternateRoute(grant.approval_route),
+          scope_selector: ['reports.audit'],
         }),
       );
     }
@@ -748,42 +769,83 @@ function validPublicEnvelope(publicFacts) {
   );
 }
 
+function validJob(job, publicFacts, grantById, runnerById, eventById) {
+  const grant = grantById.get(job.approved_grant_id);
+  const runner = runnerById.get(job.current_runner_id);
+  const event = eventById.get(job.source_event_id);
+  return (
+    [1, 2, 4].includes(job.due_tick) &&
+    job.client_id === publicFacts.client.client_id &&
+    grant?.client_id === job.client_id &&
+    grant.principal_binding === job.owner_user_id &&
+    authorizedByJoin(grant, publicFacts.registry, grant.issue_time) &&
+    runner?.standby === false &&
+    runner.user_id === job.owner_user_id &&
+    runner.client_id === job.client_id &&
+    publicFacts.runner_authorizations.some(
+      (row) => row.job_id === job.job_id && row.runner_id === runner.runner_id,
+    ) &&
+    event?.kind === 'approved-job-created' &&
+    event.caused_by_event_id === grant.created_event_id &&
+    event.job_id === job.job_id &&
+    event.owner_user_id === job.owner_user_id &&
+    event.approved_grant_id === job.approved_grant_id &&
+    event.due_tick === job.due_tick
+  );
+}
+
+function validRunner(runner, publicFacts, eventById) {
+  const event = eventById.get(runner.source_event_id);
+  return (
+    runner.client_id === publicFacts.client.client_id &&
+    (runner.standby
+      ? runner.user_id === null
+      : publicFacts.principals.some((item) => item.user_id === runner.user_id)) &&
+    runner.capacity === 1 &&
+    runner.ready_at_tick === 0 &&
+    event?.kind === 'runner-registered' &&
+    event.runner_id === runner.runner_id &&
+    event.client_id === runner.client_id &&
+    event.capacity === runner.capacity &&
+    event.ready_at_tick === runner.ready_at_tick
+  );
+}
+
+function validRunnerAuthorization(row, publicFacts, jobById, runnerById, eventById) {
+  const job = jobById.get(row.job_id);
+  const runner = runnerById.get(row.runner_id);
+  const event = eventById.get(row.source_event_id);
+  return (
+    job &&
+    runner &&
+    row.client_id === publicFacts.client.client_id &&
+    row.client_id === job.client_id &&
+    row.client_id === runner.client_id &&
+    Number.isSafeInteger(row.valid_from_tick) &&
+    Number.isSafeInteger(row.valid_until_tick) &&
+    row.valid_from_tick <= job.due_tick &&
+    row.valid_until_tick >= job.due_tick &&
+    row.signed_by === 'operations-scheduler' &&
+    typeof row.signature === 'string' &&
+    row.signature.length > 0 &&
+    event?.kind === 'runner-authorized' &&
+    event.authorization_id === row.authorization_id &&
+    event.job_id === row.job_id &&
+    event.runner_id === row.runner_id &&
+    event.signature === row.signature &&
+    event.caused_by_event_id === job.source_event_id
+  );
+}
+
 function validOperationalProvenance(publicFacts, grantById, eventById) {
-  const { jobs, runners, registry, runner_authorizations: authorizations } = publicFacts;
+  const { jobs, runners, runner_authorizations: authorizations } = publicFacts;
   const runnerById = new Map(runners.map((item) => [item.runner_id, item]));
-  return !(
-    jobs.some(
-      (job) =>
-        ![1, 2, 4].includes(job.due_tick) ||
-        !runnerById.has(job.current_runner_id) ||
-        !grantById.has(job.approved_grant_id) ||
-        grantById.get(job.approved_grant_id).principal_binding !== job.owner_user_id ||
-        !authorizedByJoin(
-          grantById.get(job.approved_grant_id),
-          registry,
-          grantById.get(job.approved_grant_id).issue_time,
-        ) ||
-        eventById.get(job.source_event_id)?.kind !== 'approved-job-created' ||
-        eventById.get(job.source_event_id)?.caused_by_event_id !==
-          grantById.get(job.approved_grant_id).created_event_id,
-    ) ||
-    runners.some(
-      (runner) =>
-        runner.client_id !== publicFacts.client.client_id ||
-        runner.capacity !== 1 ||
-        runner.ready_at_tick !== 0 ||
-        eventById.get(runner.source_event_id)?.kind !== 'runner-registered',
-    ) ||
-    authorizations.some(
-      (row) =>
-        !jobs.some((job) => job.job_id === row.job_id) ||
-        !runnerById.has(row.runner_id) ||
-        row.signed_by !== 'operations-scheduler' ||
-        typeof row.signature !== 'string' ||
-        eventById.get(row.source_event_id)?.kind !== 'runner-authorized' ||
-        eventById.get(row.source_event_id)?.signature !== row.signature ||
-        eventById.get(row.source_event_id)?.caused_by_event_id !==
-          jobs.find((job) => job.job_id === row.job_id)?.source_event_id,
+  const jobById = new Map(jobs.map((item) => [item.job_id, item]));
+  return (
+    jobs.every((job) => validJob(job, publicFacts, grantById, runnerById, eventById)) &&
+    runners.every((runner) => validRunner(runner, publicFacts, eventById)) &&
+    authorizations.every((row) =>
+      validRunnerAuthorization(row, publicFacts, jobById, runnerById, eventById),
     )
   );
 }
@@ -925,7 +987,9 @@ export function validateResponseNative(native) {
       return (
         created?.kind !== 'delegated-grant-created' ||
         created.grant_id !== grant.grant_id ||
+        created.client_id !== grant.client_id ||
         created.principal_binding !== grant.principal_binding ||
+        created.credential_lineage !== grant.refresh_lineage ||
         created.source_time !== grant.issue_time
       );
     })
@@ -941,9 +1005,11 @@ export function validateResponseNative(native) {
     const grant = grantById.get(token.grant_id);
     if (
       !grant ||
+      token.client_id !== grant.client_id ||
       event?.kind !== 'access-token-issued' ||
       event.token_id !== token.token_id ||
       event.grant_id !== grant.grant_id ||
+      event.client_id !== token.client_id ||
       event.created_event_id !== grant.created_event_id ||
       event.caused_by_event_id !== grant.created_event_id ||
       event.credential_lineage !== grant.refresh_lineage ||
@@ -958,13 +1024,19 @@ export function validateResponseNative(native) {
   }
   for (const session of sessions) {
     const token = tokens.find((item) => item.token_id === session.token_id);
+    const grant = grantById.get(token?.grant_id);
     const event = eventById.get(session.event_id);
     if (
       !token ||
+      !grant ||
+      session.client_id !== token.client_id ||
+      session.user_id !== grant.principal_binding ||
       event?.kind !== 'resource-session-created' ||
       event.token_id !== token.token_id ||
       event.caused_by_event_id !== token.event_id ||
       event.session_id !== session.session_id ||
+      event.client_id !== session.client_id ||
+      event.user_id !== session.user_id ||
       event.source_time !== session.created_at ||
       event.expires_at_tick !== session.expires_at_tick
     ) {

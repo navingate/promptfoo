@@ -43,6 +43,13 @@ verify source identity, event causality, full reset-query recomputation, strict
 record schemas, all four strata, benign near misses, and byte-identical public
 sources under each unscored both-live lag swap.
 
+Affected grant pairs vary route and scope independently of authorization:
+some approved protected calls use the elevated route or broad scope, while some
+unauthorized calls use the standard route or narrow scope. A literal route or
+scope test cannot replace the complete registry join. Native validation also
+checks token, session, job, runner, and signed eligibility references across
+their source records before the engine accepts an incident.
+
 ## Evaluator-only and deferred sources
 
 - `key.seed`, `family`, `profile`, `expected_findings`, target IDs, expected

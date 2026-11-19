@@ -403,3 +403,151 @@ test('native validation fails closed on malformed specifications and broken fact
   alteredSignature.public.runner_authorizations[0].signature = 'forged';
   assert.equal(validateResponseNative(alteredSignature).ok, false);
 });
+
+test('approval-route literal cannot identify the unauthorized post-reset calls', async () => {
+  const { GRID, produceResponse } = await modules();
+  let shortcutExact = 0;
+  let positiveMisses = 0;
+  let benignFalsePositives = 0;
+  let approvedElevatedCalls = 0;
+  let unauthorizedStandardCalls = 0;
+  for (const spec of GRID) {
+    const { native, key } = produceResponse(spec);
+    const { events, grants, registry, resets } = native.public;
+    const eventById = byId(events, 'event_id');
+    const grantById = byId(grants, 'grant_id');
+    const resetByUser = byId(resets, 'compromised_user');
+    const selected = [];
+    for (const call of events.filter((event) => event.kind === 'protected-export-call')) {
+      const token = eventById.get(call.token_event_id);
+      const grant = grantById.get(token.grant_id);
+      const reset = resetByUser.get(grant.principal_binding);
+      if (!reset || call.source_time <= reset.reset_time) {
+        continue;
+      }
+      const authorized = authorizedByJoin(grant, registry, grant.issue_time);
+      approvedElevatedCalls += Number(
+        authorized && grant.approval_route === 'self-service-elevated',
+      );
+      unauthorizedStandardCalls += Number(
+        !authorized && grant.approval_route === 'self-service-standard',
+      );
+      if (grant.approval_route === 'self-service-elevated') {
+        selected.push({
+          grant_id: grant.grant_id,
+          created_event_id: grant.created_event_id,
+          reset_event_id: reset.reset_event_id,
+          token_event_id: token.event_id,
+          call_event_id: call.event_id,
+        });
+      }
+    }
+    const sortFindings = (items) =>
+      [...items].sort((a, b) => a.call_event_id.localeCompare(b.call_event_id));
+    if (
+      JSON.stringify(sortFindings(selected)) === JSON.stringify(sortFindings(key.expected_findings))
+    ) {
+      shortcutExact += 1;
+    }
+    if (
+      key.expected_findings.some(
+        (finding) => !selected.some((item) => item.call_event_id === finding.call_event_id),
+      )
+    ) {
+      positiveMisses += 1;
+    }
+    if (key.expected_findings.length === 0 && selected.length > 0) {
+      benignFalsePositives += 1;
+    }
+  }
+  assert.ok(approvedElevatedCalls > 0, 'approved elevated export must be a route near miss');
+  assert.ok(
+    unauthorizedStandardCalls > 0,
+    'unauthorized standard export must be a route near miss',
+  );
+  assert.ok(positiveMisses > 0, 'route-only shortcut must miss a positive finding');
+  assert.ok(benignFalsePositives > 0, 'route-only shortcut must flag a benign export');
+  assert.ok(shortcutExact <= 12, `route-only shortcut solved ${shortcutExact}/36`);
+});
+
+test('scope-presence literal cannot identify the unauthorized post-reset calls', async () => {
+  const { GRID, produceResponse } = await modules();
+  let shortcutExact = 0;
+  let approvedBroadScopeCalls = 0;
+  let unauthorizedNarrowScopeCalls = 0;
+  let benignFalsePositives = 0;
+  let positiveMisses = 0;
+  for (const spec of GRID) {
+    const { native, key } = produceResponse(spec);
+    const { events, grants, registry, resets } = native.public;
+    const eventById = byId(events, 'event_id');
+    const grantById = byId(grants, 'grant_id');
+    const resetByUser = byId(resets, 'compromised_user');
+    const selected = [];
+    for (const call of events.filter((event) => event.kind === 'protected-export-call')) {
+      const token = eventById.get(call.token_event_id);
+      const grant = grantById.get(token.grant_id);
+      const reset = resetByUser.get(grant.principal_binding);
+      if (!reset || call.source_time <= reset.reset_time) {
+        continue;
+      }
+      const broad = grant.scopes.includes('reports.read');
+      const authorized = authorizedByJoin(grant, registry, grant.issue_time);
+      approvedBroadScopeCalls += Number(authorized && broad);
+      unauthorizedNarrowScopeCalls += Number(!authorized && !broad);
+      if (broad) {
+        selected.push(call.event_id);
+      }
+    }
+    const truth = key.expected_findings.map((finding) => finding.call_event_id);
+    if (JSON.stringify(selected.sort()) === JSON.stringify(truth.sort())) {
+      shortcutExact += 1;
+    }
+    benignFalsePositives += Number(truth.length === 0 && selected.length > 0);
+    positiveMisses += Number(truth.some((id) => !selected.includes(id)));
+  }
+  assert.ok(approvedBroadScopeCalls > 0, 'approved broad-scope export must be a near miss');
+  assert.ok(
+    unauthorizedNarrowScopeCalls > 0,
+    'unauthorized narrow-scope export must be a near miss',
+  );
+  assert.ok(benignFalsePositives > 0, 'scope-only shortcut must flag a benign export');
+  assert.ok(positiveMisses > 0, 'scope-only shortcut must miss a positive finding');
+  assert.ok(shortcutExact <= 12, `scope-only shortcut solved ${shortcutExact}/36`);
+});
+
+test('native validation rejects contradictory cross-record lineage and runner eligibility', async () => {
+  const { GRID, produceResponse, validateResponseNative } = await modules();
+  const { native } = produceResponse(GRID.find((item) => item.profile === 'both-live'));
+  const invalid = [
+    (copy) => {
+      const session = copy.public.sessions[0];
+      session.user_id = copy.public.principals.find(
+        (item) => item.user_id !== session.user_id,
+      ).user_id;
+    },
+    (copy) => {
+      copy.public.tokens[0].client_id = 'other-client';
+    },
+    (copy) => {
+      const job = copy.public.jobs[0];
+      job.current_runner_id = copy.public.runners.find(
+        (item) => !item.standby && item.user_id !== job.owner_user_id,
+      ).runner_id;
+    },
+    (copy) => {
+      copy.public.runner_authorizations[0].client_id = 'other-client';
+    },
+    (copy) => {
+      const job = copy.public.jobs[0];
+      copy.public.runner_authorizations = copy.public.runner_authorizations.filter(
+        (item) => !(item.job_id === job.job_id && item.runner_id === job.current_runner_id),
+      );
+    },
+  ];
+  for (const mutate of invalid) {
+    const copy = structuredClone(native);
+    mutate(copy);
+    assert.equal(validateResponseNative(copy).ok, false);
+  }
+});
