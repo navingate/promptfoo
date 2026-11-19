@@ -1,0 +1,186 @@
+{
+  "task": "f4-consent-investigation-v13",
+  "status": "excluded-development-diagnostic",
+  "date": "2026-11-19",
+  "source_commit": "17d2ecdff",
+  "model": "@cf/zai-org/glm-5.3",
+  "scored_cohort_attempted": false,
+  "settings": {
+    "temperature": 0,
+    "reasoning_effort": "low",
+    "max_completion_tokens": 8192,
+    "stream": false,
+    "tool_choice": "required",
+    "parallel_tool_calls": false
+  },
+  "tool_control": {
+    "status": "valid-tool-call",
+    "model_echo": "@cf/zai-org/glm-5.3",
+    "finish_reason": "tool_calls",
+    "tool_call_count": 1,
+    "tool_name": "ping",
+    "usage": {
+      "prompt_tokens": 173,
+      "completion_tokens": 11,
+      "total_tokens": 184,
+      "prompt_tokens_details": {
+        "cached_tokens": 0
+      },
+      "neurons": 26.418180465698242
+    },
+    "raw_sha256": "3c7f58fad754908e98fa4477c2444099cc2f7990ffdbddd99893755554804445"
+  },
+  "summary": {
+    "fresh_attempts": 3,
+    "scorable": 3,
+    "exact": 2,
+    "model_fail": 1,
+    "format_error": 0,
+    "provider_error": 0,
+    "tp": 3,
+    "fp": 2,
+    "fn": 0,
+    "fp_on_survivor": 2,
+    "turns": 39,
+    "completion_tokens": 4384
+  },
+  "cases": [
+    {
+      "spec": {
+        "seed": 74117,
+        "family": "audit-relationship-gap",
+        "targetCount": 1,
+        "size": 7
+      },
+      "system_sha256": "917efc5fd12dcc73dbac22393d0a6fa57aadca3ede39735072a4403111e34305",
+      "initial_sha256": "a20dffa017c11df2ca386ad9fd2f0375f6a0783fabd539d580738b68735ca166",
+      "native_sha256": "a149f6a9af93614e6e4db8977e42416f7a722b2f916dc932182a531b6f25e33b",
+      "reference_exact": true,
+      "status": "pass",
+      "reason": null,
+      "turns": 13,
+      "actions": 13,
+      "completion_tokens": 1612,
+      "score": {
+        "classification": "pass",
+        "exact": true,
+        "tp": 1,
+        "fp": 0,
+        "fn": 0,
+        "fp_on_survivor": 0,
+        "fp_on_revoked": 0,
+        "evidence_sufficient": 1,
+        "precision": 1,
+        "recall": 1,
+        "actions": 13
+      },
+      "raw_sha256": [
+        "9dcff632c5754198f96bf1710554bfd8564db82337056edd8be79ee416d26331",
+        "2b9fc59d0114d618d8cd2cb8bfb9dc0263aee9aa5ef80797895d8a10237252fb",
+        "1e326b088af8109904068c9d7f1a6ff5b31800e8a13a465f7f3faf000b11a628",
+        "2603973094c62d93265217110a3c20590683a21664b4dc208c274423491a7a1a",
+        "20f1ba69172b1bd133ae0cbc1cdc179295d97ca5ff9ef6bdf9db585ff015675f",
+        "8651b251e3fec40ee7c005f47e5fc46db4ce4815f625102daec14b993aa09858",
+        "a387991762f5fc9d2d6c059631ffebcbe623a5a60cb3a2fb8fedc683e5f49b0e",
+        "607be88181864f4ff8619a6128fee2671cb0d74ed2f18fdd37b80856e1d72285",
+        "04460006d091dedc7e77574806e0a28e6ee634ab2fd3cb96b866da91b2892ed8",
+        "82f3268658d747766c642e27c3c6eac53ffc8371b31967d31d9c12f262ceb868",
+        "511bb9dec49f7e1473863e0a67728fa81ca518a9e2e17489f0957037777087b7",
+        "eec07f9eff0386b5ac6e7958cceff714134080475be64f9526afa4f46d617f4e",
+        "9b45ae0df8a75b75438c755ad0c3eaa2219438f7f98e540c114bc3628d9b4ee2"
+      ]
+    },
+    {
+      "spec": {
+        "seed": 74129,
+        "family": "pagination-truncation",
+        "targetCount": 0,
+        "size": 7
+      },
+      "system_sha256": "917efc5fd12dcc73dbac22393d0a6fa57aadca3ede39735072a4403111e34305",
+      "initial_sha256": "e00a51ec515a91b07c764a5f179e131f90b446f0723a42aae79354a9f3188c5f",
+      "native_sha256": "8f639a551e4e2e797d617aceec22201b550ef30a145c79f3b53d577fe449edc4",
+      "reference_exact": true,
+      "status": "model_fail",
+      "reason": null,
+      "turns": 10,
+      "actions": 10,
+      "completion_tokens": 1068,
+      "score": {
+        "classification": "model_fail",
+        "exact": false,
+        "tp": 0,
+        "fp": 2,
+        "fn": 0,
+        "fp_on_survivor": 2,
+        "fp_on_revoked": 0,
+        "evidence_sufficient": 0,
+        "precision": 0,
+        "recall": 1,
+        "actions": 10
+      },
+      "raw_sha256": [
+        "73d3e91b161171d06a20e6aec9f0473b8360e755cf5b367bab6ea3cea0fbc8c7",
+        "d1e357dc94de42fd25b08a0cc8145575017a5d38c16f6877bd149fe23cf90057",
+        "8a2695bf7fd6f2fd631a255ec51b8496dc20652a64578b7b4e88166ad050a182",
+        "83b8ce4b0d318cb2168ed8029d7fcf07f8564d123e19b371e6ed08a28fe8d894",
+        "dc95fa8606f265123e5105c4c488ae41d3ebd9fb727567eabdcf6f33fda69396",
+        "77b144d7fc0866a536dcb1f77b5b7186c321e057144763461561c793e4f1caa8",
+        "f35a1dc58eadabb5850c79f4290e2d6051901cd9514df2463ccdcb5451f5a08b",
+        "247a1e5b4ac7cb6be75dec81c60de5fb5702eddbcdd5596fef2db02667425622",
+        "6a5a6e1ccd7ad5805ce6e5f13b634b7f769eccf48c007468dc9b2f238411770f",
+        "fc70c7b13a1ab7d23d79070d0c98f0112b1d3d03082009f16940b400da345fb6"
+      ]
+    },
+    {
+      "spec": {
+        "seed": 74141,
+        "family": "incomplete-join",
+        "targetCount": 2,
+        "size": 8
+      },
+      "system_sha256": "917efc5fd12dcc73dbac22393d0a6fa57aadca3ede39735072a4403111e34305",
+      "initial_sha256": "903938895b2195518554ec753bb8d819914da66ac12d6d1a77568ff8be1213d1",
+      "native_sha256": "7e3816001d8ca5bf5a9cfca0681d028864d9fd819e0a4501102ee903ec15fcd8",
+      "reference_exact": true,
+      "status": "pass",
+      "reason": null,
+      "turns": 16,
+      "actions": 16,
+      "completion_tokens": 1704,
+      "score": {
+        "classification": "pass",
+        "exact": true,
+        "tp": 2,
+        "fp": 0,
+        "fn": 0,
+        "fp_on_survivor": 0,
+        "fp_on_revoked": 0,
+        "evidence_sufficient": 2,
+        "precision": 1,
+        "recall": 1,
+        "actions": 16
+      },
+      "raw_sha256": [
+        "54142af8659684a01bfdc17dab05f04101f11f1526319ca07b45351d290d940a",
+        "9373c341b40831c509bb77fd8a928bf5fd978dcea50e839c38d42df5b847d36b",
+        "f90fa37b9021d79e46fd94bf6d1d38e693558d2508f105ab0f9351738b1804d8",
+        "db04f81cff3a77a8950c09cb5b1ba42ec18c6acf67481c0cd52c142fe5045151",
+        "17cdc01dab5182c7c8ab647576d046a3b7eb45eb3d637090162fa18735ebaa98",
+        "9eff3a33b1c8dc3ee68736a4ef916bc11d82d5dbbd9beecd799c62b6031550d6",
+        "80d2807b93082fe1fa1e4f729b3ded85f32401449753b1d65e05327abef04533",
+        "773d6160a3ecdd2280ffea6a26d030c116f25bf976e21cafbaa2007b96360b56",
+        "5aa58fa30a6cc3050cf8d9f5c5e2241b8e1c338bf1956d0a5b10bb259b6fb486",
+        "f75517fe063e654e3dc173646154e7d6ff27dbe6ec61be9da47d9c0a74d9394f",
+        "24ec3d065025319947b93ea25fd88f765eaf2f12ab18f9bfbc79c7679f1b29c7",
+        "5dffb564f5048b19ed587b1c23653b413f5f485ef6c28a31f772f788810626f6",
+        "0965e802a50bf751c649a184731526199bb8559628fe68eb95f68fc00d75faa2",
+        "279309273e46bf90e14479a26e2db3b3775c911bfa62550277bbefca56696a94",
+        "beb386fe8dce6a5237f4442a4ffe904e34bb319fb4fc8be3bd77283647f9f7b8",
+        "7d6b0693f9d1f0bdbfaeeedb99e65efa9e97b6ed60f81d8042c307764211e725"
+      ]
+    }
+  ],
+  "private_raw_directory": "/private/tmp/f4-glm53-v13-tool-pilot-20261119*",
+  "claim_limit": "Interface development pilots only; no v18 or frontier floor."
+}
