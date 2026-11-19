@@ -297,6 +297,30 @@ test('observation audit rejects nested evaluator fields and any early or misplac
   const leakedKey = structuredClone(solved.transcript);
   leakedKey[2].result.registrations[0].nested = { answer_key: 'hidden' };
   assert.throws(() => auditVisibleObservations(solved.session, leakedKey), /observation leak/u);
+  for (const key of [
+    'evaluator_answer',
+    'evaluatoranswer',
+    'ground_truth',
+    'groundtruth',
+    'targetId',
+    'answerkey',
+    'evaluatorTarget',
+    'correct_arrangement_id',
+  ]) {
+    const leakedTarget = structuredClone(solved.transcript);
+    leakedTarget[1].result.applications[0][key] = solved.session.registration.arrangement_id;
+    assert.throws(
+      () => auditVisibleObservations(solved.session, leakedTarget),
+      /observation leak/u,
+      key,
+    );
+  }
+  const leakedAnswerText = structuredClone(solved.transcript);
+  leakedAnswerText[2].result.registrations[0].note = `evaluator answer: ${solved.session.registration.arrangement_id}`;
+  assert.throws(
+    () => auditVisibleObservations(solved.session, leakedAnswerText),
+    /observation leak/u,
+  );
   const misplacedTargetField = structuredClone(solved.transcript);
   misplacedTargetField[1].result.applications[0].target_principal = 'hidden';
   assert.throws(
@@ -319,7 +343,11 @@ test('observation audit rejects nested evaluator fields and any early or misplac
   leakedValueAsKey[4].result[solved.session.exportValue] = true;
   assert.throws(
     () => auditVisibleObservations(solved.session, leakedValueAsKey),
-    /observation leak/u,
+    (error) => {
+      assert.match(error.message, /observation leak/u);
+      assert.equal(error.message.includes(solved.session.exportValue), false);
+      return true;
+    },
   );
   const leakedValueLate = structuredClone(solved.transcript);
   leakedValueLate.at(-1).result.value = solved.session.exportValue;
@@ -329,7 +357,7 @@ test('observation audit rejects nested evaluator fields and any early or misplac
   );
 });
 
-test('shortcut baselines fail causal checks and fixed positions never solve more than six cases', async () => {
+test('shortcut baselines record first terminal reasons and never solve more than six cases', async () => {
   const { preflight } = await import('./preflight.mjs');
   const { baseline_results: baselines } = preflight();
   for (const name of [
@@ -352,19 +380,38 @@ test('shortcut baselines fail causal checks and fixed positions never solve more
   );
   for (const [name, result] of Object.entries(baselines)) {
     assert.ok(result.successes <= 6, `${name} solved ${result.successes}/36`);
+    assert.equal(result.failure_checks, undefined, `${name} reports downstream checks as causes`);
     assert.ok(
-      Object.values(result.failure_checks).some((count) => count > 0),
-      `${name} has no authorization, query, or protected-call failure`,
+      Object.values(result.first_terminal_reasons).some((count) => count > 0),
+      `${name} has no first terminal reason`,
+    );
+    assert.equal(
+      result.successes +
+        Object.values(result.first_terminal_reasons).reduce((sum, count) => sum + count, 0),
+      36,
+      `${name} lacks a causal outcome for a case`,
     );
   }
-  assert.ok(baselines.grant_presence.failure_checks.unauthorized > 0);
-  assert.ok(baselines.protected_scope_only.failure_checks.missed_by_query > 0);
-  assert.ok(baselines.query_miss_only.failure_checks.protected_call_after_reset > 0);
-  assert.ok(baselines.authorization_row_count.failure_checks.unauthorized > 0);
-  assert.ok(baselines.literal_route.failure_checks.missed_by_query > 0);
-  assert.ok(baselines.id_order.failure_checks.unauthorized > 0);
-  assert.ok(baselines.registration_order.failure_checks.missed_by_query > 0);
-  assert.ok(baselines.arbitrary_registration_profile.failure_checks.missed_by_query > 0);
+  for (const [name, reason] of Object.entries({
+    position_first: 'grant-revoked',
+    position_last: 'grant-authorized',
+    grant_presence: 'grant-authorized',
+    protected_scope_only: 'grant-revoked',
+    query_miss_only: 'grant-authorized',
+    authorization_row_count: 'grant-authorized',
+    literal_route: 'grant-revoked',
+    id_order: 'grant-authorized',
+    registration_order: 'grant-revoked',
+    arbitrary_registration_profile: 'grant-revoked',
+  })) {
+    assert.ok(baselines[name].first_terminal_reasons[reason] > 0, `${name}: ${reason}`);
+  }
+  assert.ok(baselines.query_miss_only.first_terminal_reasons['consent-denied'] > 0);
+  assert.equal(baselines.query_miss_only.first_terminal_reasons['grant-revoked'] ?? 0, 0);
+  assert.deepEqual(baselines.query_miss_only.first_terminal_reasons, {
+    'grant-authorized': 19,
+    'consent-denied': 15,
+  });
 });
 
 test('wrong principal, approved survivor, and query-enumerated mutations fail their native checks', async () => {

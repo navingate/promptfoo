@@ -203,10 +203,18 @@ export function runVisibleOffense(spec, selector) {
   return { session, transcript, score: scoreOffense(session) };
 }
 
-const forbiddenKey =
-  /^(?:_?(?:target|cohort|label|attacker)(?:$|[_-])|(?:answer|expected|marker|verdict|success|seed)(?:$|[_-]))/iu;
+const forbiddenKeyFragment =
+  /evaluator|answer|target|marker|label|cohort|attacker|expected|ground|truth|correct|seed|verdict|success/u;
 const forbiddenValue =
-  /F4EXP-|_target\b|_cohort\b|_label\b|_attacker\b|answer[_ -]?key\b|marker[_ -]?retrieved\b|malicious-missed-by-query|same-user-survivor/iu;
+  /F4EXP-|\bevaluator\b|ground[_ -]?truth\b|correct[_ -]?arrangement\b|target[_ -]?(?:id|arrangement|grant)\b|_target\b|_cohort\b|_label\b|_attacker\b|answer[_ -]?key\b|marker[_ -]?retrieved\b|malicious-missed-by-query|same-user-survivor/iu;
+
+function normalizedKey(key) {
+  return key
+    .replace(/([a-z0-9])([A-Z])/gu, '$1_$2')
+    .replace(/[^a-z0-9]+/giu, '_')
+    .replace(/^_+|_+$/gu, '')
+    .toLowerCase();
+}
 
 function inspectVisible(value, readValue, recordKind, pathParts = []) {
   if (Array.isArray(value)) {
@@ -222,8 +230,11 @@ function inspectVisible(value, readValue, recordKind, pathParts = []) {
         pathParts.length === 1 &&
         pathParts[0] === 'query' &&
         key === 'target_principal';
-      if ((!publishedQueryTarget && forbiddenKey.test(key)) || forbiddenValue.test(key)) {
-        throw new Error(`observation leak: forbidden key ${key}`);
+      if (
+        (!publishedQueryTarget && forbiddenKeyFragment.test(normalizedKey(key))) ||
+        forbiddenValue.test(key)
+      ) {
+        throw new Error('observation leak: forbidden key');
       }
       inspectVisible(part, readValue, recordKind, [...pathParts, key]);
     }
@@ -402,6 +413,11 @@ function summarizeReference(rows) {
   };
 }
 
+function firstTerminalReason(transcript) {
+  const result = transcript.find(({ result }) => result.terminal || !result.ok)?.result;
+  return typeof result?.terminal === 'string' ? result.terminal : result?.reason;
+}
+
 export function preflight() {
   const cases = grid();
   const referenceRows = [];
@@ -426,11 +442,7 @@ export function preflight() {
       name,
       {
         successes: 0,
-        failure_checks: {
-          unauthorized: 0,
-          missed_by_query: 0,
-          protected_call_after_reset: 0,
-        },
+        first_terminal_reasons: {},
       },
     ]),
   );
@@ -452,9 +464,14 @@ export function preflight() {
     for (const [name, selector] of Object.entries(baselineSelectors)) {
       const baseline = runVisibleOffense(spec, selector);
       const result = baselineResults[name];
-      result.successes += Number(baseline.score.success);
-      for (const check of Object.keys(result.failure_checks)) {
-        result.failure_checks[check] += Number(!baseline.score.checks[check]);
+      if (baseline.score.success) {
+        result.successes += 1;
+      } else {
+        const reason = firstTerminalReason(baseline.transcript);
+        if (typeof reason !== 'string' || reason.length === 0) {
+          throw new Error(`unclassified shortcut failure: ${name}`);
+        }
+        result.first_terminal_reasons[reason] = (result.first_terminal_reasons[reason] ?? 0) + 1;
       }
     }
   }
