@@ -79,6 +79,14 @@ function cloudflareConfig(env) {
   return { endpoint, apiKey, model: REQUEST_SETTINGS.model_id };
 }
 
+export async function verifyManifestFile(filename) {
+  const manifestBytes = fs.readFileSync(filename);
+  const manifest = JSON.parse(manifestBytes.toString('utf8'));
+  const { verifyFrozenManifest } = await import('./preflight.mjs');
+  verifyFrozenManifest(manifest);
+  return hash(manifestBytes);
+}
+
 async function verifyManifest(mockReference, injectedChild) {
   if (!fs.existsSync(manifestPath)) {
     if (!mockReference && !injectedChild) {
@@ -86,11 +94,13 @@ async function verifyManifest(mockReference, injectedChild) {
     }
     return null;
   }
-  const manifestBytes = fs.readFileSync(manifestPath);
-  const manifest = JSON.parse(manifestBytes.toString('utf8'));
-  const { verifySourceBindings } = await import('./preflight.mjs');
-  verifySourceBindings(manifest);
-  return hash(manifestBytes);
+  return await verifyManifestFile(manifestPath);
+}
+
+async function assertManifestUnchanged(originalSha256) {
+  if (originalSha256 !== null && (await verifyManifestFile(manifestPath)) !== originalSha256) {
+    throw new Error('freeze manifest mismatch: changed during screen');
+  }
 }
 
 function childEnvironment(config, auditFile, mockReference, tempDir) {
@@ -245,6 +255,7 @@ export async function runScreen(options = {}) {
     for (const [index, spec] of SEEDS.flatMap((seed) =>
       FAMILIES.map((family) => ({ seed, family })),
     ).entries()) {
+      await assertManifestUnchanged(manifestSha256);
       if (!mockReference && lastStart !== null) {
         const remaining = REQUEST_SETTINGS.minimum_request_start_gap_ms - (clock() - lastStart);
         if (remaining > 0) {
@@ -302,6 +313,7 @@ export async function runScreen(options = {}) {
       results.push(result);
       const summary = summarize(results, manifestSha256);
       persist(output, summary, results);
+      await assertManifestUnchanged(manifestSha256);
       log(`offense ${spec.seed}/${spec.family}: ${result.classification}`);
       if (['provider_error', 'invalid_run'].includes(result.classification)) {
         break;

@@ -14,7 +14,7 @@ export function parseJsonOrNull(text) {
   }
 }
 
-function auditStart(body, startedMs, sequence) {
+function auditStart(body, startedMs, sequence, headers) {
   const parsed = parseJsonOrNull(body);
   return {
     event: 'start',
@@ -22,6 +22,7 @@ function auditStart(body, startedMs, sequence) {
     started_ms: startedMs,
     requested_model: parsed?.model ?? null,
     request_sha256: hash(body),
+    cache_bypass: headers.get('cf-aig-skip-cache') === 'true',
     request_settings: {
       max_tokens: parsed?.max_tokens ?? null,
       reasoning_effort: parsed?.reasoning_effort ?? null,
@@ -73,9 +74,11 @@ export function combineAudit(events) {
 
 export async function auditFetch(request, url, init, now, writeEvent, sequence) {
   const body = typeof init?.body === 'string' ? init.body : '';
-  writeEvent(auditStart(body, now(), sequence));
+  const headers = new Headers(init?.headers);
+  headers.set('cf-aig-skip-cache', 'true');
+  writeEvent(auditStart(body, now(), sequence, headers));
   try {
-    const response = await request(url, init);
+    const response = await request(url, { ...init, headers });
     const responseText = await response.clone().text();
     writeEvent(auditResponse(responseText, response.status, sequence));
     return response;

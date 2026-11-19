@@ -78,6 +78,7 @@ function validateTransport(audit, previousStart) {
       entry.request_settings?.temperature !== REQUEST_SETTINGS.temperature ||
       entry.request_settings?.stream !== REQUEST_SETTINGS.stream ||
       entry.request_settings?.messages_array !== true ||
+      entry.cache_bypass !== true ||
       !Number.isFinite(entry.started_ms)
     ) {
       return 'request-shape-mismatch';

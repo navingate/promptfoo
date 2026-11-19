@@ -9,7 +9,9 @@ import { fileURLToPath } from 'node:url';
 
 import { modelPrompt } from '../chain-v3/runner.mjs';
 import { FAMILIES } from '../shared/estate.mjs';
+import { auditFetch, combineAudit } from './audit.mjs';
 import { REQUEST_SETTINGS } from './config.mjs';
+import { buildFreezeManifest } from './preflight.mjs';
 import { classifyCase } from './result.mjs';
 import { runScreen as runRawScreen } from './screen.mjs';
 
@@ -148,6 +150,47 @@ async function withOutput(fn) {
     fs.rmSync(paths.dir, { recursive: true, force: true });
   }
 }
+
+test('production manifest loader rejects a partial or altered freeze before requests', async () => {
+  const { verifyManifestFile } = await import('./screen.mjs');
+  await withOutput(async ({ dir }) => {
+    const filename = path.join(dir, 'manifest.json');
+    const manifest = buildFreezeManifest();
+    const bytes = `${JSON.stringify(manifest, null, 2)}\n`;
+    fs.writeFileSync(filename, bytes);
+    assert.equal(await verifyManifestFile(filename), hashText(bytes));
+    delete manifest.grid;
+    fs.writeFileSync(filename, `${JSON.stringify(manifest, null, 2)}\n`);
+    await assert.rejects(
+      () => verifyManifestFile(filename),
+      /freeze manifest mismatch: field set/u,
+    );
+  });
+});
+
+test('final audited Cloudflare request bypasses cache and missing bypass is invalid', async () => {
+  const events = [];
+  let delivered;
+  await auditFetch(
+    async (_url, init) => {
+      delivered = init;
+      return providerResponse();
+    },
+    'https://gateway.example/v1/chat/completions',
+    { method: 'POST', headers: { authorization: 'Bearer fixture' }, body: requestBody() },
+    () => 0,
+    (event) => events.push(event),
+    1,
+  );
+  assert.equal(new Headers(delivered.headers).get('cf-aig-skip-cache'), 'true');
+  assert.equal(events[0].cache_bypass, true);
+  const audit = combineAudit(events);
+  audit[0].cache_bypass = false;
+  assert.equal(
+    classifyCase({ seed: 41021, family: FAMILIES[0] }, null, audit, false, null).reason,
+    'request-shape-mismatch',
+  );
+});
 
 test('served model echo must match the exact full model on every turn', async () => {
   await withOutput(async ({ output }) => {
@@ -819,7 +862,7 @@ test('the audit preload sees the v3 preload’s rewritten request without a mode
     const audit = path.join(dir, 'audit.jsonl');
     fs.writeFileSync(
       stub,
-      `let tick = 0; let reads = 0; Date.now = () => { reads += 1; if (reads === 2) tick += 2; return tick; }; globalThis.setTimeout = (callback, ms) => { tick += ms; queueMicrotask(callback); }; globalThis.fetch = async () => new Response(JSON.stringify({ model: '${model}', choices: [{ message: { content: '{"tool":"list-applications"}' }, finish_reason: 'stop' }] }), { status: 200 });\n`,
+      `let tick = 0; let reads = 0; Date.now = () => { reads += 1; if (reads === 2) tick += 2; return tick; }; globalThis.setTimeout = (callback, ms) => { tick += ms; queueMicrotask(callback); }; globalThis.fetch = async (_url, init) => { if (new Headers(init.headers).get('cf-aig-skip-cache') !== 'true') throw new Error('cache bypass missing'); return new Response(JSON.stringify({ model: '${model}', choices: [{ message: { content: '{"tool":"list-applications"}' }, finish_reason: 'stop' }] }), { status: 200 }); };\n`,
     );
     fs.writeFileSync(audit, '', { mode: 0o600 });
     const originalBody = JSON.stringify({
