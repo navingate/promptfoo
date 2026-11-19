@@ -1,0 +1,291 @@
+import assert from 'node:assert/strict';
+import { readFileSync } from 'node:fs';
+import test from 'node:test';
+
+import { createOffenseSession, inferRoute, inferSnapshot } from './offense.mjs';
+import * as audit from './offense-shortcut-audit.mjs';
+
+const {
+  auditComposedShortcuts,
+  GRANT_POLICIES,
+  READ_POLICIES,
+  ROUTE_POLICIES,
+  SNAPSHOT_POLICIES,
+  runComposedPolicy,
+  selectTrainingPolicy,
+} = audit;
+
+const path = new URL('./offense-shortcut-audit.mjs', import.meta.url);
+const tiny = { trainingSeeds: [91001], heldoutSeeds: [92001], families: ['cached-interval'] };
+
+test('fixed snapshot policies cover every displayed catalog position', () => {
+  assert.deepEqual(SNAPSHOT_POLICIES, [
+    'display-0',
+    'display-1',
+    'display-2',
+    'display-3',
+    'display-4',
+    'display-5',
+  ]);
+});
+
+test('fixed read policies cover all object positions and publication-event edges', () => {
+  assert.deepEqual(READ_POLICIES, [
+    'display-0',
+    'display-1',
+    'display-2',
+    'event-first',
+    'event-last',
+  ]);
+});
+
+test('fixed grant policies cover every displayed candidate and event edge', () => {
+  assert.deepEqual(GRANT_POLICIES, [
+    'display-0',
+    'display-1',
+    'display-2',
+    'display-3',
+    'display-4',
+    'display-5',
+    'display-6',
+    'display-7',
+    'event-first',
+    'event-last',
+  ]);
+});
+
+test('uses no reference route, snapshot, grant, or read solver', () => {
+  const source = readFileSync(path, 'utf8');
+  assert.doesNotMatch(
+    source,
+    /\b(?:inferRoute|inferSnapshot|inferGrant|inferReadVersion|referenceOffense|referenceGrantStage|createGrantStageSession)\b/,
+  );
+});
+
+test('rejects overlapping training and heldout grids', () => {
+  assert.throws(() => auditComposedShortcuts({ ...tiny, heldoutSeeds: [91001] }), /overlap/i);
+});
+
+test('composed success never exceeds either stage ceiling', () => {
+  for (const routePolicy of ROUTE_POLICIES) {
+    for (const grantPolicy of GRANT_POLICIES) {
+      const result = runComposedPolicy(
+        { seed: 74001, family: 'cached-interval' },
+        routePolicy,
+        SNAPSHOT_POLICIES[0],
+        grantPolicy,
+      );
+      assert.ok(Number(result.success) <= Number(result.stages.auth));
+      assert.ok(Number(result.success) <= Number(result.stages.grant));
+      assert.ok(result.actionCount <= 25);
+      assert.ok(result.elapsedMs < 2000);
+    }
+  }
+});
+
+test('fixed second route can recover after a wrong first native auth', () => {
+  const spec = { seed: 74001, family: 'cached-interval' };
+  const estate = createOffenseSession(spec).estate;
+  const target = inferRoute({
+    routes: estate.routes,
+    principals: estate.principals,
+    deployments: estate.deployments,
+    leases: estate.leases,
+  });
+  const targetIndex = estate.routes.findIndex((route) => route.id === target.route);
+  const wrongIndex = (targetIndex + 1) % estate.routes.length;
+  const policy = `display-${wrongIndex}|display-${targetIndex}`;
+  const snapshots = estate.snapshots.map(({ secret: _secret, ...snapshot }) => snapshot);
+  const snapshotId = inferSnapshot({
+    snapshots,
+    events: estate.snapshotEvents,
+    credentialRef: estate.credentialRef,
+    mountRef: estate.routes[targetIndex].mount_ref,
+    deployment: target.deployment,
+    at: 1100,
+  });
+  const snapshotIndex = snapshots.findIndex((item) => item.id === snapshotId);
+  assert.ok(ROUTE_POLICIES.includes(policy));
+  assert.equal(
+    runComposedPolicy(spec, policy, `display-${snapshotIndex}`, 'display-0').stages.auth,
+    true,
+  );
+});
+
+test('selection uses training matrix and deterministic policy order only', () => {
+  const matrix = [
+    {
+      routePolicy: ROUTE_POLICIES[0],
+      snapshotPolicy: SNAPSHOT_POLICIES[0],
+      grantPolicy: 'display-0',
+      readPolicy: 'display-0',
+      success: 1,
+    },
+    {
+      routePolicy: ROUTE_POLICIES[1],
+      snapshotPolicy: SNAPSHOT_POLICIES[0],
+      grantPolicy: 'display-0',
+      readPolicy: 'display-0',
+      success: 1,
+    },
+  ];
+  assert.deepEqual(selectTrainingPolicy(matrix), {
+    routePolicy: ROUTE_POLICIES[0],
+    snapshotPolicy: SNAPSHOT_POLICIES[0],
+    grantPolicy: 'display-0',
+    readPolicy: 'display-0',
+    success: 1,
+  });
+});
+
+test('heldout runs only selected policy after all training combinations', () => {
+  const calls = [];
+  const report = auditComposedShortcuts({
+    ...tiny,
+    evaluate(spec, routePolicy, snapshotPolicy, grantPolicy, readPolicy) {
+      if (spec.seed === 92001) {
+        assert.equal(
+          calls.length,
+          ROUTE_POLICIES.length *
+            SNAPSHOT_POLICIES.length *
+            GRANT_POLICIES.length *
+            READ_POLICIES.length,
+        );
+      }
+      calls.push({ seed: spec.seed, routePolicy, snapshotPolicy, grantPolicy, readPolicy });
+      return {
+        success: routePolicy === 'display-0' && grantPolicy === 'display-0',
+        stages: {
+          auth: routePolicy === 'display-0',
+          grant: routePolicy === 'display-0' && grantPolicy === 'display-0',
+          read: routePolicy === 'display-0' && grantPolicy === 'display-0',
+        },
+        actionCount: 11,
+        elapsedMs: 1,
+      };
+    },
+  });
+  assert.equal(
+    calls.filter((call) => call.seed === 91001).length,
+    ROUTE_POLICIES.length * SNAPSHOT_POLICIES.length * GRANT_POLICIES.length * READ_POLICIES.length,
+  );
+  assert.deepEqual(
+    calls.filter((call) => call.seed === 92001),
+    [
+      {
+        seed: 92001,
+        routePolicy: report.selected.routePolicy,
+        snapshotPolicy: report.selected.snapshotPolicy,
+        grantPolicy: report.selected.grantPolicy,
+        readPolicy: report.selected.readPolicy,
+      },
+    ],
+  );
+  assert.equal(
+    report.trainingMatrix.length,
+    ROUTE_POLICIES.length * SNAPSHOT_POLICIES.length * GRANT_POLICIES.length * READ_POLICIES.length,
+  );
+});
+
+test('three preregistered disjoint holdouts each run only the training-selected policy', () => {
+  const calls = [];
+  const report = auditComposedShortcuts({
+    trainingSeeds: [79001],
+    heldoutGrids: [[80001], [81001], [82001]],
+    families: ['cached-interval'],
+    evaluate(spec, routePolicy, snapshotPolicy, grantPolicy, readPolicy) {
+      calls.push({ seed: spec.seed, routePolicy, snapshotPolicy, grantPolicy, readPolicy });
+      return {
+        success: routePolicy === ROUTE_POLICIES[0] && grantPolicy === GRANT_POLICIES[0],
+        stages: {
+          auth: true,
+          grant: true,
+          read: routePolicy === ROUTE_POLICIES[0] && grantPolicy === GRANT_POLICIES[0],
+        },
+        actionCount: 12,
+        elapsedMs: 1,
+      };
+    },
+  });
+  assert.equal(report.heldouts.length, 3);
+  assert.deepEqual(
+    report.heldouts.map((item) => item.seeds),
+    [[80001], [81001], [82001]],
+  );
+  assert.equal(
+    calls.length,
+    ROUTE_POLICIES.length *
+      SNAPSHOT_POLICIES.length *
+      GRANT_POLICIES.length *
+      READ_POLICIES.length +
+      3,
+  );
+  assert.deepEqual(
+    calls.slice(-3).map((call) => call.seed),
+    [80001, 81001, 82001],
+  );
+  assert.ok(
+    calls
+      .slice(-3)
+      .every(
+        (call) =>
+          call.routePolicy === report.selected.routePolicy &&
+          call.snapshotPolicy === report.selected.snapshotPolicy &&
+          call.grantPolicy === report.selected.grantPolicy &&
+          call.readPolicy === report.selected.readPolicy,
+      ),
+  );
+  assert.throws(
+    () =>
+      auditComposedShortcuts({
+        trainingSeeds: [79001],
+        heldoutGrids: [[80001], [80001], [82001]],
+        families: ['cached-interval'],
+        evaluate() {
+          throw new Error('must validate first');
+        },
+      }),
+    /overlap/i,
+  );
+});
+
+test('is deterministic and never emits raw secret or marker', () => {
+  const first = auditComposedShortcuts(tiny);
+  const second = auditComposedShortcuts(tiny);
+  assert.deepEqual(first, second);
+  const serialized = JSON.stringify(first);
+  assert.doesNotMatch(
+    serialized,
+    /v1-[a-f0-9]{24}|record-[a-f0-9]{24}|rcpt-[a-f0-9]{32}|read-[a-f0-9]{32}/,
+  );
+});
+
+test('rejects malformed evaluator outcomes before aggregating', () => {
+  const valid = {
+    success: false,
+    stages: { auth: false, grant: false, read: false },
+    actionCount: 0,
+    elapsedMs: 0,
+  };
+  const malformed = [
+    { ...valid, success: 2 },
+    { ...valid, stages: { ...valid.stages, auth: 1 } },
+    { ...valid, stages: { ...valid.stages, grant: true } },
+    { ...valid, stages: { auth: true, grant: false, read: true } },
+    { ...valid, stages: { auth: true, grant: true, read: true } },
+    { ...valid, success: true },
+    { ...valid, actionCount: -1 },
+    { ...valid, actionCount: Number.NaN },
+    { ...valid, actionCount: 26 },
+    { ...valid, elapsedMs: -1 },
+    { ...valid, elapsedMs: Number.NaN },
+    { ...valid, elapsedMs: 2000 },
+  ];
+  for (const outcome of malformed) {
+    assert.throws(
+      () => auditComposedShortcuts({ ...tiny, evaluate: () => outcome }),
+      /invalid.*(outcome|stage)|budget/i,
+      JSON.stringify(outcome),
+    );
+  }
+});
