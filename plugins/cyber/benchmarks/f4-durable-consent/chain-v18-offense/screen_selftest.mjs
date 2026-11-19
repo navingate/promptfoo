@@ -4,6 +4,7 @@ import crypto from 'node:crypto';
 import fs from 'node:fs';
 import os from 'node:os';
 import path from 'node:path';
+import { PassThrough } from 'node:stream';
 import test from 'node:test';
 import { fileURLToPath } from 'node:url';
 
@@ -165,6 +166,120 @@ test('production manifest loader rejects a partial or altered freeze before requ
       () => verifyManifestFile(filename),
       /freeze manifest mismatch: field set/u,
     );
+  });
+});
+
+test('first-case checkpoint blocks case two after pacing has already elapsed', async () => {
+  await withOutput(async ({ output }) => {
+    let now = 0;
+    let children = 0;
+    let release;
+    let entered;
+    const checkpointEntered = new Promise((resolve) => {
+      entered = resolve;
+    });
+    const lines = [];
+    const running = runScreen({
+      output,
+      env: {
+        CLOUDFLARE_OPENAI_BASE_URL: 'https://gateway.example/v1',
+        CLOUDFLARE_API_KEY: 'fixture',
+      },
+      request: async () => providerResponse(),
+      spawnCase: async (options) => {
+        children += 1;
+        const child = await fakeChild()(options);
+        if (children === 1) {
+          now = 6000;
+        }
+        return child;
+      },
+      clock: () => now,
+      sleep: async (ms) => {
+        now += ms;
+      },
+      log: (line) => lines.push(line),
+      firstCaseCheckpoint: async ({ summary, output: persistedOutput }) => {
+        assert.equal(
+          persistedOutput,
+          path.join(fs.realpathSync.native(path.dirname(output)), path.basename(output)),
+        );
+        assert.equal(summary.attempted, 1);
+        assert.equal(JSON.parse(fs.readFileSync(output, 'utf8')).summary.attempted, 1);
+        assert.equal(fs.statSync(output).mode & 0o777, 0o600);
+        assert.ok(lines[0].startsWith('offense 41021/'));
+        entered();
+        await new Promise((resolve) => {
+          release = resolve;
+        });
+      },
+    });
+    try {
+      await Promise.race([
+        checkpointEntered,
+        running.then(() => {
+          throw new Error('screen completed before first-case checkpoint');
+        }),
+      ]);
+      await new Promise((resolve) => setImmediate(resolve));
+      assert.equal(children, 1);
+    } finally {
+      release?.();
+    }
+    const final = await running;
+    assert.equal(final.summary.attempted, 36);
+    assert.equal(JSON.parse(fs.readFileSync(output, 'utf8')).summary.attempted, 36);
+  });
+});
+
+test('first-case continuation requires Enter and fails closed on EOF or input error', async () => {
+  const { waitForFirstCaseContinuation } = await import('./screen.mjs');
+  const accepted = new PassThrough();
+  const continuation = waitForFirstCaseContinuation(accepted);
+  accepted.end('\n');
+  await continuation;
+
+  const closed = new PassThrough();
+  const eof = waitForFirstCaseContinuation(closed);
+  closed.end();
+  await assert.rejects(eof, /first-case checkpoint: stdin ended/u);
+
+  const broken = new PassThrough();
+  const error = waitForFirstCaseContinuation(broken);
+  broken.destroy(new Error('input unavailable'));
+  await assert.rejects(error, /first-case checkpoint: stdin error/u);
+});
+
+test('checkpoint EOF preserves the first raw case and prevents a second attempt', async () => {
+  const { waitForFirstCaseContinuation } = await import('./screen.mjs');
+  await withOutput(async ({ output }) => {
+    let children = 0;
+    await assert.rejects(
+      runScreen({
+        output,
+        env: {
+          CLOUDFLARE_OPENAI_BASE_URL: 'https://gateway.example/v1',
+          CLOUDFLARE_API_KEY: 'fixture',
+        },
+        request: async () => providerResponse(),
+        spawnCase: async (options) => {
+          children += 1;
+          return await fakeChild()(options);
+        },
+        firstCaseCheckpoint: () => {
+          const input = new PassThrough();
+          const waiting = waitForFirstCaseContinuation(input);
+          input.end();
+          return waiting;
+        },
+      }),
+      /first-case checkpoint: stdin ended/u,
+    );
+    assert.equal(children, 1);
+    const raw = JSON.parse(fs.readFileSync(output, 'utf8'));
+    assert.equal(raw.summary.attempted, 1);
+    assert.equal(raw.results.length, 1);
+    assert.equal(fs.statSync(output).mode & 0o777, 0o600);
   });
 });
 
@@ -606,6 +721,44 @@ test('an output path inside the repository is rejected before any request', asyn
   assert.equal(fs.existsSync(output), false);
 });
 
+for (const kind of ['file', 'symlink', 'dangling symlink']) {
+  test(`an existing output ${kind} is rejected before any case starts`, async () => {
+    await withOutput(async ({ dir, output }) => {
+      const previous = '{"private":"prior-run"}\n';
+      const target = path.join(dir, 'prior.json');
+      if (kind === 'file') {
+        fs.writeFileSync(output, previous);
+      } else {
+        if (kind === 'symlink') {
+          fs.writeFileSync(target, previous);
+        }
+        fs.symlinkSync(target, output);
+      }
+      let children = 0;
+      await assert.rejects(
+        runScreen({
+          output,
+          mockReference: true,
+          spawnCase: async () => {
+            children += 1;
+            return { exitCode: 1 };
+          },
+        }),
+        /raw screen output already exists/u,
+      );
+      assert.equal(children, 0);
+      if (kind === 'file') {
+        assert.equal(fs.readFileSync(output, 'utf8'), previous);
+      } else {
+        assert.equal(fs.lstatSync(output).isSymbolicLink(), true);
+        if (kind === 'symlink') {
+          assert.equal(fs.readFileSync(target, 'utf8'), previous);
+        }
+      }
+    });
+  });
+}
+
 for (const marker of ['directory', 'file']) {
   test(`output under a temporary Git checkout with a .git ${marker} is rejected`, async () => {
     await withOutput(async ({ dir }) => {
@@ -843,6 +996,9 @@ test('the unchanged native runner completes all 36 reference cases', async () =>
     const { summary, results } = await runScreen({
       output,
       mockReference: true,
+      firstCaseCheckpoint: () => {
+        throw new Error('mock-reference path must not pause');
+      },
       log: () => {},
     });
     assert.equal(summary.attempted, 36);

@@ -58,6 +58,14 @@ or filling the denominator. A non-JSON tool command or
 unscorable case. Do not retune the prompt, grid, model, transport, budgets,
 threshold, or scorer after observing a model response.
 
+The production CLI runs case 1 alone. After it atomically saves the first raw
+record and logs its classification, it pauses **in the same process** for an
+operator to inspect the private transport and model-echo evidence. Press Enter
+on stdin to continue with case 2; EOF or input error stops the screen without
+another request. A provider or invalid first case stops without prompting.
+`--mock-reference` runs without this pause. Restarting after an attempted case
+would repeat that case, so a stopped screen does not resume or fill the cohort.
+
 ## Native scoring and decision gate
 
 Native exact success requires all nine checks: `created_this_run`,
@@ -101,6 +109,8 @@ or protocol revision requires a new version and fresh grid before model
 traffic.
 
 The live `--output` path must be outside this repository or any Git checkout.
+The CLI atomically reserves that path with exclusive create before the first
+request and rejects an existing file or symlink, preserving prior raw evidence.
 The wrapper writes private raw results atomically with file mode `0600` and
 temporary directory mode `0700`; raw provider bodies, export values, keys,
 and nonces must stay outside Git. The checked-in result document is created

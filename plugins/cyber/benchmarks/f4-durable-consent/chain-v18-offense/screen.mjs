@@ -62,6 +62,23 @@ function validateOutput(output) {
   return path.join(canonicalParent, path.basename(resolved));
 }
 
+function reserveOutput(output) {
+  let handle;
+  try {
+    handle = fs.openSync(output, 'wx', 0o600);
+    fs.fchmodSync(handle, 0o600);
+  } catch (error) {
+    if (error?.code === 'EEXIST') {
+      throw new Error('raw screen output already exists');
+    }
+    throw error;
+  } finally {
+    if (handle !== undefined) {
+      fs.closeSync(handle);
+    }
+  }
+}
+
 function validateTemporaryRoot(root) {
   const canonical = fs.realpathSync.native(root);
   if (inside(fs.realpathSync.native(repoRoot), canonical) || gitCheckoutAncestor(canonical)) {
@@ -234,6 +251,61 @@ function corruptAuditCase(spec, child, rawEvents) {
   };
 }
 
+export function waitForFirstCaseContinuation(input = process.stdin) {
+  return new Promise((resolve, reject) => {
+    if (input.readableEnded || input.destroyed) {
+      reject(new Error('first-case checkpoint: stdin ended'));
+      return;
+    }
+    let line = '';
+    const cleanup = () => {
+      input.off('data', onData);
+      input.off('end', onEnd);
+      input.off('close', onEnd);
+      input.off('error', onError);
+      input.pause();
+    };
+    const fail = (message) => {
+      cleanup();
+      reject(new Error(message));
+    };
+    const onData = (chunk) => {
+      line += String(chunk);
+      const newline = line.indexOf('\n');
+      if (newline >= 0) {
+        const submitted = line.slice(0, newline).replace(/\r$/u, '');
+        cleanup();
+        if (submitted === '') {
+          resolve();
+        } else {
+          reject(new Error('first-case checkpoint: press Enter without text'));
+        }
+      } else if (line.length > 128) {
+        fail('first-case checkpoint: input too long');
+      }
+    };
+    const onEnd = () => fail('first-case checkpoint: stdin ended');
+    const onError = () => fail('first-case checkpoint: stdin error');
+    input.on('data', onData);
+    input.once('end', onEnd);
+    input.once('close', onEnd);
+    input.once('error', onError);
+    input.resume();
+  });
+}
+
+function firstCaseCheckpoint(options, injectedChild, log) {
+  return (
+    options.firstCaseCheckpoint ??
+    (injectedChild
+      ? null
+      : async () => {
+          log('First case saved. Inspect private output, then press Enter to continue.');
+          await waitForFirstCaseContinuation();
+        })
+  );
+}
+
 export async function runScreen(options = {}) {
   const output = validateOutput(options.output);
   const tempRoot = validateTemporaryRoot(options.tempRoot ?? os.tmpdir());
@@ -244,6 +316,7 @@ export async function runScreen(options = {}) {
   const clock = options.clock ?? Date.now;
   const sleep = options.sleep ?? ((ms) => new Promise((resolve) => setTimeout(resolve, ms)));
   const log = options.log ?? ((line) => process.stdout.write(`${line}\n`));
+  const checkpoint = firstCaseCheckpoint(options, injectedChild, log);
   const spawnCase = options.spawnCase ?? spawnNativeCase;
   const request = options.request;
   const tempDir = fs.mkdtempSync(path.join(tempRoot, 'f4-v18-offense-'));
@@ -252,6 +325,7 @@ export async function runScreen(options = {}) {
   let lastStart = null;
   let lastObservedStart = null;
   try {
+    reserveOutput(output);
     for (const [index, spec] of SEEDS.flatMap((seed) =>
       FAMILIES.map((family) => ({ seed, family })),
     ).entries()) {
@@ -317,6 +391,9 @@ export async function runScreen(options = {}) {
       log(`offense ${spec.seed}/${spec.family}: ${result.classification}`);
       if (['provider_error', 'invalid_run'].includes(result.classification)) {
         break;
+      }
+      if (index === 0 && !mockReference) {
+        await checkpoint?.({ output, summary, result });
       }
     }
   } finally {
