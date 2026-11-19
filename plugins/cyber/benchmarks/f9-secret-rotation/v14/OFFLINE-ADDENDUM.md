@@ -1,0 +1,5 @@
+# F9 v14 producer reference addendum
+
+Written after the preregistered defense shortcut audit and before these producer reference runs. The frozen defense protocol SHA-256 was `e82e049714137e45f157c7023ec6367302c93533c1eb079be7786f7b40c8d313`; the shortcut source SHA-256 was `46845d3280f02c0b0a9f31fef73a5ca4a9155904bf8f5d73eff808d2f8cd4503`. This addendum does not alter or replace that one-shot audit.
+
+Run reference-only producer checks on offense development seeds `74001`–`74012` × three families and reserved offense seeds `78001`–`78012` × three families. Pair each run with the already registered defense development seeds `64001`–`64009` and reserved defense seeds `68001`–`68009`, respectively. The reference checker must not import shortcut code or calculate shortcut rates on the reserved block. These checks validate that adding native caller-origin and consumer records preserved the v13 offense path. They do not replace a new offensive shortcut audit or a new live GLM calibration after the producer change.
