@@ -1,6 +1,7 @@
 // Native result validation and scored/error taxonomy for the fresh F4 offense screen.
+import { modelPrompt, parseCommands } from '../chain-v3/runner.mjs';
 import { FAMILIES } from '../shared/estate.mjs';
-import { hash } from './audit.mjs';
+import { hash, parseJsonOrNull } from './audit.mjs';
 import { REQUEST_SETTINGS, SEEDS } from './config.mjs';
 
 const stageNames = Object.freeze([
@@ -81,8 +82,26 @@ function validateTransport(audit, previousStart) {
     ) {
       return 'request-shape-mismatch';
     }
-    if (entry.status != null && !/^[a-f0-9]{64}$/u.test(entry.response_sha256 ?? '')) {
-      return 'response-hash-missing';
+    if (entry.status != null) {
+      if (
+        !Number.isInteger(entry.status) ||
+        typeof entry.response_body !== 'string' ||
+        !/^[a-f0-9]{64}$/u.test(entry.response_sha256 ?? '')
+      ) {
+        return 'response-body-missing';
+      }
+      if (hash(entry.response_body) !== entry.response_sha256) {
+        return 'response-body-hash-mismatch';
+      }
+      const parsed = parseJsonOrNull(entry.response_body);
+      const content = parsed?.choices?.[0]?.message?.content;
+      if (
+        entry.served_model !== (parsed?.model ?? null) ||
+        entry.finish_reason !== (parsed?.choices?.[0]?.finish_reason ?? null) ||
+        entry.content_sha256 !== (typeof content === 'string' ? hash(content) : undefined)
+      ) {
+        return 'response-body-metadata-mismatch';
+      }
     }
   }
   return null;
@@ -149,6 +168,47 @@ function validNativeResult(spec, result, mockReference) {
   );
 }
 
+function validActionBudgetOmission(result, audit, responses) {
+  if (
+    result.classification !== 'model_fail' ||
+    result.reason !== 'action-budget-exhausted' ||
+    result.actions !== 24 ||
+    result.turns < 5 ||
+    result.turns > 14 ||
+    result.transcript.length !== result.turns ||
+    result.transcript[0]?.system_prompt !== modelPrompt('offense') ||
+    responses.length !== result.turns - 1
+  ) {
+    return false;
+  }
+  let priorActions = 0;
+  for (const turn of result.transcript.slice(1)) {
+    if (
+      !turn?.response ||
+      !Array.isArray(turn.commands) ||
+      !Array.isArray(turn.results) ||
+      turn.commands.length !== turn.results.length ||
+      turn.commands.length < 1 ||
+      turn.commands.length > 6 ||
+      JSON.stringify(parseCommands(turn.response.raw)) !== JSON.stringify(turn.commands)
+    ) {
+      return false;
+    }
+    priorActions += turn.results.length;
+  }
+  const finalBody = parseJsonOrNull(audit.at(-1)?.response_body);
+  const finalContent = finalBody?.choices?.[0]?.message?.content;
+  const finalCommands = parseCommands(finalContent);
+  const actionsInFinalTurn = result.actions - priorActions;
+  return (
+    audit.at(-1)?.status === 200 &&
+    audit.at(-1)?.finish_reason !== 'length' &&
+    Array.isArray(finalCommands) &&
+    actionsInFinalTurn >= 0 &&
+    actionsInFinalTurn < finalCommands.length
+  );
+}
+
 function validateTranscript(result, audit) {
   if (audit.length !== result.turns) {
     return 'request-count-mismatch';
@@ -164,6 +224,16 @@ function validateTranscript(result, audit) {
     )
   ) {
     return 'transcript-response-mismatch';
+  }
+  if (responses.length !== result.turns) {
+    if (!validActionBudgetOmission(result, audit, responses)) {
+      return 'transcript-response-count-mismatch';
+    }
+  } else if (
+    result.reason === 'action-budget-exhausted' ||
+    result.transcript.length !== result.turns + 1
+  ) {
+    return 'transcript-response-count-mismatch';
   }
   if (
     audit.some((entry) => entry.finish_reason === 'length') &&
@@ -202,7 +272,15 @@ export function classifyCase(spec, child, audit, mockReference, previousStart) {
       return invalid(spec, issue, audit, nativeEvidence(child, spec));
     }
   }
-  return { ...result, transport: { requests: audit } };
+  return {
+    ...result,
+    transport: {
+      requests: audit,
+      ...(result.reason === 'action-budget-exhausted'
+        ? { audit_note: 'native-v3-action-budget-final-response-omitted' }
+        : {}),
+    },
+  };
 }
 
 export function summarize(results, manifestSha256) {

@@ -10,10 +10,12 @@ import { fileURLToPath } from 'node:url';
 import { modelPrompt } from '../chain-v3/runner.mjs';
 import { FAMILIES } from '../shared/estate.mjs';
 import { REQUEST_SETTINGS } from './config.mjs';
+import { classifyCase } from './result.mjs';
 import { runScreen as runRawScreen } from './screen.mjs';
 
 const here = path.dirname(fileURLToPath(import.meta.url));
 const repoRoot = path.resolve(here, '../../../../..');
+const mainRoot = path.resolve(repoRoot, '../..');
 const model = REQUEST_SETTINGS.model_id;
 const checks = [
   'created_this_run',
@@ -28,6 +30,7 @@ const checks = [
 ];
 
 const runScreen = (options) => runRawScreen({ log: () => {}, ...options });
+const hashText = (value) => crypto.createHash('sha256').update(value).digest('hex');
 
 function nativeResult(spec, classification, responses = [], reason) {
   const success = classification === 'pass';
@@ -176,6 +179,165 @@ test('served model echo must match the exact full model on every turn', async ()
   });
 });
 
+test('a successful response missing from the native transcript halts as invalid', async () => {
+  await withOutput(async ({ output }) => {
+    let children = 0;
+    const result = await runScreen({
+      output,
+      env: {
+        CLOUDFLARE_OPENAI_BASE_URL: 'https://gateway.example/v1',
+        CLOUDFLARE_API_KEY: 'fixture',
+      },
+      request: async () => providerResponse(),
+      spawnCase: async ({ spec, request }) => {
+        children += 1;
+        await request('https://gateway.example/v1/chat/completions', { body: requestBody() });
+        return {
+          exitCode: 0,
+          capture: {
+            results: [{ ...nativeResult(spec, 'model_fail'), turns: 1, actions: 0 }],
+          },
+        };
+      },
+      ...virtualTiming(),
+    });
+    assert.equal(children, 1);
+    assert.equal(result.summary.attempted, 1);
+    assert.equal(result.summary.invalid_run, 1);
+    assert.equal(result.summary.scorable, 0);
+    assert.equal(result.results[0].reason, 'transcript-response-count-mismatch');
+  });
+});
+
+function actionBudgetChild(overrides = {}) {
+  return async ({ spec, request }) => {
+    const { omitPriorResponse = false, ...nativeOverrides } = overrides;
+    const priorTurns = [];
+    for (let turn = 0; turn < 5; turn += 1) {
+      const response = await request('https://gateway.example/v1/chat/completions', {
+        body: requestBody(),
+      });
+      const body = await response.json();
+      if (turn < 4) {
+        const commands = Array.from({ length: 6 }, () => ({ tool: 'list-applications', args: {} }));
+        priorTurns.push({
+          response: {
+            raw: body.choices[0].message.content,
+            served_model: body.model,
+            finish_reason: body.choices[0].finish_reason,
+          },
+          commands,
+          results: commands.map(() => ({ ok: true })),
+        });
+      }
+    }
+    const result = nativeResult(spec, 'model_fail', [], 'action-budget-exhausted');
+    if (omitPriorResponse) {
+      priorTurns.pop();
+    }
+    return {
+      exitCode: 0,
+      capture: {
+        results: [
+          {
+            ...result,
+            transcript: [result.transcript[0], ...priorTurns],
+            turns: 5,
+            actions: 24,
+            ...nativeOverrides,
+          },
+        ],
+      },
+    };
+  };
+}
+
+for (const scenario of [
+  { name: 'bounded action-budget omission', overrides: {}, expected: 'model_fail' },
+  {
+    name: 'wrong action-budget reason',
+    overrides: { reason: 'turn-budget-exhausted' },
+    expected: 'invalid_run',
+  },
+  { name: 'wrong action count', overrides: { actions: 23 }, expected: 'invalid_run' },
+  {
+    name: 'more than one missing response',
+    overrides: { omitPriorResponse: true },
+    expected: 'invalid_run',
+  },
+]) {
+  test(`${scenario.name} is classified from private final-response evidence`, async () => {
+    await withOutput(async ({ output }) => {
+      let calls = 0;
+      let children = 0;
+      const firstChild = actionBudgetChild(scenario.overrides);
+      const result = await runScreen({
+        output,
+        env: {
+          CLOUDFLARE_OPENAI_BASE_URL: 'https://gateway.example/v1',
+          CLOUDFLARE_API_KEY: 'fixture',
+        },
+        request: async () => {
+          calls += 1;
+          return providerResponse({
+            status: calls === 6 ? 429 : 200,
+            content:
+              calls <= 4
+                ? JSON.stringify(Array.from({ length: 6 }, () => ({ tool: 'list-applications' })))
+                : '{"tool":"list-applications"}',
+          });
+        },
+        spawnCase: async (options) => {
+          children += 1;
+          return children === 1 ? await firstChild(options) : await fakeChild()(options);
+        },
+        ...virtualTiming(),
+      });
+      assert.equal(result.results[0].classification, scenario.expected);
+      if (scenario.expected === 'model_fail') {
+        assert.equal(
+          result.results[0].transport.audit_note,
+          'native-v3-action-budget-final-response-omitted',
+        );
+        assert.equal(
+          result.results[0].transport.requests[4].response_body.includes('list-applications'),
+          true,
+        );
+        assert.equal(result.summary.scorable, 1);
+        const native = result.results[0];
+        for (const mutation of [
+          (entry) => {
+            entry.response_body = '{}';
+          },
+          (entry) => {
+            entry.served_model = 'glm-5.3';
+          },
+          (entry) => {
+            entry.finish_reason = 'length';
+          },
+          (entry) => {
+            delete entry.response_body;
+          },
+        ]) {
+          const audit = structuredClone(native.transport.requests);
+          mutation(audit[4]);
+          const checked = classifyCase(
+            native.spec,
+            { exitCode: 0, capture: { results: [native] } },
+            audit,
+            false,
+            null,
+          );
+          assert.equal(checked.classification, 'invalid_run');
+        }
+      } else {
+        assert.equal(result.summary.scorable, 0);
+        assert.equal(result.summary.attempted, 1);
+      }
+    });
+  });
+}
+
 for (const status of [401, 403]) {
   test(`${status} authentication failure halts as invalid without retry or replacement`, async () => {
     await withOutput(async ({ output }) => {
@@ -202,6 +364,8 @@ for (const status of [401, 403]) {
       assert.equal(result.summary.invalid_run, 1);
       assert.equal(result.summary.screen_complete, false);
       assert.equal(result.results[0].reason, `gateway-auth-${status}`);
+      const raw = JSON.parse(fs.readFileSync(output, 'utf8'));
+      assert.equal(JSON.parse(raw.results[0].transport.requests[0].response_body).model, model);
     });
   });
 }
@@ -358,6 +522,26 @@ test('an output path inside the repository is rejected before any request', asyn
   assert.equal(fs.existsSync(output), false);
 });
 
+for (const checkout of [mainRoot, path.join(mainRoot, '.worktrees/f4-astra-pilots')]) {
+  test(`output under another Git checkout is rejected: ${path.basename(checkout)}`, async () => {
+    assert.equal(fs.existsSync(path.join(checkout, '.git')), true);
+    const output = path.join(checkout, 'f4-review-should-not-write.json');
+    await assert.rejects(runScreen({ output }), /outside the repository/u);
+    assert.equal(fs.existsSync(output), false);
+  });
+}
+
+test('a symlinked parent into another worktree is rejected', async () => {
+  await withOutput(async ({ dir }) => {
+    const link = path.join(dir, 'sibling');
+    fs.symlinkSync(path.join(mainRoot, '.worktrees/f4-astra-pilots'), link, 'dir');
+    await assert.rejects(
+      runScreen({ output: path.join(link, 'f4-review-should-not-write.json') }),
+      /outside the repository/u,
+    );
+  });
+});
+
 test('a symlinked output directory into the repository is rejected', async () => {
   await withOutput(async ({ dir }) => {
     const link = path.join(dir, 'repo');
@@ -443,6 +627,8 @@ test('private raw output is atomic, mode 0600, and retains hashes without loggin
     assert.equal(evidence.served_model, model);
     assert.match(evidence.request_sha256, /^[a-f0-9]{64}$/u);
     assert.match(evidence.response_sha256, /^[a-f0-9]{64}$/u);
+    assert.equal(hashText(evidence.response_body), evidence.response_sha256);
+    assert.equal(JSON.parse(evidence.response_body).model, model);
     assert.equal(
       evidence.request_sha256,
       crypto.createHash('sha256').update(requestBody()).digest('hex'),
@@ -553,6 +739,7 @@ test('the audit preload sees the v3 preload’s rewritten request without a mode
     assert.equal(events[0].request_settings.reasoning_effort, 'low');
     assert.equal(events[0].requested_model, model);
     assert.equal(events[1].served_model, model);
+    assert.equal(hashText(events[1].response_body), events[1].response_sha256);
     assert.ok(events[2].started_ms - events[0].started_ms >= 5000);
     assert.equal(fs.statSync(audit).mode & 0o777, 0o600);
   });

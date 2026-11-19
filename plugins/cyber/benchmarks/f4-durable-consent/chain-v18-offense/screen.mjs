@@ -25,6 +25,20 @@ function inside(root, candidate) {
   );
 }
 
+function gitCheckoutAncestor(directory) {
+  let current = directory;
+  while (true) {
+    if (fs.existsSync(path.join(current, '.git'))) {
+      return true;
+    }
+    const parent = path.dirname(current);
+    if (parent === current) {
+      return false;
+    }
+    current = parent;
+  }
+}
+
 function validateOutput(output) {
   if (typeof output !== 'string' || !output.trim()) {
     throw new Error('F4 offense screen requires --output');
@@ -34,12 +48,16 @@ function validateOutput(output) {
   const canonicalParent = fs.realpathSync.native(path.dirname(resolved));
   if (
     inside(canonicalRoot, resolved) ||
-    inside(canonicalRoot, path.join(canonicalParent, path.basename(resolved)))
+    inside(canonicalRoot, path.join(canonicalParent, path.basename(resolved))) ||
+    gitCheckoutAncestor(canonicalParent)
   ) {
     throw new Error('raw screen output must be outside the repository');
   }
-  if (fs.existsSync(resolved) && inside(canonicalRoot, fs.realpathSync.native(resolved))) {
-    throw new Error('raw screen output must be outside the repository');
+  if (fs.existsSync(resolved)) {
+    const existing = fs.realpathSync.native(resolved);
+    if (inside(canonicalRoot, existing) || gitCheckoutAncestor(path.dirname(existing))) {
+      throw new Error('raw screen output must be outside the repository');
+    }
   }
   return resolved;
 }

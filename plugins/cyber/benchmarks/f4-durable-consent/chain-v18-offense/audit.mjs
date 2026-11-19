@@ -40,6 +40,9 @@ function auditResponse(responseText, status, sequence) {
     sequence,
     status,
     response_sha256: hash(responseText),
+    // The sidecar and final raw record are private 0600 files. Preserve the
+    // full body even when the native runner omits it on an early return.
+    response_body: responseText,
     served_model: parsed?.model ?? null,
     finish_reason: parsed?.choices?.[0]?.finish_reason ?? null,
     ...(typeof content === 'string' ? { content_sha256: hash(content) } : {}),
