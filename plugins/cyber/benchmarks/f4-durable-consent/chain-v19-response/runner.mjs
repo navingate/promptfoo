@@ -256,7 +256,7 @@ async function performRequest({ url, apiKey, request, startRequest, body, result
           return { ...requestInit, signal: AbortSignal.timeout(300000) };
         } catch (error) {
           requestFailure = { error };
-          return null;
+          throw error;
         }
       },
       (dispatchStarted, init) => {
@@ -271,7 +271,10 @@ async function performRequest({ url, apiKey, request, startRequest, body, result
       },
     );
   } catch {
-    return { classification: 'provider_error', reason: 'transport-pacing' };
+    return {
+      classification: 'provider_error',
+      reason: requestFailure ? 'transport-error' : 'transport-pacing',
+    };
   }
   audit.started_ms = started;
   result.request_audit.push(audit);

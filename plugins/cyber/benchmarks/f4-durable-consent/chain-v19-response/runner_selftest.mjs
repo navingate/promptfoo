@@ -242,6 +242,45 @@ test('request pacing measures actual dispatch after slow body and timeout prepar
   }
 });
 
+test('timeout setup failure does not record an undispatched request', async () => {
+  const { runCase } = await runner();
+  const paceState = { last_request_start_ms: null };
+  const originalTimeout = AbortSignal.timeout;
+  let requests = 0;
+  let sleeps = 0;
+  let result;
+  try {
+    AbortSignal.timeout = () => {
+      throw new Error('timeout setup failed');
+    };
+    result = await runCase(firstCase(), {
+      endpoint,
+      apiKey,
+      paceState,
+      now: () => 10_000,
+      sleep: async () => {
+        sleeps++;
+      },
+      request: async () => {
+        requests++;
+        return nativeResponse({ tool: 'submit', args: { findings: [] } });
+      },
+    });
+  } finally {
+    AbortSignal.timeout = originalTimeout;
+  }
+
+  assert.equal(result.classification, 'provider_error');
+  assert.equal(result.reason, 'transport-error');
+  assert.equal(requests, 0);
+  assert.equal(sleeps, 0);
+  assert.equal(result.turns, 0);
+  assert.deepEqual(result.request_audit, []);
+  assert.deepEqual(result.raw_responses, []);
+  assert.deepEqual(result.raw_response_texts, []);
+  assert.equal(paceState.last_request_start_ms, null);
+});
+
 for (const { scenario, earlyWakeMs, clockStepMs } of [
   { scenario: 'an early timer wake', earlyWakeMs: 3, clockStepMs: 0 },
   { scenario: 'a backward clock step', earlyWakeMs: 0, clockStepMs: 37 },
