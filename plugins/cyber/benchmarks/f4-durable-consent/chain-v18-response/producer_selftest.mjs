@@ -1242,6 +1242,126 @@ test('reset-revoked grants cannot issue fresh post-reset tokens; later manual re
   assert.equal(validateResponseNative(manual.native).ok, true);
 });
 
+test('a second reset for one user cannot mask a token minted after the first revoked its grant', async () => {
+  const { GRID, produceResponse, validateResponseNative } = await modules();
+  const { native, key } = produceResponse(GRID.find((item) => item.profile === 'single-mint'));
+  const copy = structuredClone(native);
+  const target = copy.public.grants.find((grant) => grant.grant_id === key.target_grant_ids[0]);
+  const first = copy.public.resets.find(
+    (reset) => reset.compromised_user === target.principal_binding,
+  );
+  target.enumeration_facet = first.defect_enumerated;
+  target.revoked_at_tick = 0;
+  first.revoked_grant_ids = computeRevokedGrantIds(copy.public.grants, copy.public.registry, first);
+  const firstEvent = byId(copy.public.events, 'event_id').get(first.reset_event_id);
+  firstEvent.revoked_grant_ids = [...first.revoked_grant_ids];
+  delete copy.hidden.revocation_lag_ticks[target.grant_id];
+
+  const token = copy.public.events.find(
+    (event) => event.kind === 'access-token-issued' && event.grant_id === target.grant_id,
+  );
+  const userGrantIds = new Set(
+    copy.public.grants
+      .filter((grant) => grant.principal_binding === target.principal_binding)
+      .map((grant) => grant.grant_id),
+  );
+  const laterTime =
+    Math.max(
+      ...copy.public.events
+        .filter((event) => event.kind === 'access-token-issued' && userGrantIds.has(event.grant_id))
+        .map((event) => event.source_time),
+    ) + 1;
+  const secondId = 'evt_duplicate_user_reset_counterfactual';
+  copy.public.resets.push({ ...first, reset_event_id: secondId, reset_time: laterTime });
+  copy.public.events.push({
+    ...firstEvent,
+    event_id: secondId,
+    source_time: laterTime,
+    arrival_time: 2000,
+    arrival_index: copy.public.events.length,
+  });
+  assert.ok(first.reset_time < token.source_time && token.source_time < laterTime);
+  assert.equal(token.reset_event_id, first.reset_event_id);
+  assert.equal(
+    copy.public.resets.filter((reset) => reset.compromised_user === target.principal_binding)
+      .length,
+    2,
+  );
+  assert.equal(validateResponseNative(copy).reason, 'duplicate user reset');
+});
+
+test('a grant listed as reset-revoked must have a matching tick-zero revocation state', async () => {
+  const { GRID, produceResponse, validateResponseNative } = await modules();
+  const { native, key } = produceResponse(GRID.find((item) => item.profile === 'single-mint'));
+  const copy = structuredClone(native);
+  const target = copy.public.grants.find((grant) => grant.grant_id === key.target_grant_ids[0]);
+  const reset = copy.public.resets.find(
+    (item) => item.compromised_user === target.principal_binding,
+  );
+  target.enumeration_facet = reset.defect_enumerated;
+  reset.revoked_grant_ids = computeRevokedGrantIds(copy.public.grants, copy.public.registry, reset);
+  byId(copy.public.events, 'event_id').get(reset.reset_event_id).revoked_grant_ids = [
+    ...reset.revoked_grant_ids,
+  ];
+  assert.ok(reset.revoked_grant_ids.includes(target.grant_id));
+  assert.equal(target.revoked_at_tick, null);
+
+  const token = copy.public.tokens.find((item) => item.grant_id === target.grant_id);
+  const resource = copy.public.sessions.find((item) => item.token_id === token.token_id);
+  const call = copy.public.events.find(
+    (event) => event.kind === 'protected-export-call' && event.token_event_id === token.event_id,
+  );
+  copy.public.tokens = copy.public.tokens.filter((item) => item.token_id !== token.token_id);
+  copy.public.sessions = copy.public.sessions.filter(
+    (item) => item.session_id !== resource.session_id,
+  );
+  const removed = new Set([token.event_id, call.event_id, resource.event_id]);
+  copy.public.events = copy.public.events
+    .filter((event) => !removed.has(event.event_id))
+    .map((event, arrival_index) => ({ ...event, arrival_index }));
+  delete copy.hidden.revocation_lag_ticks[target.grant_id];
+  assert.equal(
+    validateResponseNative(copy).reason,
+    'reset-listed grant lacks tick-zero revocation',
+  );
+});
+
+test('manual revocation forbids later fresh tokens but preserves the earlier session-only token', async () => {
+  const { GRID, produceResponse, validateResponseNative } = await modules();
+  const { native, key } = produceResponse(
+    GRID.find((item) => item.profile === 'mint-plus-session-only'),
+  );
+  assert.equal(validateResponseNative(native).ok, true);
+  const copy = structuredClone(native);
+  const grantId = key.session_only_grant_ids[0];
+  const oldToken = copy.public.tokens.find((token) => token.grant_id === grantId);
+  const oldEvent = byId(copy.public.events, 'event_id').get(oldToken.event_id);
+  const revocation = copy.public.events.find(
+    (event) => event.kind === 'delegated-grant-revoked' && event.grant_id === grantId,
+  );
+  assert.ok(oldEvent.source_time < revocation.source_time);
+  const issuedAt = revocation.source_time + 1;
+  const tokenId = 'token_after_manual_revoke';
+  const eventId = 'evt_token_after_manual_revoke';
+  copy.public.tokens.push({
+    ...oldToken,
+    token_id: tokenId,
+    event_id: eventId,
+    issued_at: issuedAt,
+    expires_at_tick: 5,
+  });
+  copy.public.events.push({
+    ...oldEvent,
+    event_id: eventId,
+    token_id: tokenId,
+    source_time: issuedAt,
+    arrival_time: 2000,
+    arrival_index: copy.public.events.length,
+    expires_at_tick: 5,
+  });
+  assert.equal(validateResponseNative(copy).reason, 'token issued after manual revocation');
+});
+
 test('native validation rejects orphan token and session events', async () => {
   const { GRID, produceResponse, validateResponseNative } = await modules();
   const { native } = produceResponse(GRID.find((item) => item.profile === 'both-live'));

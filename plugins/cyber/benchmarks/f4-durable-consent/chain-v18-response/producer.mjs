@@ -1018,6 +1018,10 @@ function validOperationalProvenance(publicFacts, grantById, eventById) {
 }
 
 function resetSourceFailure(grants, registry, resets, events, eventById) {
+  if (!unique(resets.map((reset) => reset.compromised_user))) {
+    return 'duplicate user reset';
+  }
+  const grantById = new Map(grants.map((grant) => [grant.grant_id, grant]));
   for (const reset of resets) {
     const event = eventById.get(reset.reset_event_id);
     const computed = computeRevokedGrantIds(grants, registry, reset);
@@ -1045,8 +1049,10 @@ function resetSourceFailure(grants, registry, resets, events, eventById) {
     ) {
       return 'reset query or native event mismatch';
     }
+    if (reset.revoked_grant_ids.some((grantId) => grantById.get(grantId)?.revoked_at_tick !== 0)) {
+      return 'reset-listed grant lacks tick-zero revocation';
+    }
   }
-  const grantById = new Map(grants.map((grant) => [grant.grant_id, grant]));
   const manualRevocations = events.filter((item) => item.kind === 'delegated-grant-revoked');
   if (!unique(manualRevocations.map((event) => event.grant_id))) {
     return 'native revocation event mismatch';
@@ -1080,6 +1086,11 @@ function resetSourceFailure(grants, registry, resets, events, eventById) {
 }
 
 function tokenSourceFailure(tokens, grantById, eventById, resetByUser, resetById) {
+  const manualRevocationByGrant = new Map(
+    [...eventById.values()]
+      .filter((event) => event.kind === 'delegated-grant-revoked')
+      .map((event) => [event.grant_id, event]),
+  );
   for (const token of tokens) {
     const event = eventById.get(token.event_id);
     const grant = grantById.get(token.grant_id);
@@ -1107,6 +1118,10 @@ function tokenSourceFailure(tokens, grantById, eventById, resetByUser, resetById
     }
     if (reset?.revoked_grant_ids.includes(grant.grant_id) && event.source_time > reset.reset_time) {
       return 'token issued after reset revocation';
+    }
+    const manualRevocation = manualRevocationByGrant.get(grant.grant_id);
+    if (manualRevocation && event.source_time > manualRevocation.source_time) {
+      return 'token issued after manual revocation';
     }
   }
   return null;
