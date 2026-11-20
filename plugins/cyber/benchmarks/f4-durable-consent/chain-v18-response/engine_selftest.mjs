@@ -189,6 +189,28 @@ test('strict command schema rejects malformed and unknown actions without changi
   );
 });
 
+test('audit ledger retains the full command shape with JSON-safe invalid values', async () => {
+  const { createResponse, stepResponse } = await engine();
+  const { episode } = caseFor('benign');
+  const session = createResponse(episode);
+  const malformedWrapper = { tool: 'get_jobs', args: {}, extra: true };
+  const malformedValue = { tool: 'probe', args: { grant_id: new Map() } };
+  const literalMarker = { tool: 'probe', args: { grant_id: '[undefined]' } };
+  assert.equal(stepResponse(session, malformedWrapper).error.code, 'invalid_command');
+  assert.equal(stepResponse(session, malformedValue).error.code, 'invalid_arguments');
+  assert.equal(stepResponse(session, literalMarker).error.code, 'unknown_grant');
+  assert.equal(stepResponse(session, null).error.code, 'invalid_command');
+  assert.deepEqual(
+    session.action_ledger.map((entry) => entry.command),
+    [malformedWrapper, { tool: 'probe', args: { grant_id: null } }, literalMarker, null],
+  );
+  assert.deepEqual(
+    session.action_ledger.map((entry) => entry.args),
+    [{}, { grant_id: null }, { grant_id: '[undefined]' }, null],
+  );
+  assert.doesNotThrow(() => JSON.stringify(session.action_ledger));
+});
+
 test('hidden propagation and derived attacker paths stay outside the serializable session', async () => {
   const { createResponse, stepResponse } = await engine();
   const { episode } = caseFor('both-live');
@@ -226,6 +248,7 @@ test('64 total tool actions is a hard bound, including reads and errors', async 
     counts_toward_budget: false,
     tool: 'advance',
     args: {},
+    command: { tool: 'advance', args: {} },
     tick_before: 0,
     tick_after: 0,
     ok: false,
@@ -578,6 +601,7 @@ test('invalid assignment never delivers and submit replays the same transitions 
     counts_toward_budget: false,
     tool: 'set_quarantine',
     args: refusedCommand.args,
+    command: refusedCommand,
     tick_before: LIMITS.horizon_tick,
     tick_after: LIMITS.horizon_tick,
     ok: false,

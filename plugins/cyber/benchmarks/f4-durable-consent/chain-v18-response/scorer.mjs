@@ -20,23 +20,6 @@ function sameCitation(candidate, expected) {
   return FINDING_FIELDS.every((field) => candidate[field] === expected[field]);
 }
 
-function hasRenderedInvalidArgument(value) {
-  if (typeof value === 'string') {
-    return (
-      value === '[circular]' ||
-      value === '[unserializable arguments]' ||
-      value.startsWith('[unsupported ') ||
-      ['[undefined]', '[symbol]', '[function]', '[bigint]'].includes(value)
-    );
-  }
-  if (Array.isArray(value)) {
-    return value.some(hasRenderedInvalidArgument);
-  }
-  return value !== null && typeof value === 'object'
-    ? Object.values(value).some(hasRenderedInvalidArgument)
-    : false;
-}
-
 /** Reconstruct the observed action trace from the native estate and evaluator-only lag. */
 function replayRecorded(session, key) {
   if (
@@ -59,6 +42,7 @@ function replayRecorded(session, key) {
     if (
       !entry ||
       typeof entry !== 'object' ||
+      !Object.hasOwn(entry, 'command') ||
       entry.index !== position + 1 ||
       (typeof entry.tool !== 'string' && (entry.ok || entry.tool !== null)) ||
       typeof entry.ok !== 'boolean' ||
@@ -67,30 +51,19 @@ function replayRecorded(session, key) {
     ) {
       throw new Error('invalid response action ledger');
     }
-    // The ledger stores the tool and arguments, not the original command's
-    // wrapper shape. Reproduce a wrapper rejection without changing effects.
-    const invalidWrapper = entry.counts_toward_budget && entry.error_code === 'invalid_command';
-    const command = invalidWrapper
-      ? { tool: entry.tool, args: entry.args, invalid_command: true }
-      : { tool: entry.tool, args: entry.args };
-    const result = stepResponse(replay, command);
+    // The engine records a JSON-safe copy of the entire command, including
+    // malformed wrapper fields. Replay it without consulting the claimed error.
+    const result = stepResponse(replay, entry.command);
     const replayedEntry = replay.action_ledger.at(-1);
-    // A non-JSON argument can be rendered as a sentinel string by the engine.
-    // That may change invalid_arguments into an unknown identifier on replay.
-    const lossyArguments =
-      entry.counts_toward_budget &&
-      entry.error_code === 'invalid_arguments' &&
-      hasRenderedInvalidArgument(entry.args) &&
-      !result.ok &&
-      result.error?.code !== 'unknown_tool';
     if (
       replayedEntry.counts_toward_budget !== entry.counts_toward_budget ||
+      replayedEntry.tool !== entry.tool ||
       result.ok !== entry.ok ||
       entry.tick_after !== replay.now_tick ||
-      entry.error_code !== (entry.result.error?.code ?? null) ||
-      (lossyArguments &&
-        (entry.result.tool !== entry.tool || entry.result.tick !== replay.now_tick)) ||
-      (!lossyArguments && !isDeepStrictEqual(result, entry.result))
+      replayedEntry.error_code !== entry.error_code ||
+      !isDeepStrictEqual(replayedEntry.command, entry.command) ||
+      !isDeepStrictEqual(replayedEntry.args, entry.args) ||
+      !isDeepStrictEqual(result, entry.result)
     ) {
       throw new Error('response action ledger disagrees with native replay');
     }

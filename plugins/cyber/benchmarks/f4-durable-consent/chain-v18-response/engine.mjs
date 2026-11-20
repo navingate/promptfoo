@@ -35,31 +35,33 @@ function clone(value) {
   return structuredClone(value);
 }
 
-function cloneInvalidArgument(value) {
+// Preserve the original command's field shape for native replay. Null cannot
+// satisfy any typed tool argument, so it safely represents non-JSON values.
+function cloneReplayCommand(value) {
   const seen = new WeakSet();
   const copy = (item) => {
-    if (item === null || ['string', 'number', 'boolean'].includes(typeof item)) {
+    if (item === null || typeof item === 'string' || typeof item === 'boolean') {
       return item;
     }
-    if (typeof item !== 'object') {
-      return `[${typeof item}]`;
+    if (typeof item === 'number') {
+      return Number.isFinite(item) ? item : null;
     }
-    if (seen.has(item)) {
-      return '[circular]';
+    if (typeof item !== 'object' || seen.has(item)) {
+      return null;
     }
     seen.add(item);
     if (Array.isArray(item)) {
       return item.map(copy);
     }
     if (!plainRecord(item)) {
-      return `[unsupported ${Object.prototype.toString.call(item)}]`;
+      return null;
     }
     return Object.fromEntries(Object.entries(item).map(([name, part]) => [name, copy(part)]));
   };
   try {
     return copy(value);
   } catch {
-    return '[unserializable arguments]';
+    return null;
   }
 }
 
@@ -774,11 +776,13 @@ export function createResponse(episode) {
 
 /** Retain every attempted tool call, including refusals outside the action budget. */
 function recordInvocation(session, command, before, result, countsTowardBudget) {
+  const replayCommand = cloneReplayCommand(command);
   const entry = {
     index: session.action_ledger.length + 1,
     counts_toward_budget: countsTowardBudget,
-    tool: typeof command?.tool === 'string' ? command.tool : null,
-    args: cloneInvalidArgument(command?.args ?? null),
+    tool: typeof replayCommand?.tool === 'string' ? replayCommand.tool : null,
+    args: replayCommand?.args ?? null,
+    command: replayCommand,
     tick_before: before,
     tick_after: session.now_tick,
     ok: result.ok,

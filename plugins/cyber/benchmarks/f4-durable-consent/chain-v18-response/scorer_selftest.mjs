@@ -572,7 +572,7 @@ test('JSON-round-tripped exact sessions retain the same native score and refused
   }
 });
 
-test('counted unknown-tool refusal cannot masquerade as invalid arguments', async () => {
+test('counted unknown-tool refusal cannot masquerade as another validation error', async () => {
   const scoreResponse = await scorer();
   const { episode, key } = fixture('benign');
   const session = createResponse(episode);
@@ -594,6 +594,28 @@ test('counted unknown-tool refusal cannot masquerade as invalid arguments', asyn
     },
   };
   assert.throws(() => scoreResponse(session, key), /ledger/);
+
+  const second = createResponse(episode);
+  assert.equal(stepResponse(second, { tool: 'not_a_tool', args: {} }).error.code, 'unknown_tool');
+  for (let tick = 1; tick <= LIMITS.horizon_tick; tick++) {
+    call(second, 'advance');
+  }
+  call(second, 'get_deliveries');
+  call(second, 'submit', { findings: [] });
+  const anotherOriginal = second.action_ledger[0];
+  second.action_ledger[0] = {
+    ...anotherOriginal,
+    error_code: 'invalid_command',
+    result: {
+      ...anotherOriginal.result,
+      error: {
+        ...anotherOriginal.result.error,
+        code: 'invalid_command',
+        message: 'A command requires exactly tool and args.',
+      },
+    },
+  };
+  assert.throws(() => scoreResponse(second, key), /ledger/);
 });
 
 test('lossy malformed-command rendering does not invalidate a corrected exact response', async () => {
@@ -616,6 +638,63 @@ test('lossy malformed-command rendering does not invalidate a corrected exact re
   const scored = scoreResponse(session, key);
   assert.equal(scored.exact, true);
   assert.equal(scored.classification, 'exact');
+  assert.equal(scoreResponse(JSON.parse(JSON.stringify(session)), key).exact, true);
+});
+
+test('a literal sentinel-shaped grant ID cannot hide a forged validation class', async () => {
+  const scoreResponse = await scorer();
+  const { episode, key } = fixture('benign');
+  const session = createResponse(episode);
+  assert.equal(
+    stepResponse(session, { tool: 'probe', args: { grant_id: '[undefined]' } }).error.code,
+    'unknown_grant',
+  );
+  for (let tick = 1; tick <= LIMITS.horizon_tick; tick++) {
+    call(session, 'advance');
+  }
+  call(session, 'get_deliveries');
+  call(session, 'submit', { findings: [] });
+  assert.equal(scoreResponse(session, key).exact, true);
+  const original = session.action_ledger[0];
+  session.action_ledger[0] = {
+    ...original,
+    error_code: 'invalid_arguments',
+    result: {
+      ...original.result,
+      error: {
+        ...original.result.error,
+        code: 'invalid_arguments',
+        message: 'grant_id must be a nonempty string.',
+      },
+    },
+  };
+  assert.throws(() => scoreResponse(session, key), /ledger/);
+});
+
+test('tool and args aliases must match the replayed command, including refused calls', async () => {
+  const scoreResponse = await scorer();
+  const source = fixture('single-mint', 0);
+  const { session, key } = response(source);
+  const probeIndex = session.action_ledger.findIndex((entry) => entry.ok && entry.tool === 'probe');
+  assert.ok(probeIndex >= 0);
+  session.action_ledger[probeIndex] = {
+    ...session.action_ledger[probeIndex],
+    args: { grant_id: 'different-grant' },
+  };
+  assert.throws(() => scoreResponse(session, key), /ledger/);
+
+  const refused = response(source);
+  assert.equal(
+    stepResponse(refused.session, { tool: 'probe', args: { grant_id: key.target_grant_ids[0] } })
+      .error.code,
+    'submitted',
+  );
+  const last = refused.session.action_ledger.length - 1;
+  refused.session.action_ledger[last] = {
+    ...refused.session.action_ledger[last],
+    tool: 'block_client',
+  };
+  assert.throws(() => scoreResponse(refused.session, refused.key), /ledger/);
 });
 
 test('tick-zero client block prevents exports but permanently misses approved jobs', async () => {
