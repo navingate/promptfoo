@@ -193,18 +193,22 @@ def validate_registry(data: Dict[str, Any], previous: Optional[Dict[str, Any]] =
 
     old_families = {family["id"]: family for family in previous["families"]}
     new_families = {family["id"]: family for family in data["families"]}
+    if [family["id"] for family in data["families"]] != [
+        family["id"] for family in previous["families"]
+    ]:
+        raise ValueError("prior family order changed")
     for family_id, old_family in old_families.items():
         new_family = new_families.get(family_id)
         if new_family is None or new_family["name"] != old_family["name"]:
             raise ValueError(f"prior family changed or removed: {family_id}")
-        new_slots = {slot["id"]: slot for slot in new_family["slots"]}
-        for old_slot in old_family["slots"]:
-            if not _same_json(new_slots.get(old_slot["id"]), old_slot):
+        new_slots = new_family["slots"]
+        for index, old_slot in enumerate(old_family["slots"]):
+            if index >= len(new_slots) or not _same_json(new_slots[index], old_slot):
                 raise ValueError(f"prior slot changed or removed: {family_id}/{old_slot['id']}")
 
-    new_runs = {run["run_id"]: run for run in data["runs"]}
-    for old_run in previous["runs"]:
-        if not _same_json(new_runs.get(old_run["run_id"]), old_run):
+    new_runs = data["runs"]
+    for index, old_run in enumerate(previous["runs"]):
+        if index >= len(new_runs) or not _same_json(new_runs[index], old_run):
             raise ValueError(f"prior run changed or removed: {old_run['run_id']}")
 
 

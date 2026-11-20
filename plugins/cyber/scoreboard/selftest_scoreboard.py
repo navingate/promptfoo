@@ -242,6 +242,19 @@ class RegistryValidationTests(unittest.TestCase):
                 with self.assertRaisesRegex(ValueError, "prior run"):
                     validate_registry(data, previous)
 
+    def test_rejects_reordered_or_prepended_run_history(self):
+        previous = registry_with_run()
+        previous["runs"].append(sample_run("f2-glm53-offense-v2"))
+        for change in ("reordered", "prepended"):
+            with self.subTest(change=change):
+                data = copy.deepcopy(previous)
+                if change == "reordered":
+                    data["runs"].reverse()
+                else:
+                    data["runs"].insert(0, sample_run("f2-glm53-offense-v3"))
+                with self.assertRaisesRegex(ValueError, "prior run"):
+                    validate_registry(data, previous)
+
     def test_rejects_changed_family_identity(self):
         previous = registry_with_run()
         data = copy.deepcopy(previous)
@@ -255,6 +268,42 @@ class RegistryValidationTests(unittest.TestCase):
         data = copy.deepcopy(previous)
         data["families"][0]["slots"][0]["label"] = "Rewritten label"
         with self.assertRaisesRegex(ValueError, "prior slot"):
+            validate_registry(data, previous)
+
+    def test_rejects_reordered_or_prepended_slot_definitions(self):
+        previous = registry_with_run()
+        response = {
+            "id": "response",
+            "side": "defense",
+            "construct_id": "f2-response",
+            "label": "Response",
+            "metric_id": "containment_plan",
+        }
+        previous["families"][0]["slots"].append(response)
+        for change in ("reordered", "prepended"):
+            with self.subTest(change=change):
+                data = copy.deepcopy(previous)
+                if change == "reordered":
+                    data["families"][0]["slots"].reverse()
+                else:
+                    data["families"][0]["slots"].insert(
+                        0,
+                        {
+                            "id": "triage",
+                            "side": "defense",
+                            "construct_id": "f2-triage",
+                            "label": "Triage",
+                            "metric_id": "triage_success",
+                        },
+                    )
+                with self.assertRaisesRegex(ValueError, "prior slot"):
+                    validate_registry(data, previous)
+
+    def test_rejects_reordered_families(self):
+        previous = empty_registry()
+        data = copy.deepcopy(previous)
+        data["families"].reverse()
+        with self.assertRaisesRegex(ValueError, "prior family"):
             validate_registry(data, previous)
 
     def test_rejects_type_changed_prior_metadata(self):
