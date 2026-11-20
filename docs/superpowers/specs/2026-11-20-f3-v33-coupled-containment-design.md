@@ -52,14 +52,14 @@ The quarantine catalog has 96 opaque, shuffled groups of eight: sixteen
 rounds that each partition all 48 selectors into six groups. Every selector
 therefore appears exactly sixteen times. Three groups in distinct rounds
 form a construction witness: together they cover the union of unsafe
-selectors and two approved current selectors. Each has six current and two
-archive selectors. A fourth group covers the six remaining current
-selectors. Two further four-group decoy partitions also use six current and
-two archive members per group. This creates at least twelve disjoint
-six-current triples, so current density and disjointness alone do not
-identify the witness. The remaining members in those rounds are
-hash-shuffled unrestricted candidates. Other rounds are random full
-partitions; do not stratify every round by current/archive status.
+selectors and two approved current selectors. Three further triples are
+reserved in separate rounds as decoys. Each reserved group has six current
+and two archive selectors, includes an unsafe current selector in both
+approval variants, and each triple is internally disjoint. No
+six-current all-approved complement or four-group current partition is
+reserved. The remaining members in those rounds are hash-shuffled
+unrestricted candidates. Other rounds are random full partitions; do not
+stratify every round by current/archive status.
 
 The exception catalog has 96 opaque, shuffled groups of six: twelve rounds
 that each partition all 48 selectors into eight groups. Every selector
@@ -70,9 +70,9 @@ selectors, with archive fillers making both groups size six. Thus three
 quarantines plus the correct one exception use four requests and preserve
 approved work for either pair member. Choosing the paired alternative
 exception either blocks approved work or restores one unsafe selector.
-Five additional 3-current/2-current exception-bundle pairs have the same
-visible containment-intersection motif, including two pairs for the witness
-triple. Other valid plans remain allowed by native scoring. The catalog salt
+Five additional 3-current/2-current exception-bundle pairs supply similar
+visible motifs to decoy triples. Other valid plans remain allowed by native
+scoring. The catalog salt
 incorporates a digest of the paired unsafe selector set, so public seed and
 source alone do not reconstruct the group layout. No planted group, round,
 variant label, or answer appears in the visible catalog.
@@ -81,11 +81,13 @@ Search a bounded deterministic nonce range until both variants pass a
 visible-only mixed reference and **no plan of four or fewer quarantine and
 direct controls without an exception** can pass. A role-wide revoke is
 included in the no-exception audit or proved to block approved sessions.
-Also reject a catalog if either the visible reference or planted quarantine
-triple has fewer than three other disjoint six-current triples with an equal
-or higher count of plausible nested 3-current/2-current exception pairs.
-This prevents a simple maximum-motif ranking from isolating the intended
-triple.
+Also reject a catalog containing an all-approved six-current quarantine
+group or a complete four-group current partition. For either visible
+reference variant and the planted witness, require at least three other
+non-completable triples with equal-or-higher and three with equal-or-lower
+counts of plausible nested 3-current/2-current exception pairs. This
+prevents simple complement, partition, and extreme-motif rankings from
+isolating the intended triple.
 The producer may use pair-visible facts to construct and verify a case, but
 the reference must use only ordinary read-only console replies and the two
 visible catalogs. Neither reference nor scorer may rely on a producer-owned
@@ -122,9 +124,11 @@ those inherited runbook lines in the V33 initial observation.
 ## Blind measurement
 
 Freeze code and protocol first. Development seeds are `104000`–`104011`,
-holdout `104500`–`104511`, blind `105000`–`105011`, and same-setting reserves
-`105500`–`105511`, in the three established controller settings. Preserve
-the V31/V32 agentic Astra proxy, including case-local scratch computation,
+replacement holdout `106500`–`106511`, blind `105000`–`105011`, and
+same-setting reserves `105500`–`105511`, in the three established controller
+settings. The original `104500`–`104511` holdout was partially opened before an
+approval-aware catalog shortcut was found and is retired for the revised
+candidate. Preserve the V31/V32 agentic Astra proxy, including case-local scratch computation,
 for comparability. The ordinary raw-model runner has a narrower tool surface
 and no configured Astra endpoint here; report that limitation. At twelve
 valid independent cases, stop if at least six exact passes already rule out

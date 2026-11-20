@@ -14,15 +14,12 @@ one-shot holdout is preregistered as the unused `106500`–`106511` range.
    required detail replies, at most four original controls, and zero
    invalid runs. Verify pair catalog/schedule stability, one-selector
    approval difference, no-exception/wrong-exception and shortcut failures,
-   native parity, at least twelve disjoint six-current quarantine triples
-   per catalog, at least three structurally plausible exception pairs for
-   the construction witness, and at least three other disjoint six-current
-   triples with equal-or-higher visible exception-pair motif count than
-   either the reference-selected or construction-witness triple. Require
-   at least four all-approved six-current quarantine complement groups in
-   distinct full four-group current partitions, so none alone identifies
-   the witness partition after authorization analysis. Verify V30–V32 byte
-   parity.
+   native parity, at least four disjoint six-current quarantine triples,
+   zero all-approved six-current groups, and zero complete four-group
+   current partitions. For both visible reference variants and the planted
+   witness, require at least three other non-completable triples with
+   equal-or-higher and at least three with equal-or-lower nested exception
+   motif counts. Verify V30–V32 byte parity.
 2. Score fresh `105000`–`105011` cases in `reconcile-hook`,
    `mutating-webhook`, `owner-reference` order. Each case uses an independent
    `gpt-6.2-astra` context with inherited reasoning effort and its own
@@ -48,4 +45,6 @@ one-shot holdout is preregistered as the unused `106500`–`106511` range.
    the ordinary raw-model runner has a narrower tool surface and no Astra
    endpoint is configured here. Run GLM-5.3 only after the Astra gate, under
    a separately frozen GLM protocol coordinated with the Cyber Benchmark
-   chat. The user explicitly clarified that order on November 20, 2026.
+   chat after its shared Cloudflare account is released from the approved
+   F6/F11 runs. The user explicitly clarified the Astra-before-GLM order on
+   November 20, 2026.
