@@ -54,7 +54,10 @@ Literal route, scope, count, and order rules cannot replace the complete
 registry join. Native validation requires empty initial delivery records, a
 canonical reset runbook and matching reset event, two-way token/session
 record-event links, matching revocation events and grant state, unrevoked
-approved job grants, and runner registration before signed eligibility. Two
+approved job grants, and runner registration before signed eligibility. Grant
+creation, reset, job, runner-registration, and runner-authorization events also
+have exact one-to-one record links and mirrored fields; duplicate manual
+revocations for one grant are rejected. Protected calls remain event-only. Two
 live target grants require one fast and one slow hidden propagation lag. The
 both-live grid assigns the fast lag evenly across the two affected users; lag
 swaps reverse it without changing public source bytes.

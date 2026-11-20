@@ -124,6 +124,17 @@ function appendManualRevocation(publicFacts, grant) {
   });
 }
 
+function appendUnbackedEvent(publicFacts, kind) {
+  const source = publicFacts.events.find((event) => event.kind === kind);
+  assert.ok(source, `missing ${kind} source event`);
+  publicFacts.events.push({
+    ...source,
+    event_id: `evt_test_unbacked_${kind}`,
+    arrival_time: Math.max(...publicFacts.events.map((event) => event.arrival_time)) + 1,
+    arrival_index: publicFacts.events.length,
+  });
+}
+
 test('response grid has 36 unseen balanced incidents and hidden-lag branches', async () => {
   const { GRID } = await modules();
   assert.equal(GRID.length, 36);
@@ -1257,4 +1268,62 @@ test('two live targets require one fast and one slow hidden propagation lag', as
     copy.hidden.revocation_lag_ticks[grantId] = 2;
   }
   assert.equal(validateResponseNative(copy).reason, 'hidden propagation schedule');
+});
+
+for (const kind of [
+  'runner-registered',
+  'delegated-grant-created',
+  'approved-job-created',
+  'runner-authorized',
+  'compromised-user-remediated',
+]) {
+  test(`native validation rejects an unbacked extra ${kind} event`, async () => {
+    const { GRID, produceResponse, validateResponseNative } = await modules();
+    const { native } = produceResponse(GRID.find((item) => item.profile === 'both-live'));
+    const copy = structuredClone(native);
+    appendUnbackedEvent(copy.public, kind);
+    assert.equal(validateResponseNative(copy).reason, 'native record event bijection');
+  });
+}
+
+test('native validation rejects a duplicate manual revocation event for one grant', async () => {
+  const { GRID, produceResponse, validateResponseNative } = await modules();
+  const { native } = produceResponse(GRID.find((item) => item.profile === 'both-live'));
+  const copy = structuredClone(native);
+  appendUnbackedEvent(copy.public, 'delegated-grant-revoked');
+  assert.equal(validateResponseNative(copy).reason, 'native revocation event mismatch');
+});
+
+test('an additional approved protected call remains a valid event-only fact', async () => {
+  const { GRID, produceResponse, validateResponseNative } = await modules();
+  const { native } = produceResponse(GRID.find((item) => item.profile === 'both-live'));
+  const copy = structuredClone(native);
+  const approvedUser = copy.public.principals.find(
+    (principal) =>
+      !copy.public.resets.some((reset) => reset.compromised_user === principal.user_id),
+  ).user_id;
+  const approvedGrantIds = new Set(
+    copy.public.grants
+      .filter((grant) => grant.principal_binding === approvedUser)
+      .map((grant) => grant.grant_id),
+  );
+  const approvedTokenEventIds = new Set(
+    copy.public.events
+      .filter(
+        (event) => event.kind === 'access-token-issued' && approvedGrantIds.has(event.grant_id),
+      )
+      .map((event) => event.event_id),
+  );
+  const call = copy.public.events.find(
+    (event) =>
+      event.kind === 'protected-export-call' && approvedTokenEventIds.has(event.token_event_id),
+  );
+  assert.ok(call);
+  copy.public.events.push({
+    ...call,
+    event_id: 'evt_test_additional_approved_call',
+    arrival_time: Math.max(...copy.public.events.map((event) => event.arrival_time)) + 1,
+    arrival_index: copy.public.events.length,
+  });
+  assert.equal(validateResponseNative(copy).ok, true);
 });

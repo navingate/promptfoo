@@ -904,6 +904,34 @@ function validPublicEnvelope(publicFacts) {
   );
 }
 
+function eventRecordBijection(events, kind, records, eventIdField) {
+  const eventIds = new Set(records.map((record) => record[eventIdField]));
+  const kindEvents = events.filter((event) => event.kind === kind);
+  return (
+    eventIds.size === records.length &&
+    kindEvents.length === records.length &&
+    kindEvents.every((event) => eventIds.has(event.event_id))
+  );
+}
+
+function validRecordEventBijections(publicFacts) {
+  const {
+    events,
+    runners,
+    grants,
+    jobs,
+    runner_authorizations: authorizations,
+    resets,
+  } = publicFacts;
+  return (
+    eventRecordBijection(events, 'runner-registered', runners, 'source_event_id') &&
+    eventRecordBijection(events, 'delegated-grant-created', grants, 'created_event_id') &&
+    eventRecordBijection(events, 'approved-job-created', jobs, 'source_event_id') &&
+    eventRecordBijection(events, 'runner-authorized', authorizations, 'source_event_id') &&
+    eventRecordBijection(events, 'compromised-user-remediated', resets, 'reset_event_id')
+  );
+}
+
 function validJob(job, publicFacts, grantById, runnerById, eventById) {
   const grant = grantById.get(job.approved_grant_id);
   const runner = runnerById.get(job.current_runner_id);
@@ -1017,7 +1045,11 @@ function resetSourceFailure(grants, registry, resets, events, eventById) {
     }
   }
   const grantById = new Map(grants.map((grant) => [grant.grant_id, grant]));
-  for (const event of events.filter((item) => item.kind === 'delegated-grant-revoked')) {
+  const manualRevocations = events.filter((item) => item.kind === 'delegated-grant-revoked');
+  if (!unique(manualRevocations.map((event) => event.grant_id))) {
+    return 'native revocation event mismatch';
+  }
+  for (const event of manualRevocations) {
     const grant = grantById.get(event.grant_id);
     if (
       !grant ||
@@ -1151,6 +1183,9 @@ export function validateResponseNative(native) {
     })
   ) {
     return fail('event order or causal creation');
+  }
+  if (!validRecordEventBijections(publicFacts)) {
+    return fail('native record event bijection');
   }
   const resetFailure = resetSourceFailure(grants, registry, resets, events, eventById);
   if (resetFailure) {
