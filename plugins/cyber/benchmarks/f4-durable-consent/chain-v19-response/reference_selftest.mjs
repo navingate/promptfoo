@@ -203,7 +203,7 @@ test('lag twins have the same pre-tick-one observation and force different feedb
 
 test('reference matches signed standby capacity when two quarantined jobs share a due tick', async () => {
   const runReference = await reference();
-  const source = produceResponse(GRID.find((spec) => spec.seed === 42037));
+  const source = produceResponse(GRID.find((spec) => spec.seed === 46037));
   const { episode, key, native } = source;
   const facts = episode.sources;
   const due = facts.jobs.filter((job) => job.due_tick === 2);

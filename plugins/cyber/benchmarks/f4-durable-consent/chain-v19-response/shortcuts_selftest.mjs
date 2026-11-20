@@ -357,7 +357,7 @@ test('changing the queried enumeration facet removes a genuine reset miss', asyn
 
 test('moving a quarantined job deadline to tick one changes assignment time', async () => {
   await shortcuts();
-  const source = produceResponse(GRID.find((spec) => spec.seed === 42037));
+  const source = produceResponse(GRID.find((spec) => spec.seed === 46037));
   const job = source.episode.sources.jobs.find((item) => item.due_tick === 2);
   job.due_tick = 1;
   source.episode.sources.events.find((event) => event.event_id === job.source_event_id).due_tick =
@@ -380,7 +380,7 @@ test('moving a quarantined job deadline to tick one changes assignment time', as
 
 test('signed runner eligibility and capacity reject the wrong standby plan', async () => {
   await shortcuts();
-  const source = produceResponse(GRID.find((spec) => spec.seed === 42037));
+  const source = produceResponse(GRID.find((spec) => spec.seed === 46037));
   const session = createResponse(source.episode);
   const due = source.episode.sources.jobs.filter((job) => job.due_tick === 2);
   const standby = source.episode.sources.runners.find((runner) => runner.standby);
