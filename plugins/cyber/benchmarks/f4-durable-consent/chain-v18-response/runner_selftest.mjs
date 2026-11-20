@@ -289,13 +289,38 @@ test('provider, served-model, missing-usage, and invalid-native failures are dis
     },
     {
       request: async () => new Response('unauthorized', { status: 401 }),
-      classification: 'invalid_native',
-      reason: /http_401/u,
+      classification: 'provider_error',
+      reason: /auth.*http_401/u,
     },
     {
       request: async () => new Response('forbidden', { status: 403 }),
+      classification: 'provider_error',
+      reason: /auth.*http_403/u,
+    },
+    {
+      request: async () => new Response('bad request', { status: 400 }),
       classification: 'invalid_native',
-      reason: /http_403/u,
+      reason: /http_400/u,
+    },
+    {
+      request: async () => new Response('bad schema', { status: 422 }),
+      classification: 'invalid_native',
+      reason: /http_422/u,
+    },
+    {
+      request: async () => new Response('not found', { status: 404 }),
+      classification: 'provider_error',
+      reason: /http_404/u,
+    },
+    {
+      request: async () => new Response('wrong method', { status: 405 }),
+      classification: 'provider_error',
+      reason: /http_405/u,
+    },
+    {
+      request: async () => new Response('timeout', { status: 408 }),
+      classification: 'provider_error',
+      reason: /http_408/u,
     },
     {
       request: async () => new Response('gateway error', { status: 503 }),
@@ -573,9 +598,10 @@ test('manifest is pinned through the checkpoint and checked before the next requ
       }),
     });
     assert.equal(calls, 1);
-    assert.equal(result.completed_cases, 2);
-    assert.equal(result.results[1].classification, 'invalid_native');
-    assert.match(result.results[1].reason, /freeze-manifest-changed/u);
+    assert.equal(result.completed_cases, 1);
+    assert.equal(result.results[0].classification, 'invalid_native');
+    assert.equal(result.results[0].score, null);
+    assert.match(result.results[0].reason, /freeze-manifest-changed/u);
     const saved = JSON.parse(fs.readFileSync(output, 'utf8'));
     assert.equal(saved.manifest_sha256, pinnedHash);
   } finally {
@@ -604,13 +630,52 @@ test('native and evaluator sidecar drift after checkpoint stops before a later p
         }),
       });
       assert.equal(calls, 1);
-      assert.equal(result.completed_cases, 2);
-      assert.equal(result.results[1].classification, 'invalid_native');
-      assert.match(result.results[1].reason, /freeze.*changed/u);
+      assert.equal(result.completed_cases, 1);
+      assert.equal(result.results[0].classification, 'invalid_native');
+      assert.equal(result.results[0].score, null);
+      assert.match(result.results[0].reason, /freeze.*changed/u);
     } finally {
       fs.rmSync(root, { recursive: true, force: true });
       fs.rmSync(outputRoot, { recursive: true, force: true });
     }
+  }
+});
+
+test('terminal response mutation of a bound sidecar is invalid before score or raw persistence', async () => {
+  const { runFrozenScreen } = await runner();
+  const root = fs.mkdtempSync(path.join(os.tmpdir(), 'f4-response-runner-corpus-'));
+  const outputRoot = fs.mkdtempSync(path.join(os.tmpdir(), 'f4-response-runner-terminal-'));
+  try {
+    const manifest = freezeCorpus(root);
+    const output = path.join(outputRoot, 'raw.json');
+    let calls = 0;
+    let checkpoints = 0;
+    const result = await runFrozenScreen({
+      root,
+      output,
+      onFirstCaseCheckpoint: async () => {
+        checkpoints++;
+      },
+      ...options(async () => {
+        calls++;
+        if (calls === 36) {
+          fs.appendFileSync(path.join(root, manifest.cases[35].native_path), ' ');
+        }
+        return nativeResponse({ tool: 'submit', args: { findings: [] } });
+      }),
+    });
+    assert.equal(calls, 36);
+    assert.equal(checkpoints, 1);
+    assert.equal(result.completed_cases, 36);
+    assert.equal(result.results[35].classification, 'invalid_native');
+    assert.equal(result.results[35].score, null);
+    assert.match(result.results[35].reason, /freeze.*changed/u);
+    const saved = JSON.parse(fs.readFileSync(output, 'utf8'));
+    assert.equal(saved.results[35].classification, 'invalid_native');
+    assert.equal(saved.results[35].score, null);
+  } finally {
+    fs.rmSync(root, { recursive: true, force: true });
+    fs.rmSync(outputRoot, { recursive: true, force: true });
   }
 });
 

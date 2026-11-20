@@ -160,10 +160,31 @@ function endpointUrl(endpoint) {
 }
 
 function httpFailure(status) {
+  if (status === 401 || status === 403) {
+    return { classification: 'provider_error', reason: `auth_http_${status}` };
+  }
   return {
-    classification: status === 429 || status >= 500 ? 'provider_error' : 'invalid_native',
+    classification: status === 400 || status === 422 ? 'invalid_native' : 'provider_error',
     reason: `http_${status}`,
   };
+}
+
+function frozenIssue(assertFrozen) {
+  try {
+    assertFrozen();
+    return null;
+  } catch (error) {
+    return typeof error?.message === 'string' && error.message.startsWith('freeze-')
+      ? error.message
+      : 'freeze-binding-changed';
+  }
+}
+
+function invalidateFrozenResult(result, reason) {
+  result.classification = 'invalid_native';
+  result.reason = reason;
+  result.score = null;
+  return result;
 }
 
 function pace(state, now, sleep) {
@@ -361,14 +382,17 @@ export async function runCase(
     if (leaks.length > 0) {
       return finish('invalid_native', `observation-plane-leak: ${leaks.join(', ')}`);
     }
-    try {
-      assertFrozen();
-    } catch {
-      return finish('invalid_native', 'freeze-manifest-changed');
+    const beforeIssue = frozenIssue(assertFrozen);
+    if (beforeIssue) {
+      return finish('invalid_native', beforeIssue);
     }
     const body = requestBody(messages);
     body.max_completion_tokens = Math.min(LIMITS.completion_tokens_per_turn, remainingTokens);
     const turn = await performRequest({ url, apiKey, request, startRequest, body, result });
+    const afterIssue = frozenIssue(assertFrozen);
+    if (afterIssue) {
+      return finish('invalid_native', afterIssue);
+    }
     if (turn.classification) {
       return finish(turn.classification, turn.reason);
     }
@@ -527,13 +551,21 @@ export async function runFrozenScreen({
     results,
   });
   for (const item of cases) {
-    results.push(await runCase(item, { ...caseOptions, paceState, assertFrozen }));
+    const caseResult = await runCase(item, { ...caseOptions, paceState, assertFrozen });
+    const caseIssue = frozenIssue(assertFrozen);
+    results.push(caseIssue ? invalidateFrozenResult(caseResult, caseIssue) : caseResult);
     persistRaw(destination, snapshot());
     if (['provider_error', 'invalid_native'].includes(results.at(-1).classification)) {
       break;
     }
     if (results.length === 1) {
       await onFirstCaseCheckpoint(snapshot());
+      const checkpointIssue = frozenIssue(assertFrozen);
+      if (checkpointIssue) {
+        invalidateFrozenResult(results[0], checkpointIssue);
+        persistRaw(destination, snapshot());
+        break;
+      }
     }
   }
   return snapshot();
