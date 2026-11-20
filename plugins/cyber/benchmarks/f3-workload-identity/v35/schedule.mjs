@@ -165,19 +165,22 @@ export function buildPairedSchedule(even, odd) {
     throw new Error('v35 pair requires exactly one differing workload reply');
   }
   const lastJobKey = scheduleKey(differing[0]);
-  const owners = original.filter(
-    (row) =>
-      row.entry_type === 'session' &&
-      left
-        .get(scheduleKey(row))
-        .evidence.events.some(
-          (e) => e.kind === 'pod-started' && e.owner_job_uid === differing[0].entry_id,
-        ),
+  // Withhold just the flipped Job. The effective Pod→STS lineage identifies
+  // which active read now lacks its Job, even if the partition has stale Pods.
+  const beforeFlip = resolvePrefix(
+    index,
+    original
+      .filter((row) => scheduleKey(row) !== lastJobKey)
+      .map((row) => left.get(scheduleKey(row))),
   );
-  if (owners.length !== 1) {
+  const activeKeys = Object.keys(beforeFlip).filter(
+    (key) =>
+      key.startsWith('session:') && beforeFlip[key].missing_dependencies.includes(lastJobKey),
+  );
+  if (activeKeys.length !== 1) {
     throw new Error('v35 differing Job lacks a unique issued session');
   }
-  const activeKey = scheduleKey(owners[0]);
+  const [activeKey] = activeKeys;
   const base = retimeLastJob(index.query_access_schedule, lastJobKey);
   for (let nonce = 0; nonce < 256; nonce += 1) {
     const schedule = nonce === 0 ? base : alternativeWindows(base, original, lastJobKey, nonce);

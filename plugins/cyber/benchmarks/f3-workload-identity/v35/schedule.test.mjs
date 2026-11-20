@@ -158,3 +158,61 @@ test('retimed windows preserve the five V32 greedy schedule failures', () => {
     assert.ok(greedyQuerySchedule(index, policy) === null, policy);
   }
 });
+
+test('a stale Pod observation cannot change the flipped Job’s effective issued session', () => {
+  const [even, odd] = [109000, 109001].map(
+    (seed) => buildV32Episode({ seed, family: FAMILIES[0] }).visible,
+  );
+  const clean = buildPairedSchedule(even, odd);
+  const uid = clean.lastJobKey.slice('job:'.length);
+  const other = even.events.find(
+    (event) => event.kind === 'pod-started' && event.owner_job_uid !== uid,
+  );
+  assert.ok(other);
+  for (const visible of [even, odd]) {
+    // This observation belongs to the other Pod's partition, but arrives
+    // after its credential request, so it cannot be the Pod that issued it.
+    visible.events.push({
+      ...other,
+      event_id: 'test-superseded-pod-observation',
+      owner_job_uid: uid,
+      event_time: visible.triage_time,
+      arrival_order: visible.arrival_watermark,
+    });
+  }
+  const proof = buildPairedSchedule(even, odd);
+  assert.equal(proof.activeKey, clean.activeKey);
+  assert.deepEqual(proof.checkpoints, clean.checkpoints);
+});
+
+test('one changed successful pre-final console reply invalidates the paired proof', () => {
+  const specs = [109000, 109001].map((seed) => ({ seed, family: FAMILIES[0] }));
+  const estates = specs.map(buildV32Episode);
+  const proof = buildPairedSchedule(estates[0].visible, estates[1].visible);
+  const sessions = estates.map((estate, i) =>
+    buildDefenseSession(specs[i], () => ({
+      ...estate,
+      visible: { ...estate.visible, query_access_schedule: proof.schedule },
+    })),
+  );
+  let secondOrdinal = 0;
+  let mutations = 0;
+  const mutateReply = (session, command) => {
+    const reply = stepDefense(session, command);
+    if (session === sessions[1] && ++secondOrdinal === 24) {
+      assert.ok(reply.ok && reply.evidence && command.tool.startsWith('query-'));
+      mutations += 1;
+      return {
+        ...reply,
+        evidence: { ...reply.evidence, transport_note: 'changed after the read' },
+      };
+    }
+    return reply;
+  };
+  assert.throws(
+    () => verifyPairedConsole(sessions, mutateReply, proof),
+    /paired console must differ only on the final renewal Job/u,
+  );
+  assert.equal(mutations, 1);
+  assert.equal(secondOrdinal, 24);
+});
