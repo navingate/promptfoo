@@ -1079,6 +1079,39 @@ function resetSourceFailure(grants, registry, resets, events, eventById) {
   return null;
 }
 
+function tokenSourceFailure(tokens, grantById, eventById, resetByUser, resetById) {
+  for (const token of tokens) {
+    const event = eventById.get(token.event_id);
+    const grant = grantById.get(token.grant_id);
+    const reset = resetByUser.get(grant?.principal_binding);
+    if (
+      !grant ||
+      token.client_id !== grant.client_id ||
+      event?.kind !== 'access-token-issued' ||
+      event.token_id !== token.token_id ||
+      event.grant_id !== grant.grant_id ||
+      event.client_id !== token.client_id ||
+      event.created_event_id !== grant.created_event_id ||
+      event.caused_by_event_id !== grant.created_event_id ||
+      event.credential_lineage !== grant.refresh_lineage ||
+      event.expires_at_tick !== token.expires_at_tick ||
+      event.source_time !== token.issued_at ||
+      (reset &&
+        event.source_time > reset.reset_time &&
+        event.reset_event_id !== reset.reset_event_id) ||
+      (event.reset_event_id !== null &&
+        (resetById.get(event.reset_event_id)?.compromised_user !== grant.principal_binding ||
+          event.source_time <= resetById.get(event.reset_event_id).reset_time))
+    ) {
+      return 'token lineage';
+    }
+    if (reset?.revoked_grant_ids.includes(grant.grant_id) && event.source_time > reset.reset_time) {
+      return 'token issued after reset revocation';
+    }
+  }
+  return null;
+}
+
 /** Validate source truth without consulting a profile, seed, or evaluator answer key. */
 export function validateResponseNative(native) {
   if (
@@ -1205,31 +1238,9 @@ export function validateResponseNative(native) {
   ) {
     return fail('token or session event bijection');
   }
-  for (const token of tokens) {
-    const event = eventById.get(token.event_id);
-    const grant = grantById.get(token.grant_id);
-    const reset = resetByUser.get(grant?.principal_binding);
-    if (
-      !grant ||
-      token.client_id !== grant.client_id ||
-      event?.kind !== 'access-token-issued' ||
-      event.token_id !== token.token_id ||
-      event.grant_id !== grant.grant_id ||
-      event.client_id !== token.client_id ||
-      event.created_event_id !== grant.created_event_id ||
-      event.caused_by_event_id !== grant.created_event_id ||
-      event.credential_lineage !== grant.refresh_lineage ||
-      event.expires_at_tick !== token.expires_at_tick ||
-      event.source_time !== token.issued_at ||
-      (reset &&
-        event.source_time > reset.reset_time &&
-        event.reset_event_id !== reset.reset_event_id) ||
-      (event.reset_event_id !== null &&
-        (resetById.get(event.reset_event_id)?.compromised_user !== grant.principal_binding ||
-          event.source_time <= resetById.get(event.reset_event_id).reset_time))
-    ) {
-      return fail('token lineage');
-    }
+  const tokenFailure = tokenSourceFailure(tokens, grantById, eventById, resetByUser, resetById);
+  if (tokenFailure) {
+    return fail(tokenFailure);
   }
   for (const session of sessions) {
     const token = tokens.find((item) => item.token_id === session.token_id);

@@ -1196,6 +1196,52 @@ test('affected post-reset token must cite its reset before a finding can be sour
   assert.equal(validateResponseNative(copy).reason, 'token lineage');
 });
 
+test('reset-revoked grants cannot issue fresh post-reset tokens; later manual revocation remains valid', async () => {
+  const { GRID, produceResponse, validateResponseNative } = await modules();
+  const { native, key } = produceResponse(GRID.find((item) => item.profile === 'single-mint'));
+  const copy = structuredClone(native);
+  const grant = copy.public.grants.find((item) => item.grant_id === key.target_grant_ids[0]);
+  const reset = copy.public.resets.find(
+    (item) => item.compromised_user === grant.principal_binding,
+  );
+  grant.enumeration_facet = reset.defect_enumerated;
+  grant.revoked_at_tick = 0;
+  reset.revoked_grant_ids = computeRevokedGrantIds(copy.public.grants, copy.public.registry, reset);
+  byId(copy.public.events, 'event_id').get(reset.reset_event_id).revoked_grant_ids = [
+    ...reset.revoked_grant_ids,
+  ];
+  delete copy.hidden.revocation_lag_ticks[grant.grant_id];
+  assert.ok(reset.revoked_grant_ids.includes(grant.grant_id));
+  assert.ok(
+    copy.public.events.some(
+      (event) =>
+        event.kind === 'access-token-issued' &&
+        event.grant_id === grant.grant_id &&
+        event.source_time > reset.reset_time,
+    ),
+  );
+  assert.equal(validateResponseNative(copy).reason, 'token issued after reset revocation');
+
+  const manual = produceResponse(GRID.find((item) => item.profile === 'mint-plus-session-only'));
+  const manualGrant = manual.native.public.grants.find(
+    (item) => item.grant_id === manual.key.session_only_grant_ids[0],
+  );
+  const manualReset = manual.native.public.resets.find(
+    (item) => item.compromised_user === manualGrant.principal_binding,
+  );
+  assert.equal(manualGrant.revoked_at_tick, 0);
+  assert.equal(manualReset.revoked_grant_ids.includes(manualGrant.grant_id), false);
+  assert.ok(
+    manual.native.public.events.some(
+      (event) =>
+        event.kind === 'access-token-issued' &&
+        event.grant_id === manualGrant.grant_id &&
+        event.source_time > manualReset.reset_time,
+    ),
+  );
+  assert.equal(validateResponseNative(manual.native).ok, true);
+});
+
 test('native validation rejects orphan token and session events', async () => {
   const { GRID, produceResponse, validateResponseNative } = await modules();
   const { native } = produceResponse(GRID.find((item) => item.profile === 'both-live'));
