@@ -1,0 +1,97 @@
+{
+  "task": "F3 v23 approval-ledger containment",
+  "date": "2026-11-20",
+  "status": "user-directed-early-stop",
+  "candidate_commit": "91495a0c74",
+  "model": "@cf/zai-org/glm-5.3",
+  "endpoint_id": "cloudflare-workers-ai",
+  "settings": {
+    "temperature": 0,
+    "reasoning_effort": "low",
+    "max_completion_tokens": 16384,
+    "request_timeout_ms": 300000,
+    "min_request_spacing_ms": 5000,
+    "cache": false,
+    "automatic_retry": false
+  },
+  "planned_grid": {
+    "first_seed": 74000,
+    "last_seed": 74011,
+    "controller_settings": ["reconcile-hook", "mutating-webhook", "owner-reference"],
+    "planned_cases": 36
+  },
+  "observed_prefix": {
+    "completed": 14,
+    "valid": 14,
+    "pass": 8,
+    "model_fail": 6,
+    "provider_error": 0,
+    "invalid_run": 0,
+    "interrupted_case": { "seed": 74004, "family": "owner-reference", "included": false },
+    "classifications": [
+      "pass",
+      "model_fail",
+      "model_fail",
+      "pass",
+      "model_fail",
+      "pass",
+      "pass",
+      "model_fail",
+      "pass",
+      "pass",
+      "pass",
+      "model_fail",
+      "pass",
+      "model_fail"
+    ],
+    "failure_breakdown": { "missed_threat_only": 4, "collateral_only": 1, "both": 1 },
+    "by_controller_setting": {
+      "reconcile-hook": { "completed": 5, "pass": 5 },
+      "mutating-webhook": { "completed": 5, "pass": 1 },
+      "owner-reference": { "completed": 4, "pass": 2 }
+    }
+  },
+  "model_free": {
+    "development_reference": "36/36",
+    "holdout_reference": "36/36",
+    "cross_version_tests": "129/129",
+    "latest_completed_shortcut": "36/36; valid linear-journal resolution, not a bypass"
+  },
+  "captures": [
+    {
+      "stage": "development",
+      "file": "/private/tmp/f3-v23-development-70000-frozen.json",
+      "bytes": 251251,
+      "sha256": "1c598a9052568f1411c478804d4b7a1a9540ed66e2901197361da2aeb895e392",
+      "completed": 36
+    },
+    {
+      "stage": "holdout",
+      "file": "/private/tmp/f3-v23-holdout-71000.json",
+      "bytes": 254635,
+      "sha256": "42a783f9860550672eca814447da75d581eb23ee1524ce455b15a28219aeee08",
+      "completed": 36
+    },
+    {
+      "stage": "excluded-sandbox-transport-error",
+      "file": "/private/tmp/f3-v23-glm53-excluded-pilot-72000.json",
+      "bytes": 539,
+      "sha256": "2f5eba5c499dfc3e53471387d3b7d94ebd202596bfcd6e42846d1cd9a04075b5",
+      "completed": 1
+    },
+    {
+      "stage": "excluded-network-pilot",
+      "file": "/private/tmp/f3-v23-glm53-excluded-pilot-72000-network.json",
+      "bytes": 352059,
+      "sha256": "99d7ec49a5720727db64257b478ee2fe9a71529a7f761daab7af61b540519942",
+      "completed": 1
+    },
+    {
+      "stage": "scored-early-stop-prefix",
+      "file": "/private/tmp/f3-v23-glm53-scored-74000.json",
+      "bytes": 4962059,
+      "sha256": "fa4e0dc2fb9c22d49b0737ae7a6aab4fb629492720d6b243107ab9121327181e",
+      "completed": 14
+    }
+  ]
+}
