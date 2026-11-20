@@ -15,7 +15,13 @@ const cache = new Map();
 function episode(seed, family) {
   const key = `${seed}|${family}`;
   if (!cache.has(key)) {
-    cache.set(key, buildEpisode({ seed, family }));
+    cache.set(
+      key,
+      buildEpisode(
+        { seed, family },
+        { catalogKey: process.env.F3_V35_CATALOG_KEY ?? '01'.repeat(32) },
+      ),
+    );
   }
   return cache.get(key);
 }
@@ -47,81 +53,43 @@ function visibleCatalogs({ visible }) {
   };
 }
 
-function structuralRivals(catalogs, current, plan) {
-  const currentKeys = new Set(current.keys());
-  const members = (group) => group.selectors.map((selector) => `${selector.kind}:${selector.id}`);
-  const qSix = catalogs.containment_cohorts.cohorts
-    .map((group) => ({
-      id: group.cohort_id,
-      current: members(group).filter((selector) => currentKeys.has(selector)),
-      archive: members(group).filter((selector) => !currentKeys.has(selector)),
-    }))
-    .filter((group) => group.current.length === 6);
-  const exceptions = catalogs.exception_bundles.bundles.map((group) => ({
-    current: new Set(members(group).filter((selector) => currentKeys.has(selector))),
-    archive: new Set(members(group).filter((selector) => !currentKeys.has(selector))),
-  }));
-  const ePairs = [];
-  for (const larger of exceptions.filter((group) => group.current.size === 3)) {
-    for (const smaller of exceptions.filter((group) => group.current.size === 2)) {
-      if (
-        [...smaller.current].every((selector) => larger.current.has(selector)) &&
-        [...larger.archive].every((selector) => !smaller.archive.has(selector))
-      ) {
-        ePairs.push(larger.current);
-      }
-    }
-  }
-  const triples = [];
-  for (let first = 0; first < qSix.length; first += 1) {
-    for (let second = first + 1; second < qSix.length; second += 1) {
-      for (let third = second + 1; third < qSix.length; third += 1) {
-        const groups = [qSix[first], qSix[second], qSix[third]];
-        const union = new Set(groups.flatMap((group) => group.current));
+function assertPublicTripleCounts(catalogs, current) {
+  const six = catalogs.containment_cohorts.cohorts
+    .map((group) => group.selectors.map((s) => `${s.kind}:${s.id}`).filter((k) => current.has(k)))
+    .filter((keys) => keys.length === 6);
+  assert.equal(six.length, 12);
+  const incidence = new Map(six.map((group) => [group, 0]));
+  let count = 0;
+  for (const [i, first] of six.entries()) {
+    for (let j = i + 1; j < six.length; j++) {
+      for (const third of six.slice(j + 1)) {
+        const triple = [first, six[j], third];
+        const union = new Set(triple.flat());
         if (union.size !== 18) {
           continue;
         }
-        const archiveUnion = new Set(groups.flatMap((group) => group.archive));
-        triples.push({
-          ids: groups
-            .map((group) => group.id)
-            .sort()
-            .join('|'),
-          count: ePairs.filter((pair) => [...pair].every((selector) => union.has(selector))).length,
-          completable:
-            archiveUnion.size === 6 &&
-            qSix.some(
-              (group) =>
-                !groups.includes(group) &&
-                new Set([...union, ...group.current]).size === 24 &&
-                new Set([...archiveUnion, ...group.archive]).size === 8,
-            ),
-        });
+        count++;
+        for (const group of triple) {
+          incidence.set(group, incidence.get(group) + 1);
+        }
+        assert.ok(
+          six.every((group) => group.some((key) => union.has(key))),
+          'a fourth six-current control completes the public partition',
+        );
       }
     }
   }
-  const selected = plan
-    .filter((command) => command.tool === 'quarantine-cohort')
-    .map((command) => command.args.cohort_id)
-    .sort()
-    .join('|');
-  const selectedCount = triples.find((triple) => triple.ids === selected)?.count;
-  assert.notEqual(selectedCount, undefined, 'reference uses a disjoint six-current Q triple');
-  const nonCompletable = triples.filter((triple) => !triple.completable && triple.ids !== selected);
-  return {
-    selectedCount,
-    completable: triples.some((triple) => triple.completable),
-    higherRivals: nonCompletable.filter((triple) => triple.count >= selectedCount).length,
-    lowerRivals: nonCompletable.filter((triple) => triple.count <= selectedCount).length,
-  };
+  assert.equal(count, 64);
+  assert.ok([...incidence.values()].every((n) => n === 16));
 }
 
-test('development grid leaves non-completable Q/E rivals on both motif tails', () => {
+test('all development pairs expose the same 64-way structural ambiguity and admit a native four-request solution', () => {
   for (let pairSeed = 109000; pairSeed < 109012; pairSeed += 2) {
     for (const family of FAMILIES) {
       const even = episode(pairSeed, family);
       const odd = buildV30Episode({ seed: pairSeed + 1, family });
       const catalogs = visibleCatalogs(even);
+      assertPublicTripleCounts(catalogs, currentActions(even));
       for (const variant of [even, odd]) {
         const current = currentActions(variant);
         const required = requiredActions(variant);
@@ -133,10 +101,10 @@ test('development grid leaves non-completable Q/E rivals on both motif tails', (
         );
         const plan = solveMixedCover(catalogs, current, required);
         assert.ok(plan, `${pairSeed}/${family}: visible reference`);
-        const { completable, higherRivals, lowerRivals } = structuralRivals(
-          catalogs,
-          current,
-          plan,
+        assert.equal(plan.length, 4);
+        assert.equal(
+          replayContainment({ ...variant.native, ...catalogs, action_budget: 4 }, plan).success,
+          true,
         );
         const allSafe = catalogs.containment_cohorts.cohorts.filter((group) => {
           const selected = group.selectors
@@ -145,11 +113,6 @@ test('development grid leaves non-completable Q/E rivals on both motif tails', (
           return selected.length === 6 && selected.every((key) => !unsafe.has(key));
         });
         assert.equal(allSafe.length, 0, `${pairSeed}/${family}: all-safe Q6 marker`);
-        assert.equal(completable, false, `${pairSeed}/${family}: full Q4 partition marker`);
-        assert.ok(
-          higherRivals >= 3 && lowerRivals >= 3,
-          `${pairSeed}/${family}/${variant === even ? 'even' : 'odd'}: Q/E rivals ${higherRivals} higher, ${lowerRivals} lower`,
-        );
       }
     }
   }

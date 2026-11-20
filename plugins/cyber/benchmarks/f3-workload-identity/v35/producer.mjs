@@ -131,82 +131,28 @@ function witnessWithOtherException(witness, otherWitness) {
   return witness.map((command) => (command.tool === 'except-cohort' ? wrong : command));
 }
 
-function structuralMotifScores(catalogs, currentActions) {
-  const currentKeys = new Set(currentActions.keys());
-  const keys = (group) => group.selectors.map((selector) => `${selector.kind}:${selector.id}`);
-  const qSix = catalogs.containment_cohorts.cohorts
-    .map((group) => ({
-      id: group.cohort_id,
-      current: keys(group).filter((selector) => currentKeys.has(selector)),
-      archive: keys(group).filter((selector) => !currentKeys.has(selector)),
-    }))
-    .filter((group) => group.current.length === 6);
-  const exceptions = catalogs.exception_bundles.bundles.map((group) => ({
-    current: new Set(keys(group).filter((selector) => currentKeys.has(selector))),
-    archive: new Set(keys(group).filter((selector) => !currentKeys.has(selector))),
-  }));
-  const plausiblePairs = [];
-  for (const larger of exceptions.filter((group) => group.current.size === 3)) {
-    for (const smaller of exceptions.filter((group) => group.current.size === 2)) {
+// Four mutually disjoint six-current cohorts would reveal a public complement.
+function hasDisjointComplement(catalogs, current) {
+  const six = catalogs.containment_cohorts.cohorts
+    .map((group) =>
+      group.selectors.map((s) => `${s.kind}:${s.id}`).filter((key) => current.has(key)),
+    )
+    .filter((keys) => keys.length === 6);
+  function search(selected, start, remaining) {
+    if (remaining === 0) {
+      return true;
+    }
+    for (let i = start; i <= six.length - remaining; i++) {
       if (
-        [...smaller.current].every((selector) => larger.current.has(selector)) &&
-        [...larger.archive].every((selector) => !smaller.archive.has(selector))
+        six[i].every((key) => !selected.has(key)) &&
+        search(new Set([...selected, ...six[i]]), i + 1, remaining - 1)
       ) {
-        plausiblePairs.push(larger.current);
+        return true;
       }
     }
-  }
-  const scores = new Map();
-  for (let first = 0; first < qSix.length; first += 1) {
-    for (let second = first + 1; second < qSix.length; second += 1) {
-      for (let third = second + 1; third < qSix.length; third += 1) {
-        const triple = [qSix[first], qSix[second], qSix[third]];
-        const union = new Set(triple.flatMap((group) => group.current));
-        if (union.size !== 18) {
-          continue;
-        }
-        const archiveUnion = new Set(triple.flatMap((group) => group.archive));
-        const completable =
-          archiveUnion.size === 6 &&
-          qSix.some(
-            (group) =>
-              !triple.includes(group) &&
-              new Set([...union, ...group.current]).size === 24 &&
-              new Set([...archiveUnion, ...group.archive]).size === 8,
-          );
-        const ids = triple
-          .map((group) => group.id)
-          .sort()
-          .join('|');
-        scores.set(ids, {
-          count: plausiblePairs.filter((pair) => [...pair].every((selector) => union.has(selector)))
-            .length,
-          completable,
-        });
-      }
-    }
-  }
-  return scores;
-}
-
-function hasStructuralRivals(scores, plan) {
-  const quarantines = plan.filter((command) => command.tool === 'quarantine-cohort');
-  if (quarantines.length !== 3) {
     return false;
   }
-  const selected = quarantines
-    .map((command) => command.args.cohort_id)
-    .sort()
-    .join('|');
-  const selectedScore = scores.get(selected);
-  if (selectedScore === undefined || selectedScore.completable) {
-    return false;
-  }
-  const rivals = [...scores].filter(([ids, score]) => ids !== selected && !score.completable);
-  return (
-    rivals.filter(([, score]) => score.count >= selectedScore.count).length >= 3 &&
-    rivals.filter(([, score]) => score.count <= selectedScore.count).length >= 3
-  );
+  return search(new Set(), 0, 4);
 }
 
 function hasAllSafeSixCurrentGroup(catalogs, current, unsafe) {
@@ -224,11 +170,7 @@ function candidatePasses(episodes, current, required, catalogs) {
     containment_cohorts: catalogs.containment_cohorts,
     exception_bundles: catalogs.exception_bundles,
   };
-  const scores = structuralMotifScores(visibleCatalogs, current[0]);
-  if (
-    [...scores.values()].some(({ completable }) => completable) ||
-    !hasStructuralRivals(scores, catalogs.witnesses.even)
-  ) {
+  if (hasDisjointComplement(visibleCatalogs, current[0])) {
     return false;
   }
   const referencePlans = [];
@@ -257,8 +199,7 @@ function candidatePasses(episodes, current, required, catalogs) {
       reference === null ||
       reference.length !== 4 ||
       witness.length !== 4 ||
-      reference.filter(({ tool }) => tool === 'except-cohort').length !== 1 ||
-      !hasStructuralRivals(scores, reference)
+      reference.filter(({ tool }) => tool === 'except-cohort').length !== 1
     ) {
       return false;
     }

@@ -834,30 +834,36 @@ test('visible staged planner rejects incomplete, ambiguous and ineffective choic
     }
   }
   assert.ok(catalogs);
-  // Leave every current selector and both witnesses alone. Force an archive
-  // collision for each third-slot alternative with the real first Q. The
-  // current-only timing test cannot distinguish this from the accepted case.
-  const archiveLeak = structuredClone(catalogs);
-  const witness = catalogs.witnesses.even.slice(0, 3).map((command) => command.args.cohort_id);
-  const first = archiveLeak.containment_cohorts.cohorts.find(
-    (group) => group.cohort_id === witness[0],
+  // Collapse the archive draws for three Q3 arms. Native controls and all
+  // current hypotheses stay valid, but the fourth arm stands out by its fillers.
+  const noRivals = structuredClone(catalogs);
+  const winner3 = catalogs.witnesses.even[2].args.cohort_id;
+  const flip = [...odd.unsafe].find((k) => !even.unsafe.has(k));
+  const archiveMembers = noRivals.containment_cohorts.candidates.filter(
+    (s) => !even.current.has(key(s)),
   );
-  const filler = first.selectors.find((selector) => !even.current.has(key(selector)));
-  const flip = [...odd.unsafe].find((selector) => !even.unsafe.has(selector));
-  for (const group of archiveLeak.containment_cohorts.cohorts) {
-    if (
-      group.cohort_id === witness[2] ||
-      !group.selectors.some((selector) => key(selector) === flip) ||
-      group.selectors.some((selector) => key(selector) === key(filler))
-    ) {
-      continue;
-    }
-    const at = group.selectors.findIndex((selector) => !even.current.has(key(selector)));
-    if (at >= 0) {
-      group.selectors[at] = filler;
+  for (const q of noRivals.containment_cohorts.cohorts) {
+    const members = q.selectors.filter((s) => even.current.has(key(s)));
+    if (members.length === 6 && q.cohort_id !== winner3 && members.some((s) => key(s) === flip)) {
+      q.selectors = [...members, ...archiveMembers.slice(0, 2)];
     }
   }
-  assert.equal(hasUniqueStagedPlans(archiveLeak, checkpoints, even.unsafe, odd.unsafe), false);
+  assert.equal(hasUniqueStagedPlans(noRivals, checkpoints, even.unsafe, odd.unsafe), false);
+  // Concentrating E archives leaves all current reads and Q memberships intact.
+  const concentrated = structuredClone(catalogs);
+  const archive = concentrated.containment_cohorts.candidates.filter(
+    (selector) => !even.current.has(key(selector)),
+  );
+  for (const group of concentrated.exception_bundles.bundles) {
+    const current = group.selectors.filter((selector) => even.current.has(key(selector)));
+    if (current.length === 2) {
+      group.selectors = [...current, ...archive.slice(0, 4)];
+    }
+    if (current.length === 3) {
+      group.selectors = [...current, ...archive.slice(4, 7)];
+    }
+  }
+  assert.equal(hasUniqueStagedPlans(concentrated, checkpoints, even.unsafe, odd.unsafe), false);
   // Model/reference API crosses a serialization boundary with only public data.
   const visible = JSON.parse(
     JSON.stringify({
