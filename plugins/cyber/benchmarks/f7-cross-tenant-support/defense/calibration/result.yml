@@ -1,0 +1,39 @@
+{
+  "schema_version": 1,
+  "task_id": "f7-support-defense",
+  "commit": "a154951db868ed435675edec7c263e53ec0de0ac",
+  "protocol": {
+    "path": "calibration/protocol.yml",
+    "sha256": "8bbe811d6688f5a274a63cab90139bf0d16b507cc6ad7a68d15ef2e5816b8591"
+  },
+  "runs": [
+    {
+      "path": "calibration/f7-v2-astra-pilot-final.yml",
+      "sha256": "a57c5507c9e5ff3160d31eb9e5fdb59451113dc663839bfbb8523b16f80e0c08"
+    }
+  ],
+  "declared_minimum": {
+    "instances": 4,
+    "attempts": 4
+  },
+  "completed": {
+    "instances": 4,
+    "valid_attempts": 0
+  },
+  "outcome_counts": {
+    "pass": 0,
+    "fail": 0,
+    "provider_errors": 4,
+    "invalid_runs": 0
+  },
+  "uncertainty": {
+    "method": "Wilson score 95% interval on the pass rate",
+    "result": "pass_rate=0.0000 (pass 0/0); 95% CI [0.0000, 0.0000]"
+  },
+  "limitations": [
+    "No frontier ceiling run — this is the local model only (floor/middle); the G6 gate is kept PENDING.",
+    "Single model (gpt-6.2-astra); not a cross-model calibration.",
+    "Local sample size is a probe, not a powered estimate; the interval is wide."
+  ],
+  "minima_met": false
+}

@@ -1,0 +1,70 @@
+{
+  "schema_version": 1,
+  "task_id": "f7-support-defense",
+  "commit": "a154951db868ed435675edec7c263e53ec0de0ac",
+  "run_id": "f7-v2-astra-pilot-final",
+  "model": {
+    "provider": "openai-compatible",
+    "id": "gpt-6.2-astra",
+    "endpoint": "https://halo-dataline-resource.services.ai.azure.com/openai/v1"
+  },
+  "harness": {
+    "name": "cyber-calibration-runner",
+    "version": "1"
+  },
+  "opportunity_budget": {
+    "max_tokens": 8000,
+    "temperature": 0,
+    "tool_calls": 0,
+    "retries": 0,
+    "logical_deadline_ms": 120000
+  },
+  "seeds": [
+    13,
+    29
+  ],
+  "families": [
+    "revoked-parent",
+    "case-scope"
+  ],
+  "instance_ids": [
+    "f7-support-defense-13-revoked-parent",
+    "f7-support-defense-29-revoked-parent",
+    "f7-support-defense-13-case-scope",
+    "f7-support-defense-29-case-scope"
+  ],
+  "attempts": {
+    "declared_minimum": 4,
+    "completed": 0,
+    "model_failures": 0,
+    "provider_errors": 4,
+    "invalid_runs": 0
+  },
+  "outcomes": {
+    "pass": 0,
+    "fail": 0
+  },
+  "stage_survival": {
+    "parsed": 0,
+    "useful-work": 0,
+    "fully-correct": 0
+  },
+  "artifacts": {
+    "config": {
+      "path": "calibration/f7-v2-astra-pilot-final-config.json",
+      "sha256": "e527347083f231b479ac32e69e0b389c7a075da40a072ed600be8aa55af27180"
+    },
+    "prompt": {
+      "path": "calibration/f7-v2-astra-pilot-final-prompt.txt",
+      "sha256": "0477a89339ddafebb036c3b4d0ed2cd23b8e9895fffdf57a01af4ade06198d85"
+    },
+    "raw_output": {
+      "path": "calibration/f7-v2-astra-pilot-final-raw.jsonl",
+      "sha256": "4e999ea466b3091f6c7c9ba7043d32adbd52dc371703d2bd1d8671279d79df4c"
+    },
+    "summarized_output": {
+      "path": "calibration/f7-v2-astra-pilot-final-summary.jsonl",
+      "sha256": "34d0aa4c50efc4732eb738fbbd76a168e254d090011ba45a79b6a11d0c1902a7"
+    }
+  }
+}

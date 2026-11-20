@@ -25,6 +25,24 @@ for (const family of ['revoked-parent', 'case-scope', 'entitlement-scope', 'sess
     assert.equal(crossed.outcome, 'fail');
     assert.equal(crossed.metrics.unauthorized_read_attempts, 1);
     assert.equal(calibrationScore(instance, { actions: [] }).outcome, 'fail');
+    const legitimateCross = instance.case.requests.find(
+      (r) =>
+        r.tenant !== instance.case.authorized_tenant &&
+        reads.some((a) => a.target_uid === r.account_uid),
+    );
+    const tenantOnly = calibrationScore(instance, {
+      actions: reference.actions.filter((a) => a.target_uid !== legitimateCross.account_uid),
+    });
+    assert.equal(tenantOnly.outcome, 'fail');
+    assert.equal(tenantOnly.metrics.missed_authorized_reads, 1);
+    const collateral = calibrationScore(instance, {
+      actions: [
+        ...reference.actions,
+        { tool: 'revoke_session', target_uid: legitimateCross.session_id },
+      ],
+    });
+    assert.equal(collateral.outcome, 'fail');
+    assert.equal(collateral.metrics.collateral_revocations, 1);
     assert.equal(
       calibrationScore(instance, {
         actions: reference.actions.filter((a) => a.tool !== 'revoke_session'),
