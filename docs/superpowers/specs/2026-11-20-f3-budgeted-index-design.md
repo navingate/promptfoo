@@ -35,6 +35,6 @@ Implement V30 as a V29 producer wrapper plus a version-specific SOC query
 adapter. Add an optional read-tool and query-budget injection to the existing
 V23 console, preserving its defaults for earlier versions. Before model
 exposure, require 36/36 development reference on seeds `96000`–`96011`,
-36/36 untouched post-freeze holdout on `96512`–`96523`, native/visible parity,
+36/36 untouched post-freeze holdout on `96524`–`96535`, native/visible parity,
 paired approval integrity, index lineage integrity, and shortcut failure.
 Freeze code and protocol before the independent blind Astra grid.

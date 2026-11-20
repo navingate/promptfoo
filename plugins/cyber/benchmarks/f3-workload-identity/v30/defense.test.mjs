@@ -92,3 +92,34 @@ test('v30 archive IDs match every current ID shape', () => {
     assert.deepEqual(archive, current, key);
   }
 });
+
+test('v30 keeps nonconstructible V29 seed pairs distinct and solvable', () => {
+  assert.throws(
+    () => buildV29Episode({ seed: 96514, family: 'reconcile-hook' }),
+    /v29 has no shared active-only Job/,
+  );
+  for (const family of FAMILIES) {
+    const first = buildEpisode({ seed: 96514, family });
+    const peer = buildEpisode({ seed: 96515, family });
+    const next = buildEpisode({ seed: 96516, family });
+    assert.deepEqual(first.visible.triage_index, peer.visible.triage_index);
+    assert.notDeepEqual(first.visible.triage_index, next.visible.triage_index);
+    const evenApprovals = resolveCurrentApprovals(first.visible);
+    const oddApprovals = resolveCurrentApprovals(peer.visible);
+    assert.equal(
+      evenApprovals.filter(
+        (approval, index) => JSON.stringify(approval) !== JSON.stringify(oddApprovals[index]),
+      ).length,
+      1,
+    );
+    for (const seed of [96514, 96515, 96516, 96517]) {
+      const session = buildDefenseSession({ seed, family });
+      const actions = referenceDefense(session);
+      for (const action of actions) {
+        stepDefense(session, action);
+      }
+      stepDefense(session, { tool: 'submit-plan', args: {} });
+      assert.equal(scoreDefense(session).success, true, `${seed}/${family}`);
+    }
+  }
+});

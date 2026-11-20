@@ -41,8 +41,34 @@ function plannedWindow(identity, triageTime, horizonEnd) {
   return { inside, outside: horizonEnd + offset };
 }
 
+function stableV29Pair(spec) {
+  const pairSeed = spec.seed - (spec.seed % 2);
+  let lastError;
+  for (let attempt = 0; attempt < 32; attempt += 1) {
+    const candidate =
+      attempt === 0
+        ? pairSeed
+        : Number.parseInt(sha256Hex(`v30|stable-pair|${pairSeed}|${attempt}`).slice(0, 12), 16);
+    const candidatePair = candidate - (candidate % 2);
+    try {
+      const even = buildV29Episode({ ...spec, seed: candidatePair });
+      const odd = buildV29Episode({ ...spec, seed: candidatePair + 1 });
+      return spec.seed % 2 === 0 ? even : odd;
+    } catch (error) {
+      if (
+        !(error instanceof Error) ||
+        !/^v29 (has no shared|cannot make|per-Job validity boundaries)/u.test(error.message)
+      ) {
+        throw error;
+      }
+      lastError = error;
+    }
+  }
+  throw new Error(`v30 cannot construct a stable paired incident: ${lastError?.message}`);
+}
+
 export function buildEpisode(spec) {
-  const episode = buildV29Episode(spec);
+  const episode = stableV29Pair(spec);
   const coreIndex = listWorkloads(episode.visible);
   const pairSeed = spec.seed - (spec.seed % 2);
   const entries = [];

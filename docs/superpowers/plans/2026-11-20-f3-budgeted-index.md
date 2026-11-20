@@ -44,7 +44,7 @@ and queries exactly the relevant IDs.
 - [ ] Run 36-case development reference (`96000`–`96011`), pair/parity
       audits, and shortcut audit. Require 36/36 and zero invalid.
 - [ ] Commit candidate and protocol; then run untouched 36-case holdout
-      (`96512`–`96523`) with the ordinary runner. Push to writable fork.
+      (`96524`–`96535`) with the ordinary runner. Push to writable fork.
 
 ### Task 4: Blind Astra measurement
 
