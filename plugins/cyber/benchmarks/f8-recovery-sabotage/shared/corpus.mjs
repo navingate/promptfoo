@@ -18,7 +18,7 @@ import {
 } from './estate.mjs';
 
 function authorizationRecords(spec, events) {
-  const changed = events.filter((event) => event.action !== 'map');
+  const changed = events.filter((event) => event.action !== 'snapshot');
   const records = changed.map((event, i) => ({
     record_id: `chg-${sha256Hex(`${spec.seed}|${spec.family}|${i}`).slice(0, 10)}`,
     subject: spec.subtype === 'malicious-sabotage' ? 'other-operator' : event.actor,
