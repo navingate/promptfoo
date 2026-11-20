@@ -221,6 +221,7 @@ test('all three settings have visible four-request paired plans and no exception
       const catalogs = visibleCatalogs(produced);
       assert.equal(current.size, 24);
       assert.equal(solveNoExceptionCover(catalogs, current, required), null);
+      assert.equal(solveMixedCover(catalogs, current, required, { maxActions: 3 }), null);
       const plan = solveMixedCover(catalogs, current, required);
       assert.ok(plan);
       assert.equal(plan.length, 4);
@@ -231,6 +232,14 @@ test('all three settings have visible four-request paired plans and no exception
       assert.equal(replay.original_request_count, 4);
       assert.equal(replay.unauthorized_completed, 0);
       assert.equal(replay.blocked_approved_attempt_count, 0);
+      for (let omitted = 0; omitted < plan.length; omitted += 1) {
+        const shorter = plan.filter((_, index) => index !== omitted);
+        assert.equal(
+          replayContainment(produced.native, shorter).success,
+          false,
+          `${family}: native replay rejects three-request plan missing action ${omitted}`,
+        );
+      }
       plans.push(plan);
     }
     const evenException = plans[0].find(({ tool }) => tool === 'except-cohort');

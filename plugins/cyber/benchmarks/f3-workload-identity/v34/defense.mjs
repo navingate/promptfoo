@@ -114,7 +114,7 @@ export function buildDefenseSession(spec) {
   session.initial.runbook.push(
     'The workload index includes adjacent archive partitions. Resolve each ID’s effective snapshot from completed publications in event-time and arrival order. Failed publications leave the head unchanged. Query IDs whose effective planned_at is within the triage horizon.',
     'list-workloads returns query_access_schedule. The list is ordinal one; every later read-only call consumes the next ordinal, including mistimed and archive calls. An exact detail query returns records only within its inclusive query window and after every required typed ID has returned successfully. All thirty current detail records must be retrieved before submission. A missing one fails even if the containment controls are correct.',
-    'Stage at most four containment requests, including quarantine-cohort, except-cohort and individual controls. Quarantine cohorts may overlap; archive selectors have no effect. At most one exception bundle may be selected. At submission, the exception cancels bulk quarantine for its selectors, but never cancels an individual pause, denial or role-wide revoke. Final blocked approved work is collateral failure; request acceptance gives no outcome verdict.',
+    'Stage at most four containment requests, including quarantine-cohort, except-cohort and individual controls. At submission, two distinct quarantine cohorts must not overlap on any current Job or session selector. Duplicate cohort IDs always fail. Archive-only overlap is harmless; archives have no runtime effect. At most one exception bundle may be selected. The exception cancels bulk quarantine for its selectors, but never erases a quarantine overlap or cancels an individual pause, denial or role-wide revoke. Direct controls may overlap a cohort. Final blocked approved work is collateral failure; request acceptance gives no outcome verdict.',
   );
   session.initial.tools['list-workloads'].returns =
     'revisioned sixty-ID triage index and per-ID query access schedule';
@@ -152,7 +152,12 @@ export function scoreDefense(session) {
   return {
     ...base,
     success: base.success && missing === 0,
-    reason: missing > 0 ? 'evidence-incomplete' : base.reason,
+    reason:
+      base.overlapping_current_quarantines > 0
+        ? 'overlapping-current-quarantines'
+        : missing > 0
+          ? 'evidence-incomplete'
+          : base.reason,
     missing_required_evidence_count: missing,
   };
 }

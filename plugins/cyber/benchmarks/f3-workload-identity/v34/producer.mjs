@@ -242,6 +242,12 @@ function candidatePasses(episodes, current, required, catalogs) {
     if (solveNoExceptionCover(visibleCatalogs, current[variant], required[variant]) !== null) {
       return false;
     }
+    if (
+      solveMixedCover(visibleCatalogs, current[variant], required[variant], { maxActions: 3 }) !==
+      null
+    ) {
+      return false;
+    }
     const reference = solveMixedCover(visibleCatalogs, current[variant], required[variant]);
     const witness = variant === 0 ? catalogs.witnesses.even : catalogs.witnesses.odd;
     if (
@@ -261,9 +267,11 @@ function candidatePasses(episodes, current, required, catalogs) {
   for (const [variant, episode] of episodes.entries()) {
     const witness = variant === 0 ? catalogs.witnesses.even : catalogs.witnesses.odd;
     const other = variant === 0 ? catalogs.witnesses.odd : catalogs.witnesses.even;
+    const referenceReplay = replayContainment(episode.native, referencePlans[variant]);
     if (
       !roleRevokeHasCollateral(episode) ||
-      !replayContainment(episode.native, referencePlans[variant]).success ||
+      !referenceReplay.success ||
+      referenceReplay.overlapping_current_quarantines !== 0 ||
       !replayContainment(episode.native, witness).success ||
       replayContainment(episode.native, witnessWithOtherException(witness, other)).success
     ) {

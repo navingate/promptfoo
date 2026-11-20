@@ -52,13 +52,13 @@ test('paired development cases retain the scheduled evidence trap and catalog am
         even.visible.containment_cohorts.cohorts.filter(({ selectors }) =>
           selectors.some((member) => key(member) === key(selector)),
         ).length,
-        16,
+        32,
       );
       assert.equal(
         even.visible.exception_bundles.bundles.filter(({ selectors }) =>
           selectors.some((member) => key(member) === key(selector)),
         ).length,
-        12,
+        24,
       );
     }
   }

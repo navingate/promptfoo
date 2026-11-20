@@ -60,10 +60,11 @@ test('v34 classifies malformed exception commands separately from unknown IDs', 
     const fetchStub = `globalThis.fetch = async () => ({
       status: 200,
       ok: true,
-      json: async () => ({model:'local-stub',choices:[{message:{content:process.env.F3_TEST_CONTENT},finish_reason:process.env.F3_TEST_FINISH_REASON || 'stop'}]}),
+      json: async () => ({model:'local-stub',choices:[{message:{content:process.env.F3_TEST_CONTENT === '__oversized__' ? 'x'.repeat(128 * 1024 + 1) : process.env.F3_TEST_CONTENT},finish_reason:process.env.F3_TEST_FINISH_REASON || 'stop'}]}),
     });`;
     for (const [label, content, reason, classification, finishReason] of [
       ['off-grammar', 'not-json', 'off-grammar', 'invalid_run'],
+      ['response-cap', '__oversized__', 'raw-response-byte-limit-exceeded', 'invalid_run'],
       ['truncated', '{"tool":"submit-plan","args":{}}', 'truncated', 'invalid_run', 'length'],
       ['unknown-tool', '{"tool":"bogus","args":{}}', 'malformed-command', 'invalid_run'],
       ['missing-id', '{"tool":"except-cohort","args":{}}', 'malformed-command', 'invalid_run'],
