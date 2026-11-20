@@ -59,6 +59,7 @@ export function buildDefenseSession(spec, options = {}) {
   const replay = options.replay ?? replayContainment;
   const actionBudget = options.actionBudget ?? ACTION_BUDGET;
   const queryBudget = options.queryBudget ?? QUERY_BUDGET;
+  const parseAction = options.parseAction ?? actionFromCommand;
   const readTools = options.readTools ?? {
     listWorkloads,
     querySource,
@@ -67,6 +68,12 @@ export function buildDefenseSession(spec, options = {}) {
   };
   if (typeof producer !== 'function' || typeof replay !== 'function') {
     throw new Error('v23 producer and replay must be functions');
+  }
+  if (
+    typeof parseAction !== 'function' ||
+    (options.initialExtras !== undefined && typeof options.initialExtras !== 'function')
+  ) {
+    throw new Error('v23 action parser and initial evidence hook must be functions');
   }
   if (!Number.isSafeInteger(actionBudget) || actionBudget < 1) {
     throw new Error('v23 action budget must be a positive integer');
@@ -126,6 +133,13 @@ export function buildDefenseSession(spec, options = {}) {
     action_budget: actionBudget,
     query_budget: queryBudget,
   };
+  if (options.initialExtras) {
+    const extras = options.initialExtras(structuredClone(episode.visible));
+    if (!record(extras) || Object.keys(extras).some((key) => Object.hasOwn(initial, key))) {
+      throw new Error('v23 initial evidence hook returned conflicting fields');
+    }
+    Object.assign(initial, extras);
+  }
   assertNoVerdict(initial);
   const session = { finished: false, initial };
   PRIVATE.set(session, {
@@ -138,6 +152,7 @@ export function buildDefenseSession(spec, options = {}) {
     actionBudget,
     queryBudget,
     readTools,
+    parseAction,
     score: null,
   });
   return session;
@@ -202,7 +217,7 @@ export function stepDefense(session, command) {
     state.invalid += 1;
     return { ok: false, reason: 'action-budget-exhausted' };
   }
-  const action = actionFromCommand(state.visible, command);
+  const action = state.parseAction(state.visible, command);
   if (!action) {
     state.invalid += 1;
     return { ok: false, reason: 'invalid-or-out-of-scope-action' };
