@@ -86,6 +86,12 @@ test('v33 classifies malformed exception commands separately from unknown IDs', 
         'invalid_run',
       ],
       [
+        'direct-extra-command-field',
+        '{"tool":"pause-job","args":{"job_uid":"unknown"},"extra":1}',
+        'malformed-command',
+        'invalid_run',
+      ],
+      [
         'unknown-id',
         '{"tool":"except-cohort","args":{"exception_id":"unknown"}}',
         'turn-budget-exhausted',

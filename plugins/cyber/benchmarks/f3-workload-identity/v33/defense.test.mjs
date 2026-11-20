@@ -1,6 +1,7 @@
 import assert from 'node:assert/strict';
 import { test } from 'node:test';
 
+import { resolveIndex } from '../v30/ledger.mjs';
 import { buildDefenseSession, referenceDefense, scoreDefense, stepDefense } from './defense.mjs';
 import { RULE_GUIDE } from './guide.mjs';
 
@@ -70,4 +71,15 @@ test('the initial runbook and guide state the coupled four-request semantics', (
   assert.match(RULE_GUIDE, /exception removes its selectors from bulk quarantine only/u);
   assert.match(RULE_GUIDE, /thirty current detail records/u);
   assert.doesNotMatch(RULE_GUIDE, /seven total requests|seven containment requests/u);
+});
+
+test('all containment commands reject extra top-level fields', () => {
+  const session = buildDefenseSession({ seed: 104008, family: 'reconcile-hook' });
+  const index = stepDefense(session, { tool: 'list-workloads', args: {} }).evidence;
+  const job_uid = resolveIndex(index).job_uids[0];
+  const command = { tool: 'pause-job', args: { job_uid }, extra: 'ignored' };
+  assert.deepEqual(stepDefense(session, command), {
+    ok: false,
+    reason: 'invalid-or-out-of-scope-action',
+  });
 });

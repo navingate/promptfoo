@@ -919,8 +919,8 @@ function malformedV30Command(version, command, result, tools) {
   }
   const args = command.args;
   return (
-    (['v31', 'v32', 'v33'].includes(version) &&
-      ['quarantine-cohort', 'except-cohort'].includes(command.tool) &&
+    ((version === 'v33' ||
+      (['v31', 'v32'].includes(version) && command.tool === 'quarantine-cohort')) &&
       Object.keys(command).length !== 2) ||
     !args ||
     typeof args !== 'object' ||

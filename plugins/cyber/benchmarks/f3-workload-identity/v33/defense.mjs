@@ -42,6 +42,9 @@ function requiredKeys(index) {
 }
 
 function parseAction(visible, command) {
+  if (Object.keys(command).length !== 2 || !Object.hasOwn(command, 'args')) {
+    return null;
+  }
   if (command.tool !== 'quarantine-cohort' && command.tool !== 'except-cohort') {
     return actionFromCommand(visible, command);
   }
