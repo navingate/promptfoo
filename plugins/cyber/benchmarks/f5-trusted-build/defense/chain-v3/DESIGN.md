@@ -1,0 +1,5 @@
+# F5 defensive chain v3 — recovery selection diagnostic
+
+The frozen v2 pilot was solved by Astra in all three valid first attempts. V3 retains its source approval, actual build, attestation, signature, and protected deployment records. It adds an independent reserve artifact per service and capacity windows. A poisoned running workload needs selective isolation and an eligible signed replacement available before the service deadline; a poisoned staged artifact must be held. The responder must keep approved emergency and cache-based releases running. The reserve can itself contain an unapproved dependency lock, so signature and alternate presence are insufficient.
+
+The visible-only reference recomputes authorization for every artifact and selects the earliest eligible replacement by availability tick. The generator privately guarantees that the compromised running service has a recovery option. This is still one complete synthetic snapshot. It does not establish live investigation, action execution, or actual producer-capture transfer.
