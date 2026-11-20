@@ -78,6 +78,12 @@ function selectVariableCohort(raw, spec, pairVariant, options = {}) {
   }
   const scheduled = rank(selected, spec, 'scheduled-sibling')[0];
   const caseTemplate = selected.map((token) => {
+    if (options.phaseAware) {
+      if (token.event_id === flip.event_id) {
+        return pairVariant === 1 ? ['clean', 'bad'] : ['clean', 'clean'];
+      }
+      return token.event_id === approved[2]?.event_id ? ['bad', 'clean'] : ['clean', 'clean'];
+    }
     const isFlip = token.event_id === flip.event_id;
     const jobBad = isFlip
       ? pairVariant === 1
@@ -90,7 +96,9 @@ function selectVariableCohort(raw, spec, pairVariant, options = {}) {
     const state = jobBad ? 'bad' : 'clean';
     return [active ? state : null, renewal ? state : null];
   });
-  const [scheduledActive, scheduledRenewal] = phases(spec, scheduled.event_id);
+  const [scheduledActive, scheduledRenewal] = options.phaseAware
+    ? [true, true]
+    : phases(spec, scheduled.event_id);
   caseTemplate.push([scheduledActive ? 'clean' : null, scheduledRenewal ? 'clean' : null]);
   const badMappingToken = rank(
     selected.filter((token) => sourceApproved(token) === false),

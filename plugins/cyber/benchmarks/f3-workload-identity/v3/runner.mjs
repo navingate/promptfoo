@@ -169,6 +169,13 @@ import {
   stepDefense as stepV23Defense,
 } from '../v23/defense.mjs';
 import { RULE_GUIDE as V23_RULE_GUIDE } from '../v23/guide.mjs';
+import {
+  buildDefenseSession as buildV24DefenseSession,
+  referenceDefense as referenceV24Defense,
+  scoreDefense as scoreV24Defense,
+  stepDefense as stepV24Defense,
+} from '../v24/defense.mjs';
+import { RULE_GUIDE as V24_RULE_GUIDE } from '../v24/guide.mjs';
 import { parseCommands } from './commands.mjs';
 import { buildDefenseSession, referenceDefense, scoreDefense, stepDefense } from './defense.mjs';
 import {
@@ -183,6 +190,7 @@ const COMPACT_RESPONSE_GUIDES = new Map([
   ['v21', V20_RULE_GUIDE],
   ['v22', V22_RULE_GUIDE],
   ['v23', V23_RULE_GUIDE],
+  ['v24', V24_RULE_GUIDE],
 ]);
 
 function argsOf(argv) {
@@ -245,6 +253,7 @@ function argsOf(argv) {
       'v21',
       'v22',
       'v23',
+      'v24',
     ].includes(args.version) ||
     ([
       'v11',
@@ -260,6 +269,7 @@ function argsOf(argv) {
       'v21',
       'v22',
       'v23',
+      'v24',
     ].includes(args.version) &&
       args.mode !== 'defense') ||
     args.seeds.some((s) => !Number.isSafeInteger(s))
@@ -541,6 +551,14 @@ const MODULES = {
       step: stepV23Defense,
     },
   },
+  v24: {
+    defense: {
+      create: buildV24DefenseSession,
+      reference: referenceV24Defense,
+      score: scoreV24Defense,
+      step: stepV24Defense,
+    },
+  },
 };
 
 function mockRun(spec, mode, version, operations) {
@@ -554,7 +572,7 @@ function mockRun(spec, mode, version, operations) {
     };
   }
   const session = operations.create(spec);
-  if (['v18', 'v19', 'v20', 'v21', 'v22', 'v23'].includes(version)) {
+  if (['v18', 'v19', 'v20', 'v21', 'v22', 'v23', 'v24'].includes(version)) {
     for (const action of operations.reference(session)) {
       operations.step(session, action);
     }
@@ -653,6 +671,7 @@ async function modelTurn(messages, cfg, version, mode) {
       'v21',
       'v22',
       'v23',
+      'v24',
     ].includes(version) &&
     mode === 'defense' &&
     Buffer.byteLength(response.text, 'utf8') > 128 * 1024
@@ -663,7 +682,7 @@ async function modelTurn(messages, cfg, version, mode) {
     };
   }
   const commands =
-    mode === 'defense' && ['v22', 'v23'].includes(version)
+    mode === 'defense' && ['v22', 'v23', 'v24'].includes(version)
       ? parseV22Commands(response.text)
       : ['v11', 'v12', 'v13', 'v14', 'v15', 'v16', 'v17', 'v18', 'v19', 'v20', 'v21'].includes(
             version,
@@ -722,6 +741,7 @@ async function runOne(spec, args, cfg) {
     'v21',
     'v22',
     'v23',
+    'v24',
   ].includes(args.version)
     ? 60
     : args.version === 'v6'
