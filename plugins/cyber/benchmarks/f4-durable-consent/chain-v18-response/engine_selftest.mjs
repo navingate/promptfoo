@@ -439,6 +439,92 @@ test('quarantine blocks a current-runner job and does not substitute for session
   );
 });
 
+test('permanent client block stops exports but misses every due job including signed standby work', async () => {
+  const { createResponse, stepResponse, accessState } = await engine();
+  const { episode, key } = caseFor('single-mint', 1);
+  const session = createResponse(episode);
+  const grant = targetGrant(episode, key);
+  const job = dueJob(episode, grant.principal_binding, 1);
+  const standbyId = standby(episode).runner_id;
+  assert.deepEqual(TOOL_CONTRACT.block_client, []);
+  assert.ok(episode.initial.control_contract.block_client.includes('permanent'));
+  assert.equal(
+    stepResponse(session, { tool: 'block_client', args: { on: true } }).error.code,
+    'invalid_arguments',
+  );
+  call(stepResponse, session, 'assign_job', { job_id: job.job_id, runner_id: standbyId });
+  const acknowledgement = call(stepResponse, session, 'block_client');
+  assert.equal(acknowledgement.accepted, true);
+  assert.ok(acknowledgement.block_event_id);
+  assert.equal(Object.hasOwn(acknowledgement, 'contained'), false);
+  assert.equal(session.client_blocked, true);
+  const blockEvent = session.dynamic_events.find(
+    (event) => event.event_id === acknowledgement.block_event_id,
+  );
+  assert.equal(blockEvent.kind, 'client-wide-block-set');
+  assert.equal(blockEvent.client_id, episode.sources.client.client_id);
+  assert.equal(blockEvent.caused_by_event_id, episode.initial.alert.call_event_id);
+  assert.equal(blockEvent.permanent, true);
+  assert.ok(
+    call(stepResponse, session, 'get_activity', { user_id: grant.principal_binding }).some(
+      (event) => event.event_id === blockEvent.event_id,
+    ),
+  );
+  const blockInvocation = session.action_ledger.findLast((item) => item.tool === 'block_client');
+  assert.equal(blockInvocation.counts_toward_budget, true);
+  const before = accessState(session, grant.grant_id);
+  assert.equal(before.can_mint, true);
+  assert.equal(before.client_blocked, true);
+  assert.equal(before.protected_access_allowed, false);
+  call(stepResponse, session, 'advance');
+  const after = call(stepResponse, session, 'probe', { grant_id: grant.grant_id });
+  assert.equal(after.can_mint, true);
+  assert.equal(after.live_token_ids.length, 1);
+  assert.equal(after.live_session_ids.length, 1);
+  assert.equal(after.quarantined, false);
+  assert.equal(after.client_blocked, true);
+  assert.equal(after.protected_access_allowed, false);
+  assert.ok(session.protected_attempts.some((item) => item.tick === 1));
+  assert.ok(session.protected_attempts.every((item) => item.succeeded === false));
+  assert.ok(session.protected_attempts.every((item) => item.blocked_by_client_block === true));
+  const deliveries = call(stepResponse, session, 'get_deliveries');
+  const standbyJob = deliveries.find((item) => item.job_id === job.job_id);
+  assert.equal(standbyJob.runner_id, standbyId);
+  assert.equal(standbyJob.status, 'missed');
+  assert.equal(standbyJob.reason, 'client_blocked');
+  assert.ok(deliveries.every((item) => item.status === 'missed'));
+  assert.equal(
+    stepResponse(session, { tool: 'block_client', args: {} }).error.code,
+    'client_already_blocked',
+  );
+  assert.equal(session.client_blocked, true);
+});
+
+test('client block remains active when set after all approved jobs have delivered', async () => {
+  const { createResponse, stepResponse, accessState } = await engine();
+  const { episode } = caseFor('benign');
+  const session = createResponse(episode);
+  for (let tick = 1; tick <= LIMITS.horizon_tick; tick++) {
+    call(stepResponse, session, 'advance');
+  }
+  assert.ok(
+    call(stepResponse, session, 'get_deliveries').every((item) => item.status === 'delivered'),
+  );
+  call(stepResponse, session, 'block_client');
+  const approvedGrantId = episode.sources.jobs[0].approved_grant_id;
+  const state = call(stepResponse, session, 'probe', { grant_id: approvedGrantId });
+  assert.equal(state.can_mint, true);
+  assert.equal(state.client_blocked, true);
+  assert.equal(state.protected_access_allowed, false);
+  assert.equal(
+    stepResponse(session, { tool: 'unblock_client', args: {} }).error.code,
+    'unknown_tool',
+  );
+  call(stepResponse, session, 'submit', { findings: [] });
+  assert.equal(session.client_blocked, true);
+  assert.equal(accessState(session, approvedGrantId).protected_access_allowed, false);
+});
+
 test('invalid assignment never delivers and submit replays the same transitions through tick four', async () => {
   const { createResponse, stepResponse } = await engine();
   const { episode, key } = caseFor('single-mint', 1);

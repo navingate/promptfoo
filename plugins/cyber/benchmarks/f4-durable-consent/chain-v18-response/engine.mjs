@@ -186,8 +186,11 @@ export function accessState(session, grantId) {
     live_token_ids: liveTokenIds,
     live_session_ids: liveSessionIds,
     quarantined,
+    client_blocked: session.client_blocked,
     protected_access_allowed:
-      !quarantined && (canMint || liveTokenIds.length > 0 || liveSessionIds.length > 0),
+      !session.client_blocked &&
+      !quarantined &&
+      (canMint || liveTokenIds.length > 0 || liveSessionIds.length > 0),
   };
 }
 
@@ -332,6 +335,7 @@ function protectedExport(session) {
         resource: session.sources.client.protected_scope,
         succeeded: state.protected_access_allowed,
         blocked_by_quarantine: state.quarantined,
+        blocked_by_client_block: state.client_blocked,
       },
       cause ?? grant.created_event_id,
     );
@@ -344,6 +348,7 @@ function protectedExport(session) {
       session_id: sessionId,
       succeeded: state.protected_access_allowed,
       blocked_by_quarantine: state.quarantined,
+      blocked_by_client_block: state.client_blocked,
     });
   }
 }
@@ -377,7 +382,9 @@ function deliverDueJobs(session) {
     const runner = runners.get(runnerId);
     const signed = signedRunnerAuthorization(session, job, runnerId);
     let reason = null;
-    if (!runner || !signed) {
+    if (session.client_blocked) {
+      reason = 'client_blocked';
+    } else if (!runner || !signed) {
       reason = 'runner_not_authorized';
     } else if (runner.ready_at_tick > session.now_tick) {
       reason = 'runner_not_ready';
@@ -448,6 +455,8 @@ function activityForUser(session, userId) {
   );
   return [...session.sources.events, ...session.dynamic_events].filter(
     (event) =>
+      (event.kind === 'client-wide-block-set' &&
+        event.client_id === session.sources.client.client_id) ||
       event.user_id === userId ||
       event.compromised_user === userId ||
       grantIds.has(event.grant_id) ||
@@ -597,6 +606,19 @@ function executeControl(session, tool, args) {
     session.terminated_session_ids.push(resource.session_id);
     return { accepted: true, termination_event_id: event.event_id, tick: session.now_tick };
   }
+  if (tool === 'block_client') {
+    if (session.client_blocked) {
+      return bad('client_already_blocked', 'The client-wide block is permanent and already set.');
+    }
+    const event = appendEvent(
+      session,
+      'client-wide-block-set',
+      { client_id: session.sources.client.client_id, permanent: true },
+      session.initial.alert.call_event_id,
+    );
+    session.client_blocked = true;
+    return { accepted: true, block_event_id: event.event_id, tick: session.now_tick };
+  }
   if (tool === 'set_quarantine') {
     const active = session.quarantined_user_ids.includes(args.user_id);
     if (active === args.on) {
@@ -731,6 +753,7 @@ export function createResponse(episode) {
     action_ledger: [],
     control_requests: [],
     terminated_session_ids: [],
+    client_blocked: false,
     quarantined_user_ids: [],
     job_assignments: {},
     dynamic_tokens: [],

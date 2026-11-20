@@ -636,6 +636,8 @@ function controlContract() {
     access_token:
       'A token is live only while expires_at_tick > current_tick. A successful new mint at tick n expires at tick n + 2.',
     terminate_session: 'Ends only the named resource session, not its parent token or grant.',
+    block_client:
+      'A permanent client-wide block immediately denies protected exports and all approved jobs, including signed standby work. It does not revoke grants, expire tokens, terminate sessions, or stop token minting. The acknowledgment is not containment or delivery proof.',
     set_quarantine:
       'Immediately blocks protected access for one user and this client, including approved current-runner work; it does not stop token minting. Release only after checking latent paths.',
     assign_job:

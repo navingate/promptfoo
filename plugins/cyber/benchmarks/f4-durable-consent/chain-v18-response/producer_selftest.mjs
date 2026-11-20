@@ -166,6 +166,18 @@ test('response grid has 36 unseen balanced incidents and hidden-lag branches', a
   }
 });
 
+test('native control contract publishes the irreversible client-wide block', async () => {
+  const { GRID, TOOL_CONTRACT, produceResponse } = await modules();
+  const { episode, native } = produceResponse(GRID[0]);
+  assert.deepEqual(TOOL_CONTRACT.block_client, []);
+  assert.equal(
+    episode.initial.control_contract.block_client,
+    native.public.control_contract.block_client,
+  );
+  assert.ok(native.public.control_contract.block_client.includes('permanent'));
+  assert.ok(native.public.control_contract.block_client.includes('approved jobs'));
+});
+
 test('every native case validates and keeps the evaluator key out of serialized observations', async () => {
   const { GRID, produceResponse, validateResponseNative, RESPONSE_CONTRACT_ID } = await modules();
   for (const spec of GRID) {
