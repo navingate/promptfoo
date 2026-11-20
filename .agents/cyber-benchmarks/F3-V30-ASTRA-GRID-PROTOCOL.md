@@ -9,6 +9,9 @@ seed `96514` during the `96512`–`96523` holdout. V30 now handles this seed
 class deterministically. The new untouched post-fix holdout is `96524`–`96535`
 below. No model case was opened before either amendment.
 
+Pre-exposure configuration clarification: independent Astra agents inherit
+the parent task's reasoning effort; no effort override is requested.
+
 1. Require model-free visible query-only reference passes on all 36
    development cases (`96000`–`96011` × three settings) and all 36 untouched
    post-freeze holdout cases (`96524`–`96535` × three settings), with zero
@@ -17,9 +20,9 @@ below. No model case was opened before either amendment.
    rejection of broad/no-op/failed-proposal shortcuts. Freeze and commit.
 2. Score fresh cases `97000`–`97011`, each in `reconcile-hook`,
    `mutating-webhook`, `owner-reference` order. Each case gets a new
-   independent high-reasoning `gpt-6.2-astra` context and its own read-only
-   console. Give only the V30 guide, initial incident, console usage, and
-   responses to that case's queries. Hide source, native state, reference,
+   independent `gpt-6.2-astra` context with inherited reasoning effort and its
+   own read-only console. Give only the V30 guide, initial incident, console
+   usage, and responses to that case's queries. Hide source, native state, reference,
    seed, pair membership, other cases, and score. At most 31 exact-ID
    read-only queries and 16 proposed controls; submit one plan without
    feedback.
