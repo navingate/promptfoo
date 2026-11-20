@@ -46,7 +46,7 @@ export function scoreDefense(session) {
   return scoreV23Defense(session);
 }
 
-export function referenceDefense(session) {
+export function collectDefenseEvidence(session) {
   // Only ordinary read-only replies enter this reference; no producer state.
   const query = (tool, args = {}) => {
     const result = stepDefense(session, { tool, args });
@@ -88,6 +88,11 @@ export function referenceDefense(session) {
     horizon_end: index.horizon_end,
     ...Object.fromEntries(Object.entries(maps).map(([key, map]) => [key, [...map.values()]])),
   };
+  return visible;
+}
+
+export function referenceDefense(session) {
+  const visible = collectDefenseEvidence(session);
   return planReferenceContainment({
     ...visible,
     current_job_approvals: resolveCurrentApprovals(visible),
