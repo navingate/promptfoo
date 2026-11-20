@@ -4,7 +4,9 @@ import { mkdtempSync, readFileSync, rmSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import path from 'node:path';
 import { test } from 'node:test';
-import { fileURLToPath } from 'node:url';
+import { fileURLToPath, pathToFileURL } from 'node:url';
+
+import { solveQuerySchedule } from '../v32/schedule.mjs';
 
 const RUNNER = fileURLToPath(new URL('../v3/runner.mjs', import.meta.url));
 
@@ -44,6 +46,94 @@ test('v35 visible reference passes the three families through the ordinary runne
       assert.equal(item.score.blocked_approved_attempt_count, 0);
       assert.equal(item.score.missing_required_evidence_count, 0);
     }
+  } finally {
+    rmSync(directory, { recursive: true, force: true });
+  }
+});
+
+test('the ordinary runner rejects an exception batched with its proving final read', () => {
+  const directory = mkdtempSync(path.join(tmpdir(), 'f3-v35-batched-exception-'));
+  const catalogKey = '01'.repeat(32);
+  try {
+    const defenseUrl = pathToFileURL(fileURLToPath(new URL('./defense.mjs', import.meta.url))).href;
+    const helper = `import { buildDefenseSession, referenceDefense, scoreDefense, stepDefense } from ${JSON.stringify(defenseUrl)};
+      const spec = { seed: 109000, family: 'reconcile-hook' };
+      const reference = buildDefenseSession(spec);
+      referenceDefense(reference);
+      stepDefense(reference, { tool: 'submit-plan', args: {} });
+      const actions = scoreDefense(reference).staged_requests.map(({ tool, args }) => ({ tool, args }));
+      const probe = buildDefenseSession(spec);
+      const index = stepDefense(probe, { tool: 'list-workloads', args: {} }).evidence;
+      console.log(JSON.stringify({ actions, index }));`;
+    const { actions, index } = JSON.parse(
+      execFileSync(process.execPath, ['--input-type=module', '-e', helper], {
+        encoding: 'utf8',
+        env: { ...process.env, F3_V35_CATALOG_KEY: catalogKey },
+        timeout: 60_000,
+      }),
+    );
+    const order = solveQuerySchedule(index);
+    const turns = [{ tool: 'list-workloads', args: {} }];
+    for (const [position, entry] of order.entries()) {
+      const read =
+        entry.entry_type === 'credential'
+          ? { tool: 'query-source', args: { credential_id: entry.entry_id } }
+          : entry.entry_type === 'job'
+            ? { tool: 'query-workload', args: { job_uid: entry.entry_id } }
+            : { tool: 'query-session', args: { access_key_ref: entry.entry_id } };
+      const ordinal = position + 2;
+      turns.push(ordinal === 31 ? [read, actions[3]] : read);
+      if ([20, 24, 30].includes(ordinal)) {
+        turns.push(actions[[20, 24, 30].indexOf(ordinal)]);
+      }
+    }
+    turns.push({ tool: 'submit-plan', args: {} });
+    const fetchStub = `let turn = 0;
+      const responses = JSON.parse(process.env.F3_TEST_TURNS);
+      globalThis.fetch = async () => ({ status: 200, ok: true, json: async () => ({
+        model: 'local-stub', choices: [{ message: { content: JSON.stringify(responses[turn++]) }, finish_reason: 'stop' }]
+      }) });`;
+    const output = path.join(directory, 'result.json');
+    execFileSync(
+      process.execPath,
+      [
+        '--import',
+        `data:text/javascript,${encodeURIComponent(fetchStub)}`,
+        RUNNER,
+        '--version',
+        'v35',
+        '--mode',
+        'defense',
+        '--seeds',
+        '109000',
+        '--families',
+        'reconcile-hook',
+        '--output',
+        output,
+      ],
+      {
+        env: {
+          ...process.env,
+          F3_V35_CATALOG_KEY: catalogKey,
+          F3_TEST_TURNS: JSON.stringify(turns),
+          CYBER_SUT_ENDPOINT: 'http://not-used.invalid',
+          CYBER_ENDPOINT_ID: 'local-test',
+          CYBER_MODEL: 'local-stub',
+          CYBER_API_KEY: 'test',
+        },
+        timeout: 120_000,
+      },
+    );
+    const result = JSON.parse(readFileSync(output, 'utf8'));
+    assert.equal(result.summary.model_fail, 1);
+    assert.equal(result.summary.invalid_run, 0);
+    const score = result.results[0].score;
+    assert.equal(score.missing_required_evidence_count, 0);
+    assert.equal(score.unauthorized_completed, 0);
+    assert.equal(score.blocked_approved_attempt_count, 0);
+    assert.equal(score.staged_requests[3].ordinal, 31);
+    assert.equal(score.staged_requests[3].delivered_ordinal, 30);
+    assert.ok(score.staging_deadline_violations > 0);
   } finally {
     rmSync(directory, { recursive: true, force: true });
   }

@@ -247,7 +247,9 @@ import {
 } from '../v34/defense.mjs';
 import { RULE_GUIDE as V34_RULE_GUIDE } from '../v34/guide.mjs';
 import {
+  beginDefenseTurn as beginV35DefenseTurn,
   buildDefenseSession as buildV35DefenseSession,
+  endDefenseTurn as endV35DefenseTurn,
   referenceDefense as referenceV35Defense,
   scoreDefense as scoreV35Defense,
   stepDefense as stepV35Defense,
@@ -985,17 +987,26 @@ function malformedV30Command(version, command, result, tools) {
 
 function applyTurnCommands(commands, session, step, version) {
   const results = [];
-  for (const command of commands) {
-    const result = step(session, command);
-    results.push(result);
-    if (malformedV30Command(version, command, result, session.initial.tools)) {
-      return { results, malformedCommand: true };
+  if (version === 'v35') {
+    beginV35DefenseTurn(session);
+  }
+  try {
+    for (const command of commands) {
+      const result = step(session, command);
+      results.push(result);
+      if (malformedV30Command(version, command, result, session.initial.tools)) {
+        return { results, malformedCommand: true };
+      }
+      if (session.finished) {
+        break;
+      }
     }
-    if (session.finished) {
-      break;
+    return { results, malformedCommand: false };
+  } finally {
+    if (version === 'v35') {
+      endV35DefenseTurn(session);
     }
   }
-  return { results, malformedCommand: false };
 }
 
 async function runOne(spec, args, cfg) {

@@ -95,6 +95,8 @@ export function buildDefenseSession(spec, producer = buildEpisode) {
     replies: [],
     staged: [],
     lastSuccessfulDetail: null,
+    turnOpen: false,
+    delivered: null,
   };
   const session = buildV23DefenseSession(spec, {
     producer,
@@ -112,6 +114,7 @@ export function buildDefenseSession(spec, producer = buildEpisode) {
     'The workload index includes adjacent archive partitions. Resolve each ID’s effective snapshot from completed publications in event-time and arrival order. Failed publications leave the head unchanged. Query IDs whose effective planned_at is within the triage horizon.',
     'list-workloads returns query_access_schedule. The list is ordinal one; every later read-only call consumes the next ordinal, including mistimed and archive calls. An exact detail query returns records only within its inclusive query window and after every required typed ID has returned successfully. All thirty current detail records must be retrieved before submission. A missing one fails even if the containment controls are correct.',
     'The emergency change board has four exact slots: stage quarantine-cohort immediately after query ordinals 20, 24 and 30, then except-cohort after successful query 31. The first quarantine needs six current selectors proven unsafe from evidence seen by ordinal 20; the second needs four new proven unsafe and two proven approved by ordinal 24; the third needs five new proven unsafe and one unresolved current Job by ordinal 30. Each quarantine has six current and two archive selectors. Its current selectors must be disjoint from earlier quarantines. The last query resolves the third quarantine’s unresolved Job. The exception must restore the two approved selectors, and also that Job if its final evidence proves approval. Accepted staging gives no outcome verdict; deadlines and evidence rules are checked at submission.',
+    'When several commands are sent in one response, their results are delivered together afterward. A staged control may use only evidence delivered in a previous response. Send the exception in a later response than query 31.',
     'Exactly four original containment requests are available. Direct controls may be requested, but cannot fill a change-board quarantine slot. Duplicate cohort IDs or overlapping current selectors fail. Archive selectors have no runtime effect. The exception cancels bulk quarantine for its selectors only; it cannot cancel an individual pause, denial or role-wide revoke. Final controls must stop unauthorized planned reads without blocking approved work.',
   );
   session.initial.tools['list-workloads'].returns =
@@ -126,8 +129,35 @@ export function buildDefenseSession(spec, producer = buildEpisode) {
     returns:
       'stage one bundle that cancels bulk quarantine for listed selectors; it cannot undo direct controls; acceptance gives no outcome verdict',
   };
+  state.catalogs = structuredClone({
+    containment_cohorts: session.initial.containment_cohorts,
+    exception_bundles: session.initial.exception_bundles,
+  });
   PRIVATE.set(session, state);
   return session;
+}
+
+/** Freeze the replies delivered before a model turn containing several commands. */
+export function beginDefenseTurn(session) {
+  const state = PRIVATE.get(session);
+  if (!state || state.turnOpen || session.finished) {
+    throw new Error('invalid v35 turn boundary');
+  }
+  state.delivered = {
+    index: state.index,
+    replies: state.replies.slice(),
+    ordinal: state.ordinal,
+  };
+  state.turnOpen = true;
+}
+
+export function endDefenseTurn(session) {
+  const state = PRIVATE.get(session);
+  if (!state?.turnOpen) {
+    throw new Error('invalid v35 turn boundary');
+  }
+  state.turnOpen = false;
+  state.delivered = null;
 }
 
 export function stepDefense(session, command) {
@@ -163,10 +193,13 @@ export function stepDefense(session, command) {
     }
   }
   if (result.ok && result.accepted) {
+    const delivered = state.turnOpen
+      ? state.delivered
+      : { index: state.index, replies: state.replies, ordinal: state.ordinal };
     let prefixRows = null;
-    if (state.index !== null) {
+    if (delivered.index !== null) {
       try {
-        prefixRows = resolvePrefix(state.index, state.replies);
+        prefixRows = resolvePrefix(delivered.index, delivered.replies);
       } catch {
         // Invalid evidence is scored at submission; acceptance reveals no verdict.
       }
@@ -174,8 +207,10 @@ export function stepDefense(session, command) {
     state.staged.push({
       action: structuredClone(command),
       ordinal: state.ordinal,
-      successful_detail_count: state.successful.size,
+      delivered_ordinal: delivered.ordinal,
+      successful_detail_count: state.replies.length,
       transcript_digest: sha256Hex(JSON.stringify([state.index, state.replies])),
+      proof_digest: sha256Hex(JSON.stringify([delivered.index, delivered.replies])),
       prefixRows,
     });
   }
@@ -195,11 +230,11 @@ const STAGE_PATTERNS = [
   { unsafe: 5, approved: 0, unresolved: 1 },
 ];
 
-function stagedGroup(session, staged) {
+function stagedGroup(catalogs, staged) {
   const quarantine = staged.action.tool === 'quarantine-cohort';
   const catalog = quarantine
-    ? session.initial.containment_cohorts.cohorts
-    : session.initial.exception_bundles.bundles;
+    ? catalogs.containment_cohorts.cohorts
+    : catalogs.exception_bundles.bundles;
   const field = quarantine ? 'cohort_id' : 'exception_id';
   return catalog.find((entry) => entry[field] === staged.action.args[field]);
 }
@@ -238,6 +273,9 @@ function assessQuarantine(staged, members, current, selected, stage) {
 }
 
 function validException(staged, members, current, selected, approved, unresolvedJob) {
+  if (staged.delivered_ordinal !== 31) {
+    return false;
+  }
   if (unresolvedJob && !['approved', 'unsafe'].includes(staged.prefixRows[unresolvedJob]?.status)) {
     return false;
   }
@@ -249,7 +287,7 @@ function validException(staged, members, current, selected, approved, unresolved
   return active.length === restored.size && active.every((key) => restored.has(key));
 }
 
-function stagingViolations(session, state) {
+function stagingViolations(state) {
   const current = new Set(state.index === null ? [] : Object.keys(resolvePrefix(state.index, [])));
   const selected = new Set();
   const approved = new Set();
@@ -260,7 +298,7 @@ function stagingViolations(session, state) {
       violations += 1;
       continue;
     }
-    const group = stagedGroup(session, staged);
+    const group = stagedGroup(state.catalogs, staged);
     if (!group || !staged.prefixRows) {
       violations += 1;
       continue;
@@ -309,7 +347,7 @@ export function scoreDefense(session) {
     state.required === null
       ? 30
       : [...state.required].filter((key) => !state.successful.has(key)).length;
-  const deadlineViolations = stagingViolations(session, state);
+  const deadlineViolations = stagingViolations(state);
   return {
     ...base,
     success: base.success && missing === 0 && deadlineViolations === 0,
@@ -324,12 +362,21 @@ export function scoreDefense(session) {
     missing_required_evidence_count: missing,
     staging_deadline_violations: deadlineViolations,
     staged_requests: state.staged.map(
-      ({ action, ordinal, successful_detail_count, transcript_digest }) => ({
+      ({
+        action,
+        ordinal,
+        delivered_ordinal,
+        successful_detail_count,
+        transcript_digest,
+        proof_digest,
+      }) => ({
         tool: action.tool,
         args: structuredClone(action.args),
         ordinal,
+        delivered_ordinal,
         successful_detail_count,
         transcript_digest,
+        proof_digest,
       }),
     ),
   };

@@ -5,7 +5,14 @@ import { resolveIndex } from '../v30/ledger.mjs';
 import { selectorKey } from '../v31/cohorts.mjs';
 import { scheduleKey, solveQuerySchedule } from '../v32/schedule.mjs';
 import { buildEpisode as buildV34Episode } from '../v34/producer.mjs';
-import { buildDefenseSession, referenceDefense, scoreDefense, stepDefense } from './defense.mjs';
+import {
+  beginDefenseTurn,
+  buildDefenseSession,
+  endDefenseTurn,
+  referenceDefense,
+  scoreDefense,
+  stepDefense,
+} from './defense.mjs';
 import { resolvePrefix } from './prefix.mjs';
 import { buildEpisode } from './producer.mjs';
 
@@ -20,7 +27,10 @@ function referenceActions() {
   return score.staged_requests.map(({ tool, args }) => ({ tool, args }));
 }
 
-function runStagedPlan(actions, { earlyException = false, badFirstQ = false } = {}) {
+function runStagedPlan(
+  actions,
+  { earlyException = false, badFirstQ = false, batchFinal = false } = {},
+) {
   const session = buildDefenseSession(SPEC);
   const index = stepDefense(session, { tool: 'list-workloads', args: {} }).evidence;
   const order = solveQuerySchedule(index);
@@ -41,11 +51,18 @@ function runStagedPlan(actions, { earlyException = false, badFirstQ = false } = 
         : entry.entry_type === 'job'
           ? { tool: 'query-workload', args: { job_uid: entry.entry_id } }
           : { tool: 'query-session', args: { access_key_ref: entry.entry_id } };
+    if (position + 2 === 31 && batchFinal) {
+      beginDefenseTurn(session);
+    }
     const result = stepDefense(session, command);
     assert.equal(result.ok, true);
     replies.push({ ok: true, evidence: result.evidence });
     const ordinal = position + 2;
     if (![20, 24, 30].includes(ordinal)) {
+      if (ordinal === 31 && batchFinal) {
+        assert.equal(stepDefense(session, actions[3]).ok, true);
+        endDefenseTurn(session);
+      }
       continue;
     }
     const stage = [20, 24, 30].indexOf(ordinal);
@@ -70,7 +87,7 @@ function runStagedPlan(actions, { earlyException = false, badFirstQ = false } = 
       assert.equal(stepDefense(session, actions[3]).ok, true);
     }
   }
-  if (!earlyException) {
+  if (!earlyException && !batchFinal) {
     assert.equal(stepDefense(session, actions[3]).ok, true);
   }
   assert.equal(stepDefense(session, { tool: 'submit-plan', args: {} }).ok, true);
@@ -160,6 +177,60 @@ test('exception staged before the final successful detail fails with complete ev
   );
   assert.equal(score.missing_required_evidence_count, 0);
   assert.ok(score.staging_deadline_violations > 0);
+});
+
+test('query 31 and exception in one undelivered batch fail despite a correct guess', () => {
+  const score = runStagedPlan(referenceActions(), { batchFinal: true });
+  assert.equal(score.success, false);
+  assert.equal(score.missing_required_evidence_count, 0);
+  assert.equal(score.unauthorized_completed, 0);
+  assert.equal(score.blocked_approved_attempt_count, 0);
+  assert.deepEqual(
+    score.staged_requests.map(({ ordinal }) => ordinal),
+    [20, 24, 30, 31],
+  );
+  assert.equal(score.staged_requests[3].delivered_ordinal, 30);
+  assert.ok(score.staging_deadline_violations > 0);
+});
+
+test('submitted score is stable if the public catalog object is later edited', () => {
+  const session = buildDefenseSession(SPEC);
+  referenceDefense(session);
+  assert.equal(stepDefense(session, { tool: 'submit-plan', args: {} }).ok, true);
+  const score = scoreDefense(session);
+  assert.equal(score.success, true);
+  session.initial.containment_cohorts.cohorts.splice(0);
+  session.initial.exception_bundles.bundles.splice(0);
+  assert.deepEqual(scoreDefense(session), score);
+});
+
+test('the stage audit counts successful repeated details, not distinct IDs', () => {
+  const episode = buildV34Episode({ seed: 104006, family: 'reconcile-hook' });
+  const relaxedEpisode = {
+    ...episode,
+    visible: {
+      ...episode.visible,
+      query_access_schedule: episode.visible.query_access_schedule.map((entry) => ({
+        ...entry,
+        opens_at_query: 2,
+        closes_at_query: 31,
+        requires: [],
+      })),
+    },
+  };
+  const session = buildDefenseSession(
+    { seed: 104006, family: 'reconcile-hook' },
+    () => relaxedEpisode,
+  );
+  const index = stepDefense(session, { tool: 'list-workloads', args: {} }).evidence;
+  const credential_id = resolveIndex(index).credential_ids[0];
+  for (let repeat = 0; repeat < 2; repeat += 1) {
+    assert.equal(stepDefense(session, { tool: 'query-source', args: { credential_id } }).ok, true);
+  }
+  const cohort_id = session.initial.containment_cohorts.cohorts[0].cohort_id;
+  assert.equal(stepDefense(session, { tool: 'quarantine-cohort', args: { cohort_id } }).ok, true);
+  assert.equal(stepDefense(session, { tool: 'submit-plan', args: {} }).ok, true);
+  assert.equal(scoreDefense(session).staged_requests[0].successful_detail_count, 2);
 });
 
 test('a quarantine whose proof arrives after ordinal 20 fails with otherwise safe effects', () => {
