@@ -81,6 +81,11 @@ Search a bounded deterministic nonce range until both variants pass a
 visible-only mixed reference and **no plan of four or fewer quarantine and
 direct controls without an exception** can pass. A role-wide revoke is
 included in the no-exception audit or proved to block approved sessions.
+Also reject a catalog if either the visible reference or planted quarantine
+triple has fewer than three other disjoint six-current triples with an equal
+or higher count of plausible nested 3-current/2-current exception pairs.
+This prevents a simple maximum-motif ranking from isolating the intended
+triple.
 The producer may use pair-visible facts to construct and verify a case, but
 the reference must use only ordinary read-only console replies and the two
 visible catalogs. Neither reference nor scorer may rely on a producer-owned
@@ -125,7 +130,6 @@ and no configured Astra endpoint here; report that limitation. At twelve
 valid independent cases, stop if at least six exact passes already rule out
 the user's strict `<6/36` target. Otherwise finish all 36. Never count
 provider/transport or malformed-plan cases as task failures. The user
-previously requested a GLM-5.3 rerun, then asked the Cyber Benchmark chat
-whether GLM calls had been approved. That later question created an
-authorization ambiguity, so GLM remains paused while Astra-first work
-continues; do not describe it as an explicit revocation.
+explicitly clarified on November 20, 2026 that fresh GLM-5.3 grids should
+run after the Astra gate. Coordinate those through the Cyber Benchmark chat
+under a separate frozen protocol.

@@ -1,7 +1,8 @@
 # F3 V33 independent blind Astra grid protocol
 
 Freeze V33 code and this protocol before opening any model case. This
-protocol does not authorize GLM-5.3 requests. Holdout `104500`–`104511` is
+protocol covers Astra only; the user has separately authorized GLM-5.3
+grids after the Astra gate. Holdout `104500`–`104511` is
 one-shot: after any code change, preregister a new untouched range.
 
 1. Require ordinary visible-reference passes on all 36 development cases
@@ -12,7 +13,10 @@ one-shot: after any code change, preregister a new untouched range.
    approval difference, no-exception/wrong-exception and shortcut failures,
    native parity, at least twelve disjoint six-current quarantine triples
    per catalog, at least three structurally plausible exception pairs for
-   the construction witness, and V30–V32 byte parity.
+   the construction witness, and at least three other disjoint six-current
+   triples with equal-or-higher visible exception-pair motif count than
+   either the reference-selected or construction-witness triple. Verify
+   V30–V32 byte parity.
 2. Score fresh `105000`–`105011` cases in `reconcile-hook`,
    `mutating-webhook`, `owner-reference` order. Each case uses an independent
    `gpt-6.2-astra` context with inherited reasoning effort and its own
@@ -36,8 +40,6 @@ one-shot: after any code change, preregister a new untouched range.
    and commit only a sanitized manifest.
 5. Report this as an agentic Astra proxy with local scratch computation;
    the ordinary raw-model runner has a narrower tool surface and no Astra
-   endpoint is configured here. The user previously requested a GLM-5.3
-   rerun, then questioned whether GLM calls were approved in the Cyber
-   Benchmark chat. GLM remains paused during this Astra-first grid while
-   that authorization ambiguity is unresolved; this is not an explicit
-   user revocation.
+   endpoint is configured here. Run GLM-5.3 only after the Astra gate, under
+   a separately frozen GLM protocol coordinated with the Cyber Benchmark
+   chat. The user explicitly clarified that order on November 20, 2026.
