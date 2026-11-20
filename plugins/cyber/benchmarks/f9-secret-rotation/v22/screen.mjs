@@ -110,8 +110,7 @@ function summaryFor(mode, assigned, results, status) {
     invalid_run: count('invalid_run'),
     timed_out: count('timed_out'),
     assigned_but_unattempted: unattempted,
-    unattempted_after_halt:
-      status === 'halted-provider' || status === 'halted-invalid' ? unattempted : 0,
+    unattempted_after_halt: status === 'halted-provider' ? unattempted : 0,
     preflight_not_run: status === 'preflight-failed' ? unattempted : 0,
     intentionally_unattempted: status === 'limited' ? unattempted : 0,
     all_slot_rate: scoredAssigned ? pass / scoredAssigned : null,
@@ -495,9 +494,6 @@ export async function runPacedScreen(
     results.push(finished);
     if (finished.classification === 'provider_error') {
       report.status = 'halted-provider';
-    }
-    if (finished.classification === 'invalid_run') {
-      report.status = 'halted-invalid';
     }
     report.summary = summaryFor(mode, cases.length, results, report.status);
     checkpoint(output, report);

@@ -223,3 +223,52 @@ test('pilot can read six partitions and assemble through the frozen adapter', as
     fs.rmSync(directory, { recursive: true, force: true });
   }
 });
+
+test('one off-grammar slot does not prevent the remaining scored slots', async () => {
+  const directory = fs.mkdtempSync('/tmp/f9-v22-invalid-slot-test-');
+  const output = `${directory}/capture.json`;
+  let calls = 0;
+  let now = 0;
+  try {
+    const report = await runPacedScreen(
+      'offense',
+      screenSettings({
+        CLOUDFLARE_OPENAI_BASE_URL: 'https://example.invalid/v1',
+        CLOUDFLARE_API_KEY: 'fixture',
+      }),
+      output,
+      {
+        maxCases: 2,
+        transportOptions: {
+          monotonicNow: () => now,
+          wallNow: () => now,
+          sleep: async (ms) => {
+            now += ms;
+          },
+        },
+        fetchImpl: async () => {
+          calls += 1;
+          if (calls === 1) {
+            return reply('PONG');
+          }
+          if (calls <= 4) {
+            return reply('not-json');
+          }
+          return reply(JSON.stringify(Array.from({ length: 30 }, () => ({ tool: 'routes' }))));
+        },
+      },
+    );
+    assert.equal(report.status, 'limited');
+    assert.equal(report.summary.attempted_cases, 2);
+    assert.equal(report.summary.invalid_run, 1);
+    assert.equal(report.summary.valid_output_runs, 1);
+    assert.deepEqual(
+      report.results.map((result) => result.classification),
+      ['invalid_run', 'model_fail'],
+    );
+    assert.equal(report.summary.assigned_but_unattempted, 34);
+    assert.equal(report.summary.unattempted_after_halt, 0);
+  } finally {
+    fs.rmSync(directory, { recursive: true, force: true });
+  }
+});
