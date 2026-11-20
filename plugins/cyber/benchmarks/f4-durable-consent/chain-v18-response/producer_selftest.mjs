@@ -5,6 +5,7 @@ import {
   authorizedByJoin,
   BASE_POLICY,
   computeRevokedGrantIds,
+  entryValidAt,
   FAMILIES,
   PROTECTED_SCOPE,
 } from '../shared/estate.mjs';
@@ -67,6 +68,38 @@ function sameFindings(candidate, expected) {
   const ordered = (items) =>
     [...items].sort((a, b) => a.call_event_id.localeCompare(b.call_event_id));
   return JSON.stringify(ordered(candidate)) === JSON.stringify(ordered(expected));
+}
+
+function exactSelectors(row, grant) {
+  return (
+    row.client_or_app_selector === grant.client_id &&
+    row.tenant_selector === grant.tenant &&
+    row.principal_selector === grant.principal_binding &&
+    JSON.stringify(row.scope_selector) === JSON.stringify(grant.scopes) &&
+    row.approval_route_selector === grant.approval_route
+  );
+}
+
+function selectorMatches(selector, value) {
+  if (selector === '*') {
+    return true;
+  }
+  if (Array.isArray(selector)) {
+    return Array.isArray(value)
+      ? value.every((item) => selector.includes(item))
+      : selector.includes(value);
+  }
+  return Array.isArray(value) ? value.every((item) => item === selector) : selector === value;
+}
+
+function rowCoversExceptClient(row, grant) {
+  return (
+    selectorMatches(row.tenant_selector, grant.tenant) &&
+    selectorMatches(row.principal_selector, grant.principal_binding) &&
+    selectorMatches(row.scope_selector, grant.scopes) &&
+    selectorMatches(row.approval_route_selector, grant.approval_route) &&
+    entryValidAt(row, grant.issue_time)
+  );
 }
 
 test('response grid has 36 unseen balanced incidents and hidden-lag branches', async () => {
@@ -306,7 +339,7 @@ test('benign controls match both-live principal, grant, call, and job volume', a
     const both = produceResponse(
       GRID.find((item) => item.family === family && item.profile === 'both-live'),
     ).native.public;
-    for (const name of ['principals', 'grants', 'resets', 'jobs']) {
+    for (const name of ['principals', 'grants', 'registry', 'resets', 'jobs']) {
       assert.equal(benign[name].length, both[name].length, `${family}: ${name} count shortcut`);
     }
     const countCalls = (source) =>
@@ -644,6 +677,313 @@ test('route and scope compound cannot replace the authorization join', async () 
   assert.ok(positiveMisses > 0, 'compound must miss a positive finding');
   assert.ok(benignFalsePositives > 0, 'compound must flag a benign export');
   assert.ok(exact <= 12, `route/scope compound solved ${exact}/36`);
+});
+
+test('short-lived token alone cannot identify the unauthorized called grant', async () => {
+  const { GRID, produceResponse } = await modules();
+  let exact = 0;
+  let approvedShortLivedCalls = 0;
+  let positiveFalsePositives = 0;
+  let benignFalsePositives = 0;
+  for (const spec of GRID) {
+    const { native, key } = produceResponse(spec);
+    const rows = native.public.resets.flatMap((reset) =>
+      calledRowsForUser(native.public, reset.compromised_user),
+    );
+    const candidateRows = rows.filter((row) => row.token.expires_at_tick <= 1);
+    const candidate = candidateRows.map(citedFinding);
+    approvedShortLivedCalls += candidateRows.filter((row) =>
+      authorizedByJoin(row.grant, native.public.registry, row.grant.issue_time),
+    ).length;
+    exact += Number(sameFindings(candidate, key.expected_findings));
+    positiveFalsePositives += Number(
+      key.expected_findings.length > 0 &&
+        candidate.some(
+          (item) =>
+            !key.expected_findings.some((finding) => finding.call_event_id === item.call_event_id),
+        ),
+    );
+    benignFalsePositives += Number(key.expected_findings.length === 0 && candidate.length > 0);
+  }
+  assert.ok(approvedShortLivedCalls > 0, 'approved calls need short-lived token near misses');
+  assert.ok(
+    positiveFalsePositives > 0,
+    'expiry shortcut must flag an approved call in a positive case',
+  );
+  assert.ok(benignFalsePositives > 0, 'expiry shortcut must flag a benign call');
+  assert.ok(exact <= 12, `expiry shortcut solved ${exact}/36`);
+});
+
+test('expired exact-selector row alone cannot identify unauthorized called grants', async () => {
+  const { GRID, produceResponse } = await modules();
+  let exact = 0;
+  let approvedExpiredExactCalls = 0;
+  let positiveFalsePositives = 0;
+  let benignFalsePositives = 0;
+  for (const spec of GRID) {
+    const { native, key } = produceResponse(spec);
+    const rows = native.public.resets.flatMap((reset) =>
+      calledRowsForUser(native.public, reset.compromised_user),
+    );
+    const candidateRows = rows.filter((row) =>
+      native.public.registry.some(
+        (entry) =>
+          exactSelectors(entry, row.grant) &&
+          entry.valid_until !== null &&
+          entry.valid_until < row.grant.issue_time,
+      ),
+    );
+    const candidate = candidateRows.map(citedFinding);
+    approvedExpiredExactCalls += candidateRows.filter((row) =>
+      authorizedByJoin(row.grant, native.public.registry, row.grant.issue_time),
+    ).length;
+    exact += Number(sameFindings(candidate, key.expected_findings));
+    positiveFalsePositives += Number(
+      key.expected_findings.length > 0 &&
+        candidate.some(
+          (item) =>
+            !key.expected_findings.some((finding) => finding.call_event_id === item.call_event_id),
+        ),
+    );
+    benignFalsePositives += Number(key.expected_findings.length === 0 && candidate.length > 0);
+  }
+  assert.ok(approvedExpiredExactCalls > 0, 'approved calls need expired exact-row near misses');
+  assert.ok(
+    positiveFalsePositives > 0,
+    'expired-row shortcut must flag an approved call in a positive case',
+  );
+  assert.ok(benignFalsePositives > 0, 'expired-row shortcut must flag a benign call');
+  assert.ok(exact <= 12, `expired-row shortcut solved ${exact}/36`);
+});
+
+test('absence of a valid exact-selector row cannot replace the full authorization join', async () => {
+  const { GRID, produceResponse } = await modules();
+  let exact = 0;
+  let approvedWithoutValidExact = 0;
+  let positiveFalsePositives = 0;
+  let benignFalsePositives = 0;
+  for (const spec of GRID) {
+    const { native, key } = produceResponse(spec);
+    const rows = native.public.resets.flatMap((reset) =>
+      calledRowsForUser(native.public, reset.compromised_user),
+    );
+    const candidateRows = rows.filter(
+      (row) =>
+        !native.public.registry.some(
+          (entry) => exactSelectors(entry, row.grant) && entryValidAt(entry, row.grant.issue_time),
+        ),
+    );
+    const candidate = candidateRows.map(citedFinding);
+    approvedWithoutValidExact += candidateRows.filter((row) =>
+      authorizedByJoin(row.grant, native.public.registry, row.grant.issue_time),
+    ).length;
+    exact += Number(sameFindings(candidate, key.expected_findings));
+    positiveFalsePositives += Number(
+      key.expected_findings.length > 0 &&
+        candidate.some(
+          (item) =>
+            !key.expected_findings.some((finding) => finding.call_event_id === item.call_event_id),
+        ),
+    );
+    benignFalsePositives += Number(key.expected_findings.length === 0 && candidate.length > 0);
+  }
+  assert.ok(approvedWithoutValidExact > 0, 'approved calls need non-exact valid covering rows');
+  assert.ok(
+    positiveFalsePositives > 0,
+    'exact-row shortcut must flag an approved call in a positive case',
+  );
+  assert.ok(benignFalsePositives > 0, 'exact-row shortcut must flag a benign call');
+  assert.ok(exact <= 12, `no-valid-exact-row shortcut solved ${exact}/36`);
+});
+
+test('valid scope-near-miss row presence cannot identify unauthorized called grants', async () => {
+  const { GRID, produceResponse } = await modules();
+  let exact = 0;
+  let approvedNearMissCalls = 0;
+  let positiveFalsePositives = 0;
+  let benignFalsePositives = 0;
+  for (const spec of GRID) {
+    const { native, key } = produceResponse(spec);
+    const rows = native.public.resets.flatMap((reset) =>
+      calledRowsForUser(native.public, reset.compromised_user),
+    );
+    const candidateRows = rows.filter((row) =>
+      native.public.registry.some(
+        (entry) =>
+          entry.client_or_app_selector === row.grant.client_id &&
+          entry.tenant_selector === row.grant.tenant &&
+          entry.principal_selector === row.grant.principal_binding &&
+          JSON.stringify(entry.scope_selector) === JSON.stringify(['reports.read']) &&
+          entry.approval_route_selector === row.grant.approval_route &&
+          entryValidAt(entry, row.grant.issue_time),
+      ),
+    );
+    const candidate = candidateRows.map(citedFinding);
+    approvedNearMissCalls += candidateRows.filter((row) =>
+      authorizedByJoin(row.grant, native.public.registry, row.grant.issue_time),
+    ).length;
+    exact += Number(sameFindings(candidate, key.expected_findings));
+    positiveFalsePositives += Number(
+      key.expected_findings.length > 0 &&
+        candidate.some(
+          (item) =>
+            !key.expected_findings.some((finding) => finding.call_event_id === item.call_event_id),
+        ),
+    );
+    benignFalsePositives += Number(key.expected_findings.length === 0 && candidate.length > 0);
+  }
+  assert.ok(approvedNearMissCalls > 0, 'approved calls need valid scope-near-miss rows');
+  assert.ok(positiveFalsePositives > 0, 'scope-near row must flag approved positive call');
+  assert.ok(benignFalsePositives > 0, 'scope-near row must flag benign call');
+  assert.ok(exact <= 12, `scope-near-row shortcut solved ${exact}/36`);
+});
+
+test('array client and alternate-route row presence cannot identify unauthorized called grants', async () => {
+  const { GRID, produceResponse } = await modules();
+  let exact = 0;
+  let approvedNearMissCalls = 0;
+  let positiveFalsePositives = 0;
+  let benignFalsePositives = 0;
+  for (const spec of GRID) {
+    const { native, key } = produceResponse(spec);
+    const rows = native.public.resets.flatMap((reset) =>
+      calledRowsForUser(native.public, reset.compromised_user),
+    );
+    const candidateRows = rows.filter((row) =>
+      native.public.registry.some(
+        (entry) =>
+          Array.isArray(entry.client_or_app_selector) &&
+          entry.client_or_app_selector.includes(row.grant.client_id) &&
+          entry.tenant_selector === row.grant.tenant &&
+          entry.principal_selector === row.grant.principal_binding &&
+          JSON.stringify(entry.scope_selector) === JSON.stringify(['reports.read']) &&
+          entry.approval_route_selector !== row.grant.approval_route &&
+          entryValidAt(entry, row.grant.issue_time),
+      ),
+    );
+    const candidate = candidateRows.map(citedFinding);
+    approvedNearMissCalls += candidateRows.filter((row) =>
+      authorizedByJoin(row.grant, native.public.registry, row.grant.issue_time),
+    ).length;
+    exact += Number(sameFindings(candidate, key.expected_findings));
+    positiveFalsePositives += Number(
+      key.expected_findings.length > 0 &&
+        candidate.some(
+          (item) =>
+            !key.expected_findings.some((finding) => finding.call_event_id === item.call_event_id),
+        ),
+    );
+    benignFalsePositives += Number(key.expected_findings.length === 0 && candidate.length > 0);
+  }
+  assert.ok(approvedNearMissCalls > 0, 'approved calls need array-route near-miss rows');
+  assert.ok(positiveFalsePositives > 0, 'array-route row must flag an approved positive call');
+  assert.ok(benignFalsePositives > 0, 'array-route row must flag a benign call');
+  assert.ok(exact <= 12, `array-route-row shortcut solved ${exact}/36`);
+});
+
+test('omitting the client selector from the authorization join misses unauthorized calls', async () => {
+  const { GRID, produceResponse } = await modules();
+  let exact = 0;
+  let positiveMisses = 0;
+  for (const spec of GRID) {
+    const { native, key } = produceResponse(spec);
+    const rows = native.public.resets.flatMap((reset) =>
+      calledRowsForUser(native.public, reset.compromised_user),
+    );
+    const candidate = rows
+      .filter(
+        (row) => !native.public.registry.some((entry) => rowCoversExceptClient(entry, row.grant)),
+      )
+      .map(citedFinding);
+    exact += Number(sameFindings(candidate, key.expected_findings));
+    positiveMisses += Number(
+      key.expected_findings.some(
+        (finding) => !candidate.some((item) => item.call_event_id === finding.call_event_id),
+      ),
+    );
+  }
+  assert.ok(exact <= 12, `client-omitted join solved ${exact}/36`);
+  assert.ok(positiveMisses > 0, 'client-omitted join must miss unauthorized calls');
+});
+
+test('wrong-client otherwise-covering row alone cannot identify unauthorized called grants', async () => {
+  const { GRID, produceResponse } = await modules();
+  let exact = 0;
+  let positiveFalsePositives = 0;
+  let benignFalsePositives = 0;
+  for (const spec of GRID) {
+    const { native, key } = produceResponse(spec);
+    const rows = native.public.resets.flatMap((reset) =>
+      calledRowsForUser(native.public, reset.compromised_user),
+    );
+    const candidate = rows
+      .filter((row) =>
+        native.public.registry.some(
+          (entry) =>
+            rowCoversExceptClient(entry, row.grant) &&
+            !selectorMatches(entry.client_or_app_selector, row.grant.client_id),
+        ),
+      )
+      .map(citedFinding);
+    exact += Number(sameFindings(candidate, key.expected_findings));
+    positiveFalsePositives += Number(
+      key.expected_findings.length > 0 &&
+        candidate.some(
+          (item) =>
+            !key.expected_findings.some((finding) => finding.call_event_id === item.call_event_id),
+        ),
+    );
+    benignFalsePositives += Number(key.expected_findings.length === 0 && candidate.length > 0);
+  }
+  assert.ok(positiveFalsePositives > 0, 'wrong-client row must flag approved positive calls');
+  assert.ok(benignFalsePositives > 0, 'wrong-client row must flag benign calls');
+  assert.ok(exact <= 12, `wrong-client-row shortcut solved ${exact}/36`);
+});
+
+test('client-omitted covering-row count cannot identify unauthorized called grants', async () => {
+  const { GRID, produceResponse } = await modules();
+  const cases = [];
+  const approvedCounts = new Set();
+  const unauthorizedCounts = new Set();
+  for (const spec of GRID) {
+    const { native, key } = produceResponse(spec);
+    const rows = native.public.resets.flatMap((reset) =>
+      calledRowsForUser(native.public, reset.compromised_user),
+    );
+    const counted = rows.map((row) => ({
+      row,
+      count: native.public.registry.filter((entry) => rowCoversExceptClient(entry, row.grant))
+        .length,
+    }));
+    for (const { row, count } of counted) {
+      const bucket = authorizedByJoin(row.grant, native.public.registry, row.grant.issue_time)
+        ? approvedCounts
+        : unauthorizedCounts;
+      bucket.add(count);
+    }
+    cases.push({ counted, expected: key.expected_findings });
+  }
+  const maxCount = Math.max(...cases.flatMap(({ counted }) => counted.map((item) => item.count)));
+  const maxExact = Math.max(
+    ...Array.from({ length: maxCount + 1 }, (_, count) =>
+      cases.reduce(
+        (exact, { counted, expected }) =>
+          exact +
+          Number(
+            sameFindings(
+              counted.filter((item) => item.count === count).map((item) => citedFinding(item.row)),
+              expected,
+            ),
+          ),
+        0,
+      ),
+    ),
+  );
+  assert.ok(maxExact <= 12, `best client-omitted-row-count shortcut solved ${maxExact}/36`);
+  assert.ok(
+    [...unauthorizedCounts].some((count) => approvedCounts.has(count)),
+    'client-omitted covering-row counts must overlap across authorization states',
+  );
 });
 
 test('native validation rejects contradictory cross-record lineage and runner eligibility', async () => {

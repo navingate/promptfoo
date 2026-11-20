@@ -181,16 +181,109 @@ function registryRow(grant, ids, suffix, changes = {}) {
   };
 }
 
+function wrongClientRows(grant, ids, role) {
+  const wrongClient = opaque('client', `${ids.salt}|${grant.grant_id}|wrong-policy-client`);
+  const secondCoversExceptClient =
+    role === 'mint' ||
+    role === 'session-only' ||
+    Number.parseInt(sha(`${ids.salt}|${grant.grant_id}|client-decoy-coverage`).slice(0, 2), 16) %
+      2 ===
+      0;
+  const thirdCoversExceptClient =
+    Number.parseInt(sha(`${ids.salt}|${grant.grant_id}|third-client-decoy`).slice(0, 2), 16) % 2 ===
+    0;
+  return [
+    registryRow(grant, ids, 'wrong-client-cover', {
+      client_or_app_selector: wrongClient,
+    }),
+    registryRow(grant, ids, 'wrong-client-extra', {
+      client_or_app_selector: [
+        wrongClient,
+        opaque('client', `${ids.salt}|${grant.grant_id}|other-wrong-policy-client`),
+      ],
+      ...(secondCoversExceptClient ? {} : { scope_selector: ['reports.read'] }),
+    }),
+    registryRow(grant, ids, 'wrong-client-third', {
+      client_or_app_selector: [
+        wrongClient,
+        opaque('client', `${ids.salt}|${grant.grant_id}|third-wrong-policy-client`),
+      ],
+      ...(thirdCoversExceptClient ? {} : { scope_selector: ['reports.read'] }),
+    }),
+  ];
+}
+
 function makeRegistry(grants, roles, ids) {
   const rows = [];
   const beforeEveryIssuance = Math.min(...grants.map((grant) => grant.issue_time)) - 1;
   for (const [index, grant] of grants.entries()) {
     const role = roles[index].role;
     if (role === 'survivor' || role === 'approved-call') {
-      rows.push(registryRow(grant, ids, 'approved'));
+      const broadClientSelector =
+        role === 'survivor' ||
+        Number.parseInt(sha(`${ids.salt}|${grant.grant_id}|approved-row-shape`).slice(0, 2), 16) %
+          2 ===
+          0;
+      rows.push(
+        registryRow(
+          grant,
+          ids,
+          'approved',
+          broadClientSelector
+            ? {
+                client_or_app_selector: [
+                  grant.client_id,
+                  opaque('client', `${ids.salt}|${grant.grant_id}|other-approved-client`),
+                ],
+              }
+            : {},
+        ),
+      );
+      rows.push(
+        registryRow(grant, ids, 'expired-exact-decoy', {
+          valid_until: beforeEveryIssuance,
+        }),
+      );
+      rows.push(registryRow(grant, ids, 'scope-near-miss', { scope_selector: ['reports.read'] }));
+      rows.push(
+        registryRow(grant, ids, 'array-route-near-miss', {
+          client_or_app_selector: [
+            grant.client_id,
+            opaque('client', `${ids.salt}|${grant.grant_id}|other-near-miss-client`),
+          ],
+          approval_route_selector: alternateRoute(grant.approval_route),
+          scope_selector: ['reports.read'],
+        }),
+      );
     } else if (role === 'mint' || role === 'session-only' || role === 'inert-blind') {
       rows.push(registryRow(grant, ids, 'expired-near-miss', { valid_until: beforeEveryIssuance }));
       rows.push(registryRow(grant, ids, 'scope-near-miss', { scope_selector: ['reports.read'] }));
+      if (role !== 'inert-blind') {
+        rows.push(
+          registryRow(grant, ids, 'array-route-near-miss', {
+            client_or_app_selector: [
+              grant.client_id,
+              opaque('client', `${ids.salt}|${grant.grant_id}|other-near-miss-client`),
+            ],
+            approval_route_selector: alternateRoute(grant.approval_route),
+            scope_selector: ['reports.read'],
+          }),
+        );
+        const pair = pairedGrantShape(ids, grant.principal_binding);
+        rows.push(
+          registryRow(grant, ids, 'array-selector-near-miss', {
+            client_or_app_selector: [
+              grant.client_id,
+              opaque('client', `${ids.salt}|${grant.grant_id}|other-selector-client`),
+            ],
+            ...(pair.mode === 'route'
+              ? { approval_route_selector: alternateRoute(grant.approval_route) }
+              : pair.mode === 'scope'
+                ? { scope_selector: [PROTECTED_SCOPE] }
+                : { tenant_selector: ids.tenant }),
+          }),
+        );
+      }
     } else if (role === 'revoked') {
       rows.push(
         registryRow(grant, ids, 'route-near-miss', {
@@ -198,6 +291,9 @@ function makeRegistry(grants, roles, ids) {
           scope_selector: ['reports.audit'],
         }),
       );
+    }
+    if (['survivor', 'approved-call', 'mint', 'session-only'].includes(role)) {
+      rows.push(...wrongClientRows(grant, ids, role));
     }
   }
   return rows.sort((a, b) =>
@@ -402,7 +498,17 @@ function makeEvents(grants, roles, resets, operations, ids) {
       grant_id: grant.grant_id,
       client_id: grant.client_id,
       issued_at: tokenTime,
-      expires_at_tick: role === 'session-only' ? 0 : ['mint'].includes(role) ? 1 : 5,
+      expires_at_tick:
+        role === 'session-only'
+          ? 0
+          : role === 'mint'
+            ? 1
+            : role === 'survivor'
+              ? Number.parseInt(
+                  sha(`${ids.salt}|${grant.grant_id}|approved-expiry`).slice(0, 2),
+                  16,
+                ) % 2
+              : 5,
     };
     tokens.push(token);
     events.push({
