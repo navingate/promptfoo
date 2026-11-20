@@ -30,9 +30,10 @@ hashes separately. Replace an invalid transport/format run using the same
 family and the next unused seed from `107200`–`107211`; do not retry a valid
 task failure.
 
-If the pilot shows Astra readily constructing valid plans, retire V34 before
-opening a post-freeze holdout or blind grid. If it suggests a meaningful
-floor, write and freeze a separate blind protocol first. Untouched holdout
+Complete nine valid pilot cases. If **two or more** are exact Astra passes,
+retire V34 before opening a post-freeze holdout or blind grid. If zero or one
+passes, write and freeze a separate blind protocol first. This pilot gate is
+conservative and is not a statistical proof of the final target. Untouched holdout
 seeds `107500`–`107511`, blind seeds `108000`–`108011`, and reserve seeds
 `108500`–`108511` are reserved but **must not be opened** by the development
 pilot. The later blind gate remains strictly fewer than six exact passes
