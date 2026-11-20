@@ -103,6 +103,7 @@ function exactNativePlan(commands, catalogs, current, required) {
   if (new Set(occupancy).size !== occupancy.length) {
     return false;
   }
+  const blocked = blockedFrom(commands, catalogs, current);
   return (
     commands.filter((command) => command.tool === 'except-cohort').length <= 1 &&
     commands.filter((command) => command.tool === 'quarantine-cohort').length ===
@@ -111,8 +112,8 @@ function exactNativePlan(commands, catalogs, current, required) {
           .filter((command) => command.tool === 'quarantine-cohort')
           .map((command) => command.args.cohort_id),
       ).size &&
-    blockedFrom(commands, catalogs, current).size === required.size &&
-    [...blockedFrom(commands, catalogs, current)].every((selector) => required.has(selector))
+    blocked.size === required.size &&
+    [...blocked].every((selector) => required.has(selector))
   );
 }
 
@@ -137,7 +138,24 @@ function exhaustiveMinimumLength(catalogs, current, required, limit = 3) {
       if (slots < 0) {
         continue;
       }
-      const actions = [...quarantines, ...direct];
+      const exempt = new Set(
+        exception
+          ? catalogs.exception_bundles.bundles
+              .find((group) => group.exception_id === exception.args.exception_id)
+              .selectors.map(key)
+          : [],
+      );
+      const actions = [
+        ...quarantines.filter((command) => {
+          const members = catalogs.containment_cohorts.cohorts
+            .find((group) => group.cohort_id === command.args.cohort_id)
+            .selectors.map(key);
+          return members.every(
+            (selector) => !current.has(selector) || exempt.has(selector) || required.has(selector),
+          );
+        }),
+        ...direct,
+      ];
       const visit = (start, chosen) => {
         if (chosen.length === slots) {
           return exactNativePlan([...prefix, ...chosen], catalogs, current, required);
@@ -155,6 +173,51 @@ function exhaustiveMinimumLength(catalogs, current, required, limit = 3) {
     }
   }
   return null;
+}
+
+function hasIndependentThreeRequestExceptionShortcut(catalogs, current, required) {
+  const quarantines = catalogs.containment_cohorts.cohorts;
+  for (const bundle of catalogs.exception_bundles.bundles) {
+    const exception = { tool: 'except-cohort', args: { exception_id: bundle.exception_id } };
+    const exempt = new Set(bundle.selectors.map(key));
+    const needsDirect = [...required].some((selector) => exempt.has(selector));
+    if (needsDirect && required.size > 9) {
+      continue;
+    }
+    const eligible = quarantines.filter((group) =>
+      group.selectors.every((member) => {
+        const selector = key(member);
+        return !current.has(selector) || exempt.has(selector) || required.has(selector);
+      }),
+    );
+    for (let first = 0; first < eligible.length; first += 1) {
+      const q1 = {
+        tool: 'quarantine-cohort',
+        args: { cohort_id: eligible[first].cohort_id },
+      };
+      if (!needsDirect) {
+        for (let second = first + 1; second < eligible.length; second += 1) {
+          const q2 = {
+            tool: 'quarantine-cohort',
+            args: { cohort_id: eligible[second].cohort_id },
+          };
+          if (exactNativePlan([q1, q2, exception], catalogs, current, required)) {
+            return true;
+          }
+        }
+      }
+      if (required.size <= 9) {
+        for (const selector of required) {
+          if (
+            exactNativePlan([q1, current.get(selector), exception], catalogs, current, required)
+          ) {
+            return true;
+          }
+        }
+      }
+    }
+  }
+  return false;
 }
 
 test('balanced pair-stable catalogs have opaque IDs and no visible witness', () => {
@@ -406,6 +469,7 @@ test('paired witnesses and visible solver require the corresponding exception', 
     assert.equal(witness.filter((command) => command.tool === 'quarantine-cohort').length, 3);
     assert.equal(witness.filter((command) => command.tool === 'except-cohort').length, 1);
     assert.deepEqual(blockedFrom(witness, catalogs, data.current), data.unsafe);
+    assert.equal(exactNativePlan(witness, catalogs, data.current, data.unsafe), true);
     const wrongBundle = catalogs.witnesses[wrong].find(
       (command) => command.tool === 'except-cohort',
     );
@@ -430,20 +494,33 @@ test('same effective coverage retains distinct raw occupancy, including exempted
   const exception = catalogs.exception_bundles.bundles.find(
     (group) => group.exception_id === 'exception-01e74aca8cb8ec2da826',
   );
-  const groups = ['cohort-1c54f6c0c29e3db08576', 'cohort-40c598c1de8c6a3f9a6a', 'cohort-e10f254911d44561a7e8'].map(
-    (id) => catalogs.containment_cohorts.cohorts.find((group) => group.cohort_id === id),
-  );
+  const groups = [
+    'cohort-1c54f6c0c29e3db08576',
+    'cohort-40c598c1de8c6a3f9a6a',
+    'cohort-e10f254911d44561a7e8',
+  ].map((id) => catalogs.containment_cohorts.cohorts.find((group) => group.cohort_id === id));
   assert.ok(exception);
   assert.ok(groups.every(Boolean));
   const exempt = new Set(exception.selectors.map(key));
-  const occupancy = groups.map((group) => new Set(group.selectors.map(key).filter((selector) => even.current.has(selector))));
+  const occupancy = groups.map(
+    (group) => new Set(group.selectors.map(key).filter((selector) => even.current.has(selector))),
+  );
   const coverage = (members) => [...members].filter((selector) => !exempt.has(selector)).sort();
   assert.deepEqual(coverage(occupancy[0]), coverage(occupancy[1]));
   assert.notDeepEqual(occupancy[0], occupancy[1]);
-  assert.ok([...occupancy[0]].some((selector) => occupancy[2].has(selector) && exempt.has(selector)));
+  assert.ok(
+    [...occupancy[0]].some((selector) => occupancy[2].has(selector) && exempt.has(selector)),
+  );
   assert.ok([...occupancy[1]].every((selector) => !occupancy[2].has(selector)));
-  const required = new Set([...occupancy[1], ...occupancy[2]].filter((selector) => !exempt.has(selector)));
-  const plan = solveMixedCover(catalogs, even.current, [...required].map((selector) => even.current.get(selector)), { maxActions: 3 });
+  const required = new Set(
+    [...occupancy[1], ...occupancy[2]].filter((selector) => !exempt.has(selector)),
+  );
+  const plan = solveMixedCover(
+    catalogs,
+    even.current,
+    [...required].map((selector) => even.current.get(selector)),
+    { maxActions: 3 },
+  );
   assert.ok(plan, 'a legal alternate three-request plan exists');
   assert.ok(plan.length <= 3);
   assert.equal(exactNativePlan(plan, catalogs, even.current, required), true);
@@ -453,12 +530,42 @@ test('mixed Q, E, and direct plans agree with independent exhaustive replay for 
   const [even, odd] = pair();
   const catalogs = buildCoupledCatalog(even.index, options(even, odd));
   const selectors = [...even.current.keys()].sort();
-  for (const required of [new Set(), new Set(selectors.slice(0, 1)), new Set(selectors.slice(0, 2)), new Set(selectors.slice(0, 3))]) {
+  const bulkRequired = [
+    'session:dest-akref-renewed-7915d6245ebf15fb',
+    'session:dest-akref-renewed-ef32d650d5be8818',
+    'job:job-977b44b1796023df',
+    'session:dest-akref-renewed-0c85d7da3c2bfb43',
+    'job:job-01824882a1a71647',
+  ];
+  const directOverlapRequired = [
+    'session:dest-akref-35a3e4b0b87a26fe',
+    'session:dest-akref-renewed-f3e6d6bab7eafb6e',
+    'job:job-ab102643b7527e9e',
+    'job:job-01824882a1a71647',
+    'session:dest-akref-renewed-0c85d7da3c2bfb43',
+    'job:job-e05abdf56d699f11',
+  ];
+  for (const required of [
+    new Set(),
+    new Set(selectors.slice(0, 1)),
+    new Set(selectors.slice(0, 2)),
+    new Set(selectors.slice(0, 3)),
+    new Set(bulkRequired),
+    new Set([...bulkRequired, 'session:dest-akref-310c03a7ec612f81']),
+    new Set(directOverlapRequired),
+  ]) {
     const actions = [...required].map((selector) => even.current.get(selector));
     const plan = solveMixedCover(catalogs, even.current, actions, { maxActions: 3 });
     assert.equal(plan?.length ?? null, exhaustiveMinimumLength(catalogs, even.current, required));
     if (plan) {
       assert.equal(exactNativePlan(plan, catalogs, even.current, required), true);
+      if (required.has('job:job-e05abdf56d699f11')) {
+        const direct = plan.find((action) => action.tool === 'pause-job');
+        assert.ok(direct);
+        assert.ok(
+          currentOccupancy(plan, catalogs, even.current).includes(`job:${direct.args.job_uid}`),
+        );
+      }
     }
   }
 });
@@ -481,6 +588,17 @@ test('a deterministic nonce denies every four-request plan without an exception'
     assert.equal(solveMixedCover(accepted, even.current, even.required).length, 4);
     assert.equal(solveMixedCover(accepted, odd.current, odd.required).length, 4);
     assert.equal(solveMixedCover(accepted, even.current, even.required, { maxActions: 3 }), null);
+    assert.equal(solveMixedCover(accepted, odd.current, odd.required, { maxActions: 3 }), null);
+    assert.equal(
+      hasIndependentThreeRequestExceptionShortcut(accepted, even.current, even.unsafe),
+      false,
+      `${family}: even three-request Q/E shortcut`,
+    );
+    assert.equal(
+      hasIndependentThreeRequestExceptionShortcut(accepted, odd.current, odd.unsafe),
+      false,
+      `${family}: odd three-request Q/E shortcut`,
+    );
   }
 });
 
