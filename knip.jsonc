@@ -14,6 +14,11 @@
         // directly by `node` (the CLI calibration runner; `node --test`), not statically imported,
         // so they are roots, not dead code. calibration-record.mjs is reached via the runner.
         "plugins/**/_tooling/**/*.{js,cjs,mjs,ts}",
+        // F6 defensive pilot, recovery, validation, and capture-verification CLIs are
+        // invoked directly by node from their frozen protocols and report.
+        "plugins/cyber/benchmarks/f6-poisoned-change/defense/v{4,5,6,7,8,9,10}/pilot.mjs",
+        "plugins/cyber/benchmarks/f6-poisoned-change/defense/v10/{recover,validate}.mjs",
+        "plugins/cyber/benchmarks/f6-poisoned-change/defense/verify-capture.mjs",
         "src/redteam/plugins/policy/evals/**/*.{js,cjs,mjs,ts}",
         // Referenced by path string in src/app/vite.shared.ts browserModuleReplacements.
         "src/logger.browser.ts",
@@ -101,6 +106,8 @@
   "ignoreBinaries": [
     // System tools invoked via child_process, plus the npm bin script.
     "act",
+    // Authenticated Codex CLI is an external defender runner for frozen F6 pilots.
+    "codex",
     "dist/src/entrypoint.js",
     "ffmpeg",
     "gh",
@@ -114,6 +121,9 @@
   "ignoreIssues": {
     // Internal intentional alias/duplicate-export patterns.
     "src/contracts/api/user.ts": ["duplicates"],
+    // F6 producer/consumer contract constants are pinned by the benchmark manifests
+    // and captures; they are not imported from the shared estate at runtime.
+    "plugins/cyber/benchmarks/f6-poisoned-change/shared/estate.mjs": ["exports"],
     // Cloud-consumed: server/src/task/hydra.ts and server/src/task/h4rm3l
     // import @promptfoo/redteam/plugins/multiInputFormat.
     "src/redteam/plugins/multiInputFormat.ts": ["exports"],
