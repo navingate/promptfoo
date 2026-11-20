@@ -12,6 +12,7 @@ export function buildEpisode(spec, options = {}) {
   const raw = buildNativeEpisode(spec, {
     requirePersistentJobDenial: true,
     phaseAware: options.phaseAware === true,
+    densePhaseAware: options.densePhaseAware === true,
   });
   const compact = projectVisible(raw, { minJobs: 5, maxJobs: 6 });
   const { current_job_approvals: _currentJobApprovals, ...visible } = compact;

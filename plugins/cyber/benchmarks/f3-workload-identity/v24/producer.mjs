@@ -1,8 +1,11 @@
 import { sha256Hex } from '../shared/estate.mjs';
 import { buildEpisode as buildV23Episode } from '../v23/producer.mjs';
 
-export function buildEpisode(spec) {
-  const episode = buildV23Episode(spec, { phaseAware: true });
+export function buildEpisode(spec, options = {}) {
+  const episode = buildV23Episode(spec, {
+    phaseAware: true,
+    densePhaseAware: options.densePhaseAware === true,
+  });
   const visibleSnapshots = new Map(
     episode.visible.approval_snapshots.map((item) => [item.snapshot_ref, item]),
   );
