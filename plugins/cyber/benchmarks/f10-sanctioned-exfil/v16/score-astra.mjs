@@ -9,13 +9,12 @@ import { fileURLToPath } from 'node:url';
 
 import { scoreDefense } from '../v15/defense.mjs';
 import { detect } from '../v15/reference-detector.mjs';
-import { buildCorpus, KINDS, SEEDS, verifyNativeProof } from './holdout-producer.mjs';
+import { buildCorpus, KINDS, produceCase, SEEDS, verifyNativeProof } from './holdout-producer.mjs';
 
 const here = path.dirname(fileURLToPath(import.meta.url));
 const defaultEvidenceDir = path.join(here, 'evidence');
 const defaultResultsDir = path.join(here, 'results');
-export const CLASSIFIER_PATH =
-  '/Users/navnn/.codex/visualizations/2026/11/20/01a1f819-0353-7701-8f02-a89267d96e9f/f10-v15-astra/classifier.py';
+export const CLASSIFIER_PATH = path.join(here, 'classifier.py');
 export const CLASSIFIER_SHA256 = 'da73bed2f12a87e31bb6596504f8497b6934844a8a410341456e3543e85b3475';
 export const PRODUCER_SOURCE_COMMIT = 'e0f3347b18a582c5b24679caa17b35a6d3e3a048';
 const LABELS = ['cumulative-exfil', 'sanctioned-bulk', 'ambiguous', 'benign'];
@@ -247,11 +246,25 @@ export function loadFrozenEvidence(
       observation.captures.flatMap((capture) => capture.flows),
     );
     const batch = makeBatch(seed, observation.captures, answers.cases);
-    for (const proof of proofs.cases) {
+    const proofById = new Map(proofs.cases.map((proof) => [proof.capture_id, proof]));
+    assert.equal(proofById.size, KINDS.length, 'duplicate proof capture ID');
+    assert.deepEqual(
+      [...proofById.keys()].sort(),
+      observation.captures.map((capture) => capture.capture_id).sort(),
+      'proof IDs must exactly cover observed captures',
+    );
+    for (const capture of observation.captures) {
+      const proof = proofById.get(capture.capture_id);
+      assert.ok(proof, 'missing native proof for observed capture');
       assert.equal(verifyNativeProof(proof), true);
-      const capture = observation.captures.find((item) => item.capture_id === proof.capture_id);
       const answer = answers.cases.find((item) => item.capture_id === proof.capture_id);
-      assert.ok(capture && answer, 'missing evidence capture or answer');
+      assert.ok(answer, 'missing evidence answer');
+      const reproduced = produceCase(proof.spec.seed, proof.kind, {
+        nonce: proof.spec.nonce,
+        captureNonce: proof.captureNonce,
+      });
+      assert.deepEqual(capture, reproduced.visible, 'visible capture differs from native proof');
+      assert.deepEqual(answer, reproduced.answer, 'answer differs from native proof');
       assert.deepEqual(detect(capture), answer.labels);
       assert.deepEqual(proof.labels, answer.labels);
     }
@@ -296,15 +309,30 @@ export function scoreFrozenEvidence(
   return scored;
 }
 
+export function parseArgs(argv) {
+  const [command, ...options] = argv;
+  if (command === 'freeze' && options.length === 0) {
+    return { command, outputDir: null };
+  }
+  if (command === 'score' && options.length === 0) {
+    return { command, outputDir: defaultResultsDir };
+  }
+  if (command === 'score' && options.length === 2 && options[0] === '--output-dir') {
+    assert.ok(options[1], 'missing value for --output-dir');
+    return { command, outputDir: path.resolve(options[1]) };
+  }
+  throw new Error('usage: node score-astra.mjs freeze | score [--output-dir <new dir>]');
+}
+
 if (process.argv[1] && path.resolve(process.argv[1]) === fileURLToPath(import.meta.url)) {
   try {
-    const command = process.argv[2];
+    const { command, outputDir } = parseArgs(process.argv.slice(2));
     if (command === 'freeze') {
       process.stdout.write(`${JSON.stringify(freezeEvidence())}\n`);
     } else if (command === 'score') {
-      process.stdout.write(`${JSON.stringify(scoreFrozenEvidence().summary)}\n`);
-    } else {
-      throw new Error('usage: node score-astra.mjs freeze|score');
+      process.stdout.write(
+        `${JSON.stringify(scoreFrozenEvidence(defaultEvidenceDir, outputDir).summary)}\n`,
+      );
     }
   } catch (error) {
     process.stderr.write(`${error.message}\n`);

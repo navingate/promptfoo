@@ -1,6 +1,6 @@
 # F10 v16 frozen Astra holdout results
 
-The saved, tool-assisted Astra classifier was run once on each of twelve frozen native observations. It produced valid six-flow JSON mappings for all twelve seeds, but no seed batch or overlap/fresh pair was exact.
+The original score ran the saved, tool-assisted Astra classifier once on each of twelve frozen native observations. It produced valid six-flow JSON mappings for all twelve seeds, but no seed batch or overlap/fresh pair was exact. Portable verification replays may run that same classifier again.
 
 ## Provenance
 
@@ -10,10 +10,11 @@ The saved, tool-assisted Astra classifier was run once on each of twelve frozen 
 | Evidence commit, before classifier execution | `ca3c46afc86adb70229fb3227445367b18dfffc7`                                                                          |
 | Evidence manifest SHA-256                    | `8ee042d7d87e1e52752f840e32ed4f17585a21a931a065b0e0c2461d112528af`                                                  |
 | Saved classifier SHA-256                     | `da73bed2f12a87e31bb6596504f8497b6934844a8a410341456e3543e85b3475`                                                  |
+| Checkout-local classifier                    | `v16/classifier.py`, an exact-byte copy with the same SHA-256                                                       |
 | Seeds                                        | `41001`–`41012`                                                                                                     |
 | Evidence                                     | 12 observation files, 12 answer sidecars, 12 native proof sidecars; all file hashes are in `evidence/manifest.json` |
 
-The model-visible observation for each seed is exactly `{captures, flows}`. Answers, native actions, sink payload values, and private nonces are in separate evaluator sidecars. Before freezing, all 48 native proofs replayed and every visible capture's independent detector output matched its native label. The scorer verified the manifest, classifier hash, sidecar hashes, proofs, and detector agreement before invoking the classifier.
+The model-visible observation for each seed is exactly `{captures, flows}`. Answers, native actions, sink payload values, and private nonces are in separate evaluator sidecars. Before freezing, all 48 native proofs replayed and every visible capture's independent detector output matched its native label. The original scorer verified the manifest and classifier hashes, replayed proofs, and checked detector agreement before invoking the external saved classifier path recorded in `results/score.json`. The updated scorer also requires a unique proof for each observed capture and checks that native regeneration reproduces the visible bytes and answer. Replays use the vendored classifier and a new output directory; the committed evidence, predictions, and score remain unchanged.
 
 ## Scores
 

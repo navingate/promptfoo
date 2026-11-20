@@ -7,14 +7,37 @@ import { test } from 'node:test';
 
 import { produceCase } from './holdout-producer.mjs';
 import {
+  CLASSIFIER_PATH,
   CLASSIFIER_SHA256,
+  loadFrozenEvidence,
   makeBatch,
+  parseArgs,
+  scoreFrozenEvidence,
   scorePrediction,
   summarizeScores,
   verifyFrozenInputs,
 } from './score-astra.mjs';
 
 const hash = (bytes) => crypto.createHash('sha256').update(bytes).digest('hex');
+const frozenEvidence = path.join(import.meta.dirname, 'evidence');
+const withEvidenceCopy = (run) => {
+  const directory = fs.mkdtempSync(path.join(os.tmpdir(), 'f10-v16-evidence-test-'));
+  const copy = path.join(directory, 'evidence');
+  try {
+    fs.cpSync(frozenEvidence, copy, { recursive: true });
+    run(copy);
+  } finally {
+    fs.rmSync(directory, { recursive: true, force: true });
+  }
+};
+const rewriteWithHash = (directory, name, value) => {
+  const file = path.join(directory, name);
+  fs.writeFileSync(file, `${JSON.stringify(value, null, 2)}\n`);
+  const manifestFile = path.join(directory, 'manifest.json');
+  const manifest = JSON.parse(fs.readFileSync(manifestFile));
+  manifest.files.find((entry) => entry.path === name).sha256 = hash(fs.readFileSync(file));
+  fs.writeFileSync(manifestFile, `${JSON.stringify(manifest, null, 2)}\n`);
+};
 const cases = ['covered-overlap', 'fresh-twin', 'dangling-citation', 'bound-control'].map((kind) =>
   produceCase(41001, kind, {
     nonce: `score-test-${kind}`,
@@ -105,4 +128,47 @@ test('frozen input check refuses changed classifier and observation bytes before
   } finally {
     fs.rmSync(directory, { recursive: true, force: true });
   }
+});
+
+test('matching manifest hashes cannot hide a capture policy change from its native proof', () => {
+  withEvidenceCopy((directory) => {
+    const name = 'observation-41001.json';
+    const observation = JSON.parse(fs.readFileSync(path.join(directory, name)));
+    observation.captures[0].policy.cumulative_aggregate_limit += 1;
+    rewriteWithHash(directory, name, observation);
+    assert.throws(() => loadFrozenEvidence(directory, null), /visible|capture|proof/i);
+  });
+});
+
+test('four duplicate valid proofs cannot stand in for four distinct observed captures', () => {
+  withEvidenceCopy((directory) => {
+    const name = 'proof-41001.json';
+    const proofs = JSON.parse(fs.readFileSync(path.join(directory, name)));
+    proofs.cases = Array.from({ length: 4 }, () => proofs.cases[0]);
+    rewriteWithHash(directory, name, proofs);
+    assert.throws(() => loadFrozenEvidence(directory, null), /duplicate|proof|capture/i);
+  });
+});
+
+test('default classifier is a vendored exact-byte copy with the frozen hash', () => {
+  assert.equal(CLASSIFIER_PATH, path.join(import.meta.dirname, 'classifier.py'));
+  assert.equal(hash(fs.readFileSync(CLASSIFIER_PATH)), CLASSIFIER_SHA256);
+  const manifest = JSON.parse(fs.readFileSync(path.join(frozenEvidence, 'manifest.json')));
+  assert.doesNotThrow(() => verifyFrozenInputs(frozenEvidence, manifest.files));
+});
+
+test('score CLI accepts a fresh output directory and rejects malformed options', () => {
+  const output = path.join(os.tmpdir(), 'f10-v16-new-results');
+  assert.deepEqual(parseArgs(['score', '--output-dir', output]), {
+    command: 'score',
+    outputDir: output,
+  });
+  assert.deepEqual(parseArgs(['freeze']), { command: 'freeze', outputDir: null });
+  assert.throws(() => parseArgs(['score', '--output-dir']), /output-dir|missing/i);
+  assert.throws(() => parseArgs(['score', '--unknown']), /unknown|usage/i);
+  assert.throws(() => parseArgs(['freeze', '--output-dir', output]), /output-dir|usage/i);
+  assert.throws(
+    () => scoreFrozenEvidence(frozenEvidence, path.join(import.meta.dirname, 'results')),
+    /results directory already exists/i,
+  );
 });
