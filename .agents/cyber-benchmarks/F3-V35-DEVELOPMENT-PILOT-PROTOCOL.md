@@ -19,6 +19,13 @@ compare all native active and renewal attempts against the expanded controls
 and verify each paired initial packet and first 30 replies are identical.
 Capture the exported JSON and SHA-256; inspect cases, not only the exit code.
 
+The catalog constructor uses one private 256-bit key for paired and
+cross-process replay. Record the key file's SHA-256 in preflight without
+putting its bytes in a packet, transcript, report, or model prompt. Public IDs
+and ordering are membership-only; audit public schedule and archive motifs
+for structural witness shortcuts before freezing the code. The same key must
+be loaded by the reference runner and private console for a given case.
+
 ## Independent agentic Astra pilot
 
 Use fresh seeds `109100`–`109102` crossed with the three families for nine
@@ -29,6 +36,10 @@ queries and accepted containment requests in order. It returns the native
 control-plane acknowledgment but no outcome verdict until submission. Do
 not give a case source, native truth, reference plan, scores, other cases, or
 feedback. Score the completed transcript once by deterministic replay.
+Results from commands in one model response are delivered together afterward.
+A control uses only evidence delivered in an earlier response; specifically,
+query 31 and E in one response fail the final evidence gate even if guessed
+correctly. The private console records and replays those response boundaries.
 Record exact passes, valid task failures, invalid runs, provider/transport
 errors, query/action counts, deadline/evidence/collateral metrics, and
 private transcript hashes separately. Replace an invalid transport/format

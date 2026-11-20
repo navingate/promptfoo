@@ -47,6 +47,11 @@ completion, or approved-work collateral remain failures. The final Q/E
 effects still use V34 native replay; the deadline gate is an additional
 objective control-plane rule, not a planted-ID check.
 
+Several commands in one model response receive their results together after
+that response. Prefix proof for a staged control uses only replies delivered
+before its response began. In particular, query 31 and the exception in one
+response cannot satisfy the final approval-evidence rule.
+
 The initial observation discloses the four change-board slots and query
 deadlines. It also publishes these artificial, objectively checkable prefix
 evidence rules. The first Q must have six current selectors whose affected
@@ -61,6 +66,13 @@ before its required prefix evidence fails at submission even if its final
 effects are safe. The scorer calculates statuses from the same accumulated
 replies the defender saw, never from native verdict flags. All group IDs,
 order, and memberships remain opaque and shuffled.
+
+Catalog witness and filler placement use a private per-run construction key.
+The key is absent from visible packets and is fixed across separate processes
+in the reference and pilot. Displayed IDs and ordering derive only from public
+group membership, so they cannot validate guesses about hidden layout state.
+The producer rejects a catalog if public schedule, selector, exception, or
+archive motifs uniquely identify an otherwise unproven staged choice.
 
 ## Prefix-visible solvability
 
