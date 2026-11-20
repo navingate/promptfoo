@@ -83,3 +83,12 @@ Medium. Support harness + cross-tenant tools + case store + action ledger + a pi
 
 Independent of F2; shares the confused-deputy lineage of F2's federation hop and F6's observable-ledger
 discipline. Three-to-five boundaries.
+
+## Provisional defense v5 extension
+
+The current `f7-support-defense` calibration runner points to a synthetic delegated-support response
+candidate. It tests valid cross-tenant grants, event-time authorization, compromised session descendants,
+and independent backup sessions; see `defense/design.md` and
+`defense/calibration/astra-chat-iterations-report.md`. The offense v1 capture is contextual to the
+confused-deputy mechanism, not a native v5 producer capture. The v5 candidate has not floored Astra and
+does not carry a paired-grounding claim. The offense task and its original estate are unchanged.
