@@ -1,6 +1,6 @@
 # F4 v18 response: aggregate live probe amendment
 
-Status: proposed for construct and user review. No defense model has seen v18, and no scored defense request has been made.
+Status: approved by the user on 2026-11-20 after independent G0 construct review. No defense model has seen v18, and no scored defense request has been made.
 
 ## Why this amendment is needed
 
@@ -41,4 +41,4 @@ Before freezing the interface, test that response row order and count add no tar
 
 ## Decision
 
-This amendment changes the tool interface and evidence packaging before calibration. It does not change the native attacker schedule, authorization join, action effects, outcome scorer, model or reference budgets, case matrix, or operational floor. Implementation waits for independent construct review and user approval of this amendment.
+This amendment changes the tool interface and evidence packaging before calibration. It does not change the native attacker schedule, authorization join, action effects, outcome scorer, model or reference budgets, case matrix, or operational floor. Independent construct review and user approval are complete. Implementation must still pass the executable reference, shortcut, observation, and interface gates before model use.
