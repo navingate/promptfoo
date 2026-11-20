@@ -58,6 +58,8 @@ Task 3's independent quality review found a second pre-request timing flaw befor
 
 Repair this within the same v19 cohort and construct before Task 4. Add a failing `runCase` regression that injects 100 ms of synchronous request-body serialization after the first pacing decision and records the actual mock request callback times. Require at least 5,000 ms between those callbacks and audit timestamps that represent dispatch; preserve one request and one model response per turn. Move expensive request preparation before the pacing decision and stamp/update pacing state at dispatch, with the 300-second timeout beginning at dispatch. Keep the early-wake and backward-clock tests green. Change no producer, scorer, prompt, tools, model settings, seeds, or thresholds. Reformat changed source, regenerate the v19 source-bound manifest and sidecars, verify all 18 source and 72 sidecar hashes, rerun the full Task 3 model-free gates and mock reference, commit and push a new conventional commit, and obtain new independent spec and quality review. Only the new reviewed freeze is eligible for a Cloudflare handoff.
 
+The first repair's quality review found a pre-dispatch setup-error path: if timeout-signal creation throws, it records a request audit, turn, and shared pacing start even though `request()` was never called. Before model use, add a failing test for that path and ensure it returns a provider setup error with no fabricated dispatch, turn, or pacing-state update. Repeat the source-bound freeze and independent reviews after this correction.
+
 ## Task 4: Recheck Astra comparability and request a new window
 
 **Files:** New v19 protocol and manifest only; private pilot traces remain outside Git.
