@@ -332,6 +332,21 @@ function approvalLanes(job, submission, triageTime, records) {
   return approvals;
 }
 
+// The published runtime policy is shared by all reads. Every current session
+// returning it must identify the same snapshot before any phase is provable.
+function runtimePolicyKey(accessKeyRefs, details) {
+  const witnesses = new Map();
+  for (const id of accessKeyRefs.toSorted()) {
+    const key = 'session:' + id;
+    for (const snapshot of details.get(key)?.policy_snapshots ?? []) {
+      if (snapshot.kind === 'runtime-read-policy' && !witnesses.has(snapshot.snapshot_ref)) {
+        witnesses.set(snapshot.snapshot_ref, key);
+      }
+    }
+  }
+  return witnesses.size === 1 ? witnesses.values().next().value : null;
+}
+
 function resolveSelector(index, details, policyKey, kind, id) {
   const dependencies = new Set();
   const missing = new Set();
@@ -375,10 +390,11 @@ function resolveSelector(index, details, policyKey, kind, id) {
     );
     const at = plan.planned_at;
     need(Number.isSafeInteger(at) && index.triage_time < at && at <= index.horizon_end);
+    need(policyKey);
     const policyDetail =
       register && selected.policy_snapshots?.some((s) => s.kind === 'runtime-read-policy')
         ? selected
-        : detail(need(policyKey));
+        : detail(policyKey);
     const snapshot = unique(
       need(policyDetail.policy_snapshots).filter((s) => s.kind === 'runtime-read-policy'),
     );
@@ -430,12 +446,7 @@ function resolveSelector(index, details, policyKey, kind, id) {
 export function resolvePrefix(index, replies) {
   const current = resolveIndex(index);
   const details = detailsById(replies);
-  const policyKey = current.access_key_refs
-    .map((id) => 'session:' + id)
-    .sort()
-    .find((key) =>
-      details.get(key)?.policy_snapshots?.some((s) => s.kind === 'runtime-read-policy'),
-    );
+  const policyKey = runtimePolicyKey(current.access_key_refs, details);
   const result = {};
   for (const [kind, ids] of [
     ['job', current.job_uids],

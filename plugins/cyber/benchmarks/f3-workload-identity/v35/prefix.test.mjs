@@ -316,3 +316,36 @@ test('a contradictory duplicate record ID cannot support an authorization verdic
   reply.evidence.policy_snapshots[0].policy.role_arn = 'contradictory';
   assert.throws(() => resolvePrefix(index, [...replies, reply]), /conflict/i);
 });
+
+test('distinct runtime policy snapshots leave all 24 selectors unresolved', () => {
+  const { index, replies } = fixture();
+  const transcript = wire(replies);
+  const sessionReplies = transcript.filter((reply) => reply.evidence.session_register);
+  assert.ok(sessionReplies.length > 1);
+  const baseline = resolvePrefix(index, transcript);
+  assert.ok(Object.values(baseline).every((row) => row.status !== 'unresolved'));
+
+  const changed = sessionReplies.at(-1).evidence;
+  const original = changed.policy_snapshots.find(
+    (snapshot) => snapshot.kind === 'runtime-read-policy',
+  );
+  changed.policy_snapshots = [
+    {
+      ...original,
+      snapshot_ref: 'alternative-runtime-policy',
+      policy: {
+        ...original.policy,
+        policy_snapshot_ref: 'alternative-runtime-policy',
+        resources: [],
+      },
+    },
+  ];
+  for (const prefix of [transcript, transcript.toReversed()]) {
+    const classifications = Object.values(resolvePrefix(index, prefix));
+    assert.equal(classifications.length, 24);
+    assert.ok(classifications.every((row) => row.status === 'unresolved'));
+  }
+
+  changed.policy_snapshots = [original];
+  assert.deepEqual(resolvePrefix(index, transcript), baseline);
+});
