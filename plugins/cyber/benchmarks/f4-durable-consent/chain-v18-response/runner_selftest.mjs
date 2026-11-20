@@ -213,6 +213,64 @@ test('multiple, absent, and malformed calls cannot silently execute or retry aft
   }
 });
 
+test('schema-invalid arguments use the one structural correction without native actions', async () => {
+  const { runCase } = await runner();
+  for (const command of [
+    { tool: 'get_user_grants', args: {} },
+    { tool: 'get_user_grants', args: { user_id: '' } },
+    { tool: 'get_user_grants', args: { user_id: 'user', extra: 'field' } },
+    { tool: 'set_quarantine', args: { user_id: 'user', on: 'true' } },
+    { tool: 'submit', args: { findings: [{ grant_id: 'grant' }] } },
+    {
+      tool: 'submit',
+      args: {
+        findings: [
+          {
+            grant_id: 'grant',
+            created_event_id: 'created',
+            reset_event_id: 'reset',
+            token_event_id: 'token',
+            call_event_id: '',
+          },
+        ],
+      },
+    },
+  ]) {
+    let calls = 0;
+    const result = await runCase(
+      firstCase(),
+      options(async () => {
+        calls++;
+        return nativeResponse(command);
+      }),
+    );
+    assert.equal(result.classification, 'format_fail', JSON.stringify(command));
+    assert.equal(result.structural_corrections, 1);
+    assert.equal(result.turns, 2);
+    assert.equal(result.actions, 0);
+    assert.equal(calls, 2);
+  }
+});
+
+test('valid argument shape with a wrong identifier reaches native feedback as a model decision', async () => {
+  const { runCase } = await runner();
+  const commands = [
+    { tool: 'get_user_grants', args: { user_id: 'wrong-but-nonempty' } },
+    { tool: 'submit', args: { findings: [] } },
+  ];
+  let calls = 0;
+  const result = await runCase(
+    firstCase(),
+    options(async () => nativeResponse(commands[calls++])),
+  );
+  assert.equal(result.classification, 'model_fail');
+  assert.equal(result.structural_corrections, 0);
+  assert.equal(result.turns, 2);
+  assert.equal(result.actions, 2);
+  assert.equal(result.transcript[0].result.ok, false);
+  assert.equal(result.transcript[0].result.error.code, 'unknown_user');
+});
+
 test('provider, served-model, missing-usage, and invalid-native failures are distinct and never retried', async () => {
   const { runCase } = await runner();
   const item = firstCase();
@@ -523,6 +581,36 @@ test('manifest is pinned through the checkpoint and checked before the next requ
   } finally {
     fs.rmSync(root, { recursive: true, force: true });
     fs.rmSync(outputRoot, { recursive: true, force: true });
+  }
+});
+
+test('native and evaluator sidecar drift after checkpoint stops before a later provider request', async () => {
+  const { runFrozenScreen } = await runner();
+  for (const sidecar of ['native_path', 'key_path']) {
+    const root = fs.mkdtempSync(path.join(os.tmpdir(), 'f4-response-runner-corpus-'));
+    const outputRoot = fs.mkdtempSync(path.join(os.tmpdir(), 'f4-response-runner-sidecar-'));
+    try {
+      const manifest = freezeCorpus(root);
+      let calls = 0;
+      const result = await runFrozenScreen({
+        root,
+        output: path.join(outputRoot, 'raw.json'),
+        onFirstCaseCheckpoint: async () => {
+          fs.appendFileSync(path.join(root, manifest.cases[1][sidecar]), ' ');
+        },
+        ...options(async () => {
+          calls++;
+          return nativeResponse({ tool: 'submit', args: { findings: [] } });
+        }),
+      });
+      assert.equal(calls, 1);
+      assert.equal(result.completed_cases, 2);
+      assert.equal(result.results[1].classification, 'invalid_native');
+      assert.match(result.results[1].reason, /freeze.*changed/u);
+    } finally {
+      fs.rmSync(root, { recursive: true, force: true });
+      fs.rmSync(outputRoot, { recursive: true, force: true });
+    }
   }
 });
 

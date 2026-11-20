@@ -11,9 +11,58 @@ import { scoreResponse } from './scorer.mjs';
 
 const here = path.dirname(fileURLToPath(import.meta.url));
 const repoRoot = path.resolve(here, '../../../../..');
+const familyRoot = path.resolve(here, '..');
 const sha256 = (value) => createHash('sha256').update(value).digest('hex');
 const correction =
   'Your previous response did not contain exactly one valid native function call. Return exactly one function call using the published tool schema. Do not include prose or multiple calls.';
+const findingFields = [
+  'grant_id',
+  'created_event_id',
+  'reset_event_id',
+  'token_event_id',
+  'call_event_id',
+];
+
+function exactFields(value, fields) {
+  return (
+    value !== null &&
+    typeof value === 'object' &&
+    !Array.isArray(value) &&
+    Object.getPrototypeOf(value) === Object.prototype &&
+    Object.keys(value).length === fields.length &&
+    fields.every((field) => Object.hasOwn(value, field))
+  );
+}
+
+function validNativeArgs(tool, args) {
+  if (!exactFields(args, TOOL_CONTRACT[tool])) {
+    return false;
+  }
+  for (const [name, value] of Object.entries(args)) {
+    if (name === 'on') {
+      if (typeof value !== 'boolean') {
+        return false;
+      }
+    } else if (name === 'findings') {
+      if (
+        !Array.isArray(value) ||
+        !value.every(
+          (finding) =>
+            exactFields(finding, findingFields) &&
+            findingFields.every(
+              (field) => typeof finding[field] === 'string' && finding[field].length > 0,
+            ),
+        ) ||
+        new Set(value.map((finding) => finding.grant_id)).size !== value.length
+      ) {
+        return false;
+      }
+    } else if (typeof value !== 'string' || value.length === 0) {
+      return false;
+    }
+  }
+  return true;
+}
 
 function failure(result, classification, reason) {
   result.classification = classification;
@@ -92,6 +141,9 @@ function parsedCall(choice) {
   }
   if (args === null || typeof args !== 'object' || Array.isArray(args)) {
     return { reason: 'native-arguments-object' };
+  }
+  if (!validNativeArgs(call.function.name, args)) {
+    return { reason: 'native-arguments-schema' };
   }
   return { call, command: { tool: call.function.name, args } };
 }
@@ -444,9 +496,24 @@ export async function runFrozenScreen({
   const { manifest, cases } = readFrozenCorpus(root);
   const manifestPath = path.join(root, 'manifest.json');
   const manifestSha256 = sha256(fs.readFileSync(manifestPath));
+  const bindings = [
+    ...Object.entries(manifest.source_sha256).map(([relative, digest]) => ({
+      filename: path.join(familyRoot, relative),
+      digest,
+    })),
+    ...manifest.cases.flatMap((row) => [
+      { filename: path.join(root, row.native_path), digest: row.native_sha256 },
+      { filename: path.join(root, row.key_path), digest: row.key_sha256 },
+    ]),
+  ];
   const assertFrozen = () => {
     if (sha256(fs.readFileSync(manifestPath)) !== manifestSha256) {
       throw new Error('freeze-manifest-changed');
+    }
+    for (const binding of bindings) {
+      if (sha256(fs.readFileSync(binding.filename)) !== binding.digest) {
+        throw new Error('freeze-binding-changed');
+      }
     }
   };
   const destination = reserveRawOutput(output);
