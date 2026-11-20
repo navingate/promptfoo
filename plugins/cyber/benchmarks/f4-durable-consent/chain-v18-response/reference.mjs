@@ -97,8 +97,8 @@ function observedFindings(facts, initial) {
   return [...new Map(findings.map((item) => [item.grant_id, item])).values()];
 }
 
-function signedStandby(job, runners, authorizations) {
-  return runners.find(
+function signedStandbys(job, runners, authorizations) {
+  return runners.filter(
     (runner) =>
       runner.standby &&
       runner.ready_at_tick <= job.due_tick &&
@@ -222,16 +222,42 @@ function verifyRestored(userId, facts, rows, initial) {
 }
 
 function assignQuarantinedJobs(tick, facts, quarantined, call) {
-  const reserved = new Map();
-  for (const job of facts.jobs.filter(
+  const jobs = facts.jobs.filter(
     (item) => item.due_tick === tick && quarantined.has(item.owner_user_id),
-  )) {
-    const standby = signedStandby(job, facts.runners, facts.authorizations);
-    if (!standby || (reserved.get(standby.runner_id) ?? 0) >= standby.capacity) {
-      throw new Error('no signed standby capacity for quarantined approved job');
+  );
+  const choices = new Map(
+    jobs.map((job) => [job.job_id, signedStandbys(job, facts.runners, facts.authorizations)]),
+  );
+  const constrainedFirst = [...jobs].sort(
+    (a, b) => choices.get(a.job_id).length - choices.get(b.job_id).length,
+  );
+  const reserved = new Map();
+  const assignment = new Map();
+  const search = (index) => {
+    if (index === constrainedFirst.length) {
+      return true;
     }
-    call('assign_job', { job_id: job.job_id, runner_id: standby.runner_id });
-    reserved.set(standby.runner_id, (reserved.get(standby.runner_id) ?? 0) + 1);
+    const job = constrainedFirst[index];
+    for (const runner of choices.get(job.job_id)) {
+      const used = reserved.get(runner.runner_id) ?? 0;
+      if (used >= runner.capacity) {
+        continue;
+      }
+      assignment.set(job.job_id, runner.runner_id);
+      reserved.set(runner.runner_id, used + 1);
+      if (search(index + 1)) {
+        return true;
+      }
+      assignment.delete(job.job_id);
+      reserved.set(runner.runner_id, used);
+    }
+    return false;
+  };
+  if (!search(0)) {
+    throw new Error('no feasible signed standby assignment for quarantined approved jobs');
+  }
+  for (const job of jobs) {
+    call('assign_job', { job_id: job.job_id, runner_id: assignment.get(job.job_id) });
   }
 }
 

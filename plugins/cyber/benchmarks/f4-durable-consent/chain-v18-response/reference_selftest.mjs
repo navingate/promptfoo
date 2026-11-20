@@ -4,7 +4,7 @@ import test from 'node:test';
 
 import { GRID, LIMITS } from './config.mjs';
 import { createResponse, stepResponse } from './engine.mjs';
-import { produceResponse } from './producer.mjs';
+import { produceResponse, validateResponseNative } from './producer.mjs';
 import { scoreResponse } from './scorer.mjs';
 
 async function reference() {
@@ -199,4 +199,69 @@ test('lag twins have the same pre-tick-one observation and force different feedb
     assert.equal(releasedAtOne(swapped).length, 1);
     assert.notDeepEqual(releasedAtOne(plain), releasedAtOne(swapped));
   }
+});
+
+test('reference matches signed standby capacity when two quarantined jobs share a due tick', async () => {
+  const runReference = await reference();
+  const source = produceResponse(GRID.find((spec) => spec.seed === 42037));
+  const { episode, key, native } = source;
+  const facts = episode.sources;
+  const due = facts.jobs.filter((job) => job.due_tick === 2);
+  const firstTarget = facts.grants.find(
+    (grant) =>
+      grant.principal_binding === due[0].owner_user_id &&
+      key.target_grant_ids.includes(grant.grant_id),
+  );
+  assert.equal(key.revocation_lag_ticks[firstTarget.grant_id], 1);
+  const token = facts.tokens.find((item) => item.grant_id === firstTarget.grant_id);
+  token.expires_at_tick = 3;
+  facts.events.find((event) => event.event_id === token.event_id).expires_at_tick = 3;
+
+  const shared = facts.runners.find((runner) => runner.standby);
+  const extraRunnerId = 'runner_extra_counterfactual';
+  const extraRunnerEventId = 'evt_extra_runner_counterfactual';
+  facts.runners.push({ ...shared, runner_id: extraRunnerId, source_event_id: extraRunnerEventId });
+  const runnerEvent = facts.events.find((event) => event.event_id === shared.source_event_id);
+  facts.events.push({
+    ...runnerEvent,
+    event_id: extraRunnerEventId,
+    runner_id: extraRunnerId,
+    arrival_index: facts.events.length,
+    arrival_time: 2000,
+  });
+  const signed = facts.runner_authorizations.find(
+    (row) => row.job_id === due[0].job_id && row.runner_id === shared.runner_id,
+  );
+  const extraAuthorizationId = 'auth_extra_counterfactual';
+  const extraAuthorizationEventId = 'evt_extra_auth_counterfactual';
+  facts.runner_authorizations.push({
+    ...signed,
+    authorization_id: extraAuthorizationId,
+    runner_id: extraRunnerId,
+    signature: 'sig_extra_counterfactual',
+    source_event_id: extraAuthorizationEventId,
+  });
+  const authorizationEvent = facts.events.find(
+    (event) => event.event_id === signed.source_event_id,
+  );
+  facts.events.push({
+    ...authorizationEvent,
+    event_id: extraAuthorizationEventId,
+    authorization_id: extraAuthorizationId,
+    runner_id: extraRunnerId,
+    signature: 'sig_extra_counterfactual',
+    arrival_index: facts.events.length,
+    arrival_time: 2001,
+  });
+  assert.equal(validateResponseNative({ ...native, public: facts }).ok, true);
+
+  const result = runReference(episode);
+  const assignments = result.transcript
+    .filter((item) => item.command.tool === 'assign_job')
+    .map((item) => item.command.args);
+  assert.deepEqual(assignments, [
+    { job_id: due[0].job_id, runner_id: extraRunnerId },
+    { job_id: due[1].job_id, runner_id: shared.runner_id },
+  ]);
+  assert.equal(scoreResponse(result.session, key).exact, true);
 });
