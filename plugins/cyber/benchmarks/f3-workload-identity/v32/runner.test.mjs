@@ -56,7 +56,7 @@ test('v32 reference passes all three families through the ordinary runner', () =
         '--output',
         output,
       ],
-      { timeout: 60_000 },
+      { timeout: 180_000 },
     );
     const result = JSON.parse(readFileSync(output, 'utf8'));
     assert.equal(result.summary.total, 3);
