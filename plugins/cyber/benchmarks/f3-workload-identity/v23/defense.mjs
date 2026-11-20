@@ -58,11 +58,30 @@ export function buildDefenseSession(spec, options = {}) {
   const producer = options.producer ?? buildEpisode;
   const replay = options.replay ?? replayContainment;
   const actionBudget = options.actionBudget ?? ACTION_BUDGET;
+  const queryBudget = options.queryBudget ?? QUERY_BUDGET;
+  const readTools = options.readTools ?? {
+    listWorkloads,
+    querySource,
+    queryWorkload,
+    querySession,
+  };
   if (typeof producer !== 'function' || typeof replay !== 'function') {
     throw new Error('v23 producer and replay must be functions');
   }
   if (!Number.isSafeInteger(actionBudget) || actionBudget < 1) {
     throw new Error('v23 action budget must be a positive integer');
+  }
+  if (!Number.isSafeInteger(queryBudget) || queryBudget < 1) {
+    throw new Error('v23 query budget must be a positive integer');
+  }
+  if (
+    !record(readTools) ||
+    Object.keys(readTools).length !== 4 ||
+    ['listWorkloads', 'querySource', 'queryWorkload', 'querySession'].some(
+      (name) => typeof readTools[name] !== 'function',
+    )
+  ) {
+    throw new Error('v23 read tools must provide four query functions');
   }
   const episode = producer(spec);
   if (!record(episode?.visible) || !record(episode?.native)) {
@@ -105,7 +124,7 @@ export function buildDefenseSession(spec, options = {}) {
       'submit-plan': { args: {}, returns: 'final submission' },
     },
     action_budget: actionBudget,
-    query_budget: QUERY_BUDGET,
+    query_budget: queryBudget,
   };
   assertNoVerdict(initial);
   const session = { finished: false, initial };
@@ -117,6 +136,8 @@ export function buildDefenseSession(spec, options = {}) {
     actions: [],
     invalid: 0,
     actionBudget,
+    queryBudget,
+    readTools,
     score: null,
   });
   return session;
@@ -150,19 +171,19 @@ export function stepDefense(session, command) {
       state.invalid += 1;
       return { ok: false, reason: 'invalid-args' };
     }
-    if (state.queryCount >= QUERY_BUDGET) {
+    if (state.queryCount >= state.queryBudget) {
       state.invalid += 1;
       return { ok: false, reason: 'query-budget-exhausted' };
     }
     state.queryCount += 1;
     const evidence =
       command.tool === 'list-workloads'
-        ? listWorkloads(state.visible)
+        ? state.readTools.listWorkloads(state.visible)
         : command.tool === 'query-source'
-          ? querySource(state.visible, command.args.credential_id)
+          ? state.readTools.querySource(state.visible, command.args.credential_id)
           : command.tool === 'query-workload'
-            ? queryWorkload(state.visible, command.args.job_uid)
-            : querySession(state.visible, command.args.access_key_ref);
+            ? state.readTools.queryWorkload(state.visible, command.args.job_uid)
+            : state.readTools.querySession(state.visible, command.args.access_key_ref);
     if (evidence === null) {
       return { ok: false, reason: 'not-found' };
     }

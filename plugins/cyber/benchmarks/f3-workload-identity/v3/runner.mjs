@@ -211,6 +211,13 @@ import {
   stepDefense as stepV29Defense,
 } from '../v29/defense.mjs';
 import { RULE_GUIDE as V29_RULE_GUIDE } from '../v29/guide.mjs';
+import {
+  buildDefenseSession as buildV30DefenseSession,
+  referenceDefense as referenceV30Defense,
+  scoreDefense as scoreV30Defense,
+  stepDefense as stepV30Defense,
+} from '../v30/defense.mjs';
+import { RULE_GUIDE as V30_RULE_GUIDE } from '../v30/guide.mjs';
 import { parseCommands } from './commands.mjs';
 import { buildDefenseSession, referenceDefense, scoreDefense, stepDefense } from './defense.mjs';
 import {
@@ -231,6 +238,7 @@ const COMPACT_RESPONSE_GUIDES = new Map([
   ['v27', V27_RULE_GUIDE],
   ['v28', V28_RULE_GUIDE],
   ['v29', V29_RULE_GUIDE],
+  ['v30', V30_RULE_GUIDE],
 ]);
 
 function argsOf(argv) {
@@ -299,6 +307,7 @@ function argsOf(argv) {
       'v27',
       'v28',
       'v29',
+      'v30',
     ].includes(args.version) ||
     ([
       'v11',
@@ -320,6 +329,7 @@ function argsOf(argv) {
       'v27',
       'v28',
       'v29',
+      'v30',
     ].includes(args.version) &&
       args.mode !== 'defense') ||
     args.seeds.some((s) => !Number.isSafeInteger(s))
@@ -649,6 +659,14 @@ const MODULES = {
       step: stepV29Defense,
     },
   },
+  v30: {
+    defense: {
+      create: buildV30DefenseSession,
+      reference: referenceV30Defense,
+      score: scoreV30Defense,
+      step: stepV30Defense,
+    },
+  },
 };
 
 function mockRun(spec, mode, version, operations) {
@@ -663,9 +681,21 @@ function mockRun(spec, mode, version, operations) {
   }
   const session = operations.create(spec);
   if (
-    ['v18', 'v19', 'v20', 'v21', 'v22', 'v23', 'v24', 'v25', 'v26', 'v27', 'v28', 'v29'].includes(
-      version,
-    )
+    [
+      'v18',
+      'v19',
+      'v20',
+      'v21',
+      'v22',
+      'v23',
+      'v24',
+      'v25',
+      'v26',
+      'v27',
+      'v28',
+      'v29',
+      'v30',
+    ].includes(version)
   ) {
     for (const action of operations.reference(session)) {
       operations.step(session, action);
@@ -733,7 +763,8 @@ function systemPrompt(args) {
 }
 
 async function modelTurn(messages, cfg, version, mode) {
-  const formatFailureClass = version === 'v29' && mode === 'defense' ? 'invalid_run' : 'model_fail';
+  const formatFailureClass =
+    ['v29', 'v30'].includes(version) && mode === 'defense' ? 'invalid_run' : 'model_fail';
   const response = await callModel(messages, cfg);
   if (response.kind !== 'ok') {
     return { issue: { classification: response.kind, reason: response.reason } };
@@ -772,6 +803,7 @@ async function modelTurn(messages, cfg, version, mode) {
       'v27',
       'v28',
       'v29',
+      'v30',
     ].includes(version) &&
     mode === 'defense' &&
     Buffer.byteLength(response.text, 'utf8') > 128 * 1024
@@ -782,7 +814,8 @@ async function modelTurn(messages, cfg, version, mode) {
     };
   }
   const commands =
-    mode === 'defense' && ['v22', 'v23', 'v24', 'v25', 'v26', 'v27', 'v28', 'v29'].includes(version)
+    mode === 'defense' &&
+    ['v22', 'v23', 'v24', 'v25', 'v26', 'v27', 'v28', 'v29', 'v30'].includes(version)
       ? parseV22Commands(response.text)
       : ['v11', 'v12', 'v13', 'v14', 'v15', 'v16', 'v17', 'v18', 'v19', 'v20', 'v21'].includes(
             version,
@@ -793,6 +826,51 @@ async function modelTurn(messages, cfg, version, mode) {
     return { issue: { classification: formatFailureClass, reason: 'off-grammar' }, raw };
   }
   return { raw, commands };
+}
+
+const V30_CONTROL_ARGS = {
+  'pause-job': ['job_uid'],
+  'deny-role-session': ['role_arn', 'role_session_name'],
+  'revoke-role-sessions': ['role_arn'],
+};
+
+function malformedV30Command(version, command, result, tools) {
+  if (version !== 'v30' || result.ok !== false) {
+    return false;
+  }
+  if (['invalid-command', 'invalid-args'].includes(result.reason)) {
+    return true;
+  }
+  if (!Object.hasOwn(tools, command.tool)) {
+    return true;
+  }
+  const required = V30_CONTROL_ARGS[command.tool];
+  if (!required) {
+    return false;
+  }
+  const args = command.args;
+  return (
+    !args ||
+    typeof args !== 'object' ||
+    Array.isArray(args) ||
+    Object.keys(args).length !== required.length ||
+    required.some((key) => typeof args[key] !== 'string' || !args[key])
+  );
+}
+
+function applyTurnCommands(commands, session, step, version) {
+  const results = [];
+  for (const command of commands) {
+    const result = step(session, command);
+    results.push(result);
+    if (malformedV30Command(version, command, result, session.initial.tools)) {
+      return { results, malformedCommand: true };
+    }
+    if (session.finished) {
+      break;
+    }
+  }
+  return { results, malformedCommand: false };
 }
 
 async function runOne(spec, args, cfg) {
@@ -847,6 +925,7 @@ async function runOne(spec, args, cfg) {
     'v27',
     'v28',
     'v29',
+    'v30',
   ].includes(args.version)
     ? 60
     : args.version === 'v6'
@@ -863,18 +942,22 @@ async function runOne(spec, args, cfg) {
       return { spec, ...response.issue, score: score(session), transcript };
     }
     const { commands, raw } = response;
-    const results = [];
-    for (const command of commands) {
-      results.push(step(session, command));
-      if (session.finished) {
-        break;
-      }
-    }
+    const { results, malformedCommand } = applyTurnCommands(commands, session, step, args.version);
     transcript.push({
       ...raw,
       commands,
       results,
     });
+    if (malformedCommand) {
+      return {
+        spec,
+        classification: 'invalid_run',
+        reason: 'malformed-command',
+        score: score(session),
+        transcript,
+        turns: turn + 1,
+      };
+    }
     messages.push({ role: 'assistant', content: raw.raw });
     messages.push({
       role: 'user',

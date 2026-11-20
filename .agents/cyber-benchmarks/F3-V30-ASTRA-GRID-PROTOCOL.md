@@ -3,9 +3,13 @@
 Freeze the V30 candidate and this protocol before opening any model case.
 This protocol does not authorize GLM-5.3 requests.
 
+Pre-freeze amendment: a preliminary check exposed seeds `96500`–`96506`
+before the candidate commit. The untouched holdout is therefore the fresh
+`96512`–`96523` range below. No model case was opened before this amendment.
+
 1. Require model-free visible query-only reference passes on all 36
    development cases (`96000`–`96011` × three settings) and all 36 untouched
-   post-freeze holdout cases (`96500`–`96511` × three settings), with zero
+   post-freeze holdout cases (`96512`–`96523` × three settings), with zero
    invalid runs. Verify native/visible grant and audit parity, one paired
    approval difference, 60 index IDs with 30 effective in-horizon IDs, and
    rejection of broad/no-op/failed-proposal shortcuts. Freeze and commit.

@@ -13,7 +13,9 @@ IDs with the same ID shapes. The archive records belong to the same synthetic
 enterprise telemetry but have no planned protected-object read in this
 incident horizon. The index publishes a compact revision journal for each
 ID. A completed publication advances from its predecessor to a new snapshot;
-a failed publication does not. Effective snapshots carry a planned observation
+a failed publication does not. Snapshot references are opaque, their listed
+order is shuffled, and each entry has either one or two completed advances.
+Effective snapshots carry a planned observation
 time. For real IDs the effective time is before `horizon_end`; for archive IDs
 it is at or after the horizon. Base and latest proposed snapshots deliberately
 mix those directions. The guide states the rule, and all index records are
@@ -33,6 +35,6 @@ Implement V30 as a V29 producer wrapper plus a version-specific SOC query
 adapter. Add an optional read-tool and query-budget injection to the existing
 V23 console, preserving its defaults for earlier versions. Before model
 exposure, require 36/36 development reference on seeds `96000`–`96011`,
-36/36 untouched post-freeze holdout on `96500`–`96511`, native/visible parity,
+36/36 untouched post-freeze holdout on `96512`–`96523`, native/visible parity,
 paired approval integrity, index lineage integrity, and shortcut failure.
 Freeze code and protocol before the independent blind Astra grid.
