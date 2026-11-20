@@ -4,6 +4,7 @@ import { test } from 'node:test';
 import { FAMILIES } from '../shared/estate.mjs';
 import { planReferenceContainment } from '../v20/reference.mjs';
 import { resolveCurrentApprovals } from '../v23/ledger.mjs';
+import { buildEpisode as buildV30Episode } from '../v30/producer.mjs';
 import { listWorkloads } from '../v30/queries.mjs';
 import { buildEpisode as buildV32Episode } from '../v32/producer.mjs';
 import { solveMixedCover, solveNoExceptionCover, validateCoupledCatalog } from './catalog.mjs';
@@ -45,6 +46,83 @@ function visibleCatalogs({ visible }) {
     exception_bundles: visible.exception_bundles,
   };
 }
+
+function structuralRivals(catalogs, current, plan) {
+  const currentKeys = new Set(current.keys());
+  const members = (group) => group.selectors.map((selector) => `${selector.kind}:${selector.id}`);
+  const qSix = catalogs.containment_cohorts.cohorts
+    .map((group) => ({
+      id: group.cohort_id,
+      current: members(group).filter((selector) => currentKeys.has(selector)),
+    }))
+    .filter((group) => group.current.length === 6);
+  const exceptions = catalogs.exception_bundles.bundles.map((group) => ({
+    current: new Set(members(group).filter((selector) => currentKeys.has(selector))),
+    archive: new Set(members(group).filter((selector) => !currentKeys.has(selector))),
+  }));
+  const ePairs = [];
+  for (const larger of exceptions.filter((group) => group.current.size === 3)) {
+    for (const smaller of exceptions.filter((group) => group.current.size === 2)) {
+      if (
+        [...smaller.current].every((selector) => larger.current.has(selector)) &&
+        [...larger.archive].every((selector) => !smaller.archive.has(selector))
+      ) {
+        ePairs.push(larger.current);
+      }
+    }
+  }
+  const triples = [];
+  for (let first = 0; first < qSix.length; first += 1) {
+    for (let second = first + 1; second < qSix.length; second += 1) {
+      for (let third = second + 1; third < qSix.length; third += 1) {
+        const groups = [qSix[first], qSix[second], qSix[third]];
+        const union = new Set(groups.flatMap((group) => group.current));
+        if (union.size !== 18) {
+          continue;
+        }
+        triples.push({
+          ids: groups
+            .map((group) => group.id)
+            .sort()
+            .join('|'),
+          count: ePairs.filter((pair) => [...pair].every((selector) => union.has(selector))).length,
+        });
+      }
+    }
+  }
+  const selected = plan
+    .filter((command) => command.tool === 'quarantine-cohort')
+    .map((command) => command.args.cohort_id)
+    .sort()
+    .join('|');
+  const selectedCount = triples.find((triple) => triple.ids === selected)?.count;
+  assert.notEqual(selectedCount, undefined, 'reference uses a disjoint six-current Q triple');
+  return {
+    selectedCount,
+    rivals: triples.filter((triple) => triple.ids !== selected && triple.count >= selectedCount)
+      .length,
+  };
+}
+
+test('development grid leaves at least three equal-or-higher structural Q/E triples', () => {
+  for (let pairSeed = 104000; pairSeed < 104012; pairSeed += 2) {
+    for (const family of FAMILIES) {
+      const even = episode(pairSeed, family);
+      const odd = buildV30Episode({ seed: pairSeed + 1, family });
+      const catalogs = visibleCatalogs(even);
+      for (const variant of [even, odd]) {
+        const current = currentActions(variant);
+        const plan = solveMixedCover(catalogs, current, requiredActions(variant));
+        assert.ok(plan, `${pairSeed}/${family}: visible reference`);
+        const { rivals } = structuralRivals(catalogs, current, plan);
+        assert.ok(
+          rivals >= 3,
+          `${pairSeed}/${family}/${variant === even ? 'even' : 'odd'}: only ${rivals} equal-or-higher Q/E triples`,
+        );
+      }
+    }
+  }
+});
 
 test('paired V33 episodes expose identical catalogs and preserve the V32 evidence schedule', () => {
   const even = episode(104000, FAMILIES[0]);

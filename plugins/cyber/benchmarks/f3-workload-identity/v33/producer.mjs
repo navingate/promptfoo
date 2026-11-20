@@ -128,19 +128,81 @@ function witnessWithOtherException(witness, otherWitness) {
   return witness.map((command) => (command.tool === 'except-cohort' ? wrong : command));
 }
 
-function candidatePasses(episodes, current, required, catalogs) {
-  for (const episode of episodes) {
-    attachCatalogs(episode, catalogs);
+function structuralMotifScores(catalogs, currentActions) {
+  const currentKeys = new Set(currentActions.keys());
+  const keys = (group) => group.selectors.map((selector) => `${selector.kind}:${selector.id}`);
+  const qSix = catalogs.containment_cohorts.cohorts
+    .map((group) => ({
+      id: group.cohort_id,
+      current: keys(group).filter((selector) => currentKeys.has(selector)),
+    }))
+    .filter((group) => group.current.length === 6);
+  const exceptions = catalogs.exception_bundles.bundles.map((group) => ({
+    current: new Set(keys(group).filter((selector) => currentKeys.has(selector))),
+    archive: new Set(keys(group).filter((selector) => !currentKeys.has(selector))),
+  }));
+  const plausiblePairs = [];
+  for (const larger of exceptions.filter((group) => group.current.size === 3)) {
+    for (const smaller of exceptions.filter((group) => group.current.size === 2)) {
+      if (
+        [...smaller.current].every((selector) => larger.current.has(selector)) &&
+        [...larger.archive].every((selector) => !smaller.archive.has(selector))
+      ) {
+        plausiblePairs.push(larger.current);
+      }
+    }
   }
+  const scores = new Map();
+  for (let first = 0; first < qSix.length; first += 1) {
+    for (let second = first + 1; second < qSix.length; second += 1) {
+      for (let third = second + 1; third < qSix.length; third += 1) {
+        const triple = [qSix[first], qSix[second], qSix[third]];
+        const union = new Set(triple.flatMap((group) => group.current));
+        if (union.size !== 18) {
+          continue;
+        }
+        const ids = triple
+          .map((group) => group.id)
+          .sort()
+          .join('|');
+        scores.set(
+          ids,
+          plausiblePairs.filter((pair) => [...pair].every((selector) => union.has(selector)))
+            .length,
+        );
+      }
+    }
+  }
+  return scores;
+}
+
+function hasStructuralRivals(scores, plan) {
+  const quarantines = plan.filter((command) => command.tool === 'quarantine-cohort');
+  if (quarantines.length !== 3) {
+    return false;
+  }
+  const selected = quarantines
+    .map((command) => command.args.cohort_id)
+    .sort()
+    .join('|');
+  const score = scores.get(selected);
+  if (score === undefined) {
+    return false;
+  }
+  return [...scores].filter(([ids, count]) => ids !== selected && count >= score).length >= 3;
+}
+
+function candidatePasses(episodes, current, required, catalogs) {
   const visibleCatalogs = {
     containment_cohorts: catalogs.containment_cohorts,
     exception_bundles: catalogs.exception_bundles,
   };
+  const scores = structuralMotifScores(visibleCatalogs, current[0]);
+  if (!hasStructuralRivals(scores, catalogs.witnesses.even)) {
+    return false;
+  }
   const referencePlans = [];
-  for (const [variant, episode] of episodes.entries()) {
-    if (!roleRevokeHasCollateral(episode)) {
-      return false;
-    }
+  for (const variant of [0, 1]) {
     if (solveNoExceptionCover(visibleCatalogs, current[variant], required[variant]) !== null) {
       return false;
     }
@@ -150,23 +212,29 @@ function candidatePasses(episodes, current, required, catalogs) {
       reference === null ||
       reference.length !== 4 ||
       witness.length !== 4 ||
-      !replayContainment(episode.native, reference).success ||
-      !replayContainment(episode.native, witness).success
+      reference.filter(({ tool }) => tool === 'except-cohort').length !== 1 ||
+      !hasStructuralRivals(scores, reference)
     ) {
       return false;
     }
     referencePlans.push(reference);
   }
+  for (const episode of episodes) {
+    attachCatalogs(episode, catalogs);
+  }
   for (const [variant, episode] of episodes.entries()) {
     const witness = variant === 0 ? catalogs.witnesses.even : catalogs.witnesses.odd;
     const other = variant === 0 ? catalogs.witnesses.odd : catalogs.witnesses.even;
-    if (replayContainment(episode.native, witnessWithOtherException(witness, other)).success) {
+    if (
+      !roleRevokeHasCollateral(episode) ||
+      !replayContainment(episode.native, referencePlans[variant]).success ||
+      !replayContainment(episode.native, witness).success ||
+      replayContainment(episode.native, witnessWithOtherException(witness, other)).success
+    ) {
       return false;
     }
   }
-  return referencePlans.every(
-    (plan) => plan.filter(({ tool }) => tool === 'except-cohort').length === 1,
-  );
+  return true;
 }
 
 /** Build one V33 variant from its pair without exposing the construction witnesses. */
