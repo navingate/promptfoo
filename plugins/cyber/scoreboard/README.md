@@ -13,7 +13,9 @@ a response task. An absent `(family, slot, model)` current pointer means
 **Pending**; it is never a zero score. F4 defense and the unscored GLM-5.3
 F5–F8 and F11 slots are pending. The Qwen filter shows only the eight local
 probes listed in the initial registry, including F11 defense's observed `0/8`.
-Older F3, F4, F9, and F10 local probes are not selected as current.
+Older F3, F4, F9, and F10 local probes are not selected as current. F3's
+v23 GLM-5.3 response run is recorded as an inconclusive 8/14 stopped prefix
+in history; v22's complete 11/36 remains current.
 
 ## Reading the numbers
 
