@@ -27,6 +27,10 @@ function hashOrder(items, salt, identity) {
   });
 }
 
+function canonicalMembership(members) {
+  return JSON.stringify(members.map(exactSelector).sort());
+}
+
 function keysOf(value, label) {
   if (!(value instanceof Set) || [...value].some((key) => typeof key !== 'string')) {
     throw new Error(`v33 ${label} must be a selector-key Set`);
@@ -68,38 +72,110 @@ function validateBuilderInputs(candidates, options) {
   return { current, even, odd };
 }
 
+function layoutRound(candidates, { round, retry, size, planted, salt, prefix }) {
+  const used = new Set(planted?.map(exactSelector) ?? []);
+  if (used.size !== (planted?.length ?? 0) || (planted && planted.length !== size)) {
+    throw new Error(`v33 ${prefix} planted group is malformed`);
+  }
+  const roundSalt =
+    retry === 0
+      ? `${salt}|${prefix}|round|${round}`
+      : `${salt}|${prefix}|round|${round}|retry|${retry}`;
+  const remaining = hashOrder(
+    candidates.filter((selector) => !used.has(exactSelector(selector))),
+    roundSalt,
+    exactSelector,
+  );
+  const roundGroups = [];
+  for (let offset = 0; offset < remaining.length; offset += size) {
+    roundGroups.push(remaining.slice(offset, offset + size));
+  }
+  if (planted) {
+    const placement =
+      Number.parseInt(
+        sha256Hex(`${salt}|${prefix}|placement|${round}|${canonicalMembership(planted)}`).slice(
+          0,
+          8,
+        ),
+        16,
+      ) %
+      (candidates.length / size);
+    roundGroups.splice(placement, 0, planted);
+  }
+  if (
+    roundGroups.length !== candidates.length / size ||
+    roundGroups.some((item) => item.length !== size)
+  ) {
+    throw new Error(`v33 ${prefix} round does not partition the candidate index`);
+  }
+  return roundGroups.map((members) => {
+    const canonical = canonicalMembership(members);
+    return {
+      canonical,
+      id: `${prefix}-${sha256Hex(`${salt}|${prefix}|group|${canonical}`).slice(0, 20)}`,
+      selectors: hashOrder(members, `${salt}|${prefix}|members|${canonical}`, exactSelector),
+    };
+  });
+}
+
+function hasGroupCollision(candidateGroups, plantedCanonical, seen, reserved) {
+  if (
+    new Set(candidateGroups.map((group) => group.canonical)).size !== candidateGroups.length ||
+    new Set(candidateGroups.map((group) => group.id)).size !== candidateGroups.length
+  ) {
+    return true;
+  }
+  return candidateGroups.some(
+    (group) =>
+      seen.memberships.has(group.canonical) ||
+      seen.ids.has(group.id) ||
+      (group.canonical !== plantedCanonical &&
+        (reserved.memberships.has(group.canonical) || reserved.ids.has(group.id))),
+  );
+}
+
 function partitionRounds(candidates, { rounds, size, reserved, salt, idName, prefix }) {
   const groups = [];
+  const seen = { memberships: new Set(), ids: new Set() };
+  const reservedSets = {
+    memberships: new Set([...reserved.values()].map(canonicalMembership)),
+    ids: new Set(),
+  };
+  if (reservedSets.memberships.size !== reserved.size) {
+    throw new Error(`v33 ${prefix} planted groups have duplicate membership`);
+  }
+  reservedSets.ids = new Set(
+    [...reservedSets.memberships].map(
+      (canonical) => `${prefix}-${sha256Hex(`${salt}|${prefix}|group|${canonical}`).slice(0, 20)}`,
+    ),
+  );
+  if (reservedSets.ids.size !== reserved.size) {
+    throw new Error(`v33 ${prefix} planted groups have duplicate IDs`);
+  }
   for (let round = 0; round < rounds; round += 1) {
     const planted = reserved.get(round);
-    const used = new Set(planted?.map(exactSelector) ?? []);
-    if (used.size !== (planted?.length ?? 0) || (planted && planted.length !== size)) {
-      throw new Error(`v33 ${prefix} planted group is malformed`);
-    }
-    const remaining = hashOrder(
-      candidates.filter((selector) => !used.has(exactSelector(selector))),
-      `${salt}|${prefix}|round|${round}`,
-      exactSelector,
-    );
-    const roundGroups = planted ? [planted] : [];
-    for (let offset = 0; offset < remaining.length; offset += size) {
-      roundGroups.push(remaining.slice(offset, offset + size));
-    }
-    if (
-      roundGroups.length !== candidates.length / size ||
-      roundGroups.some((item) => item.length !== size)
-    ) {
-      throw new Error(`v33 ${prefix} round does not partition the candidate index`);
-    }
-    for (const [position, members] of roundGroups.entries()) {
-      groups.push({
-        [idName]: `${prefix}-${sha256Hex(`${salt}|${prefix}|id|${round}|${position}`).slice(0, 20)}`,
-        selectors: hashOrder(
-          members,
-          `${salt}|${prefix}|members|${round}|${position}`,
-          exactSelector,
-        ),
+    const plantedCanonical = planted ? canonicalMembership(planted) : null;
+    let accepted = null;
+    for (let retry = 0; retry < 64 && accepted === null; retry += 1) {
+      const candidateGroups = layoutRound(candidates, {
+        round,
+        retry,
+        size,
+        planted,
+        salt,
+        prefix,
       });
+      if (!hasGroupCollision(candidateGroups, plantedCanonical, seen, reservedSets)) {
+        accepted = candidateGroups;
+      }
+    }
+    if (accepted === null) {
+      throw new Error(`v33 ${prefix} cannot construct a unique partition round`);
+    }
+    for (const group of accepted) {
+      seen.memberships.add(group.canonical);
+      seen.ids.add(group.id);
+      groups.push({ [idName]: group.id, selectors: group.selectors });
     }
   }
   return hashOrder(groups, `${salt}|${prefix}|catalog-order`, (group) => group[idName]);
@@ -225,6 +301,7 @@ function validateSide(catalog, { groupsKey, idKey, prefix, size, degree }) {
   }
   const counts = new Map([...candidates].map((key) => [key, 0]));
   const ids = new Set();
+  const memberships = new Set();
   const pattern = new RegExp(`^${prefix}-[a-f0-9]{20}$`, 'u');
   for (const group of catalog[groupsKey]) {
     if (
@@ -253,6 +330,11 @@ function validateSide(catalog, { groupsKey, idKey, prefix, size, degree }) {
       members.add(key);
       counts.set(key, counts.get(key) + 1);
     }
+    const canonical = canonicalMembership(group.selectors);
+    if (memberships.has(canonical)) {
+      throw new Error(`v33 ${prefix} catalog has duplicate group membership`);
+    }
+    memberships.add(canonical);
   }
   if ([...counts.values()].some((count) => count !== degree)) {
     throw new Error(`v33 ${prefix} catalog does not have uniform selector degree ${degree}`);
@@ -318,6 +400,16 @@ function plannerInputs(catalogs, currentActionsMap, requiredActions, maxActions)
   const candidates = validateCoupledCatalog(catalogs);
   if (!(currentActionsMap instanceof Map) || !Array.isArray(requiredActions)) {
     throw new Error('v33 planner requires current action Map and required action array');
+  }
+  const currentSelectors = [...currentActionsMap.keys()];
+  if (
+    currentActionsMap.size !== 24 ||
+    currentSelectors.filter((key) => typeof key === 'string' && key.startsWith('job:')).length !==
+      12 ||
+    currentSelectors.filter((key) => typeof key === 'string' && key.startsWith('session:'))
+      .length !== 12
+  ) {
+    throw new Error('v33 current action map needs twelve current Jobs and twelve current sessions');
   }
   if (!Number.isSafeInteger(maxActions) || maxActions < 0) {
     throw new Error('v33 maxActions must be a nonnegative safe integer');

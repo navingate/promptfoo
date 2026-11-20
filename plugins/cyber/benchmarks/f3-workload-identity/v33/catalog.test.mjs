@@ -1,7 +1,7 @@
 import assert from 'node:assert/strict';
 import { test } from 'node:test';
 
-import { FAMILIES } from '../shared/estate.mjs';
+import { FAMILIES, sha256Hex } from '../shared/estate.mjs';
 import { planReferenceContainment } from '../v20/reference.mjs';
 import { resolveCurrentApprovals } from '../v23/ledger.mjs';
 import { buildEpisode as buildV30Episode } from '../v30/producer.mjs';
@@ -128,6 +128,65 @@ test('balanced pair-stable catalogs have opaque IDs and no visible witness', () 
   }
 });
 
+test('visible group IDs and member order depend on membership rather than round coordinates', () => {
+  const [even, odd] = pair();
+  const nonce = 3;
+  const catalog = buildCoupledCatalog(even.index, options(even, odd, nonce));
+  const salt = `v33|coupled|100000|${FAMILIES[0]}|${nonce}`;
+  for (const [groups, prefix, idName, rounds, perRound] of [
+    [catalog.containment_cohorts.cohorts, 'cohort', 'cohort_id', 16, 6],
+    [catalog.exception_bundles.bundles, 'exception', 'exception_id', 12, 8],
+  ]) {
+    const coordinateIds = new Set(
+      Array.from(
+        { length: rounds * perRound },
+        (_, index) =>
+          `${prefix}-${sha256Hex(`${salt}|${prefix}|id|${Math.floor(index / perRound)}|${index % perRound}`).slice(0, 20)}`,
+      ),
+    );
+    for (const group of groups) {
+      const canonical = JSON.stringify(group.selectors.map(key).sort());
+      assert.equal(coordinateIds.has(group[idName]), false);
+      assert.equal(
+        group[idName],
+        `${prefix}-${sha256Hex(`${salt}|${prefix}|group|${canonical}`).slice(0, 20)}`,
+      );
+      const expectedOrder = [...group.selectors].sort((left, right) =>
+        sha256Hex(`${salt}|${prefix}|members|${canonical}|${key(left)}`).localeCompare(
+          sha256Hex(`${salt}|${prefix}|members|${canonical}|${key(right)}`),
+        ),
+      );
+      assert.deepEqual(group.selectors, expectedOrder);
+    }
+  }
+});
+
+test('builder deterministically retries a round with duplicate exception membership', () => {
+  const index = {
+    job_uids: Array.from({ length: 24 }, (_, item) => `j${item}`),
+    access_key_refs: Array.from({ length: 24 }, (_, item) => `s${item}`),
+  };
+  const currentKeys = new Set([
+    ...index.job_uids.slice(0, 12).map((id) => `job:${id}`),
+    ...index.access_key_refs.slice(0, 12).map((id) => `session:${id}`),
+  ]);
+  const evenUnsafeKeys = new Set([
+    ...index.job_uids.slice(0, 8).map((id) => `job:${id}`),
+    ...index.access_key_refs.slice(0, 7).map((id) => `session:${id}`),
+  ]);
+  const args = {
+    pairSeed: 100000,
+    family: FAMILIES[0],
+    nonce: 1750,
+    currentKeys,
+    evenUnsafeKeys,
+    oddUnsafeKeys: new Set([...evenUnsafeKeys, 'session:s7']),
+  };
+  const first = buildCoupledCatalog(index, args);
+  assert.doesNotThrow(() => validateCoupledCatalog(first));
+  assert.deepEqual(buildCoupledCatalog(index, args), first);
+});
+
 test('paired witnesses and visible solver require the corresponding exception', () => {
   const [even, odd] = pair();
   const catalogs = buildCoupledCatalog(even.index, options(even, odd));
@@ -196,6 +255,35 @@ test('solver may choose an alternative valid plan and handles empty requirements
   assert.deepEqual(solveNoExceptionCover(catalog, even.current, [], { maxActions: 0 }), []);
 });
 
+test('planner rejects a partial current map that hides approved collateral', () => {
+  const [even, odd] = pair();
+  const catalog = buildCoupledCatalog(even.index, options(even, odd));
+  const partial = new Map([...even.current].filter(([selector]) => even.unsafe.has(selector)));
+  assert.equal(partial.size, 15);
+  assert.throws(
+    () => solveMixedCover(catalog, partial, even.required),
+    /24 current|twelve current|current action map/iu,
+  );
+  assert.throws(
+    () => solveNoExceptionCover(catalog, partial, even.required),
+    /24 current|twelve current|current action map/iu,
+  );
+  const wrongKinds = new Map(even.current);
+  wrongKinds.delete([...wrongKinds.keys()].find((selector) => selector.startsWith('session:')));
+  const archivedJob = catalog.containment_cohorts.candidates.find(
+    (selector) => selector.kind === 'job' && !wrongKinds.has(`job:${selector.id}`),
+  );
+  wrongKinds.set(`job:${archivedJob.id}`, {
+    tool: 'pause-job',
+    args: { job_uid: archivedJob.id },
+  });
+  assert.equal(wrongKinds.size, 24);
+  assert.throws(
+    () => solveMixedCover(catalog, wrongKinds, even.required),
+    /twelve current|12 current|current action map/iu,
+  );
+});
+
 test('builder rejects malformed paired sets and validation catches catalog corruption', () => {
   const [even, odd] = pair();
   const args = options(even, odd);
@@ -223,6 +311,11 @@ test('builder rejects malformed paired sets and validation catches catalog corru
   badDegree.exception_bundles.bundles[0].selectors[0] =
     badDegree.exception_bundles.bundles[1].selectors[0];
   assert.throws(() => validateCoupledCatalog(badDegree), /degree|duplicate/iu);
+  const repeatedMembership = structuredClone(catalog);
+  repeatedMembership.containment_cohorts.cohorts[1].selectors = structuredClone(
+    repeatedMembership.containment_cohorts.cohorts[0].selectors,
+  );
+  assert.throws(() => validateCoupledCatalog(repeatedMembership), /duplicate group membership/iu);
   assert.throws(
     () => solveMixedCover(catalog, new Map([['job:outside', even.required[0]]]), even.required),
     /current/iu,
