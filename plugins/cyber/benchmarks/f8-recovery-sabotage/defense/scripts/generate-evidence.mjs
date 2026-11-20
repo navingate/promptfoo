@@ -170,6 +170,7 @@ function generateConformance(capture) {
       JSON.stringify(f.native_events) === JSON.stringify(row.events) &&
       JSON.stringify(f.authorization_records) === JSON.stringify(row.authorization_records) &&
       JSON.stringify(f.restoration_evidence) === JSON.stringify(row.restoration_evidence) &&
+      JSON.stringify(f.session_inventory) === JSON.stringify(row.session_inventory) &&
       JSON.stringify(f.recovery_graph) === JSON.stringify(row.recovery_graph) &&
       JSON.stringify(f.evidence) === JSON.stringify(row.evidence);
     // ... and the reference responder scores overall_correct on the reconstructed incident.

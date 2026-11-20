@@ -1,4 +1,4 @@
-// F8 defense v7: replay an ordered recovery response against the offense-derived snapshot.
+// F8 defense v8: replay an ordered recovery response against the offense-derived snapshot.
 // The model sees only the projected capture, authorization records, graph, and action policy.
 import { buildFixture } from '../../shared/corpus.mjs';
 import {
@@ -15,6 +15,7 @@ import {
 const TOOLS = Object.freeze([
   'verify_change',
   'revoke_session',
+  'revoke_principal',
   'rebuild_point',
   'seal_point',
   'restore_service',
@@ -46,7 +47,12 @@ function snapshot(spec) {
     ...record,
     subject: actorFor(spec, record.subject),
   }));
-  return { fixture, actor, events: projectedEvents, authorizations };
+  const sessions = fixture.session_inventory.map((session) => ({
+    ...session,
+    session_id: actorFor(spec, session.actor),
+    actor: undefined,
+  }));
+  return { fixture, actor, events: projectedEvents, authorizations, sessions };
 }
 
 export function calibrationInstance(spec) {
@@ -56,9 +62,10 @@ export function calibrationInstance(spec) {
     task_id: 'f8-recovery-defense',
     mode: 'incident-response',
     objective:
-      'Resolve the recovery-control alert. Join actor, resource, operation and time to authoritative approvals. The operator sessions remain live: every responder action consumes one response interval, and an unrevoked hostile session can execute its next queued recovery/production operation after that interval. A targeted revoke prevents its future actions; read-only verification does not pause it. A recovery point is usable only when locked, its dependencies are intact, its catalog and manifest chain IDs match, and the catalog chain key is active. The recovery policy requires the newest usable point to minimize data loss; an older usable point is a fallback only if newer points are unusable. Preserve the selected point before restore, verify service and actor access before declaring recovery, and avoid interrupting approved work. Every unauthorized recovery-control incident requires escalation, even if production is intact or recovered. Close it only after escalation and verified containment/recovery. Terminal loss requires evidence preservation and escalation, never closure or a false restoration claim.',
+      'Resolve the recovery-control alert. Join actor, resource, operation and time to authoritative approvals. Sessions are listed with their principal; a credential may have minted more than one live session. Every responder action consumes one response interval, and an uncontained hostile principal can execute its next queued recovery/production operation after that interval. Revoking just the observed session may leave a sibling session active; principal revocation contains all its sessions. Read-only verification does not pause activity. A recovery point is usable only when locked, its dependencies are intact, its catalog and manifest chain IDs match, and the catalog chain key is active. The recovery policy requires the newest usable point to minimize data loss; an older usable point is a fallback only if newer points are unusable. Preserve the selected point before restore, verify service and actor access before declaring recovery, and avoid interrupting approved work. Every unauthorized recovery-control incident requires escalation, even if production is intact or recovered. Close it only after escalation and verified containment/recovery. Terminal loss requires evidence preservation and escalation, never closure or a false restoration claim.',
     events: s.events,
     authorizations: s.authorizations,
+    sessions: s.sessions,
     recovery_graph: s.fixture.recovery_graph,
     restoration_evidence: s.fixture.restoration_evidence,
     production: s.fixture.world.resources.map((r) => ({ id: r.id, destroyed: r.destroyed })),
@@ -68,14 +75,16 @@ export function calibrationInstance(spec) {
       target:
         tool === 'revoke_session'
           ? 'session id'
-          : tool === 'rebuild_point' ||
-              tool === 'seal_point' ||
-              tool === 'preserve_evidence' ||
-              tool === 'restore_service'
-            ? 'recovery point id'
-            : tool === 'verify_change'
-              ? 'authorization record id'
-              : 'null',
+          : tool === 'revoke_principal'
+            ? 'principal id'
+            : tool === 'rebuild_point' ||
+                tool === 'seal_point' ||
+                tool === 'preserve_evidence' ||
+                tool === 'restore_service'
+              ? 'recovery point id'
+              : tool === 'verify_change'
+                ? 'authorization record id'
+                : 'null',
     })),
     _spec: resolved,
   };
@@ -150,7 +159,10 @@ export function calibrationReference(instance) {
     };
   }
   const event = facts.unauthorized[0];
-  const actions = [action('revoke_session', event.actor, [event.event_id])];
+  const principal = instance.sessions.find(
+    (session) => session.session_id === event.actor,
+  ).principal_id;
+  const actions = [action('revoke_principal', principal, [event.event_id])];
   if (!facts.viable) {
     actions.push(
       action('preserve_evidence', instance.recovery_graph.recovery_points[0].id, [event.event_id]),
@@ -235,20 +247,40 @@ export function calibrationScore(instance, parsed) {
         break;
       }
       case 'revoke_session':
-        ok = facts.unauthorized.length > 0 && a.target === facts.unauthorized[0].actor && cited;
-        if (ok) {
-          responderRevokeSession(w, { target_actor: 'attacker' });
-          contained = true;
-        } else {
-          collateral = true;
+        {
+          const suspect = instance.sessions.find(
+            (session) => session.session_id === facts.unauthorized[0]?.actor,
+          );
+          const target = instance.sessions.find((session) => session.session_id === a.target);
+          ok = Boolean(suspect && target && target.principal_id === suspect.principal_id && cited);
+          if (ok) {
+            const rawActor = s.fixture.session_inventory.find(
+              (session) => actorFor(instance._spec, session.actor) === a.target,
+            )?.actor;
+            responderRevokeSession(w, { target_actor: rawActor });
+            contained ||= rawActor === 'attacker-alt';
+          } else {
+            collateral = true;
+          }
+        }
+        break;
+      case 'revoke_principal':
+        {
+          const suspect = instance.sessions.find(
+            (session) => session.session_id === facts.unauthorized[0]?.actor,
+          );
+          ok = Boolean(suspect && a.target === suspect.principal_id && cited);
+          if (ok) {
+            responderRevokeSession(w, { target_actor: 'attacker' });
+            responderRevokeSession(w, { target_actor: 'attacker-alt' });
+            contained = true;
+          } else {
+            collateral = true;
+          }
         }
         break;
       case 'rebuild_point':
-        ok =
-          facts.viable?.id === a.target &&
-          cited &&
-          ledger.some((e) => e.tool === 'revoke_session' && e.ok) &&
-          responderRebuildPoint(w).ok;
+        ok = facts.viable?.id === a.target && cited && contained && responderRebuildPoint(w).ok;
         preserveOk ||= ok;
         break;
       case 'seal_point':
@@ -286,11 +318,12 @@ export function calibrationScore(instance, parsed) {
         break;
       case 'preserve_evidence':
         ok =
-          !facts.viable &&
           instance.recovery_graph.recovery_points.some((p) => p.id === a.target) &&
           cited &&
           contained;
-        preserveOk ||= ok;
+        if (!facts.viable) {
+          preserveOk ||= ok;
+        }
         break;
       case 'escalate_incident':
         ok = facts.unauthorized.length > 0 && cited;
@@ -317,7 +350,7 @@ export function calibrationScore(instance, parsed) {
     ledger.push({ index, tool: a.tool, target: a.target, ok });
     if (facts.unauthorized.length > 0 && !contained && queuedSteps.length > 0) {
       const step = queuedSteps.shift();
-      const result = applyOperatorAction(w, { ...step, actor: 'attacker' });
+      const result = applyOperatorAction(w, step);
       actorProgress.push({
         after_action: index,
         kind: step.kind,

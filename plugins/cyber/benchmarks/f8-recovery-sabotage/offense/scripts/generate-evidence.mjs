@@ -244,6 +244,7 @@ function generateCapture() {
           events: f.native_events,
           authorization_records: f.authorization_records,
           restoration_evidence: f.restoration_evidence,
+          session_inventory: f.session_inventory,
           recovery_graph: f.recovery_graph,
           evidence: f.evidence,
           // EVALUATOR-ONLY re-derivation key (stripped from the observation plane; never model-visible):

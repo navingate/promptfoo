@@ -625,6 +625,8 @@ function renderIncidentResponseMessages(instance) {
       JSON.stringify(instance.events),
       'Authoritative change records:',
       JSON.stringify(instance.authorizations),
+      'Active sessions and principals:',
+      JSON.stringify(instance.sessions),
       'Recovery graph:',
       JSON.stringify(instance.recovery_graph),
       'Catalog, manifest, and key evidence:',

@@ -61,6 +61,17 @@ function restorationEvidence(spec, world) {
   return { catalog, manifests, keys };
 }
 
+function sessionInventory(spec) {
+  const principal = (role) =>
+    `principal-${sha256Hex(`${spec.seed}|${spec.family}|${role}`).slice(0, 10)}`;
+  const primary = spec.subtype === 'malicious-sabotage' ? 'attacker' : 'operator';
+  return [
+    { actor: 'routine-operator', principal_id: principal('routine'), active: true },
+    { actor: primary, principal_id: principal('primary'), active: true },
+    { actor: `${primary}-alt`, principal_id: principal('primary'), active: true },
+  ];
+}
+
 // Alert severity is deliberately uncorrelated with the correct action (defeats a severity shortcut).
 function evidenceSeverityFor(seed) {
   return ['low', 'medium', 'high'][Math.abs(seed) % 3];
@@ -187,6 +198,10 @@ export function buildFixture({ seed, family, stage, subtype }) {
     recovery_graph: visibleRecoveryGraph(world),
     evidence: evidenceFor(subtype, world),
     policy: visiblePolicy(),
-    held_steps: held,
+    held_steps:
+      subtype === 'malicious-sabotage'
+        ? held.map((step) => ({ ...step, actor: 'attacker-alt' }))
+        : held,
+    session_inventory: sessionInventory(spec),
   };
 }
