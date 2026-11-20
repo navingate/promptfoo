@@ -113,8 +113,12 @@ approved-grant false positive.
 
 Each engine event has an opaque event ID, logical `tick`, source/arrival time,
 arrival index, and causal parent where applicable. `session.action_ledger`
-records each tool call, result, and tick for later independent scoring; the
-engine allows at most 64 calls and replay through tick 4. The native dashboard
+records every invocation with a monotonic index, cloned and frozen arguments
+and result, before/after ticks, outcome, error code, and
+`counts_toward_budget`. Normal invocations consume one of at most 64 tool
+actions, including malformed commands. Calls refused after submission or
+budget exhaustion are still recorded with `counts_toward_budget: false` and
+have no control or replay effect. Replay ends at tick 4. The native dashboard
 assertion is intentionally lower authority than the simultaneous live probe.
 
 ## Evaluator-only and deferred sources

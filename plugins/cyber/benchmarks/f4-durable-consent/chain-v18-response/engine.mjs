@@ -36,11 +36,42 @@ function clone(value) {
 }
 
 function cloneInvalidArgument(value) {
+  const seen = new WeakSet();
+  const copy = (item) => {
+    if (item === null || ['string', 'number', 'boolean'].includes(typeof item)) {
+      return item;
+    }
+    if (typeof item !== 'object') {
+      return `[${typeof item}]`;
+    }
+    if (seen.has(item)) {
+      return '[circular]';
+    }
+    seen.add(item);
+    if (Array.isArray(item)) {
+      return item.map(copy);
+    }
+    if (!plainRecord(item)) {
+      return `[unsupported ${Object.prototype.toString.call(item)}]`;
+    }
+    return Object.fromEntries(Object.entries(item).map(([name, part]) => [name, copy(part)]));
+  };
   try {
-    return clone(value);
+    return copy(value);
   } catch {
-    return null;
+    return '[unserializable arguments]';
   }
+}
+
+function freezeLedgerValue(value, seen = new WeakSet()) {
+  if (value !== null && typeof value === 'object' && !seen.has(value)) {
+    seen.add(value);
+    for (const item of Object.values(value)) {
+      freezeLedgerValue(item, seen);
+    }
+    Object.freeze(value);
+  }
+  return value;
 }
 
 function plainRecord(value) {
@@ -718,16 +749,39 @@ export function createResponse(episode) {
   return session;
 }
 
+/** Retain every attempted tool call, including refusals outside the action budget. */
+function recordInvocation(session, command, before, result, countsTowardBudget) {
+  const entry = {
+    index: session.action_ledger.length + 1,
+    counts_toward_budget: countsTowardBudget,
+    tool: typeof command?.tool === 'string' ? command.tool : null,
+    args: cloneInvalidArgument(command?.args ?? null),
+    tick_before: before,
+    tick_after: session.now_tick,
+    ok: result.ok,
+    error_code: result.error?.code ?? null,
+    result: clone(result),
+  };
+  session.action_ledger.push(freezeLedgerValue(entry));
+}
+
 /** Execute exactly one bounded native tool action. Results never contain evaluator truth. */
 export function stepResponse(session, command) {
   if (session.submitted) {
-    return { ...bad('submitted', 'The response is already submitted.'), tick: session.now_tick };
+    const result = {
+      ...bad('submitted', 'The response is already submitted.'),
+      tick: session.now_tick,
+    };
+    recordInvocation(session, command, session.now_tick, result, false);
+    return result;
   }
   if (session.action_count >= LIMITS.tool_actions) {
-    return {
+    const result = {
       ...bad('action_budget_exhausted', 'The tool action budget is exhausted.'),
       tick: session.now_tick,
     };
+    recordInvocation(session, command, session.now_tick, result, false);
+    return result;
   }
   const before = session.now_tick;
   session.action_count++;
@@ -744,15 +798,6 @@ export function stepResponse(session, command) {
     outcome = data?.ok === false ? data : { ok: true, data: clone(data) };
   }
   const result = { ...outcome, tool, tick: session.now_tick };
-  session.action_ledger.push({
-    index: session.action_count,
-    tool,
-    args: cloneInvalidArgument(command?.args ?? null),
-    tick_before: before,
-    tick_after: session.now_tick,
-    ok: result.ok,
-    error_code: result.error?.code ?? null,
-    result: clone(result),
-  });
+  recordInvocation(session, command, before, result, true);
   return result;
 }

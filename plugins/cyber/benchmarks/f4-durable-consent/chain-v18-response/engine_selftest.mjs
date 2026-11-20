@@ -139,6 +139,8 @@ test('strict command schema rejects malformed and unknown actions without changi
   const session = createResponse(episode);
   const grantId = key.target_grant_ids[0];
   const before = accessState(session, grantId);
+  const cyclicArgs = {};
+  cyclicArgs.self = cyclicArgs;
   for (const command of [
     null,
     {},
@@ -150,17 +152,19 @@ test('strict command schema rejects malformed and unknown actions without changi
     { tool: 'probe', args: { grant_id: 7 } },
     { tool: 'probe', args: { grant_id: 'missing' } },
     { tool: 'get_jobs', args: new Map() },
+    { tool: 'get_jobs', args: cyclicArgs },
     {
       tool: 'set_quarantine',
       args: { user_id: targetGrant(episode, key).principal_binding, on: 'yes' },
     },
     { tool: 'submit', args: { findings: [{ grant_id: grantId }] } },
   ]) {
-    assert.equal(stepResponse(session, command).ok, false, JSON.stringify(command));
+    assert.equal(stepResponse(session, command).ok, false, command?.tool);
   }
   assert.deepEqual(accessState(session, grantId), before);
-  assert.equal(session.action_count, 12);
-  assert.equal(session.action_ledger.length, 12);
+  assert.equal(session.action_count, 13);
+  assert.equal(session.action_ledger.length, 13);
+  assert.doesNotThrow(() => JSON.stringify(session.action_ledger));
   assert.throws(() => createResponse({ ...episode, sources: { ...episode.sources, jobs: [] } }));
   assert.throws(() =>
     createResponse({ ...episode, initial: { ...episode.initial, target_grant_ids: [] } }),
@@ -205,9 +209,40 @@ test('64 total tool actions is a hard bound, including reads and errors', async 
     assert.equal(stepResponse(session, { tool: 'get_jobs', args: {} }).ok, true);
   }
   assert.equal(session.action_count, LIMITS.tool_actions);
-  const rejected = stepResponse(session, { tool: 'get_jobs', args: {} });
+  assert.ok(session.action_ledger.every((entry) => entry.counts_toward_budget === true));
+  const beforeEvents = session.dynamic_events.length;
+  const beforeTransitions = session.transition_log.length;
+  const command = { tool: 'advance', args: {} };
+  const rejected = stepResponse(session, command);
   assert.equal(rejected.ok, false);
   assert.equal(rejected.error.code, 'action_budget_exhausted');
+  assert.equal(session.action_count, LIMITS.tool_actions);
+  assert.equal(session.now_tick, 0);
+  assert.equal(session.dynamic_events.length, beforeEvents);
+  assert.equal(session.transition_log.length, beforeTransitions);
+  assert.equal(session.action_ledger.length, LIMITS.tool_actions + 1);
+  assert.deepEqual(session.action_ledger.at(-1), {
+    index: LIMITS.tool_actions + 1,
+    counts_toward_budget: false,
+    tool: 'advance',
+    args: {},
+    tick_before: 0,
+    tick_after: 0,
+    ok: false,
+    error_code: 'action_budget_exhausted',
+    result: { ...rejected },
+  });
+  const refusal = session.action_ledger.at(-1);
+  assert.equal(Object.isFrozen(refusal), true);
+  assert.equal(Object.isFrozen(refusal.result.error), true);
+  command.args.extra = 'mutated';
+  rejected.error.message = 'mutated';
+  assert.deepEqual(refusal.args, {});
+  assert.notEqual(refusal.result.error.message, 'mutated');
+  const again = stepResponse(session, { tool: 'get_jobs', args: {} });
+  assert.equal(again.error.code, 'action_budget_exhausted');
+  assert.equal(session.action_ledger.at(-1).index, LIMITS.tool_actions + 2);
+  assert.equal(session.action_ledger.at(-1).counts_toward_budget, false);
   assert.equal(session.action_count, LIMITS.tool_actions);
 });
 
@@ -431,7 +466,40 @@ test('invalid assignment never delivers and submit replays the same transitions 
     early.delivery_records.some((item) => item.status === 'missed'),
     false,
   );
-  assert.equal(stepResponse(early, { tool: 'get_deliveries', args: {} }).error.code, 'submitted');
+  const beforeRefusal = {
+    action_count: early.action_count,
+    dynamic_events: early.dynamic_events.length,
+    transition_log: early.transition_log.length,
+    deliveries: early.delivery_records.length,
+  };
+  const refusedCommand = {
+    tool: 'set_quarantine',
+    args: { user_id: targetGrant(episode, key).principal_binding, on: true },
+  };
+  const refused = stepResponse(early, refusedCommand);
+  assert.equal(refused.error.code, 'submitted');
+  assert.deepEqual(
+    {
+      action_count: early.action_count,
+      dynamic_events: early.dynamic_events.length,
+      transition_log: early.transition_log.length,
+      deliveries: early.delivery_records.length,
+    },
+    beforeRefusal,
+  );
+  assert.deepEqual(early.action_ledger.at(-1), {
+    index: beforeRefusal.action_count + 1,
+    counts_toward_budget: false,
+    tool: 'set_quarantine',
+    args: refusedCommand.args,
+    tick_before: LIMITS.horizon_tick,
+    tick_after: LIMITS.horizon_tick,
+    ok: false,
+    error_code: 'submitted',
+    result: refused,
+  });
+  assert.equal(Object.isFrozen(early.action_ledger.at(-1)), true);
+  assert.equal(early.action_ledger.at(-2).counts_toward_budget, true);
   assert.equal(stepResponse(manual, { tool: 'advance', args: {} }).error.code, 'horizon_reached');
 });
 
