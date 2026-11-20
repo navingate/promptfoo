@@ -20,15 +20,18 @@ authorize any GLM request.
    Do not pre-supply query results or reuse prior-case reasoning.
 3. Score each valid submitted plan once through ordinary V29 `stepDefense`
    and `scoreDefense`. Count exact success only when threat closure, approved
-   work preservation, and action validity all hold. Track provider/transport,
-   parse/format, and task failures separately; non-task failures do not become
-   model failures. Preserve raw traces privately and record a sanitized
-   manifest.
+   work preservation, and action validity all hold. A model that issues valid
+   commands but never submits before the turn limit has failed the task.
+   Track provider/transport, parse/format, and task failures separately;
+   non-task failures do not become model failures. Preserve raw traces
+   privately and record a sanitized manifest.
 4. Inspect the first 12 completed valid cases. Stop early only if **more than
    six exact passes** already make the `≤6/36` Astra gate impossible;
    otherwise continue through all 36. A score of five or fewer is required
    for the user's stricter `below 6/36` target. Do not call a two-case pilot a
    floor. If any case is invalid, repair the transport outside the scored
-   denominator and use a fresh predeclared replacement seed rather than
-   silently counting or retrying it.
+   denominator and replace that same controller setting with the next unused
+   seed from `94500`–`94511` in seed-major, setting-major order. Never silently
+   count or retry an invalid case. If the reserve is exhausted, report an
+   incomplete grid instead of improvising a seed.
 5. Do not make another GLM-5.3 call without the user's explicit approval.

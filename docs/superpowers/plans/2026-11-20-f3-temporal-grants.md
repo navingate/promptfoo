@@ -51,10 +51,10 @@ runner without changing prior versions.
 - [ ] Register V29 imports, guide, version validation, mock reference,
       response parser, byte limit, and max-turn path wherever V28 is listed.
 - [ ] Run V29 focused tests and prior-version regression tests.
-- [ ] Run the actual runner with `--mock` on development seeds
+- [ ] Run the actual runner with `--mock-reference` on development seeds
       `93000`–`93011`; inspect exported JSON for 36/36 and zero invalid.
 - [ ] Commit the frozen candidate and protocol. Then run untouched holdout
-      seeds `93500`–`93511` with `--mock`; require 36/36.
+      seeds `93500`–`93511` with `--mock-reference`; require 36/36.
 
 ### Task 4: Independent blind Astra grid
 
