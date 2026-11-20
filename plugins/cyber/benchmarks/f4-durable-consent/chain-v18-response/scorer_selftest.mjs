@@ -520,7 +520,7 @@ test('refused post-submit invocations are replayed and reject forged ledger fiel
   const source = fixture('single-mint', 0);
   const mutations = [
     (entry) => ({ ...entry, ok: true }),
-    (entry) => ({ ...entry, tool: 'block_client' }),
+    (entry) => ({ ...entry, counts_toward_budget: true }),
     (entry) => ({ ...entry, result: { ...entry.result, tick: -1 } }),
     (entry) => ({ ...entry, error_code: 'wrong_error' }),
   ];
@@ -556,6 +556,66 @@ test('budget-exhausted refusals are audited without becoming a scored security m
     result: { ...refusal, tick: -1 },
   };
   assert.throws(() => scoreResponse(session, key), /ledger/);
+});
+
+test('JSON-round-tripped exact sessions retain the same native score and refused-call audit', async () => {
+  const scoreResponse = await scorer();
+  for (const profile of ['benign', 'single-mint', 'both-live', 'mint-plus-session-only']) {
+    const { session, key } = response(fixture(profile));
+    const refusal = stepResponse(session, { tool: 'block_client', args: {} });
+    assert.equal(refusal.error.code, 'submitted');
+    const expected = scoreResponse(session, key);
+    assert.equal(expected.exact, true);
+    const serialized = JSON.parse(JSON.stringify({ session, key }));
+    assert.equal(Object.isFrozen(serialized.session.action_ledger[0]), false);
+    assert.deepEqual(scoreResponse(serialized.session, serialized.key), expected);
+  }
+});
+
+test('counted unknown-tool refusal cannot masquerade as invalid arguments', async () => {
+  const scoreResponse = await scorer();
+  const { episode, key } = fixture('benign');
+  const session = createResponse(episode);
+  const refusal = stepResponse(session, { tool: 'not_a_tool', args: {} });
+  assert.equal(refusal.error.code, 'unknown_tool');
+  for (let tick = 1; tick <= LIMITS.horizon_tick; tick++) {
+    call(session, 'advance');
+  }
+  call(session, 'get_deliveries');
+  call(session, 'submit', { findings: [] });
+  assert.equal(scoreResponse(session, key).exact, true);
+  const original = session.action_ledger[0];
+  session.action_ledger[0] = {
+    ...original,
+    error_code: 'invalid_arguments',
+    result: {
+      ...original.result,
+      error: { ...original.result.error, code: 'invalid_arguments' },
+    },
+  };
+  assert.throws(() => scoreResponse(session, key), /ledger/);
+});
+
+test('lossy malformed-command rendering does not invalidate a corrected exact response', async () => {
+  const scoreResponse = await scorer();
+  const { episode, key } = fixture('benign');
+  const session = createResponse(episode);
+  assert.equal(
+    stepResponse(session, { tool: 'get_jobs', args: {}, extra: true }).error.code,
+    'invalid_command',
+  );
+  assert.equal(
+    stepResponse(session, { tool: 'probe', args: { grant_id: new Map() } }).error.code,
+    'invalid_arguments',
+  );
+  for (let tick = 1; tick <= LIMITS.horizon_tick; tick++) {
+    call(session, 'advance');
+  }
+  call(session, 'get_deliveries');
+  call(session, 'submit', { findings: [] });
+  const scored = scoreResponse(session, key);
+  assert.equal(scored.exact, true);
+  assert.equal(scored.classification, 'exact');
 });
 
 test('tick-zero client block prevents exports but permanently misses approved jobs', async () => {
