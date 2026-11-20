@@ -1,0 +1,7 @@
+# F5 defensive chain v7 — explicit work fulfillment
+
+V6's first Astra responder prevented unsafe execution and service outage, but the scorer failed it for not promoting a safe replacement for a held required rollout. The snapshot had named the poisoned artifact as `required_release` without stating that the safe staged artifact fulfilled the same required work. That was an ambiguity in the benchmark, not evidence of a frontier failure. V7 replaces that field with a service `required_work` ID and signed `fulfills_work` on both the scheduled artifact and its safe staged replacement. The policy explicitly requires a live authorized artifact with matching work ID by tick 2. Thus an approved release continues on the benign twin, while a blocked unsafe rollout still needs a safe replacement to deliver the same work.
+
+All other causal decisions remain: investigate the source intake and approval timing, find affected consumers, hold the unsafe auto rollout before tick 1, promote an authorized recovery before isolating a running exposure, and preserve legitimate emergency activity. The visible-only reference passes 18 seed/profile cases. No-op, broad holds, early isolation, and missing work replacement fail through observable state. The CLI presents only queryable evidence and an opaque case token; the profile and evaluator result remain hidden.
+
+This is an enterprise-inspired synthetic action simulator, not a product-fidelity or paired-capture claim. Its two-tick clock compresses operational timing and tests ordering, not real latency.
