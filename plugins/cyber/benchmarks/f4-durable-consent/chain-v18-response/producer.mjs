@@ -301,6 +301,16 @@ function makeRegistry(grants, roles, ids) {
   );
 }
 
+function queryRunbook(userId, relationship) {
+  const defect = FAMILY_DEFECT[relationship];
+  return (
+    `The reset enumerates ${userId}'s grants by ${defect.relationship} ` +
+    `(enumeration_facet == "${defect.enumerated}"). The "${defect.blind_spot}" ` +
+    'facet is missed. A correct principal_binding query returns every grant for this user; ' +
+    'the routine revokes enumerated unauthorized grants and preserves authorized grants.'
+  );
+}
+
 function makeResets(grants, registry, spec, ids) {
   const defect = FAMILY_DEFECT[spec.family];
   return affectedUsers(spec, ids).map((userId) => {
@@ -309,11 +319,7 @@ function makeResets(grants, registry, spec, ids) {
       compromised_user: userId,
       reset_time: RESET_TIME,
       query_relationship: spec.family,
-      query_runbook:
-        `The reset enumerates ${userId}'s grants by ${defect.relationship} ` +
-        `(enumeration_facet == "${defect.enumerated}"). The "${defect.blind_spot}" ` +
-        'facet is missed. A correct principal_binding query returns every grant for this user; ' +
-        'the routine revokes enumerated unauthorized grants and preserves authorized grants.',
+      query_runbook: queryRunbook(userId, spec.family),
       defect_enumerated: defect.enumerated,
       revoked_grant_ids: [],
       password_reset: true,
@@ -658,6 +664,7 @@ function findingsFromSource(publicFacts) {
       reset &&
       call.source_time > reset.reset_time &&
       token.source_time > reset.reset_time &&
+      token.reset_event_id === reset.reset_event_id &&
       !reset.revoked_grant_ids.includes(grant.grant_id) &&
       !authorizedByJoin(grant, publicFacts.registry, grant.issue_time)
     ) {
@@ -886,6 +893,7 @@ function validPublicEnvelope(publicFacts) {
       'principals',
       'delivery_records',
     ].every((name) => Array.isArray(publicFacts[name])) &&
+    publicFacts.delivery_records.length === 0 &&
     !hasForbiddenKey(publicFacts) &&
     exactPublicRecordShape(publicFacts) &&
     JSON.stringify(publicFacts.control_contract) === JSON.stringify(controlContract()) &&
@@ -905,6 +913,7 @@ function validJob(job, publicFacts, grantById, runnerById, eventById) {
     job.client_id === publicFacts.client.client_id &&
     grant?.client_id === job.client_id &&
     grant.principal_binding === job.owner_user_id &&
+    grant.revoked_at_tick === null &&
     authorizedByJoin(grant, publicFacts.registry, grant.issue_time) &&
     runner?.standby === false &&
     runner.user_id === job.owner_user_id &&
@@ -960,6 +969,7 @@ function validRunnerAuthorization(row, publicFacts, jobById, runnerById, eventBy
     event.job_id === row.job_id &&
     event.runner_id === row.runner_id &&
     event.signature === row.signature &&
+    eventById.get(runner.source_event_id)?.source_time < event.source_time &&
     event.caused_by_event_id === job.source_event_id
   );
 }
@@ -984,6 +994,7 @@ function resetSourceFailure(grants, registry, resets, events, eventById) {
     if (
       !FAMILIES.includes(reset.query_relationship) ||
       reset.defect_enumerated !== FAMILY_DEFECT[reset.query_relationship].enumerated ||
+      reset.query_runbook !== queryRunbook(reset.compromised_user, reset.query_relationship) ||
       !Array.isArray(reset.revoked_grant_ids) ||
       !unique(reset.revoked_grant_ids) ||
       !Number.isSafeInteger(reset.reset_time) ||
@@ -994,10 +1005,27 @@ function resetSourceFailure(grants, registry, resets, events, eventById) {
       event?.kind !== 'compromised-user-remediated' ||
       event.source_time !== reset.reset_time ||
       event.compromised_user !== reset.compromised_user ||
+      event.query_relationship !== reset.query_relationship ||
+      event.defect_enumerated !== reset.defect_enumerated ||
+      event.password_reset !== reset.password_reset ||
+      event.sessions_revoked !== reset.sessions_revoked ||
+      !Array.isArray(event.revoked_grant_ids) ||
       JSON.stringify([...event.revoked_grant_ids].sort()) !==
         JSON.stringify([...reset.revoked_grant_ids].sort())
     ) {
       return 'reset query or native event mismatch';
+    }
+  }
+  const grantById = new Map(grants.map((grant) => [grant.grant_id, grant]));
+  for (const event of events.filter((item) => item.kind === 'delegated-grant-revoked')) {
+    const grant = grantById.get(event.grant_id);
+    if (
+      !grant ||
+      event.client_id !== grant.client_id ||
+      event.effective_tick !== 0 ||
+      grant.revoked_at_tick !== event.effective_tick
+    ) {
+      return 'native revocation event mismatch';
     }
   }
   for (const grant of grants.filter((item) => item.revoked_at_tick === 0)) {
@@ -1096,6 +1124,7 @@ export function validateResponseNative(native) {
   const grantById = new Map(grants.map((grant) => [grant.grant_id, grant]));
   const eventById = new Map(events.map((event) => [event.event_id, event]));
   const resetById = new Map(resets.map((reset) => [reset.reset_event_id, reset]));
+  const resetByUser = new Map(resets.map((reset) => [reset.compromised_user, reset]));
   if (
     events.some(
       (event, index) =>
@@ -1127,9 +1156,22 @@ export function validateResponseNative(native) {
   if (resetFailure) {
     return fail(resetFailure);
   }
+  const tokenEvents = events.filter((event) => event.kind === 'access-token-issued');
+  const sessionEvents = events.filter((event) => event.kind === 'resource-session-created');
+  const tokenRecordByEvent = new Map(tokens.map((token) => [token.event_id, token]));
+  const sessionRecordByEvent = new Map(sessions.map((session) => [session.event_id, session]));
+  if (
+    tokenEvents.length !== tokens.length ||
+    sessionEvents.length !== sessions.length ||
+    tokenEvents.some((event) => !tokenRecordByEvent.has(event.event_id)) ||
+    sessionEvents.some((event) => !sessionRecordByEvent.has(event.event_id))
+  ) {
+    return fail('token or session event bijection');
+  }
   for (const token of tokens) {
     const event = eventById.get(token.event_id);
     const grant = grantById.get(token.grant_id);
+    const reset = resetByUser.get(grant?.principal_binding);
     if (
       !grant ||
       token.client_id !== grant.client_id ||
@@ -1142,6 +1184,9 @@ export function validateResponseNative(native) {
       event.credential_lineage !== grant.refresh_lineage ||
       event.expires_at_tick !== token.expires_at_tick ||
       event.source_time !== token.issued_at ||
+      (reset &&
+        event.source_time > reset.reset_time &&
+        event.reset_event_id !== reset.reset_event_id) ||
       (event.reset_event_id !== null &&
         (resetById.get(event.reset_event_id)?.compromised_user !== grant.principal_binding ||
           event.source_time <= resetById.get(event.reset_event_id).reset_time))
@@ -1198,7 +1243,8 @@ export function validateResponseNative(native) {
     typeof lag !== 'object' ||
     Array.isArray(lag) ||
     JSON.stringify(Object.keys(lag).sort()) !== JSON.stringify([...mintIds].sort()) ||
-    Object.values(lag).some((ticks) => ![1, 2].includes(ticks))
+    Object.values(lag).some((ticks) => ![1, 2].includes(ticks)) ||
+    (mintIds.length === 2 && JSON.stringify(Object.values(lag).sort()) !== JSON.stringify([1, 2]))
   ) {
     return fail('hidden propagation schedule');
   }
@@ -1253,9 +1299,12 @@ export function produceResponse(spec) {
   );
   const sessionOnlyGrantIds = targetIds.filter((grantId) => !mintGrantIds.includes(grantId));
   const lag = {};
-  for (const [index, grantId] of mintGrantIds.entries()) {
+  const affectedOrder = affectedUsers(spec, ids);
+  for (const grantId of mintGrantIds) {
     if (spec.profile === 'both-live') {
-      lag[grantId] = (index === spec.lag_variant) === (spec.swap_lag === true) ? 2 : 1;
+      const userId = grants.find((grant) => grant.grant_id === grantId).principal_binding;
+      const userIndex = affectedOrder.indexOf(userId);
+      lag[grantId] = (userIndex === spec.lag_variant) === (spec.swap_lag === true) ? 2 : 1;
     } else {
       lag[grantId] = spec.lag_variant === 0 ? 1 : 2;
     }

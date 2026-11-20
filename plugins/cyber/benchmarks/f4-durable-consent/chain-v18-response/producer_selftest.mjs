@@ -102,6 +102,28 @@ function rowCoversExceptClient(row, grant) {
   );
 }
 
+function appendManualRevocation(publicFacts, grant) {
+  const reset = publicFacts.resets.find(
+    (item) => item.compromised_user === grant.principal_binding,
+  );
+  const sourceTime = Math.max(...publicFacts.events.map((event) => event.source_time)) + 1;
+  const arrivalTime = Math.max(
+    sourceTime,
+    Math.max(...publicFacts.events.map((event) => event.arrival_time)) + 1,
+  );
+  publicFacts.events.push({
+    event_id: `evt_test_manual_revoke_${grant.grant_id}`,
+    kind: 'delegated-grant-revoked',
+    source_time: sourceTime,
+    caused_by_event_id: reset.reset_event_id,
+    arrival_time: arrivalTime,
+    arrival_index: publicFacts.events.length,
+    grant_id: grant.grant_id,
+    client_id: grant.client_id,
+    effective_tick: 0,
+  });
+}
+
 test('response grid has 36 unseen balanced incidents and hidden-lag branches', async () => {
   const { GRID } = await modules();
   assert.equal(GRID.length, 36);
@@ -1076,4 +1098,163 @@ test('native validation rejects contradictory cross-record lineage and runner el
     mutate(copy);
     assert.equal(validateResponseNative(copy).ok, false);
   }
+});
+
+test('both-live lag assignment balances the actual fast user and swaps the twin', async () => {
+  const { GRID, produceResponse } = await modules();
+  const fastByUserPosition = [0, 0];
+  for (const spec of GRID.filter((item) => item.profile === 'both-live')) {
+    const { native } = produceResponse(spec);
+    const { native: swapped } = produceResponse({ ...spec, swap_lag: true });
+    const grants = byId(native.public.grants, 'grant_id');
+    const fastGrantId = Object.entries(native.hidden.revocation_lag_ticks).find(
+      ([, ticks]) => ticks === 1,
+    )?.[0];
+    const swappedFastGrantId = Object.entries(swapped.hidden.revocation_lag_ticks).find(
+      ([, ticks]) => ticks === 1,
+    )?.[0];
+    const fastUser = grants.get(fastGrantId)?.principal_binding;
+    const swappedFastUser = grants.get(swappedFastGrantId)?.principal_binding;
+    const position = native.public.resets.findIndex((reset) => reset.compromised_user === fastUser);
+    assert.ok(position >= 0, 'fast propagation must belong to an affected user');
+    assert.notEqual(fastUser, swappedFastUser, 'lag twin must reverse the fast user');
+    fastByUserPosition[position] += 1;
+  }
+  assert.deepEqual(fastByUserPosition, [6, 6]);
+});
+
+test('native validation rejects nonempty initial delivery records', async () => {
+  const { GRID, produceResponse, validateResponseNative } = await modules();
+  const { native } = produceResponse(GRID[0]);
+  const leaked = structuredClone(native);
+  leaked.public.delivery_records.push({ answer: 'target' });
+  assert.equal(validateResponseNative(leaked).reason, 'public source shape or answer leak');
+});
+
+test('native validation rejects reset event and canonical runbook drift', async () => {
+  const { GRID, produceResponse, validateResponseNative } = await modules();
+  const { native } = produceResponse(GRID[0]);
+  const changes = [
+    (copy) => {
+      copy.public.resets[0].query_runbook = 'Different remediation query';
+    },
+    (copy) => {
+      const reset = copy.public.resets[0];
+      byId(copy.public.events, 'event_id').get(reset.reset_event_id).query_relationship =
+        FAMILIES.find((family) => family !== reset.query_relationship);
+    },
+    (copy) => {
+      const reset = copy.public.resets[0];
+      byId(copy.public.events, 'event_id').get(reset.reset_event_id).defect_enumerated =
+        'wrong-facet';
+    },
+    (copy) => {
+      const reset = copy.public.resets[0];
+      byId(copy.public.events, 'event_id').get(reset.reset_event_id).password_reset = false;
+    },
+    (copy) => {
+      const reset = copy.public.resets[0];
+      byId(copy.public.events, 'event_id').get(reset.reset_event_id).sessions_revoked = false;
+    },
+  ];
+  for (const change of changes) {
+    const copy = structuredClone(native);
+    change(copy);
+    assert.equal(validateResponseNative(copy).reason, 'reset query or native event mismatch');
+  }
+});
+
+test('affected post-reset token must cite its reset before a finding can be sourced', async () => {
+  const { GRID, produceResponse, validateResponseNative } = await modules();
+  const { native, key } = produceResponse(GRID.find((item) => item.profile === 'both-live'));
+  const copy = structuredClone(native);
+  byId(copy.public.events, 'event_id').get(key.expected_findings[0].token_event_id).reset_event_id =
+    null;
+  assert.equal(validateResponseNative(copy).reason, 'token lineage');
+});
+
+test('native validation rejects orphan token and session events', async () => {
+  const { GRID, produceResponse, validateResponseNative } = await modules();
+  const { native } = produceResponse(GRID.find((item) => item.profile === 'both-live'));
+  const orphanToken = structuredClone(native);
+  const unresetUser = orphanToken.public.principals.find(
+    (principal) =>
+      !orphanToken.public.resets.some((reset) => reset.compromised_user === principal.user_id),
+  ).user_id;
+  const baseGrant = orphanToken.public.grants.find(
+    (grant) => grant.principal_binding === unresetUser,
+  );
+  orphanToken.public.tokens = orphanToken.public.tokens.filter(
+    (token) => token.grant_id !== baseGrant.grant_id,
+  );
+  assert.equal(validateResponseNative(orphanToken).reason, 'token or session event bijection');
+  const orphanSession = structuredClone(native);
+  orphanSession.public.sessions.pop();
+  assert.equal(validateResponseNative(orphanSession).reason, 'token or session event bijection');
+  const orphanTokenRecord = structuredClone(native);
+  orphanTokenRecord.public.tokens.push({
+    ...orphanTokenRecord.public.tokens[0],
+    token_id: 'orphan-token-record',
+    event_id: 'orphan-token-event',
+  });
+  assert.equal(
+    validateResponseNative(orphanTokenRecord).reason,
+    'token or session event bijection',
+  );
+  const orphanSessionRecord = structuredClone(native);
+  orphanSessionRecord.public.sessions.push({
+    ...orphanSessionRecord.public.sessions[0],
+    session_id: 'orphan-session-record',
+    event_id: 'orphan-session-event',
+  });
+  assert.equal(
+    validateResponseNative(orphanSessionRecord).reason,
+    'token or session event bijection',
+  );
+});
+
+test('native validation rejects revocation events for live grants and revoked approved jobs', async () => {
+  const { GRID, produceResponse, validateResponseNative } = await modules();
+  const { native } = produceResponse(GRID.find((item) => item.profile === 'both-live'));
+  const job = native.public.jobs.find((item) =>
+    native.public.resets.some((reset) => reset.compromised_user === item.owner_user_id),
+  );
+  const liveGrant = native.public.grants.find((grant) => grant.grant_id === job.approved_grant_id);
+  const eventForLiveGrant = structuredClone(native);
+  appendManualRevocation(eventForLiveGrant.public, liveGrant);
+  assert.equal(
+    validateResponseNative(eventForLiveGrant).reason,
+    'native revocation event mismatch',
+  );
+  const revokedJobGrant = structuredClone(native);
+  revokedJobGrant.public.grants.find(
+    (grant) => grant.grant_id === liveGrant.grant_id,
+  ).revoked_at_tick = 0;
+  appendManualRevocation(revokedJobGrant.public, liveGrant);
+  assert.equal(validateResponseNative(revokedJobGrant).reason, 'approved job or runner provenance');
+});
+
+test('runner registration source time must precede signed authorization', async () => {
+  const { GRID, produceResponse, validateResponseNative } = await modules();
+  const { native } = produceResponse(GRID.find((item) => item.profile === 'both-live'));
+  const copy = structuredClone(native);
+  const authorization = copy.public.runner_authorizations[0];
+  const runner = copy.public.runners.find((item) => item.runner_id === authorization.runner_id);
+  const runnerEvent = byId(copy.public.events, 'event_id').get(runner.source_event_id);
+  const authorizationEvent = byId(copy.public.events, 'event_id').get(
+    authorization.source_event_id,
+  );
+  runnerEvent.source_time = authorizationEvent.source_time + 1;
+  runnerEvent.arrival_time = Math.max(runnerEvent.arrival_time, runnerEvent.source_time);
+  assert.equal(validateResponseNative(copy).reason, 'approved job or runner provenance');
+});
+
+test('two live targets require one fast and one slow hidden propagation lag', async () => {
+  const { GRID, produceResponse, validateResponseNative } = await modules();
+  const { native } = produceResponse(GRID.find((item) => item.profile === 'both-live'));
+  const copy = structuredClone(native);
+  for (const grantId of Object.keys(copy.hidden.revocation_lag_ticks)) {
+    copy.hidden.revocation_lag_ticks[grantId] = 2;
+  }
+  assert.equal(validateResponseNative(copy).reason, 'hidden propagation schedule');
 });

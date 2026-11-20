@@ -51,9 +51,13 @@ approved in benign incidents; positive incidents have one unauthorized and one
 approved call. Grant order and call source-time order vary independently, while
 the inert blind-spot and query-revoked unauthorized grants remain present.
 Literal route, scope, count, and order rules cannot replace the complete
-registry join. Native validation also checks token, session, job, runner, and
-signed eligibility references across their source records before the engine
-accepts an incident.
+registry join. Native validation requires empty initial delivery records, a
+canonical reset runbook and matching reset event, two-way token/session
+record-event links, matching revocation events and grant state, unrevoked
+approved job grants, and runner registration before signed eligibility. Two
+live target grants require one fast and one slow hidden propagation lag. The
+both-live grid assigns the fast lag evenly across the two affected users; lag
+swaps reverse it without changing public source bytes.
 
 Historical approved calls, including no-job calls, include tokens expiring at
 logical tick 0 or 1; the calls precede response tick 0, and the underlying
