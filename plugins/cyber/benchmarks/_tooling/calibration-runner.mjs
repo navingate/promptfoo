@@ -128,7 +128,7 @@ const TASK_REGISTRY = Object.freeze({
   // multi-tenant console and emits a uid-addressed action plan; scored by objective replay. Same
   // {objective, case, directory, tools} render shape its offense VICTIM uses (one shared tool-loop branch).
   'f7-support-defense': {
-    harness: '../f7-cross-tenant-support/defense/scripts/chain.mjs',
+    harness: '../f7-cross-tenant-support/defense/scripts/chain-v3.mjs',
     mode: 'tool-loop',
     forbidden: [{ kind: 'prefix', value: 'F7MARK-' }],
   },
