@@ -159,13 +159,22 @@ export function buildWorld({ seed, family }) {
   const shuffled = shuffle(deps, rand); // position carries no signal
   const criticalIds = shuffled.filter((d) => d._critical).map((d) => d.id);
 
-  const recovery_points = [0, 1].map((i) => ({
+  // A small portfolio of immutable full recovery points. Several may be readable, but only the newest
+  // usable one meets the responder's RPO. Which points have coherent content varies with the seed.
+  const cleanPatterns = [
+    [0, 1, 3],
+    [0, 2, 4],
+    [0, 3, 5],
+    [1, 2, 4],
+  ];
+  const cleanIndices = new Set(cleanPatterns[seed % cleanPatterns.length]);
+  const recovery_points = Array.from({ length: 6 }, (_, i) => ({
     id: opaqueId('rp', seed, family, `point-${i}`),
     immutability_state: 'locked',
     created_time: 100 + i * 10,
     requires: [...criticalIds], // every point needs ALL critical deps intact to restore
     destroyed: false,
-    _content_clean: i === (seed + family.length) % 2,
+    _content_clean: cleanIndices.has(i),
   }));
 
   const resources = [
@@ -475,6 +484,7 @@ export function visibleRecoveryGraph(world) {
     recovery_points: world.recovery_points.map((p) => ({
       id: p.id,
       immutability_state: p.immutability_state,
+      created_time: p.created_time,
       requires: [...p.requires],
       destroyed: p.destroyed,
     })),

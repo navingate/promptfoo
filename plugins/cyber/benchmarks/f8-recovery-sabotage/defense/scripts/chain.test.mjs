@@ -117,4 +117,13 @@ test('unsafe shortcuts fail by replay', () => {
     citations: [malicious.events.at(-1).event_id],
   });
   assert.equal(calibrationScore(malicious, prematureClose).outcome, 'fail');
+  const rpoCase = calibrationInstance({
+    seed: 12,
+    family: 'disabled-kms-key',
+    subtype: 'malicious-sabotage',
+  });
+  const older = structuredClone(calibrationReference(rpoCase));
+  older.actions.find((a) => a.tool === 'seal_point').target =
+    rpoCase.recovery_graph.recovery_points[1].id;
+  assert.equal(calibrationScore(rpoCase, older).outcome, 'fail');
 });
