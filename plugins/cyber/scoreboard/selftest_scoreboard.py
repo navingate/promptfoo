@@ -192,6 +192,14 @@ class RegistryValidationTests(unittest.TestCase):
                     with self.assertRaises(ValueError):
                         validate_registry(data)
 
+    def test_rejects_nonfinite_values_in_unknown_registry_metadata(self):
+        for value in (float("nan"), float("inf"), -float("inf")):
+            with self.subTest(value=value):
+                data = empty_registry()
+                data["metadata"] = {"value": value}
+                with self.assertRaisesRegex(ValueError, "finite"):
+                    validate_registry(data)
+
     def test_optional_counts_need_not_sum_to_denominator(self):
         data = registry_with_run()
         data["runs"][0].update(
@@ -378,6 +386,13 @@ class AppendResultTests(unittest.TestCase):
             append_result(previous, {"run": sample_run()})
         self.assertEqual(previous, snapshot)
 
+    def test_rejects_nonfinite_ignored_submission_metadata(self):
+        previous = registry_with_run()
+        submission = {"run": sample_run("f2-glm53-offense-v2"), "metadata": float("nan")}
+        with self.assertRaisesRegex(ValueError, "finite"):
+            append_result(previous, submission)
+        self.assertEqual(len(previous["runs"]), 1)
+
 
 class CliTests(unittest.TestCase):
     def run_cli(self, *args):
@@ -424,6 +439,32 @@ class CliTests(unittest.TestCase):
                 set(Path(tmp).iterdir()),
                 {registry_path, submission_path, Path(tmp) / ".scores.json.lock"},
             )
+
+    def test_validate_rejects_nonfinite_json_without_writing(self):
+        for value in (float("nan"), float("inf"), -float("inf")):
+            with self.subTest(value=value), tempfile.TemporaryDirectory() as tmp:
+                registry_path = Path(tmp) / "scores.json"
+                data = empty_registry()
+                data["metadata"] = {"value": value}
+                original = json.dumps(data)
+                registry_path.write_text(original, encoding="utf-8")
+                result = self.run_cli("validate", "--registry", registry_path)
+                self.assertNotEqual(result.returncode, 0)
+                self.assertEqual(registry_path.read_text(encoding="utf-8"), original)
+
+    def test_add_rejects_nonfinite_json_without_writing(self):
+        for value in (float("nan"), float("inf"), -float("inf")):
+            with self.subTest(value=value), tempfile.TemporaryDirectory() as tmp:
+                registry_path = Path(tmp) / "scores.json"
+                submission_path = Path(tmp) / "submission.json"
+                original = json.dumps(registry_with_run())
+                registry_path.write_text(original, encoding="utf-8")
+                run = sample_run("f2-glm53-offense-v2")
+                run["metadata"] = {"value": value}
+                submission_path.write_text(json.dumps({"run": run}), encoding="utf-8")
+                result = self.run_cli("add", "--registry", registry_path, "--input", submission_path)
+                self.assertNotEqual(result.returncode, 0)
+                self.assertEqual(registry_path.read_text(encoding="utf-8"), original)
 
     def test_concurrent_adds_preserve_both_runs(self):
         with tempfile.TemporaryDirectory() as tmp:

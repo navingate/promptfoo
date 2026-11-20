@@ -70,6 +70,17 @@ def _same_json(left: Any, right: Any) -> bool:
     return json.dumps(left, **options) == json.dumps(right, **options)
 
 
+def _ensure_finite_json(value: Any, location: str) -> None:
+    try:
+        json.dumps(value, allow_nan=False)
+    except (TypeError, ValueError) as exc:
+        raise ValueError(f"{location} must contain finite JSON values") from exc
+
+
+def _reject_nonfinite_constant(value: str) -> None:
+    raise ValueError(f"nonfinite JSON number: {value}")
+
+
 def _validate_shape(data: Dict[str, Any]) -> None:
     if data.get("schema_version") != SCHEMA_VERSION:
         raise ValueError("unsupported score registry schema")
@@ -187,9 +198,11 @@ def _validate_shape(data: Dict[str, Any]) -> None:
 
 def validate_registry(data: Dict[str, Any], previous: Optional[Dict[str, Any]] = None) -> None:
     """Reject malformed registries and changes to previously published records."""
+    _ensure_finite_json(data, "registry")
     _validate_shape(_object(data, "registry"))
     if previous is None:
         return
+    _ensure_finite_json(previous, "previous registry")
     _validate_shape(_object(previous, "previous registry"))
 
     old_families = {family["id"]: family for family in previous["families"]}
@@ -218,6 +231,7 @@ def append_result(
 ) -> Dict[str, Any]:
     """Append one normalized run and optionally select it as the current result."""
     validate_registry(data)
+    _ensure_finite_json(submission, "submission")
     submission = _object(submission, "submission")
     run = _object(submission.get("run"), "submission.run")
     result = copy.deepcopy(data)
@@ -249,11 +263,11 @@ def append_result(
 
 def _load_json(path: Path) -> Dict[str, Any]:
     with path.open(encoding="utf-8") as stream:
-        return json.load(stream)
+        return json.load(stream, parse_constant=_reject_nonfinite_constant)
 
 
 def _write_json_atomic(path: Path, data: Dict[str, Any]) -> None:
-    payload = json.dumps(data, indent=2, ensure_ascii=False) + "\n"
+    payload = json.dumps(data, indent=2, ensure_ascii=False, allow_nan=False) + "\n"
     descriptor, temporary_name = tempfile.mkstemp(prefix=f".{path.name}.", dir=path.parent)
     try:
         with os.fdopen(descriptor, "w", encoding="utf-8") as stream:
