@@ -71,9 +71,10 @@ test('both real consoles publish their sole differing renewal Job at ordinal 31'
             Object.keys(prefix).filter((key) => prefix[key].status === status);
           if (at === 20) {
             assert.ok(keysWith('unsafe').length >= 6);
+            assert.ok(keysWith('approved').length >= 1);
           } else if (at === 24) {
             assert.ok(keysWith('unsafe').length >= 10);
-            assert.ok(keysWith('approved').length >= 2);
+            assert.ok(keysWith('approved').length >= 4);
           } else if (at === 30) {
             assert.equal(keysWith('unsafe').length, 15);
             assert.equal(keysWith('approved').length, 7);
@@ -88,6 +89,20 @@ test('both real consoles publish their sole differing renewal Job at ordinal 31'
     }
   }
 });
+
+for (const family of ['reconcile-hook', 'mutating-webhook']) {
+  test(`retiming makes approved selectors available for disjoint catalog pools in ${family}`, () => {
+    const [even, odd] = [109004, 109005].map((seed) => buildV32Episode({ seed, family }).visible);
+    const { checkpoints } = buildPairedSchedule(even, odd);
+    for (const [at, minimum] of [
+      [20, 1],
+      [24, 4],
+    ]) {
+      const approved = Object.values(checkpoints[at]).filter((row) => row.status === 'approved');
+      assert.ok(approved.length >= minimum, `${approved.length} approved by ordinal ${at}`);
+    }
+  });
+}
 
 test('zero or multiple differing workload replies cannot define the final query', () => {
   const spec = { seed: 109000, family: FAMILIES[0] };

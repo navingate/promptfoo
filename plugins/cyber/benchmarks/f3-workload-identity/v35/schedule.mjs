@@ -113,8 +113,9 @@ function checkPrefix(index, even, odd, order, lastJobKey, activeKey) {
     const unsafe = rows.filter((row) => row.status === 'unsafe').length;
     const approved = rows.filter((row) => row.status === 'approved').length;
     if (
-      (ordinal === 20 && unsafe < 6) ||
-      (ordinal === 24 && (unsafe < 10 || approved < 2)) ||
+      // Each of the first two catalog pools also needs its own approved spare.
+      (ordinal === 20 && (unsafe < 6 || approved < 1)) ||
+      (ordinal === 24 && (unsafe < 10 || approved < 4)) ||
       (ordinal === 30 &&
         (unsafe !== 15 ||
           approved !== 7 ||
