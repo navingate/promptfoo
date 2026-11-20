@@ -39,6 +39,21 @@ function sourceFetchCount(raw, token) {
   ).length;
 }
 
+function phaseAwareReleaseState(spec, token, approved, pairVariant, options) {
+  if (token.event_id === approved[1].event_id) {
+    return pairVariant === 1 ? ['clean', 'bad'] : ['clean', 'clean'];
+  }
+  if (options.expandedCohort && token.event_id === approved[3]?.event_id) {
+    return draw(spec, 'extra-release-gap', token.event_id) % 2 === 0
+      ? ['bad', 'clean']
+      : ['clean', 'bad'];
+  }
+  if (token.event_id === approved[2]?.event_id) {
+    return options.densePhaseAware ? ['bad', 'bad'] : ['bad', 'clean'];
+  }
+  return ['clean', 'clean'];
+}
+
 function selectVariableCohort(raw, spec, pairVariant, options = {}) {
   const tokens = raw.events.filter((event) => event.kind === 'release-token-redeemed');
   const sourceApproved = (token) =>
@@ -55,9 +70,11 @@ function selectVariableCohort(raw, spec, pairVariant, options = {}) {
   ).sort((left, right) => sourceFetchCount(raw, left) - sourceFetchCount(raw, right));
   // Select all two native compromised sources and vary the number of clean
   // concurrent releases rather than making a single attack the fixed shape.
-  const releaseCount = options.requirePersistentJobDenial
-    ? 5
-    : 4 + (draw(spec, 'release-count') % 2);
+  const releaseCount = options.expandedCohort
+    ? 6
+    : options.requirePersistentJobDenial
+      ? 5
+      : 4 + (draw(spec, 'release-count') % 2);
   const badCount = 2;
   if (bad.length < badCount || good.length < releaseCount - badCount) {
     throw new Error('native F3 histories cannot populate variable cohort');
@@ -77,16 +94,12 @@ function selectVariableCohort(raw, spec, pairVariant, options = {}) {
     throw new Error('approval counterfactual needs two source-approved releases');
   }
   const scheduled = rank(selected, spec, 'scheduled-sibling')[0];
+  const scheduledTokens = options.expandedCohort
+    ? rank(selected, spec, 'expanded-scheduled-siblings')
+    : [scheduled];
   const caseTemplate = selected.map((token) => {
     if (options.phaseAware) {
-      if (token.event_id === flip.event_id) {
-        return pairVariant === 1 ? ['clean', 'bad'] : ['clean', 'clean'];
-      }
-      return token.event_id === approved[2]?.event_id
-        ? options.densePhaseAware
-          ? ['bad', 'bad']
-          : ['bad', 'clean']
-        : ['clean', 'clean'];
+      return phaseAwareReleaseState(spec, token, approved, pairVariant, options);
     }
     const isFlip = token.event_id === flip.event_id;
     const jobBad = isFlip
@@ -100,18 +113,26 @@ function selectVariableCohort(raw, spec, pairVariant, options = {}) {
     const state = jobBad ? 'bad' : 'clean';
     return [active ? state : null, renewal ? state : null];
   });
-  const [scheduledActive, scheduledRenewal] = options.phaseAware
-    ? [true, true]
-    : phases(spec, scheduled.event_id);
-  const scheduledStates = options.densePhaseAware
-    ? draw(spec, 'scheduled-approval-phase') % 2 === 0
-      ? ['bad', 'clean']
-      : ['clean', 'bad']
-    : ['clean', 'clean'];
-  caseTemplate.push([
-    scheduledActive ? scheduledStates[0] : null,
-    scheduledRenewal ? scheduledStates[1] : null,
-  ]);
+  for (const scheduledToken of scheduledTokens) {
+    const [scheduledActive, scheduledRenewal] = options.phaseAware
+      ? [true, true]
+      : phases(spec, scheduledToken.event_id);
+    const scheduledStates = options.densePhaseAware
+      ? draw(
+          spec,
+          'scheduled-approval-phase',
+          options.expandedCohort ? scheduledToken.event_id : '',
+        ) %
+          2 ===
+        0
+        ? ['bad', 'clean']
+        : ['clean', 'bad']
+      : ['clean', 'clean'];
+    caseTemplate.push([
+      scheduledActive ? scheduledStates[0] : null,
+      scheduledRenewal ? scheduledStates[1] : null,
+    ]);
+  }
   const badMappingToken = rank(
     selected.filter((token) => sourceApproved(token) === false),
     spec,
@@ -122,6 +143,10 @@ function selectVariableCohort(raw, spec, pairVariant, options = {}) {
   return {
     releaseTokenIds: selected.map((token) => token.event_id),
     scheduledTokenId: scheduled.event_id,
+    scheduledTokenIds: options.expandedCohort
+      ? scheduledTokens.map((token) => token.event_id)
+      : undefined,
+    actionBudget: options.expandedCohort ? 14 : undefined,
     caseTemplate,
     backgroundMappingTokenIds: [badMappingToken.event_id, cleanAnchor.event_id],
     unapprovedBackgroundTokenId: cleanAnchor.event_id,

@@ -71,16 +71,20 @@ function currentApproval(visible, submission, admission, lane) {
   };
 }
 
-export function projectVisible(episode, { minJobs = 4, maxJobs = 4 } = {}) {
+export function projectVisible(episode, { minJobs = 4, maxJobs = 4, allowExpanded = false } = {}) {
   const { visible, native } = episode;
   if (
     !Number.isSafeInteger(minJobs) ||
     !Number.isSafeInteger(maxJobs) ||
     minJobs < 3 ||
-    maxJobs > 6 ||
+    maxJobs > (allowExpanded ? 12 : 6) ||
     minJobs > maxJobs
   ) {
-    throw new Error('compact SOC job-count bounds must be within three to six');
+    throw new Error(
+      allowExpanded
+        ? 'compact SOC job-count bounds must be within three to twelve'
+        : 'compact SOC job-count bounds must be within three to six',
+    );
   }
   if (
     native.approval_publications.some(

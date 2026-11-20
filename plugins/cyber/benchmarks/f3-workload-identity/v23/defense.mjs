@@ -57,8 +57,12 @@ export function buildDefenseSession(spec, options = {}) {
   }
   const producer = options.producer ?? buildEpisode;
   const replay = options.replay ?? replayContainment;
+  const actionBudget = options.actionBudget ?? ACTION_BUDGET;
   if (typeof producer !== 'function' || typeof replay !== 'function') {
     throw new Error('v23 producer and replay must be functions');
+  }
+  if (!Number.isSafeInteger(actionBudget) || actionBudget < 1) {
+    throw new Error('v23 action budget must be a positive integer');
   }
   const episode = producer(spec);
   if (!record(episode?.visible) || !record(episode?.native)) {
@@ -100,7 +104,7 @@ export function buildDefenseSession(spec, options = {}) {
       'revoke-role-sessions': { args: { role_arn: 'issued role ARN' } },
       'submit-plan': { args: {}, returns: 'final submission' },
     },
-    action_budget: ACTION_BUDGET,
+    action_budget: actionBudget,
     query_budget: QUERY_BUDGET,
   };
   assertNoVerdict(initial);
@@ -112,6 +116,7 @@ export function buildDefenseSession(spec, options = {}) {
     queryCount: 0,
     actions: [],
     invalid: 0,
+    actionBudget,
     score: null,
   });
   return session;
@@ -172,7 +177,7 @@ export function stepDefense(session, command) {
     session.finished = true;
     return { ok: true, finished: true };
   }
-  if (state.actions.length >= ACTION_BUDGET) {
+  if (state.actions.length >= state.actionBudget) {
     state.invalid += 1;
     return { ok: false, reason: 'action-budget-exhausted' };
   }

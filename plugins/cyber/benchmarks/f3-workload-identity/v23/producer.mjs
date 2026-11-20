@@ -13,8 +13,14 @@ export function buildEpisode(spec, options = {}) {
     requirePersistentJobDenial: true,
     phaseAware: options.phaseAware === true,
     densePhaseAware: options.densePhaseAware === true,
+    expandedCohort: options.expandedCohort === true,
   });
-  const compact = projectVisible(raw, { minJobs: 5, maxJobs: 6 });
+  const compact = projectVisible(
+    raw,
+    options.expandedCohort
+      ? { minJobs: 12, maxJobs: 12, allowExpanded: true }
+      : { minJobs: 5, maxJobs: 6 },
+  );
   const { current_job_approvals: _currentJobApprovals, ...visible } = compact;
   const streams = new Set(
     visible.events

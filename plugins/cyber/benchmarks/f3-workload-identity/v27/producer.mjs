@@ -24,12 +24,13 @@ function matchingGrant(approvals, snapshots, job, attempt, denied) {
   throw new Error('group-ledger approval has no matching grant');
 }
 
-export function buildEpisode(spec) {
-  const episode = buildV25Episode(spec);
-  const peer = buildV25Episode({
-    ...spec,
-    seed: spec.seed % 2 === 0 ? spec.seed + 1 : spec.seed - 1,
-  });
+export function buildEpisode(spec, options = {}) {
+  const producerOptions = { expandedCohort: options.expandedCohort === true };
+  const episode = buildV25Episode(spec, producerOptions);
+  const peer = buildV25Episode(
+    { ...spec, seed: spec.seed % 2 === 0 ? spec.seed + 1 : spec.seed - 1 },
+    producerOptions,
+  );
   const approvals = resolveCurrentApprovals(episode.visible);
   const peerApprovals = resolveCurrentApprovals(peer.visible);
   const changed = approvals.filter(
@@ -54,7 +55,8 @@ export function buildEpisode(spec) {
   );
   const pairSeed = spec.seed - (spec.seed % 2);
   const firstArrival =
-    Math.min(episode.visible.arrival_watermark, episode.native.triage_arrival_order) - 32;
+    Math.min(episode.visible.arrival_watermark, episode.native.triage_arrival_order) -
+    (options.expandedCohort ? 6 * episode.native.jobs.length + 2 : 32);
   if (firstArrival < 1) {
     throw new Error('group-ledger audit cannot arrive before triage');
   }

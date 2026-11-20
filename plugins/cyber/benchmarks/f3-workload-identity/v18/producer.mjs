@@ -212,12 +212,21 @@ function chooseJobs(world, spec, options) {
       jobs: [groups[0].release, groups[1].release, groups[0].scheduled, groups[1].scheduled],
     };
   }
-  const scheduled = exactlyOne(
-    groups,
-    (group) => group.tokenId === options.scheduledTokenId,
-    'scheduled sibling for selected release token',
+  const scheduledTokenIds = options.scheduledTokenIds ?? [options.scheduledTokenId];
+  if (new Set(scheduledTokenIds).size !== scheduledTokenIds.length) {
+    throw new Error('scheduled sibling token identities must be unique');
+  }
+  const scheduled = scheduledTokenIds.map((tokenId) =>
+    exactlyOne(
+      groups,
+      (group) => group.tokenId === tokenId,
+      'scheduled sibling for selected release token',
+    ),
   );
-  return { groups, jobs: [...groups.map((group) => group.release), scheduled.scheduled] };
+  return {
+    groups,
+    jobs: [...groups.map((group) => group.release), ...scheduled.map((group) => group.scheduled)],
+  };
 }
 
 function addIdleRoleSessions(jobs, historicalEvents, spec) {
@@ -466,6 +475,10 @@ function controllerPlan(spec, job, phase, action, resource, plannedAt) {
   };
 }
 
+function liveSessionExpiry(triageTime, jobCount) {
+  return triageTime + (jobCount > 6 ? 5 + jobCount : 9);
+}
+
 function continuation(jobs, caseTemplate, spec, triageTime, horizonEnd, iamPolicyRef) {
   const sessions = [];
   const attempts = [];
@@ -491,7 +504,7 @@ function continuation(jobs, caseTemplate, spec, triageTime, horizonEnd, iamPolic
         access_key_ref: event.access_key_ref,
         session_event_id: event.event_id,
         issued_at: event.event_time,
-        expires_at: live ? triageTime + 9 : triageTime - 1,
+        expires_at: live ? liveSessionExpiry(triageTime, jobs.length) : triageTime - 1,
       };
       if (session.expires_at <= session.issued_at) {
         throw new Error('historical STS event occurs too near triage for an expired session');
@@ -581,6 +594,9 @@ export function buildEpisode(spec, options = {}) {
     dualApprovalRevision: true,
   });
   const { groups, jobs } = chooseJobs(world, spec, options);
+  if (options.caseTemplate && options.caseTemplate.length !== jobs.length) {
+    throw new Error('future Job case template does not match selected cohort');
+  }
   if (caseIndex === 3 && !options.releaseTokenIds) {
     // Selection above is label-independent. Only after selecting the fixed
     // pair do we assign the now-approved branch of this counterfactual to a
@@ -613,7 +629,7 @@ export function buildEpisode(spec, options = {}) {
     ...approvals.membershipAudit.map((event) => event.event_time),
   );
   const triageTime = historyEnd + 20;
-  const horizonEnd = triageTime + 20;
+  const horizonEnd = triageTime + Math.max(20, 12 + jobs.length);
   const roleArn = jobs[0].role_arn;
   const iamPolicyRef = id('runtime-policy', spec.seed, spec.family, roleArn);
   const resources = [...new Set(jobs.flatMap((job) => [job.target_ref, job.operational_ref]))];
@@ -713,7 +729,7 @@ export function buildEpisode(spec, options = {}) {
     triage_arrival_order: triageTime,
     history_end: historyEnd,
     horizon_end: horizonEnd,
-    action_budget: 8,
+    action_budget: options.actionBudget ?? 8,
     jobs: jobs.map(({ sessionEvents, source_record, ...job }) => job),
     sessions: next.sessions,
     attempts: next.attempts,

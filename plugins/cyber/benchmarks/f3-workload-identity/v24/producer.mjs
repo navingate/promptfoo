@@ -5,6 +5,7 @@ export function buildEpisode(spec, options = {}) {
   const episode = buildV23Episode(spec, {
     phaseAware: true,
     densePhaseAware: options.densePhaseAware === true,
+    expandedCohort: options.expandedCohort === true,
   });
   const visibleSnapshots = new Map(
     episode.visible.approval_snapshots.map((item) => [item.snapshot_ref, item]),

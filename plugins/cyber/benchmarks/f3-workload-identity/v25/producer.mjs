@@ -3,8 +3,11 @@ import { resolveCurrentApprovals } from '../v23/ledger.mjs';
 import { buildEpisode as buildV24Episode } from '../v24/producer.mjs';
 import { replayContainment } from '../v24/runtime.mjs';
 
-export function buildEpisode(spec) {
-  const episode = buildV24Episode(spec, { densePhaseAware: true });
+export function buildEpisode(spec, options = {}) {
+  const episode = buildV24Episode(spec, {
+    densePhaseAware: true,
+    expandedCohort: options.expandedCohort === true,
+  });
   const jobs = new Map(episode.native.jobs.map((job) => [job.job_uid, job]));
   const visibleSnapshots = new Map(
     episode.visible.approval_snapshots.map((item) => [item.snapshot_ref, item]),

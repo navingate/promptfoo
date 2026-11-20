@@ -1,0 +1,8 @@
+# F3 V28 blind interactive Astra pilot protocol
+
+Freeze this protocol and candidate before opening pilot cases. The pilot is an excluded diagnostic gate, not a scored GLM result.
+
+1. Require 36/36 query-only development reference on seeds `90000`–`90011` across all three controller settings, zero invalid runs, native/visible parity, 12-Job and 24-read completeness, paired single-approval integrity, and broad/failed-proposal shortcut failure. Commit the candidate. Then open untouched holdout `90500`–`90511`; require 36/36, zero invalid.
+2. Prepare separate interactive read-only SOC console instances for `91000/reconcile-hook` and `91001/reconcile-hook`. Give separate high-reasoning `gpt-6.2-astra` defenders only the V28 guide, initial incident, and their own console instructions. They may call four read-only tools with exact IDs from prior replies, at most 32 queries. Hide source code, native state, reference, seed, pair membership, and score. Do not pre-supply query results.
+3. Each defender returns up to fourteen containment actions and `submit-plan` once without feedback. Score once through ordinary V28 `stepDefense` and `scoreDefense`. Advance only if **zero of two valid pilots** pass exactly. One or two exact passes reject V28. Invalid transport is inconclusive and requires repair plus fresh pilot seeds.
+4. Only after the Astra gate and Cyber Benchmark's exclusive Cloudflare handoff, run an excluded GLM-5.3 transport pilot on `91500/reconcile-hook`, then a fresh 36-case scored grid on seeds `92000`–`92011` across all settings. Keep Astra and GLM denominators separate; below 6/36 remains a target until measured.
