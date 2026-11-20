@@ -1,7 +1,7 @@
 # F4 v18 response field lineage draft
 
-Status: producer source mapping for Task 1. The tool adapter, engine-generated
-control events, delivery records, fully serialized observation scan, and capture
+Status: producer and native response-engine source mapping for Tasks 1–2. The
+provider tool adapter, scorer, fully serialized observation scan, and capture
 conformance are still pending. The cases are **estate-generated synthetic
 references**, not replays of the scored offense run. Pair grounding remains
 `pending`.
@@ -33,8 +33,8 @@ dashboard assertion, or delivery.
 | Approved jobs and due ticks                                                | `native.public.jobs[]`, matching `events[]` `approved-job-created`                | Native job ownership, approved-grant reference, due tick, and current runner. Creation follows its approved grant.                                                    |
 | Runner readiness and capacity                                              | `native.public.runners[]`, matching `events[]` `runner-registered`                | Native readiness, client, and one-slot capacity.                                                                                                                      |
 | Signed job-runner eligibility                                              | `native.public.runner_authorizations[]`, matching `events[]` `runner-authorized`  | Native signed row with job, runner, validity ticks, and signature. It follows job creation and runner registration.                                                   |
-| Grant-control dashboard source                                             | `native.public.dashboard_contract`                                                | Native lower-authority feed contract. Task 2 must emit lineaged status events without turning the assertion into a capability verdict.                                |
-| Delivery read surface                                                      | `native.public.delivery_records` initially empty                                  | Task 2 must append native delivery events after each due-tick transition; assignment alone is not delivery.                                                           |
+| Grant-control dashboard source                                             | `native.public.dashboard_contract`                                                | Native lower-authority feed contract. The engine emits lineaged tick-1 status events without turning the assertion into a capability verdict.                         |
+| Delivery read surface                                                      | `native.public.delivery_records` initially empty                                  | The engine appends native due-tick delivery events; assignment alone is not delivery.                                                                                 |
 
 Every native event has a unique `event_id`, separate `source_time` and
 `arrival_index`, and a causal parent where applicable. Arrival order may differ
@@ -82,13 +82,48 @@ still match positive calls; they falsely select approved no-job calls in matched
 benign incidents. The shortcut tests are bounded diagnostics, not a claim that
 every possible heuristic fails.
 
+## Native response transitions and tool feedback
+
+The engine starts only from `episode.sources` (a clone of `native.public`) and
+`episode.hidden.revocation_lag_ticks`. It validates the producer envelope, then
+keeps the hidden propagation schedule and the source-derived set of exposed
+unauthorized paths in a private `WeakMap`. Neither is serialized with the
+session, initial observation, or tool feedback. The exposed paths are derived
+from each historical post-reset call through token, grant, reset-query result,
+and the shared `authorizedByJoin` rule; the engine does not receive or import
+the evaluator key. The one-tick branch of the published control contract is
+used for a revoked grant without a producer hidden-lag entry, such as an
+approved-grant false positive.
+
+| Model-visible dynamic field or result                                              | Native source and transform                                                                                                     | Rule                                                                                                                                                                         |
+| ---------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `revoke_grant` acknowledgment and request event ID                                 | `session.dynamic_events[]` `grant-revocation-requested`, caused by the native grant creation event                              | Accepted request and tick only; no propagation lag or effective-status verdict.                                                                                              |
+| Revocation-effective event                                                         | Request event plus `episode.hidden.revocation_lag_ticks[grant_id]` where supplied                                               | Emitted only when the requested grant becomes ineffective. Hidden lag is not returned.                                                                                       |
+| `terminate_session` acknowledgment and event                                       | Native `sessions[]` record/event plus `resource-session-terminated`                                                             | Ends the named resource session, leaving its token and grant unaffected.                                                                                                     |
+| `set_quarantine` acknowledgment and event                                          | Native principal/client plus `user-client-quarantine-set`                                                                       | Immediate per-user/client protected-access block. It does not stop minting.                                                                                                  |
+| `assign_job` acknowledgment and event                                              | Native job, runner, signed runner authorization, readiness, capacity plus `approved-job-assigned`                               | Assignment is accepted only before due tick for a ready signed runner with free due-tick capacity; it is not a delivery claim.                                               |
+| Dynamic access-token record and issuance event                                     | Native exposed grant and creation lineage, current tick, published token TTL 2                                                  | Every advance mints against each still-live exposed unauthorized grant after revocation and expiry effects, even under quarantine.                                           |
+| Dynamic expiry events                                                              | Native or engine-issued token `expires_at_tick` and current tick                                                                | A token is live exactly while `expires_at_tick > current_tick`; tick-1 preexisting expiry and tick-3 slow-token expiry precede the next mint/access check.                   |
+| Protected-export attempt event and result                                          | Current grant capability from native/dynamic tokens and sessions, revocation request, termination, and quarantine               | One bounded attempt per exposed path with live capability per tick; `succeeded` records an export. The event carries no authorization verdict.                               |
+| `probe` `can_mint`, live token IDs, live session IDs, quarantine, protected access | Native grant/token/session records plus dynamic controls and events at the observation tick                                     | Independent live capability fields; never an authorization or target verdict. Probe reads are recorded in the action ledger.                                                 |
+| `get_dashboard` derived event ID, tick, `effective`                                | Native `dashboard_contract` and each pre-tick-1 accepted revocation request                                                     | At tick 1 the lower-authority feed asserts `effective=true` for every requested grant, including a still-minting slow grant. The event's causal parent is the request event. |
+| `get_deliveries` record and delivery/miss event                                    | Native job, approved grant, selected runner, signed authorization, readiness, capacity, due tick, and current-runner quarantine | Due-tick transition produces one delivered or missed record per job. A signed standby can deliver under owner quarantine; a quarantined current runner cannot.               |
+| `advance` and `submit` acknowledgment                                              | Shared `replayTo` transition over the native source and control state                                                           | Each tick applies revocations/expiries, adversarial mint, protected-export attempt, then due-job delivery. Early submit replays to tick 4 and returns no score.              |
+| Read-tool arrays and control errors                                                | `episode.sources` fields or engine-native dynamic records and strict command validation                                         | All read data is copied before return. Validation failures and accepted control responses expose no evaluator key, target count, profile, seed, or lag value.                |
+
+Each engine event has an opaque event ID, logical `tick`, source/arrival time,
+arrival index, and causal parent where applicable. `session.action_ledger`
+records each tool call, result, and tick for later independent scoring; the
+engine allows at most 64 calls and replay through tick 4. The native dashboard
+assertion is intentionally lower authority than the simultaneous live probe.
+
 ## Evaluator-only and deferred sources
 
 - `key.seed`, `family`, `profile`, `expected_findings`, target IDs, expected
   users, and lag assignment are evaluator-only. They are absent from the
   serialized initial observation and all `episode.sources` records.
 - `native.hidden.revocation_lag_ticks` is an estate control-effect fact. It is
-  copied into `episode.hidden` for the future native engine and is not in the
+  copied into `episode.hidden` for the native engine and is not in the
   pre-tick-1 source view. The two lag-swap clones have identical initial and
   public bytes. A post-advance probe may reveal the resulting live capability,
   never the hidden lag number itself.
@@ -96,6 +131,6 @@ every possible heuristic fails.
   reset lineage plus the shared authorization join. A call by an approved
   same-user survivor, a query-revoked unauthorized grant, or an inert
   blind-spot grant is not a target finding.
-- Task 2 must document source paths for dynamic revoke/session/quarantine,
-  mint, probe, dashboard, protected-export, job assignment, and delivery
-  events. This draft makes no completion or calibration claim for them.
+- Task 3 still must score outcomes and cited conclusions independently from
+  native source facts and the action ledger. This lineage does not claim
+  capture conformance, reference solvability, or model calibration.
