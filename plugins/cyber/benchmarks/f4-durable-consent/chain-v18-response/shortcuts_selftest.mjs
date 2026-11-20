@@ -304,6 +304,41 @@ test('changing the queried enumeration facet removes a genuine reset miss', asyn
   episode.sources.events.find(
     (event) => event.event_id === reset.reset_event_id,
   ).revoked_grant_ids = [...reset.revoked_grant_ids];
+  // The queried grant is revoked at reset, so its fresh post-reset token,
+  // protected call, and child session cannot occur in the counterfactual.
+  const token = episode.sources.tokens.find((item) => item.grant_id === target.grant_id);
+  const targetCall = episode.sources.events.find(
+    (event) => event.kind === 'protected-export-call' && event.token_event_id === token.event_id,
+  );
+  const resource = episode.sources.sessions.find((item) => item.token_id === token.token_id);
+  episode.sources.tokens = episode.sources.tokens.filter(
+    (item) => item.token_id !== token.token_id,
+  );
+  episode.sources.sessions = episode.sources.sessions.filter(
+    (item) => item.session_id !== resource.session_id,
+  );
+  const removedEventIds = new Set([token.event_id, targetCall.event_id, resource.event_id]);
+  episode.sources.events = episode.sources.events
+    .filter((event) => !removedEventIds.has(event.event_id))
+    .map((event, arrival_index) => ({ ...event, arrival_index }));
+  const approvedGrantId = episode.sources.jobs[0].approved_grant_id;
+  const approvedToken = episode.sources.events.find(
+    (event) => event.kind === 'access-token-issued' && event.grant_id === approvedGrantId,
+  );
+  const approvedCall = episode.sources.events.find(
+    (event) =>
+      event.kind === 'protected-export-call' && event.token_event_id === approvedToken.event_id,
+  );
+  episode.initial.alert = {
+    call_event_id: approvedCall.event_id,
+    client_id: approvedCall.client_id,
+    source_time: approvedCall.source_time,
+    arrival_index: approvedCall.arrival_index,
+  };
+  assert.equal(
+    episode.sources.events.some((event) => event.token_event_id === token.event_id),
+    false,
+  );
   episode.hidden.revocation_lag_ticks = {};
   key.revocation_lag_ticks = {};
   const validity = validateResponseNative({
