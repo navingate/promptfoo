@@ -2,12 +2,15 @@
 
 Freeze V33 code and this protocol before opening any model case. This
 protocol covers Astra only; the user has separately authorized GLM-5.3
-grids after the Astra gate. Holdout `104500`–`104511` is
-one-shot: after any code change, preregister a new untouched range.
+grids after the Astra gate. The original holdout `104500`–`104511` was
+partially opened on candidate `d95ecedf35` (nine cases) and stopped when
+an approval-aware catalog shortcut was found. It is retired and cannot
+validate a revised candidate. Before changing code, the replacement
+one-shot holdout is preregistered as the unused `106500`–`106511` range.
 
 1. Require ordinary visible-reference passes on all 36 development cases
    (`104000`–`104011` × three settings) and 36 untouched holdout cases
-   (`104500`–`104511` × three settings), with exactly 31 queries, all thirty
+   (`106500`–`106511` × three settings), with exactly 31 queries, all thirty
    required detail replies, at most four original controls, and zero
    invalid runs. Verify pair catalog/schedule stability, one-selector
    approval difference, no-exception/wrong-exception and shortcut failures,
@@ -15,8 +18,11 @@ one-shot: after any code change, preregister a new untouched range.
    per catalog, at least three structurally plausible exception pairs for
    the construction witness, and at least three other disjoint six-current
    triples with equal-or-higher visible exception-pair motif count than
-   either the reference-selected or construction-witness triple. Verify
-   V30–V32 byte parity.
+   either the reference-selected or construction-witness triple. Require
+   at least four all-approved six-current quarantine complement groups in
+   distinct full four-group current partitions, so none alone identifies
+   the witness partition after authorization analysis. Verify V30–V32 byte
+   parity.
 2. Score fresh `105000`–`105011` cases in `reconcile-hook`,
    `mutating-webhook`, `owner-reference` order. Each case uses an independent
    `gpt-6.2-astra` context with inherited reasoning effort and its own
