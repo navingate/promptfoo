@@ -168,6 +168,7 @@ function generateConformance(capture) {
     // the consumer re-derives the same native facts from the shared fixture builder (determinism) ...
     const factsMatch =
       JSON.stringify(f.native_events) === JSON.stringify(row.events) &&
+      JSON.stringify(f.authorization_records) === JSON.stringify(row.authorization_records) &&
       JSON.stringify(f.recovery_graph) === JSON.stringify(row.recovery_graph) &&
       JSON.stringify(f.evidence) === JSON.stringify(row.evidence);
     // ... and the reference responder scores overall_correct on the reconstructed incident.

@@ -1,0 +1,9 @@
+# F8 defense v2 candidate
+
+The former calibration interface asked for a subtype and one response menu item. The menu itself bundled containment, preservation, restoration, verification, and escalation; `approved` and `corroborated` fields carried much of the answer. It could not measure a multi-step response.
+
+This candidate keeps the offense-derived recovery graph and native event capture. The producer fixture now also emits an authorization ledger for each frozen defense state; the defense projection pseudonymizes actors and redacts the native event's summary approval field. The responder must join event actor, resource, operation, and time to the ledger. An approved record for a different operator and the same operation is present on malicious cases. Authorized retention, DR-test, and emergency work have matching records and must close without containment.
+
+The response is an ordered action plan. The scorer replays targeted session revocation, preservation of a viable immutable point, restoration, recovery verification, evidence preservation at terminal loss, escalation, closure, and collateral shutdown. Pre-terminal sabotage needs revoke → rebuild → escalate; recoverable destruction needs revoke → rebuild → restore → verify → escalate; terminal loss needs revoke → preserve evidence → escalate. Approved work needs verify change → close. Actions on the wrong session, premature restore, unsupported closure, and estate shutdown fail. A reference plan is derived only from the visible instance and passes all declared states.
+
+This remains a portable synthetic estate. The authorization ledger is producer-native to the synthetic fixture, not a claim that an external backup or ITSM product emitted it. A strict sequence may punish an operationally reasonable extra read; the pilot must reveal whether it is a useful decision boundary or gratuitous exactness. No Astra floor is claimed by the model-free checks.

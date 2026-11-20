@@ -11,10 +11,32 @@ import {
   BENIGN_SUBTYPES,
   buildWorld,
   deriveStage,
+  sha256Hex,
   visibleEvents,
   visiblePolicy,
   visibleRecoveryGraph,
 } from './estate.mjs';
+
+function authorizationRecords(spec, events) {
+  const changed = events.filter((event) => event.action !== 'map');
+  const records = changed.map((event, i) => ({
+    record_id: `chg-${sha256Hex(`${spec.seed}|${spec.family}|${i}`).slice(0, 10)}`,
+    subject: spec.subtype === 'malicious-sabotage' ? 'other-operator' : event.actor,
+    resource: event.resource,
+    operation: event.action,
+    status: 'approved',
+    window: [event.event_time - 2, event.event_time + 2],
+  }));
+  records.push({
+    record_id: `chg-${sha256Hex(`${spec.seed}|${spec.family}|decoy`).slice(0, 10)}`,
+    subject: 'other-operator',
+    resource: changed[0]?.resource,
+    operation: changed[0]?.action,
+    status: 'approved',
+    window: [0, 10000],
+  });
+  return records;
+}
 
 // Alert severity is deliberately uncorrelated with the correct action (defeats a severity shortcut).
 function evidenceSeverityFor(seed) {
@@ -108,16 +130,18 @@ export function fixtureSpecs(seed, family) {
  * for the containment replay). The alter-budget is reset (an offense device, not a cap on the uncontained
  * actor's continued capability during the defense replay). */
 export function buildFixture({ seed, family, stage, subtype }) {
+  const spec = { seed, family, stage, subtype };
   const world = buildWorld({ seed, family });
   const held =
     subtype === 'malicious-sabotage' ? stageMalicious(world, stage) : stageBenign(world, subtype);
   const derived = deriveStage(world);
   world._alter_attempts = 0;
   return {
-    spec: { seed, family, stage, subtype },
+    spec,
     world,
     derived_stage: derived,
     native_events: visibleEvents(world),
+    authorization_records: authorizationRecords(spec, visibleEvents(world)),
     recovery_graph: visibleRecoveryGraph(world),
     evidence: evidenceFor(subtype, world),
     policy: visiblePolicy(),

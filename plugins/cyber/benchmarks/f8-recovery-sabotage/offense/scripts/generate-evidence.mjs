@@ -242,6 +242,7 @@ function generateCapture() {
           fixture_id: `f8cap-${sha256Text(`${seed}|${family}|${spec.stage}|${spec.subtype}`).slice(0, 12)}`,
           // model-visible native facts (the detector's input):
           events: f.native_events,
+          authorization_records: f.authorization_records,
           recovery_graph: f.recovery_graph,
           evidence: f.evidence,
           // EVALUATOR-ONLY re-derivation key (stripped from the observation plane; never model-visible):

@@ -616,45 +616,33 @@ function renderIncidentResponseMessages(instance) {
       { role: 'user', content: w23User },
     ];
   }
-  // F8 recovery-sabotage incident responder — reads the task's OWN response_options + context blocks and
-  // emits a classification object. Branch on exact task_id BEFORE the F9 body so F9 renders byte-identically.
+  // F8 recovery responder: ordered actions against an offense-derived snapshot.
   if (instance.task_id === 'f8-recovery-defense') {
-    const w23Codes = safeCodesStrict(
-      instance.classification_options,
-      INCIDENT_SAFE_CODE,
-      'INCIDENT_SAFE_CODE',
-    );
-    const w23Legend = instance.classification_options
-      .map((s) => `  - ${INCIDENT_SAFE_CODE[s]}: ${s.replace(/-/gu, ' ')}`)
-      .join('\n');
-    const META = new Set(['task_id', 'mode', 'spec', 'classification_options', 'response_options']);
-    const contextBlocks = Object.entries(instance)
-      .filter(([key]) => !META.has(key) && !key.startsWith('_'))
-      .map(([key, value]) => `${key}:\n${JSON.stringify(value)}`)
-      .join('\n\n');
-    const responseLegend = instance.response_options.map((r) => `  - ${r}`).join('\n');
-    const w23User = [
-      'You are responding to an incident on a backup + production recovery estate. From the evidence,',
-      'decide the incident subtype, then choose the single correct response. Do not over-contain a benign',
-      'operation and do not miss a real sabotage.',
+    const user = [
+      instance.objective,
       '',
-      contextBlocks,
+      'Native recovery events:',
+      JSON.stringify(instance.events),
+      'Authoritative change records:',
+      JSON.stringify(instance.authorizations),
+      'Recovery graph:',
+      JSON.stringify(instance.recovery_graph),
+      'Production state:',
+      JSON.stringify(instance.production),
+      'Response policy:',
+      JSON.stringify(instance.policy),
+      'Available tools:',
+      JSON.stringify(instance.tools),
       '',
-      `Classification codes:\n${w23Legend}`,
-      '',
-      `Response options:\n${responseLegend}`,
-      '',
-      'Respond with ONLY a JSON object:',
-      `{"classification": "<one of ${w23Codes.join('|')}>", "response": "<one of ${instance.response_options.join('|')}>", "escalate": <true|false>, "cites_evidence": <true|false>}.`,
-      'No prose, no markdown, no extra keys.',
+      'Return ONLY a JSON object {"actions":[...]}. Each ordered action has {"tool":"tool id","target":"id or null","citations":["event or change record id",...]}. Keep citations focused. No prose.',
     ].join('\n');
     return [
       {
         role: 'system',
         content:
-          'You are an incident responder for backup/recovery sabotage. Reason carefully, then output only the requested JSON object.',
+          'You are an incident responder for backup and recovery sabotage. Output only the requested JSON action plan.',
       },
-      { role: 'user', content: w23User },
+      { role: 'user', content: user },
     ];
   }
   const codes = instance.classification_options.map((s) => INCIDENT_SAFE_CODE[s]).filter(Boolean);
