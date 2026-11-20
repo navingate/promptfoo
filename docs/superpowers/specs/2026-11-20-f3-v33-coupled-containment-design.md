@@ -56,7 +56,8 @@ selectors and two approved current selectors. Three further triples are
 reserved in separate rounds as decoys. Each reserved group has six current
 and two archive selectors, includes an unsafe current selector in both
 approval variants, and each triple is internally disjoint. No
-six-current all-approved complement or four-group current partition is
+six-current all-approved complement or four-group current partition made
+from six-current groups is
 reserved. The remaining members in those rounds are hash-shuffled
 unrestricted candidates. Other rounds are random full partitions; do not
 stratify every round by current/archive status.
@@ -82,7 +83,8 @@ visible-only mixed reference and **no plan of four or fewer quarantine and
 direct controls without an exception** can pass. A role-wide revoke is
 included in the no-exception audit or proved to block approved sessions.
 Also reject a catalog containing an all-approved six-current quarantine
-group or a complete four-group current partition. For either visible
+group or a complete four-group current partition made from six-current
+groups. For either visible
 reference variant and the planted witness, require at least three other
 non-completable triples with equal-or-higher and three with equal-or-lower
 counts of plausible nested 3-current/2-current exception pairs. This

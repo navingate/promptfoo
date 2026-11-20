@@ -16,7 +16,8 @@ one-shot holdout is preregistered as the unused `106500`–`106511` range.
    approval difference, no-exception/wrong-exception and shortcut failures,
    native parity, at least four disjoint six-current quarantine triples,
    zero all-approved six-current groups, and zero complete four-group
-   current partitions. For both visible reference variants and the planted
+   current partitions made from six-current groups. For both visible
+   reference variants and the planted
    witness, require at least three other non-completable triples with
    equal-or-higher and at least three with equal-or-lower nested exception
    motif counts. Verify V30–V32 byte parity.
