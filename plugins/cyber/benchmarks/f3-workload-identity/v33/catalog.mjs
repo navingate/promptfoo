@@ -181,11 +181,109 @@ function partitionRounds(candidates, { rounds, size, reserved, salt, idName, pre
   return hashOrder(groups, `${salt}|${prefix}|catalog-order`, (group) => group[idName]);
 }
 
+function decoyQuarantines(candidates, current, odd, planted, archive, salt) {
+  const plantedKeys = new Set(planted.flat().map(exactSelector));
+  const complement = [
+    ...candidates.filter(
+      (selector) =>
+        current.has(exactSelector(selector)) && !plantedKeys.has(exactSelector(selector)),
+    ),
+    archive[13],
+    archive[14],
+  ];
+  if (complement.length !== Q_SIZE) {
+    throw new Error('v33 planted quarantine partition lacks its current complement');
+  }
+  const reserved = [...planted, complement];
+  const memberships = new Set(reserved.map(canonicalMembership));
+  const currentCandidates = candidates.filter((selector) => current.has(exactSelector(selector)));
+  const hiddenSalt = sha256Hex(JSON.stringify([...odd].sort()));
+  for (let partition = 0; partition < 2; partition += 1) {
+    let decoys = null;
+    for (let retry = 0; retry < 64 && decoys === null; retry += 1) {
+      const decoySalt = `${salt}|decoy|${hiddenSalt}|${partition}|${retry}`;
+      const selectedCurrent = hashOrder(currentCandidates, `${decoySalt}|current`, exactSelector);
+      const selectedArchive = hashOrder(archive, `${decoySalt}|archive`, exactSelector);
+      const groups = Array.from({ length: 4 }, (_, index) => [
+        ...selectedCurrent.slice(index * 6, (index + 1) * 6),
+        ...selectedArchive.slice(index * 2, (index + 1) * 2),
+      ]);
+      const keys = groups.map(canonicalMembership);
+      if (keys.some((key) => memberships.has(key)) || new Set(keys).size !== groups.length) {
+        continue;
+      }
+      decoys = groups;
+      for (const key of keys) {
+        memberships.add(key);
+      }
+    }
+    if (decoys === null) {
+      throw new Error('v33 cohort cannot construct a unique partition round');
+    }
+    reserved.push(...decoys);
+  }
+  return reserved;
+}
+
+function decoyExceptions(reservedQ, current, archive, plantedEven, plantedOdd, salt) {
+  const reserved = [plantedEven, plantedOdd];
+  const memberships = new Set(reserved.map(canonicalMembership));
+  const motifs = [
+    [0, 1, 2],
+    [0, 1, 2],
+    [4, 5, 6],
+    [5, 6, 7],
+    [8, 9, 10],
+  ];
+  for (const [motif, groupIndices] of motifs.entries()) {
+    const currentUnion = new Map();
+    for (const index of groupIndices) {
+      for (const selector of reservedQ[index]) {
+        const key = exactSelector(selector);
+        if (current.has(key)) {
+          currentUnion.set(key, selector);
+        }
+      }
+    }
+    if (currentUnion.size !== 18) {
+      throw new Error('v33 exception decoy lacks a disjoint current triple');
+    }
+    let pair = null;
+    for (let retry = 0; retry < 64 && pair === null; retry += 1) {
+      const decoySalt = `${salt}|exception-decoy|${motif}|${retry}`;
+      const selectedCurrent = hashOrder(
+        [...currentUnion.values()],
+        `${decoySalt}|current`,
+        exactSelector,
+      );
+      const selectedArchive = hashOrder(archive, `${decoySalt}|archive`, exactSelector);
+      const groups = [
+        [...selectedCurrent.slice(0, 3), ...selectedArchive.slice(0, 3)],
+        [...selectedCurrent.slice(0, 2), ...selectedArchive.slice(3, 7)],
+      ];
+      const keys = groups.map(canonicalMembership);
+      if (keys.some((key) => memberships.has(key)) || keys[0] === keys[1]) {
+        continue;
+      }
+      pair = groups;
+      for (const key of keys) {
+        memberships.add(key);
+      }
+    }
+    if (pair === null) {
+      throw new Error('v33 exception cannot construct a unique partition round');
+    }
+    reserved.push(...pair);
+  }
+  return reserved;
+}
+
 /** Build paired catalogs from visible selector and authorization facts. Witnesses stay private. */
 export function buildCoupledCatalog(index, options = {}) {
   const candidates = extractCohortCandidates(index);
   const { current, even, odd } = validateBuilderInputs(candidates, options);
-  const salt = `v33|coupled|${options.pairSeed}|${options.family}|${options.nonce}`;
+  const unsafeDigest = sha256Hex(JSON.stringify([...odd].sort()));
+  const salt = `v33|coupled|${options.pairSeed}|${options.family}|${options.nonce}|${unsafeDigest}`;
   const unsafe = hashOrder(
     candidates.filter((selector) => odd.has(exactSelector(selector))),
     `${salt}|unsafe-order`,
@@ -212,12 +310,14 @@ export function buildCoupledCatalog(index, options = {}) {
     [...unsafe.slice(6, 11), safe[0], archive[2], archive[3]],
     [...unsafe.slice(11, 16), safe[1], archive[4], archive[5]],
   ];
+  const reservedQ = decoyQuarantines(candidates, current, odd, plantedQ, archive, salt);
   const plantedEvenE = [...safe, flip, archive[6], archive[7], archive[8]];
   const plantedOddE = [...safe, archive[9], archive[10], archive[11], archive[12]];
+  const reservedE = decoyExceptions(reservedQ, current, archive, plantedEvenE, plantedOddE, salt);
   const cohorts = partitionRounds(candidates, {
     rounds: 16,
     size: Q_SIZE,
-    reserved: new Map(plantedQ.map((members, round) => [round, members])),
+    reserved: new Map(reservedQ.map((members, round) => [round, members])),
     salt,
     idName: 'cohort_id',
     prefix: 'cohort',
@@ -225,10 +325,7 @@ export function buildCoupledCatalog(index, options = {}) {
   const bundles = partitionRounds(candidates, {
     rounds: 12,
     size: E_SIZE,
-    reserved: new Map([
-      [0, plantedEvenE],
-      [1, plantedOddE],
-    ]),
+    reserved: new Map(reservedE.map((members, round) => [round, members])),
     salt,
     idName: 'exception_id',
     prefix: 'exception',

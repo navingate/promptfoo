@@ -132,7 +132,8 @@ test('visible group IDs and member order depend on membership rather than round 
   const [even, odd] = pair();
   const nonce = 3;
   const catalog = buildCoupledCatalog(even.index, options(even, odd, nonce));
-  const salt = `v33|coupled|100000|${FAMILIES[0]}|${nonce}`;
+  const unsafeDigest = sha256Hex(JSON.stringify([...odd.unsafe].sort()));
+  const salt = `v33|coupled|100000|${FAMILIES[0]}|${nonce}|${unsafeDigest}`;
   for (const [groups, prefix, idName, rounds, perRound] of [
     [catalog.containment_cohorts.cohorts, 'cohort', 'cohort_id', 16, 6],
     [catalog.exception_bundles.bundles, 'exception', 'exception_id', 12, 8],
@@ -185,6 +186,81 @@ test('builder deterministically retries a round with duplicate exception members
   const first = buildCoupledCatalog(index, args);
   assert.doesNotThrow(() => validateCoupledCatalog(first));
   assert.deepEqual(buildCoupledCatalog(index, args), first);
+});
+
+test('reported development pair has many disjoint six-current cohort triples', () => {
+  const even = caseData(104002, FAMILIES[0]);
+  const odd = caseData(104003, FAMILIES[0]);
+  const current = new Set(even.current.keys());
+  for (let nonce = 0; nonce < 8; nonce += 1) {
+    const catalog = buildCoupledCatalog(even.index, {
+      ...options(even, odd, nonce),
+      pairSeed: 104002,
+    });
+    const sixCurrent = catalog.containment_cohorts.cohorts
+      .map((group) => new Set(group.selectors.map(key)))
+      .filter((members) => [...members].filter((selector) => current.has(selector)).length === 6);
+    let disjointTriples = 0;
+    for (let first = 0; first < sixCurrent.length; first += 1) {
+      for (let second = first + 1; second < sixCurrent.length; second += 1) {
+        if ([...sixCurrent[first]].some((selector) => sixCurrent[second].has(selector))) {
+          continue;
+        }
+        for (let third = second + 1; third < sixCurrent.length; third += 1) {
+          if (
+            [...sixCurrent[third]].every(
+              (selector) => !sixCurrent[first].has(selector) && !sixCurrent[second].has(selector),
+            )
+          ) {
+            disjointTriples += 1;
+          }
+        }
+      }
+    }
+    assert.ok(
+      sixCurrent.length >= 12,
+      `nonce ${nonce}: only ${sixCurrent.length} six-current groups`,
+    );
+    assert.ok(disjointTriples >= 12, `nonce ${nonce}: only ${disjointTriples} disjoint triples`);
+  }
+});
+
+test('the paired witness triple has several structurally plausible exception pairs', () => {
+  const even = caseData(104002, FAMILIES[0]);
+  const odd = caseData(104003, FAMILIES[0]);
+  const current = new Set(even.current.keys());
+  const catalog = buildCoupledCatalog(even.index, {
+    ...options(even, odd, 0),
+    pairSeed: 104002,
+  });
+  const witnessIds = new Set(
+    catalog.witnesses.even
+      .filter((command) => command.tool === 'quarantine-cohort')
+      .map((command) => command.args.cohort_id),
+  );
+  const witnessCurrent = new Set(
+    catalog.containment_cohorts.cohorts
+      .filter((group) => witnessIds.has(group.cohort_id))
+      .flatMap((group) => group.selectors.map(key))
+      .filter((selector) => current.has(selector)),
+  );
+  const bundles = catalog.exception_bundles.bundles.map((group) => ({
+    current: new Set(group.selectors.map(key).filter((selector) => current.has(selector))),
+    archive: new Set(group.selectors.map(key).filter((selector) => !current.has(selector))),
+  }));
+  let plausiblePairs = 0;
+  for (const larger of bundles.filter((bundle) => bundle.current.size === 3)) {
+    for (const smaller of bundles.filter((bundle) => bundle.current.size === 2)) {
+      if (
+        [...larger.current].every((selector) => witnessCurrent.has(selector)) &&
+        [...smaller.current].every((selector) => larger.current.has(selector)) &&
+        [...larger.archive].every((selector) => !smaller.archive.has(selector))
+      ) {
+        plausiblePairs += 1;
+      }
+    }
+  }
+  assert.ok(plausiblePairs >= 3, `only ${plausiblePairs} plausible exception pairs`);
 });
 
 test('paired witnesses and visible solver require the corresponding exception', () => {
