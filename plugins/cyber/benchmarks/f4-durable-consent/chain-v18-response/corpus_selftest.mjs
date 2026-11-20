@@ -110,6 +110,11 @@ test('function schemas and serialized prompt expose exactly the native tool cont
     assert.equal(schema.type, 'function');
     assert.deepEqual(schema.function.parameters.required, TOOL_CONTRACT[schema.function.name]);
     assert.equal(schema.function.parameters.additionalProperties, false);
+    for (const [field, property] of Object.entries(schema.function.parameters.properties)) {
+      if (field !== 'findings' && field !== 'on') {
+        assert.deepEqual(property, { type: 'string', minLength: 1 });
+      }
+    }
   }
   const submit = TOOL_SCHEMAS.find((item) => item.function.name === 'submit');
   assert.deepEqual(submit.function.parameters.properties.findings.items.required, [
@@ -119,6 +124,11 @@ test('function schemas and serialized prompt expose exactly the native tool cont
     'token_event_id',
     'call_event_id',
   ]);
+  for (const property of Object.values(
+    submit.function.parameters.properties.findings.items.properties,
+  )) {
+    assert.deepEqual(property, { type: 'string', minLength: 1 });
+  }
   const { buildCorpus } = await modules();
   const initial = buildCorpus()[0].native.initial;
   const messages = initialMessages(initial);

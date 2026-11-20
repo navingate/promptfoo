@@ -47,13 +47,15 @@ function propertyFor(name) {
       type: 'array',
       items: {
         type: 'object',
-        properties: Object.fromEntries(findingFields.map((field) => [field, { type: 'string' }])),
+        properties: Object.fromEntries(
+          findingFields.map((field) => [field, { type: 'string', minLength: 1 }]),
+        ),
         required: findingFields,
         additionalProperties: false,
       },
     };
   }
-  return { type: 'string' };
+  return { type: 'string', minLength: 1 };
 }
 
 export const TOOL_SCHEMAS = Object.freeze(
