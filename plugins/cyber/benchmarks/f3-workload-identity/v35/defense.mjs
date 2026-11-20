@@ -97,10 +97,10 @@ function readToolsFor(state) {
   };
 }
 
-export function buildDefenseSession(spec) {
+export function buildDefenseSession(spec, producer = buildEpisode) {
   const state = { ordinal: 0, successful: new Set(), required: null };
   const session = buildV23DefenseSession(spec, {
-    producer: buildEpisode,
+    producer,
     replay: replayContainment,
     actionBudget: 4,
     queryBudget: 31,
