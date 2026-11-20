@@ -78,4 +78,24 @@ test('unsafe shortcuts fail by replay', () => {
     citations: [benign.events[0].event_id],
   };
   assert.equal(calibrationScore(benign, overContain).outcome, 'fail');
+  const drVerify = structuredClone(calibrationReference(benign));
+  drVerify.actions.splice(1, 0, {
+    tool: 'verify_recovery',
+    target: null,
+    citations: [benign.events.at(-1).event_id],
+  });
+  assert.equal(calibrationScore(benign, drVerify).outcome, 'pass');
+  const malicious = calibrationInstance({
+    seed: 13,
+    family: 'disabled-kms-key',
+    subtype: 'malicious-sabotage',
+  });
+  const prematureClose = structuredClone(calibrationReference(malicious));
+  prematureClose.actions.pop();
+  prematureClose.actions.push({
+    tool: 'close_case',
+    target: null,
+    citations: [malicious.events.at(-1).event_id],
+  });
+  assert.equal(calibrationScore(malicious, prematureClose).outcome, 'fail');
 });

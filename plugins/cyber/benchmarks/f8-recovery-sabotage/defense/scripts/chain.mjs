@@ -54,7 +54,7 @@ export function calibrationInstance(spec) {
     task_id: 'f8-recovery-defense',
     mode: 'incident-response',
     objective:
-      'Resolve the recovery-control alert. Join actor, resource, operation and time to authoritative approvals. Contain an unauthorized session before it can damage recovery. Preserve a viable immutable point before restore, verify service and actor access before declaring recovery, and avoid interrupting approved work. Terminal loss requires evidence preservation and escalation, not a false restoration claim.',
+      'Resolve the recovery-control alert. Join actor, resource, operation and time to authoritative approvals. Contain an unauthorized session before it can damage recovery. Preserve a viable immutable point before restore, verify service and actor access before declaring recovery, and avoid interrupting approved work. Every unauthorized recovery-control incident requires escalation, even if production is intact or recovered. Close it only after escalation and verified containment/recovery. Terminal loss requires evidence preservation and escalation, never closure or a false restoration claim.',
     events: s.events,
     authorizations: s.authorizations,
     recovery_graph: s.fixture.recovery_graph,
@@ -235,13 +235,14 @@ export function calibrationScore(instance, parsed) {
       case 'verify_recovery':
         ok =
           cited &&
-          contained &&
           restoreCheck(w) &&
-          (!facts.damaged || restored) &&
-          !replayActorSteps(
-            w,
-            s.fixture.held_steps.map((step) => ({ ...step })),
-          );
+          (facts.unauthorized.length === 0 ||
+            (contained &&
+              (!facts.damaged || restored) &&
+              !replayActorSteps(
+                w,
+                s.fixture.held_steps.map((step) => ({ ...step })),
+              )));
         verified ||= ok;
         break;
       case 'preserve_evidence':
@@ -262,9 +263,10 @@ export function calibrationScore(instance, parsed) {
         break;
       case 'close_case':
         ok =
-          facts.unauthorized.length === 0 &&
-          changedOk &&
-          a.citations.some((c) => instance.authorizations.some((r) => r.record_id === c));
+          facts.unauthorized.length === 0
+            ? changedOk &&
+              a.citations.some((c) => instance.authorizations.some((r) => r.record_id === c))
+            : escalated && Boolean(facts.viable) && verified && cited;
         closed ||= ok;
         break;
       case 'shutdown_estate':

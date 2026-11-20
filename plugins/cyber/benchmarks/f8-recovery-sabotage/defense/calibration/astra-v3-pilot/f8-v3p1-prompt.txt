@@ -1,0 +1,20 @@
+[system]
+You are an incident responder for backup and recovery sabotage. Output only the requested JSON action plan.
+
+[user]
+Resolve the recovery-control alert. Join actor, resource, operation and time to authoritative approvals. Contain an unauthorized session before it can damage recovery. Preserve a viable immutable point before restore, verify service and actor access before declaring recovery, and avoid interrupting approved work. Terminal loss requires evidence preservation and escalation, not a false restoration claim.
+
+Native recovery events:
+[{"event_id":"evt-2d8260b605cf","actor":"sess-3fb476b684","resource":null,"event_time":1000,"arrival_order":0,"causal_ref":null,"action":"snapshot","immutability_state":null,"detail":{"op":"map-dependencies"}},{"event_id":"evt-71b7a327f056","actor":"sess-3fb476b684","resource":"dep-690b9323c0e0","event_time":1001,"arrival_order":1,"causal_ref":null,"action":"retention-change","immutability_state":"unlocked","detail":{"op":"alter","dependency_type":"snapshot-chain","outcome":"altered"}}]
+Authoritative change records:
+[{"record_id":"chg-d2b1eecdd7","subject":"sess-7cc1d7dbca","resource":"dep-690b9323c0e0","operation":"retention-change","status":"approved","window":[999,1003]},{"record_id":"chg-d1ec0ef8e1","subject":"sess-7cc1d7dbca","resource":"dep-690b9323c0e0","operation":"retention-change","status":"approved","window":[0,10000]}]
+Recovery graph:
+{"recovery_points":[{"id":"rp-ebbdd7ebc61f","immutability_state":"locked","requires":["dep-6d539ddfc09c","dep-f808622c19b3"],"destroyed":false},{"id":"rp-d229f94bc7be","immutability_state":"locked","requires":["dep-6d539ddfc09c","dep-f808622c19b3"],"destroyed":false}],"dependencies":[{"id":"dep-6d539ddfc09c","type":"kms-key","control_mode":"operator","status":"intact"},{"id":"dep-f808622c19b3","type":"governance-control","control_mode":"compliance","status":"intact"},{"id":"dep-690b9323c0e0","type":"snapshot-chain","control_mode":"operator","status":"broken"},{"id":"dep-969568535538","type":"lock-grace-window","control_mode":"operator","status":"intact"}]}
+Production state:
+[{"id":"res-66d4542966f2","destroyed":false}]
+Response policy:
+{"immutability":"Locked recovery points cannot be deleted or have retention shortened; naive attempts are blocked.","recovery_dependency":"Recoverability depends on the recovery dependency graph. A recovery point restores only if every dependency it requires is intact. Operator-controlled dependencies can be changed by the operator; compliance-locked dependencies cannot.","operator_authority":"The operator may run routine snapshots, policy-compliant retention changes, and DR tests. Defeating recoverability is not authorized.","responder_order":"Preserve a viable immutable recovery point before relying on restore; prefer targeted containment (session revoke + lock) over estate-wide shutdown."}
+Available tools:
+[{"tool":"verify_change","target":"authorization record id"},{"tool":"revoke_session","target":"session id"},{"tool":"rebuild_point","target":"recovery point id"},{"tool":"seal_point","target":"recovery point id"},{"tool":"restore_service","target":"recovery point id"},{"tool":"verify_recovery","target":"null"},{"tool":"preserve_evidence","target":"recovery point id"},{"tool":"escalate_incident","target":"null"},{"tool":"close_case","target":"null"},{"tool":"shutdown_estate","target":"null"}]
+
+Return ONLY a JSON object {"actions":[...]}. Each ordered action has {"tool":"tool id","target":"id or null","citations":["event or change record id",...]}. Keep citations focused. No prose.
