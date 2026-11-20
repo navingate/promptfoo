@@ -225,6 +225,13 @@ import {
   stepDefense as stepV31Defense,
 } from '../v31/defense.mjs';
 import { RULE_GUIDE as V31_RULE_GUIDE } from '../v31/guide.mjs';
+import {
+  buildDefenseSession as buildV32DefenseSession,
+  referenceDefense as referenceV32Defense,
+  scoreDefense as scoreV32Defense,
+  stepDefense as stepV32Defense,
+} from '../v32/defense.mjs';
+import { RULE_GUIDE as V32_RULE_GUIDE } from '../v32/guide.mjs';
 import { parseCommands } from './commands.mjs';
 import { buildDefenseSession, referenceDefense, scoreDefense, stepDefense } from './defense.mjs';
 import {
@@ -247,6 +254,7 @@ const COMPACT_RESPONSE_GUIDES = new Map([
   ['v29', V29_RULE_GUIDE],
   ['v30', V30_RULE_GUIDE],
   ['v31', V31_RULE_GUIDE],
+  ['v32', V32_RULE_GUIDE],
 ]);
 
 function argsOf(argv) {
@@ -317,6 +325,7 @@ function argsOf(argv) {
       'v29',
       'v30',
       'v31',
+      'v32',
     ].includes(args.version) ||
     ([
       'v11',
@@ -340,6 +349,7 @@ function argsOf(argv) {
       'v29',
       'v30',
       'v31',
+      'v32',
     ].includes(args.version) &&
       args.mode !== 'defense') ||
     args.seeds.some((s) => !Number.isSafeInteger(s))
@@ -685,6 +695,14 @@ const MODULES = {
       step: stepV31Defense,
     },
   },
+  v32: {
+    defense: {
+      create: buildV32DefenseSession,
+      reference: referenceV32Defense,
+      score: scoreV32Defense,
+      step: stepV32Defense,
+    },
+  },
 };
 
 function mockRun(spec, mode, version, operations) {
@@ -714,6 +732,7 @@ function mockRun(spec, mode, version, operations) {
       'v29',
       'v30',
       'v31',
+      'v32',
     ].includes(version)
   ) {
     for (const action of operations.reference(session)) {
@@ -783,7 +802,9 @@ function systemPrompt(args) {
 
 async function modelTurn(messages, cfg, version, mode) {
   const formatFailureClass =
-    ['v29', 'v30', 'v31'].includes(version) && mode === 'defense' ? 'invalid_run' : 'model_fail';
+    ['v29', 'v30', 'v31', 'v32'].includes(version) && mode === 'defense'
+      ? 'invalid_run'
+      : 'model_fail';
   const response = await callModel(messages, cfg);
   if (response.kind !== 'ok') {
     return { issue: { classification: response.kind, reason: response.reason } };
@@ -824,6 +845,7 @@ async function modelTurn(messages, cfg, version, mode) {
       'v29',
       'v30',
       'v31',
+      'v32',
     ].includes(version) &&
     mode === 'defense' &&
     Buffer.byteLength(response.text, 'utf8') > 128 * 1024
@@ -835,7 +857,7 @@ async function modelTurn(messages, cfg, version, mode) {
   }
   const commands =
     mode === 'defense' &&
-    ['v22', 'v23', 'v24', 'v25', 'v26', 'v27', 'v28', 'v29', 'v30', 'v31'].includes(version)
+    ['v22', 'v23', 'v24', 'v25', 'v26', 'v27', 'v28', 'v29', 'v30', 'v31', 'v32'].includes(version)
       ? parseV22Commands(response.text)
       : ['v11', 'v12', 'v13', 'v14', 'v15', 'v16', 'v17', 'v18', 'v19', 'v20', 'v21'].includes(
             version,
@@ -855,7 +877,7 @@ const V30_CONTROL_ARGS = {
 };
 
 function malformedV30Command(version, command, result, tools) {
-  if (!['v30', 'v31'].includes(version) || result.ok !== false) {
+  if (!['v30', 'v31', 'v32'].includes(version) || result.ok !== false) {
     return false;
   }
   if (['invalid-command', 'invalid-args'].includes(result.reason)) {
@@ -865,7 +887,7 @@ function malformedV30Command(version, command, result, tools) {
     return true;
   }
   const required =
-    version === 'v31' && command.tool === 'quarantine-cohort'
+    ['v31', 'v32'].includes(version) && command.tool === 'quarantine-cohort'
       ? ['cohort_id']
       : V30_CONTROL_ARGS[command.tool];
   if (!required) {
@@ -873,7 +895,7 @@ function malformedV30Command(version, command, result, tools) {
   }
   const args = command.args;
   return (
-    (version === 'v31' &&
+    (['v31', 'v32'].includes(version) &&
       command.tool === 'quarantine-cohort' &&
       Object.keys(command).length !== 2) ||
     !args ||
@@ -953,6 +975,7 @@ async function runOne(spec, args, cfg) {
     'v29',
     'v30',
     'v31',
+    'v32',
   ].includes(args.version)
     ? 60
     : args.version === 'v6'
