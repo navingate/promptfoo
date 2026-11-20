@@ -1,0 +1,7 @@
+# F3 v26 neutral runbook design
+
+V25's dense, phase-specific and expiring approval construct remained solvable: 36/36 query-visible reference and 2/2 exact blind Astra pilots. The V25 model-facing additions explicitly named the independent scheduled gap, the source-approved release gap, and the expiring-grant trap. V26 keeps the same frozen native estate and score but removes those answer-shaped hints. The general SOC runbook still states the complete authorization rules: source lineage, both change and owner grants, group membership, grant validity, approval publication outcomes, exact plans, and control effects. The defender still has all evidence and a query-only reference solution.
+
+This is a guidance-control experiment, not a claim that V25's native construct changed. It tests whether the realistic task requires generalizing the authorization rules rather than following a description of this case's intended traps. The same simulated source → release credential → Job → Pod → STS chain, clean anchor, paired approval flip, and approved-work preservation remain intact.
+
+Use fresh development and holdout seeds, the same shortcut audits, and an excluded blind Astra defensive pilot. Give Astra the normal initial incident and an interactive read-only SOC console within the existing 32-query budget; do not pre-supply all query results. Freeze the candidate and protocol before opening pilot seeds. Advance to GLM only if the blind Astra gate fails both valid cases and Cyber Benchmark releases the Cloudflare slot. Keep all model outcomes separate.
