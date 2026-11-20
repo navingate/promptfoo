@@ -21,7 +21,12 @@ async function runner() {
 
 function nativeResponse(
   command,
-  { servedModel = model, completionTokens = 10, finishReason = 'tool_calls' } = {},
+  {
+    servedModel = model,
+    completionTokens = 10,
+    finishReason = 'tool_calls',
+    callId = 'call_1',
+  } = {},
 ) {
   return new Response(
     JSON.stringify({
@@ -34,7 +39,7 @@ function nativeResponse(
             content: null,
             tool_calls: [
               {
-                id: 'call_1',
+                id: callId,
                 type: 'function',
                 function: { name: command.tool, arguments: JSON.stringify(command.args ?? {}) },
               },
@@ -113,7 +118,7 @@ test('one native call per turn replays a visible-only exact reference with exact
   assert.equal(result.actions, commands.length);
   assert.equal(result.raw_responses.length, commands.length);
   assert.equal(requests.length, commands.length);
-  assert.deepEqual(settings.sleeps, Array(commands.length - 1).fill(5000));
+  assert.deepEqual(settings.sleeps, Array(commands.length - 1).fill(5001));
   for (const { url, init, body } of requests) {
     assert.equal(url, `${endpoint}/chat/completions`);
     assert.equal(init.method, 'POST');
@@ -151,6 +156,68 @@ test('one native call per turn replays a visible-only exact reference with exact
     true,
   );
 });
+
+for (const { scenario, earlyWakeMs, clockStepMs } of [
+  { scenario: 'an early timer wake', earlyWakeMs: 3, clockStepMs: 0 },
+  { scenario: 'a backward clock step', earlyWakeMs: 0, clockStepMs: 37 },
+]) {
+  test(`request pacing waits through ${scenario}`, async () => {
+    const { runCase } = await runner();
+    const item = firstCase();
+    const commands = referenceCommands(item);
+    const callIds = commands.map((_, index) => `paced_call_${index + 1}`);
+    const requests = [];
+    let clock = 10_000;
+    let sleeps = 0;
+    let pendingClockStep = clockStepMs;
+    const result = await runCase(item, {
+      endpoint,
+      apiKey,
+      now: () => {
+        if (sleeps === 1 && pendingClockStep > 0) {
+          clock -= pendingClockStep;
+          pendingClockStep = 0;
+        }
+        return clock;
+      },
+      sleep: async (milliseconds) => {
+        sleeps++;
+        clock += milliseconds;
+        if (sleeps === 1) {
+          clock -= earlyWakeMs;
+        }
+      },
+      request: async () => {
+        const index = requests.length;
+        requests.push({ started: clock, sleeps });
+        return nativeResponse(commands[index], { callId: callIds[index] });
+      },
+    });
+
+    assert.equal(result.classification, 'exact', result.reason);
+    assert.equal(requests[1].sleeps, 2);
+    assert.equal(requests.length, result.turns);
+    assert.equal(result.turns, commands.length);
+    assert.equal(result.actions, commands.length);
+    assert.deepEqual(
+      result.request_audit.map((entry) => entry.started_ms),
+      requests.map((entry) => entry.started),
+    );
+    for (const [index, entry] of result.request_audit.entries()) {
+      if (index > 0) {
+        assert.ok(entry.started_ms - result.request_audit[index - 1].started_ms >= 5000);
+      }
+    }
+    assert.deepEqual(
+      result.raw_responses.map((response) => response.choices[0].message.tool_calls[0].id),
+      callIds,
+    );
+    assert.deepEqual(
+      result.transcript.map((entry) => entry.command),
+      commands,
+    );
+  });
+}
 
 test('one bounded structural correction stays in the attempt and retains malformed raw output', async () => {
   const { runCase } = await runner();

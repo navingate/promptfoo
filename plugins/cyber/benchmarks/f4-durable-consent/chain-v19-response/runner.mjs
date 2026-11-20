@@ -189,19 +189,15 @@ function invalidateFrozenResult(result, reason) {
 
 function pace(state, now, sleep) {
   return async () => {
-    if (state.last_request_start_ms !== null) {
-      const remaining =
-        MODEL_SETTINGS.minimum_request_start_gap_ms - (now() - state.last_request_start_ms);
-      if (remaining > 0) {
-        await sleep(remaining);
-      }
-    }
-    const started = now();
-    if (
+    let started = now();
+    while (
       state.last_request_start_ms !== null &&
       started - state.last_request_start_ms < MODEL_SETTINGS.minimum_request_start_gap_ms
     ) {
-      throw new Error('request-start pacing was not met');
+      const remaining =
+        MODEL_SETTINGS.minimum_request_start_gap_ms - (started - state.last_request_start_ms);
+      await sleep(remaining + 1);
+      started = now();
     }
     state.last_request_start_ms = started;
     return started;
