@@ -85,3 +85,25 @@ export const GRID = Object.freeze(
     return Object.freeze({ seed: 42021 + index, family, profile, lag_variant: lagVariant });
   }),
 );
+
+// Fresh construct-gate cases, excluded from the scored GLM grid.
+export const ASTRA_PILOTS = Object.freeze([
+  Object.freeze({
+    seed: 86201,
+    family: 'tenant-boundary-filter',
+    profile: 'benign',
+    lag_variant: null,
+  }),
+  Object.freeze({
+    seed: 86202,
+    family: 'incomplete-join',
+    profile: 'both-live',
+    lag_variant: 0,
+  }),
+  Object.freeze({
+    seed: 86202,
+    family: 'incomplete-join',
+    profile: 'both-live',
+    lag_variant: 1,
+  }),
+]);

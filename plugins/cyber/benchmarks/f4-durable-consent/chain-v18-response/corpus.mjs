@@ -5,6 +5,7 @@ import { fileURLToPath } from 'node:url';
 import { isDeepStrictEqual } from 'node:util';
 
 import {
+  ASTRA_PILOTS,
   GRID,
   LIMITS,
   MODEL_SETTINGS,
@@ -23,7 +24,7 @@ const familyRoot = path.resolve(here, '..');
 const sha256 = (bytes) => createHash('sha256').update(bytes).digest('hex');
 const jsonBytes = (value) => `${JSON.stringify(value, null, 2)}\n`;
 
-// Earlier F4 scored and development incidents are excluded from this response grid.
+// Earlier F4 scored/development incidents and fresh Astra pilots are excluded.
 export const EXCLUDED_SEEDS = Object.freeze([
   ...Array.from({ length: 9 }, (_, index) => 41021 + index),
   73013,
@@ -45,6 +46,7 @@ export const EXCLUDED_SEEDS = Object.freeze([
   85129,
   85141,
   86117,
+  ...new Set(ASTRA_PILOTS.map((spec) => spec.seed)),
 ]);
 
 const forbiddenKeys = new Set([
@@ -196,6 +198,7 @@ export function buildFreezeManifest(cases = buildCorpus()) {
     cases: cases.map(caseEntry),
     exclusions: {
       seeds: EXCLUDED_SEEDS,
+      astra_pilot_specs: ASTRA_PILOTS,
       diagnostics: [
         '2026-11-19-v13-native-tool-control',
         '2026-11-19-v13-native-tool-three-pilots',

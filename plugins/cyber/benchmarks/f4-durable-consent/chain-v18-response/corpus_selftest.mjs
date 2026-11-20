@@ -7,6 +7,7 @@ import test from 'node:test';
 
 import { FAMILIES } from '../shared/estate.mjs';
 import {
+  ASTRA_PILOTS,
   GRID,
   LIMITS,
   MODEL_SETTINGS,
@@ -16,7 +17,7 @@ import {
   RESPONSE_TASK_ID,
   TOOL_CONTRACT,
 } from './config.mjs';
-import { validateResponseNative } from './producer.mjs';
+import { produceResponse, validateResponseNative } from './producer.mjs';
 import { runReference } from './reference.mjs';
 import { scoreResponse } from './scorer.mjs';
 
@@ -100,6 +101,36 @@ test('frozen response grid is unique, balanced, unseen, and source-valid', async
   }
 });
 
+test('fresh Astra pilots are excluded, native-valid, and reference-solvable', async () => {
+  const { EXCLUDED_SEEDS } = await modules();
+  assert.equal(ASTRA_PILOTS.length, 3);
+  const pilots = ASTRA_PILOTS.map((spec) => {
+    assert.equal(
+      GRID.some((row) => row.seed === spec.seed),
+      false,
+    );
+    assert.equal(EXCLUDED_SEEDS.includes(spec.seed), true);
+    const { episode, key } = produceResponse(spec);
+    assert.equal(
+      validateResponseNative({
+        contract_id: episode.contract_id,
+        provenance: 'estate-generated-reference',
+        pairing_status: PAIRING_STATUS,
+        incident_id: episode.incident_id,
+        public: episode.sources,
+        hidden: episode.hidden,
+      }).ok,
+      true,
+    );
+    const reference = runReference(episode);
+    assert.equal(scoreResponse(reference.session, key).exact, true);
+    assert.ok(reference.turns <= LIMITS.reference_turns);
+    return episode;
+  });
+  assert.deepEqual(pilots[1].initial, pilots[2].initial);
+  assert.deepEqual(pilots[1].sources, pilots[2].sources);
+});
+
 test('function schemas and serialized prompt expose exactly the native tool contract', async () => {
   const { SYSTEM_PROMPT, TOOL_SCHEMAS, initialMessages, requestBody } = await modules();
   assert.deepEqual(
@@ -158,6 +189,7 @@ test('native and evaluator sidecars have locked hashes and a reciprocal pending 
     assert.equal(manifest.pairing_status, PAIRING_STATUS);
     assert.equal(manifest.role, 'consumer');
     assert.equal(manifest.request_settings.model_id, MODEL_SETTINGS.model_id);
+    assert.deepEqual(manifest.exclusions.astra_pilot_specs, ASTRA_PILOTS);
     assert.deepEqual(manifest.decision_gate, {
       maximum_exact: 6,
       minimum_scorable: 32,

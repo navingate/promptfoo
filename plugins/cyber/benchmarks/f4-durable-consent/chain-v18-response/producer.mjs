@@ -12,7 +12,14 @@ import {
   FAMILY_DEFECT,
   PROTECTED_SCOPE,
 } from '../shared/estate.mjs';
-import { GRID, LIMITS, PAIRING_STATUS, RESPONSE_CONTRACT_ID, TOOL_CONTRACT } from './config.mjs';
+import {
+  ASTRA_PILOTS,
+  GRID,
+  LIMITS,
+  PAIRING_STATUS,
+  RESPONSE_CONTRACT_ID,
+  TOOL_CONTRACT,
+} from './config.mjs';
 
 const RESET_TIME = 1000;
 const PROFILES = new Set(['benign', 'single-mint', 'both-live', 'mint-plus-session-only']);
@@ -38,7 +45,7 @@ function checkSpec(spec) {
     !FAMILIES.includes(spec.family) ||
     !PROFILES.has(spec.profile) ||
     (spec.swap_lag === true && spec.profile !== 'both-live') ||
-    !GRID.some(
+    ![...GRID, ...ASTRA_PILOTS].some(
       (row) =>
         row.seed === spec.seed &&
         row.family === spec.family &&
