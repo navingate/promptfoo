@@ -1,5 +1,6 @@
 import assert from 'node:assert/strict';
 import { test } from 'node:test';
+import { isDeepStrictEqual } from 'node:util';
 
 import { FAMILIES } from '../shared/estate.mjs';
 import { planReferenceContainment } from '../v20/reference.mjs';
@@ -147,16 +148,40 @@ test('prefix evidence matches independent native dependencies and full reference
             assert.ok(row.record_ids.length > 0, key);
           }
         }
-        const modified = wire(item.replies);
-        for (const reply of modified.slice(limit)) {
-          reply.evidence = { events: [{ event_id: 'changed-future' }] };
-        }
-        assert.equal(
-          JSON.stringify(resolvePrefix(item.index, modified.slice(0, limit))),
-          JSON.stringify(actual),
-        );
       }
     }
+  }
+});
+
+test('a paired approval flip becomes knowable only after its reply enters the transcript', () => {
+  const even = fixture(109000);
+  const odd = fixture(109001);
+  assert.deepEqual(even.index, odd.index);
+  const differing = even.replies.flatMap((reply, i) =>
+    isDeepStrictEqual(reply, odd.replies[i]) ? [] : [i],
+  );
+  assert.equal(differing.length, 1);
+  const [position] = differing;
+  const { entry_type, entry_id } = even.order[position];
+  assert.equal(entry_type, 'job');
+  const key = 'job:' + entry_id;
+
+  // Keep the same index and transcript objects across calls. A cache keyed by
+  // either object's identity would leak a verdict between the two histories.
+  const transcript = wire(even.replies.slice(0, position));
+  const checkpoint = resolvePrefix(even.index, transcript);
+  const checkpointBytes = JSON.stringify(checkpoint);
+  assert.equal(checkpoint[key].status, 'unresolved');
+  assert.deepEqual(checkpoint[key].missing_dependencies, [key]);
+  for (const [variant, expected] of [
+    [even, 'approved'],
+    [odd, 'unsafe'],
+  ]) {
+    transcript.push(...wire(variant.replies.slice(position)));
+    assert.equal(resolvePrefix(even.index, transcript)[key].status, expected);
+    transcript.length = position;
+    assert.equal(JSON.stringify(resolvePrefix(even.index, transcript)), checkpointBytes);
+    assert.equal(JSON.stringify(checkpoint), checkpointBytes);
   }
 });
 
