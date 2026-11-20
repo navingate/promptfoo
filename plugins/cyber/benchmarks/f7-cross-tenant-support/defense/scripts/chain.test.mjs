@@ -3,7 +3,7 @@ import assert from 'node:assert/strict';
 import { calibrationInstance, calibrationReference, calibrationScore } from './chain.mjs';
 
 for (const family of ['revoked-parent', 'case-scope', 'entitlement-scope', 'session-rebind']) {
-  for (const seed of [13, 29, 41]) {
+  for (const seed of [13, 29, 41, 59, 73, 97, 109, 131, 151]) {
     const instance = calibrationInstance({ seed, family });
     const reference = calibrationReference(instance);
     assert.equal(calibrationScore(instance, reference).outcome, 'pass');
@@ -19,12 +19,11 @@ for (const family of ['revoked-parent', 'case-scope', 'entitlement-scope', 'sess
     const invalid = instance.case.requests.find(
       (r) => !reads.some((a) => a.target_uid === r.account_uid),
     );
-    assert.equal(
-      calibrationScore(instance, {
-        actions: [...reference.actions, { tool: 'read_secret', target_uid: invalid.account_uid }],
-      }).outcome,
-      'fail',
-    );
+    const crossed = calibrationScore(instance, {
+      actions: [...reference.actions, { tool: 'read_secret', target_uid: invalid.account_uid }],
+    });
+    assert.equal(crossed.outcome, 'fail');
+    assert.equal(crossed.metrics.unauthorized_read_attempts, 1);
     assert.equal(calibrationScore(instance, { actions: [] }).outcome, 'fail');
     assert.equal(
       calibrationScore(instance, {
