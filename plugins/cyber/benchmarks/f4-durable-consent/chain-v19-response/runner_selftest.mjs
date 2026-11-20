@@ -157,6 +157,91 @@ test('one native call per turn replays a visible-only exact reference with exact
   );
 });
 
+test('request pacing measures actual dispatch after slow body and timeout preparation', async () => {
+  const { runCase } = await runner();
+  const [item, nextItem] = buildCorpus();
+  const commands = referenceCommands(item);
+  const callIds = commands.map((_, index) => `dispatch_call_${index + 1}`);
+  const requests = [];
+  const timeouts = [];
+  const paceState = { last_request_start_ms: null };
+  let clock = 10_000;
+  let serializedSlowBody = false;
+  let preparedSlowTimeout = false;
+  const originalStringify = JSON.stringify;
+  const originalTimeout = AbortSignal.timeout;
+  let result;
+  let nextResult;
+  try {
+    JSON.stringify = function (value, ...args) {
+      if (
+        !serializedSlowBody &&
+        value?.model === model &&
+        Array.isArray(value.messages) &&
+        Array.isArray(value.tools)
+      ) {
+        serializedSlowBody = true;
+        clock += 100;
+      }
+      return originalStringify.call(this, value, ...args);
+    };
+    AbortSignal.timeout = (milliseconds) => {
+      if (!preparedSlowTimeout) {
+        preparedSlowTimeout = true;
+        clock += 100;
+      }
+      timeouts.push({ started: clock, milliseconds });
+      return originalTimeout(milliseconds);
+    };
+    const caseOptions = {
+      endpoint,
+      apiKey,
+      paceState,
+      now: () => clock,
+      sleep: async (milliseconds) => {
+        clock += milliseconds;
+      },
+      request: async (_url, init) => {
+        const index = requests.length;
+        requests.push({ started: clock, body: JSON.parse(init.body) });
+        return nativeResponse(commands[index] ?? { tool: 'submit', args: { findings: [] } }, {
+          callId: callIds[index] ?? 'next_case_call',
+        });
+      },
+    };
+    result = await runCase(item, caseOptions);
+    nextResult = await runCase(nextItem, caseOptions);
+  } finally {
+    JSON.stringify = originalStringify;
+    AbortSignal.timeout = originalTimeout;
+  }
+
+  assert.equal(serializedSlowBody, true);
+  assert.equal(preparedSlowTimeout, true);
+  assert.equal(result.classification, 'exact', result.reason);
+  assert.ok(['exact', 'model_fail'].includes(nextResult.classification), nextResult.reason);
+  assert.equal(requests.length, commands.length + 1);
+  assert.equal(result.turns, commands.length);
+  assert.equal(result.raw_responses.length, commands.length);
+  assert.equal(nextResult.turns, 1);
+  assert.equal(nextResult.raw_responses.length, 1);
+  assert.equal(nextResult.request_audit[0].started_ms, requests.at(-1).started);
+  assert.deepEqual(
+    result.raw_responses.map((response) => response.choices[0].message.tool_calls[0].id),
+    callIds,
+  );
+  for (let index = 1; index < requests.length; index++) {
+    const gap = requests[index].started - requests[index - 1].started;
+    assert.ok(gap >= 5000, `actual dispatch gap was ${gap} ms`);
+  }
+  const audits = [...result.request_audit, ...nextResult.request_audit];
+  for (const [index, request] of requests.entries()) {
+    assert.equal(audits[index].started_ms, request.started);
+    assert.equal(timeouts[index].started, request.started);
+    assert.equal(timeouts[index].milliseconds, 300000);
+  }
+});
+
 for (const { scenario, earlyWakeMs, clockStepMs } of [
   { scenario: 'an early timer wake', earlyWakeMs: 3, clockStepMs: 0 },
   { scenario: 'a backward clock step', earlyWakeMs: 0, clockStepMs: 37 },
@@ -350,6 +435,13 @@ test('provider, served-model, missing-usage, and invalid-native failures are dis
       reason: /transport/u,
     },
     {
+      request: () => {
+        throw null;
+      },
+      classification: 'provider_error',
+      reason: /transport-error/u,
+    },
+    {
       request: async () => new Response('busy', { status: 429 }),
       classification: 'provider_error',
       reason: /http_429/u,
@@ -409,7 +501,7 @@ test('provider, served-model, missing-usage, and invalid-native failures are dis
     let calls = 0;
     const result = await runCase(
       item,
-      options(async (...args) => {
+      options((...args) => {
         calls++;
         return scenario.request(...args);
       }),

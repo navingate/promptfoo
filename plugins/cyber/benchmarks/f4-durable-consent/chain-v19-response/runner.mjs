@@ -188,19 +188,31 @@ function invalidateFrozenResult(result, reason) {
 }
 
 function pace(state, now, sleep) {
-  return async () => {
+  return async (prepare, dispatch) => {
     let started = now();
-    while (
-      state.last_request_start_ms !== null &&
-      started - state.last_request_start_ms < MODEL_SETTINGS.minimum_request_start_gap_ms
-    ) {
-      const remaining =
-        MODEL_SETTINGS.minimum_request_start_gap_ms - (started - state.last_request_start_ms);
-      await sleep(remaining + 1);
+    while (true) {
+      if (
+        state.last_request_start_ms !== null &&
+        started - state.last_request_start_ms < MODEL_SETTINGS.minimum_request_start_gap_ms
+      ) {
+        const remaining =
+          MODEL_SETTINGS.minimum_request_start_gap_ms - (started - state.last_request_start_ms);
+        await sleep(remaining + 1);
+        started = now();
+        continue;
+      }
+      const requestInit = prepare();
       started = now();
+      if (
+        state.last_request_start_ms !== null &&
+        started - state.last_request_start_ms < MODEL_SETTINGS.minimum_request_start_gap_ms
+      ) {
+        continue;
+      }
+      state.last_request_start_ms = started;
+      dispatch(started, requestInit);
+      return;
     }
-    state.last_request_start_ms = started;
-    return started;
   };
 }
 
@@ -213,37 +225,63 @@ function appendAssistant(messages, message) {
 }
 
 async function performRequest({ url, apiKey, request, startRequest, body, result }) {
-  let started;
-  try {
-    started = await startRequest();
-  } catch {
-    return { classification: 'provider_error', reason: 'transport-pacing' };
-  }
+  const bodyText = JSON.stringify(body);
   const audit = {
     sequence: result.turns + 1,
-    started_ms: started,
+    started_ms: null,
     requested_model: body.model,
     completion_cap: body.max_completion_tokens,
-    request_sha256: sha256(JSON.stringify(body)),
+    request_sha256: sha256(bodyText),
     response_status: null,
     served_model: null,
     finish_reason: null,
     completion_tokens: null,
   };
+  const requestInit = {
+    method: 'POST',
+    headers: {
+      'content-type': 'application/json',
+      authorization: `Bearer ${apiKey}`,
+      'cf-aig-skip-cache': 'true',
+    },
+    body: bodyText,
+  };
+  let responsePromise;
+  let requestFailure;
+  let started;
+  try {
+    await startRequest(
+      () => {
+        try {
+          return { ...requestInit, signal: AbortSignal.timeout(300000) };
+        } catch (error) {
+          requestFailure = { error };
+          return null;
+        }
+      },
+      (dispatchStarted, init) => {
+        started = dispatchStarted;
+        if (!requestFailure) {
+          try {
+            responsePromise = request(url, init);
+          } catch (error) {
+            requestFailure = { error };
+          }
+        }
+      },
+    );
+  } catch {
+    return { classification: 'provider_error', reason: 'transport-pacing' };
+  }
+  audit.started_ms = started;
   result.request_audit.push(audit);
   result.turns++;
   let response;
   try {
-    response = await request(url, {
-      method: 'POST',
-      headers: {
-        'content-type': 'application/json',
-        authorization: `Bearer ${apiKey}`,
-        'cf-aig-skip-cache': 'true',
-      },
-      body: JSON.stringify(body),
-      signal: AbortSignal.timeout(300000),
-    });
+    if (requestFailure) {
+      throw requestFailure.error;
+    }
+    response = await responsePromise;
   } catch (error) {
     audit.transport_error = error?.name ?? 'Error';
     return { classification: 'provider_error', reason: 'transport-error' };

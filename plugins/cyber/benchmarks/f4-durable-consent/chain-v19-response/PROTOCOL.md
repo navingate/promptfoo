@@ -61,10 +61,12 @@ configured OpenAI-compatible HTTPS endpoint. Requests use low reasoning,
 temperature zero, `tool_choice: required`, `parallel_tool_calls: false`, one
 native function call per response, no streaming, cache bypass, and no automatic
 retry. The runner requires the exact served-model echo on every turn, a
-300-second HTTP timeout, sequential cases, and at least 5,000 ms between
-accepted request starts. The v19 pacing loop waits through early timer wakes
-or backward clock steps before making the next request; it never retries a
-provider response. One bounded structural correction may occur within the
+300-second HTTP timeout beginning at dispatch, sequential cases, and at least
+5,000 ms between actual HTTP dispatches. It serializes and hashes each body
+before pacing, then stamps the dispatch time in the audit and shared pacing
+state. The v19 pacing loop waits through early timer wakes or backward clock
+steps before making the next request; it never retries a provider response.
+One bounded structural correction may occur within the
 same case attempt, with both responses retained. The caps are 48 model turns,
 64 native tool actions, 8,192 completion tokens per turn, and 65,536 completion
 tokens per case.
