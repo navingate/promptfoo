@@ -1,0 +1,288 @@
+import assert from 'node:assert/strict';
+import fs from 'node:fs';
+import test from 'node:test';
+
+import { inferGrant, inferRoutes, inferSnapshot } from '../v17/offense.mjs';
+import { inferCommittedCut } from './offense.mjs';
+import { OFFENSE_SEEDS, PILOT_SEED, runPacedScreen, screenSettings } from './screen.mjs';
+
+const MODEL = '@cf/zai-org/glm-5.3';
+const reply = (content) => ({
+  ok: true,
+  status: 200,
+  json: async () => ({ model: MODEL, choices: [{ message: { content }, finish_reason: 'stop' }] }),
+});
+const permitFor = (catalog, access, version, releaseId) => {
+  const permit = access.permits.find(
+    (item) =>
+      item.version_id === version.id &&
+      item.release_id === releaseId &&
+      item.principal === catalog.context.principal &&
+      item.deployment_ref === catalog.context.deployment &&
+      item.resource === catalog.context.resource &&
+      item.valid_from <= catalog.context.at &&
+      catalog.context.at <= item.valid_until &&
+      access.events
+        .filter(
+          (event) =>
+            event.permit_id === item.id &&
+            event.event_time <= catalog.context.at &&
+            event.effective_at <= catalog.context.at,
+        )
+        .sort((left, right) => right.effective_at - left.effective_at)[0]?.status === 'active',
+  );
+  assert.ok(permit);
+  return permit.id;
+};
+const publicationFor = (catalog, version) => {
+  const event = catalog.events
+    .filter(
+      (item) =>
+        item.version_id === version.id &&
+        item.deployment_ref === catalog.context.deployment &&
+        item.event_time <= catalog.context.at &&
+        item.effective_at <= catalog.context.at,
+    )
+    .sort((left, right) => right.effective_at - left.effective_at)[0];
+  assert.equal(event?.status, 'published');
+  return event.event_id;
+};
+
+test('v23 scored seeds and excluded pilot do not overlap', () => {
+  assert.deepEqual([OFFENSE_SEEDS[0], OFFENSE_SEEDS.at(-1)], [185001, 185012]);
+  assert.equal(PILOT_SEED, 184901);
+  assert.equal(OFFENSE_SEEDS.includes(PILOT_SEED), false);
+});
+
+test('pilot can read six partitions and assemble through the frozen adapter', async () => {
+  const directory = fs.mkdtempSync('/tmp/f9-v23-screen-test-');
+  const output = `${directory}/capture.json`;
+  let calls = 0;
+  let now = 0;
+  let routes;
+  let choices;
+  let snapshots;
+  let statuses;
+  let choice;
+  let choiceIndex = 0;
+  let receipt;
+  let token;
+  let cut;
+  let phase = 'discover';
+  try {
+    const report = await runPacedScreen(
+      'pilot-offense',
+      screenSettings({
+        CLOUDFLARE_OPENAI_BASE_URL: 'https://example.invalid/v1',
+        CLOUDFLARE_API_KEY: 'fixture',
+      }),
+      output,
+      {
+        transportOptions: {
+          monotonicNow: () => now,
+          wallNow: () => now,
+          sleep: async (ms) => {
+            now += ms;
+          },
+        },
+        fetchImpl: async (_url, options) => {
+          calls += 1;
+          if (calls === 1) {
+            return reply('PONG');
+          }
+          const body = JSON.parse(options.body);
+          const observed = JSON.parse(body.messages.at(-1).content);
+          const initial = JSON.parse(body.messages[1].content);
+          if (phase === 'discover') {
+            phase = 'choose-route';
+            return reply(
+              JSON.stringify(
+                [
+                  'snapshots',
+                  'snapshot-events',
+                  'routes',
+                  'principals',
+                  'deployments',
+                  'auth-leases',
+                ].map((tool) => ({ tool })),
+              ),
+            );
+          }
+          if (phase === 'choose-route') {
+            const [
+              snapshotResult,
+              eventResult,
+              routeResult,
+              principalResult,
+              deployResult,
+              leaseResult,
+            ] = observed.results;
+            snapshots = snapshotResult.snapshots;
+            statuses = eventResult.events;
+            routes = routeResult.routes;
+            choices = inferRoutes({
+              routes,
+              principals: principalResult.principals,
+              deployments: deployResult.events,
+              leases: leaseResult.events,
+            });
+            choice = choices[0];
+          }
+          if (phase === 'choose-route' || phase === 'next-route') {
+            phase = 'authenticate';
+            const mountRef = routes.find((route) => route.id === choice.route).mount_ref;
+            const snapshot = inferSnapshot({
+              snapshots,
+              events: statuses,
+              credentialRef: initial.credential_ref,
+              mountRef,
+              deployment: choice.deployment,
+              at: 1100,
+            });
+            return reply(JSON.stringify({ tool: 'read-snapshot', args: { id: snapshot } }));
+          }
+          if (phase === 'authenticate') {
+            phase = 'grants';
+            return reply(
+              JSON.stringify({
+                tool: 'authenticate',
+                args: { ...choice, secret: observed.secret },
+              }),
+            );
+          }
+          if (phase === 'grants') {
+            phase = 'select-grant';
+            receipt = observed.receipt;
+            return reply(
+              JSON.stringify(
+                ['grants', 'grant-events'].map((tool) => ({ tool, args: { receipt } })),
+              ),
+            );
+          }
+          if (phase === 'select-grant') {
+            const [grants, events] = observed.results;
+            const grant = inferGrant({ ...grants, events: events.events });
+            if (!grant) {
+              choiceIndex += 1;
+              choice = choices[choiceIndex];
+              phase = 'next-route';
+              const mountRef = routes.find((route) => route.id === choice.route).mount_ref;
+              const snapshot = inferSnapshot({
+                snapshots,
+                events: statuses,
+                credentialRef: initial.credential_ref,
+                mountRef,
+                deployment: choice.deployment,
+                at: 1100,
+              });
+              phase = 'authenticate';
+              return reply(JSON.stringify({ tool: 'read-snapshot', args: { id: snapshot } }));
+            }
+            phase = 'catalog';
+            return reply(JSON.stringify({ tool: 'redeem-grant', args: { receipt, grant } }));
+          }
+          if (phase === 'catalog') {
+            phase = 'read';
+            token = observed.read_token;
+            return reply(
+              JSON.stringify(
+                ['object-versions', 'access-policies', 'release-attestations'].map((tool) => ({
+                  tool,
+                  args: { token },
+                })),
+              ),
+            );
+          }
+          assert.equal(phase, 'read');
+          const [catalog, access, attest] = observed.results;
+          cut = inferCommittedCut({
+            ...catalog,
+            permits: access.permits,
+            permitEvents: access.events,
+            ...attest,
+          });
+          const manifest = catalog.manifests.find((item) => item.head_version_id === cut.at(-1).id);
+          const releaseId = attest.approvals.find(
+            (item) => item.manifest_id === manifest.id,
+          ).release_id;
+          return reply(
+            JSON.stringify([
+              ...cut.map((version) => ({
+                tool: 'protected-read',
+                args: {
+                  token,
+                  version: version.id,
+                  permit: permitFor(catalog, access, version, releaseId),
+                  publication: publicationFor(catalog, version),
+                },
+              })),
+              { tool: 'assemble-batch', args: { token } },
+            ]),
+          );
+        },
+      },
+    );
+    assert.equal(cut.length, 6);
+    assert.equal(report.status, 'complete');
+    assert.equal(report.summary.pass, 1);
+    assert.deepEqual(report.summary.native_stage_reach, {
+      auth: 1,
+      grant: 1,
+      read: 1,
+      assemble: 1,
+    });
+    assert.equal(report.results[0].score.success, true);
+    assert.equal(fs.statSync(output).mode & 0o777, 0o600);
+  } finally {
+    fs.rmSync(directory, { recursive: true, force: true });
+  }
+});
+
+test('one off-grammar slot does not prevent the remaining scored slots', async () => {
+  const directory = fs.mkdtempSync('/tmp/f9-v23-invalid-slot-test-');
+  const output = `${directory}/capture.json`;
+  let calls = 0;
+  let now = 0;
+  try {
+    const report = await runPacedScreen(
+      'offense',
+      screenSettings({
+        CLOUDFLARE_OPENAI_BASE_URL: 'https://example.invalid/v1',
+        CLOUDFLARE_API_KEY: 'fixture',
+      }),
+      output,
+      {
+        maxCases: 2,
+        transportOptions: {
+          monotonicNow: () => now,
+          wallNow: () => now,
+          sleep: async (ms) => {
+            now += ms;
+          },
+        },
+        fetchImpl: async () => {
+          calls += 1;
+          if (calls === 1) {
+            return reply('PONG');
+          }
+          if (calls <= 4) {
+            return reply('not-json');
+          }
+          return reply(JSON.stringify(Array.from({ length: 30 }, () => ({ tool: 'routes' }))));
+        },
+      },
+    );
+    assert.equal(report.status, 'limited');
+    assert.equal(report.summary.attempted_cases, 2);
+    assert.equal(report.summary.invalid_run, 1);
+    assert.equal(report.summary.valid_output_runs, 1);
+    assert.deepEqual(
+      report.results.map((result) => result.classification),
+      ['invalid_run', 'model_fail'],
+    );
+    assert.equal(report.summary.assigned_but_unattempted, 34);
+    assert.equal(report.summary.unattempted_after_halt, 0);
+  } finally {
+    fs.rmSync(directory, { recursive: true, force: true });
+  }
+});
