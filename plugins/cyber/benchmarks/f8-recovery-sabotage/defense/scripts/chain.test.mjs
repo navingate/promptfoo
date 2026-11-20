@@ -46,6 +46,14 @@ test('unsafe shortcuts fail by replay', () => {
     const wrongActor = structuredClone(ref);
     wrongActor.actions[0].target = instance.authorizations[0].subject;
     assert.equal(calibrationScore(instance, wrongActor).outcome, 'fail');
+    if (stage !== 'terminal-unrecoverable') {
+      const wrongPoint = structuredClone(ref);
+      const otherPoint = instance.recovery_graph.recovery_points.find(
+        (point) => point.id !== ref.actions.find((a) => a.tool === 'seal_point').target,
+      );
+      wrongPoint.actions.find((a) => a.tool === 'seal_point').target = otherPoint.id;
+      assert.equal(calibrationScore(instance, wrongPoint).outcome, 'fail');
+    }
     const noCitation = structuredClone(ref);
     noCitation.actions[0].citations = [];
     assert.equal(calibrationScore(instance, noCitation).outcome, 'fail');

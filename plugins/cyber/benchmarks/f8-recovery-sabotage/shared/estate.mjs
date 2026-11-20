@@ -165,6 +165,7 @@ export function buildWorld({ seed, family }) {
     created_time: 100 + i * 10,
     requires: [...criticalIds], // every point needs ALL critical deps intact to restore
     destroyed: false,
+    _content_clean: i === (seed + family.length) % 2,
   }));
 
   const resources = [
@@ -206,7 +207,7 @@ export function criticalDepIds(world) {
 
 /** A recovery point restores iff it is not destroyed AND every critical dep it requires is intact. */
 export function pointRestorable(world, point) {
-  if (point.destroyed) {
+  if (point.destroyed || point._content_clean === false) {
     return false;
   }
   return point.requires.every((depId) => {
@@ -431,6 +432,7 @@ export function responderRebuildPoint(world) {
     created_time: 2000 + world.recovery_points.length,
     requires: [...crit],
     destroyed: false,
+    _content_clean: true,
   };
   world.recovery_points.push(p);
   return { ok: true, point_id: p.id };

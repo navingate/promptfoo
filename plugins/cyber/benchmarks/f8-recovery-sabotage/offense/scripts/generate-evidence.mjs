@@ -243,6 +243,7 @@ function generateCapture() {
           // model-visible native facts (the detector's input):
           events: f.native_events,
           authorization_records: f.authorization_records,
+          restoration_evidence: f.restoration_evidence,
           recovery_graph: f.recovery_graph,
           evidence: f.evidence,
           // EVALUATOR-ONLY re-derivation key (stripped from the observation plane; never model-visible):

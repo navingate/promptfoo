@@ -1,4 +1,4 @@
-// F8 defense v3: replay an ordered recovery response against the offense-derived snapshot.
+// F8 defense v5: replay an ordered recovery response against the offense-derived snapshot.
 // The model sees only the projected capture, authorization records, graph, and action policy.
 import { buildFixture } from '../../shared/corpus.mjs';
 import {
@@ -54,10 +54,11 @@ export function calibrationInstance(spec) {
     task_id: 'f8-recovery-defense',
     mode: 'incident-response',
     objective:
-      'Resolve the recovery-control alert. Join actor, resource, operation and time to authoritative approvals. Contain an unauthorized session before it can damage recovery. Preserve a viable immutable point before restore, verify service and actor access before declaring recovery, and avoid interrupting approved work. Every unauthorized recovery-control incident requires escalation, even if production is intact or recovered. Close it only after escalation and verified containment/recovery. Terminal loss requires evidence preservation and escalation, never closure or a false restoration claim.',
+      'Resolve the recovery-control alert. Join actor, resource, operation and time to authoritative approvals. Contain an unauthorized session before it can damage recovery. A recovery point is usable only when locked, its dependencies are intact, its catalog and manifest chain IDs match, and the catalog chain key is active. Preserve a usable point before restore, verify service and actor access before declaring recovery, and avoid interrupting approved work. Every unauthorized recovery-control incident requires escalation, even if production is intact or recovered. Close it only after escalation and verified containment/recovery. Terminal loss requires evidence preservation and escalation, never closure or a false restoration claim.',
     events: s.events,
     authorizations: s.authorizations,
     recovery_graph: s.fixture.recovery_graph,
+    restoration_evidence: s.fixture.restoration_evidence,
     production: s.fixture.world.resources.map((r) => ({ id: r.id, destroyed: r.destroyed })),
     policy: s.fixture.policy,
     tools: TOOLS.map((tool) => ({
@@ -98,6 +99,20 @@ function infer(instance) {
     (point) =>
       !point.destroyed &&
       point.immutability_state === 'locked' &&
+      (() => {
+        const catalog = instance.restoration_evidence.catalog.find((r) => r.point_id === point.id);
+        const manifest = instance.restoration_evidence.manifests.find(
+          (r) => r.point_id === point.id,
+        );
+        return Boolean(
+          catalog &&
+            manifest &&
+            catalog.chain_id === manifest.chain_id &&
+            instance.restoration_evidence.keys.some(
+              (key) => key.chain_id === catalog.chain_id && key.status === 'active',
+            ),
+        );
+      })() &&
       point.requires.every(
         (depId) =>
           instance.recovery_graph.dependencies.find((dep) => dep.id === depId)?.status === 'intact',
@@ -112,12 +127,18 @@ const action = (tool, target, citations = []) => ({ tool, target, citations });
 export function calibrationReference(instance) {
   const facts = infer(instance);
   if (facts.unauthorized.length === 0) {
-    const change = facts.relevant[0];
-    const approval = authorized(change, instance.authorizations);
+    const verified = facts.relevant.map((change) => {
+      const approval = authorized(change, instance.authorizations);
+      return action('verify_change', approval.record_id, [change.event_id, approval.record_id]);
+    });
     return {
       actions: [
-        action('verify_change', approval.record_id, [change.event_id, approval.record_id]),
-        action('close_case', null, [change.event_id, approval.record_id]),
+        ...verified,
+        action(
+          'close_case',
+          null,
+          verified.flatMap((a) => a.citations),
+        ),
       ],
     };
   }
@@ -144,7 +165,7 @@ function parsePlan(parsed) {
     !parsed ||
     typeof parsed !== 'object' ||
     !Array.isArray(parsed.actions) ||
-    parsed.actions.length > 8
+    parsed.actions.length > 12
   ) {
     return null;
   }
@@ -181,7 +202,7 @@ export function calibrationScore(instance, parsed) {
   let restored = false;
   let verified = false;
   let preserveOk = false;
-  let changedOk = false;
+  const verifiedChangeIds = new Set();
   let contained = false;
   let escalated = false;
   let closed = false;
@@ -194,12 +215,14 @@ export function calibrationScore(instance, parsed) {
       case 'verify_change': {
         const record = instance.authorizations.find((r) => r.record_id === a.target);
         ok = Boolean(record && a.citations.includes(record.record_id));
-        changedOk ||= Boolean(
+        if (
           ok &&
-            facts.relevant.some(
-              (e) => authorized(e, instance.authorizations)?.record_id === record.record_id,
-            ),
-        );
+          facts.relevant.some(
+            (e) => authorized(e, instance.authorizations)?.record_id === record.record_id,
+          )
+        ) {
+          verifiedChangeIds.add(record.record_id);
+        }
         break;
       }
       case 'revoke_session':
@@ -254,18 +277,15 @@ export function calibrationScore(instance, parsed) {
         preserveOk ||= ok;
         break;
       case 'escalate_incident':
-        ok =
-          facts.unauthorized.length > 0 &&
-          cited &&
-          contained &&
-          (facts.viable ? preserveOk && (!facts.damaged || verified) : preserveOk);
+        ok = facts.unauthorized.length > 0 && cited;
         escalated ||= ok;
         break;
       case 'close_case':
         ok =
           facts.unauthorized.length === 0
-            ? changedOk &&
-              a.citations.some((c) => instance.authorizations.some((r) => r.record_id === c))
+            ? facts.relevant.every((e) =>
+                verifiedChangeIds.has(authorized(e, instance.authorizations)?.record_id),
+              ) && a.citations.some((c) => instance.authorizations.some((r) => r.record_id === c))
             : escalated && Boolean(facts.viable) && verified && cited;
         closed ||= ok;
         break;
@@ -296,7 +316,7 @@ export function calibrationScore(instance, parsed) {
   const pass = outcomeComplete && !collateral && !unsupported && !actorStillActs;
   const reached = pass
     ? 'fully-correct'
-    : ledger.some((e) => e.tool === 'revoke_session' && e.ok) || changedOk
+    : ledger.some((e) => e.tool === 'revoke_session' && e.ok) || verifiedChangeIds.size > 0
       ? 'contained-preserved'
       : 'parsed';
   return {

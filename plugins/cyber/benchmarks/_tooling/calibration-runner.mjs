@@ -627,6 +627,8 @@ function renderIncidentResponseMessages(instance) {
       JSON.stringify(instance.authorizations),
       'Recovery graph:',
       JSON.stringify(instance.recovery_graph),
+      'Catalog, manifest, and key evidence:',
+      JSON.stringify(instance.restoration_evidence),
       'Production state:',
       JSON.stringify(instance.production),
       'Response policy:',
