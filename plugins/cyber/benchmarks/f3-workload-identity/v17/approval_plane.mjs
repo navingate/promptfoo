@@ -147,6 +147,16 @@ export function selectEffectiveApproval(stream, readTime) {
     if (item.event_time >= readTime) {
       break;
     }
+    if (item.failure_reason === 'stale-predecessor') {
+      if (
+        item.outcome !== 'failed' ||
+        item.previous_snapshot_ref === selectedRef ||
+        !snapshots.has(item.previous_snapshot_ref)
+      ) {
+        throw new Error('stale approval publication predecessor is invalid');
+      }
+      continue;
+    }
     if (item.previous_snapshot_ref !== selectedRef) {
       throw new Error('approval publication predecessor is invalid');
     }

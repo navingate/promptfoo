@@ -39,7 +39,7 @@ function sourceFetchCount(raw, token) {
   ).length;
 }
 
-function selectVariableCohort(raw, spec, pairVariant) {
+function selectVariableCohort(raw, spec, pairVariant, options = {}) {
   const tokens = raw.events.filter((event) => event.kind === 'release-token-redeemed');
   const sourceApproved = (token) =>
     raw.nativeActionRecords[token.event_id]?.source?.captured?.authorized;
@@ -55,7 +55,9 @@ function selectVariableCohort(raw, spec, pairVariant) {
   ).sort((left, right) => sourceFetchCount(raw, left) - sourceFetchCount(raw, right));
   // Select all two native compromised sources and vary the number of clean
   // concurrent releases rather than making a single attack the fixed shape.
-  const releaseCount = 4 + (draw(spec, 'release-count') % 2);
+  const releaseCount = options.requirePersistentJobDenial
+    ? 5
+    : 4 + (draw(spec, 'release-count') % 2);
   const badCount = 2;
   if (bad.length < badCount || good.length < releaseCount - badCount) {
     throw new Error('native F3 histories cannot populate variable cohort');
@@ -79,9 +81,11 @@ function selectVariableCohort(raw, spec, pairVariant) {
     const isFlip = token.event_id === flip.event_id;
     const jobBad = isFlip
       ? pairVariant === 1
-      : token.event_id !== cleanAnchor.event_id &&
-        sourceApproved(token) === true &&
-        draw(spec, 'other-job-approval', token.event_id) % 4 === 0;
+      : options.requirePersistentJobDenial && token.event_id === approved[2]?.event_id
+        ? true
+        : token.event_id !== cleanAnchor.event_id &&
+          sourceApproved(token) === true &&
+          draw(spec, 'other-job-approval', token.event_id) % 4 === 0;
     const [active, renewal] = phases(spec, token.event_id, isFlip);
     const state = jobBad ? 'bad' : 'clean';
     return [active ? state : null, renewal ? state : null];
@@ -106,14 +110,14 @@ function selectVariableCohort(raw, spec, pairVariant) {
   };
 }
 
-export function buildNativeEpisode(spec) {
+export function buildNativeEpisode(spec, options = {}) {
   if (!Number.isSafeInteger(spec?.seed) || spec.seed < 0 || !FAMILIES.includes(spec.family)) {
     throw new Error('v21 episode requires a nonnegative seed and known controller family');
   }
   const nativeSpec = { ...spec, seed: spec.seed - (spec.seed % 2), caseIndex: 0 };
   const pairVariant = spec.seed % 2;
   return buildV19Episode(nativeSpec, {
-    selectCohort: (raw) => selectVariableCohort(raw, nativeSpec, pairVariant),
+    selectCohort: (raw) => selectVariableCohort(raw, nativeSpec, pairVariant, options),
     mappingPolicy: (cohort) => ({
       approvalMode: 'split-neighbors',
       targetTokenRefs: cohort.backgroundMappingTokenIds,

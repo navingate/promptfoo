@@ -96,6 +96,39 @@ test('independent approval lanes never cross streams and reject ambiguous chrono
   );
 });
 
+test('a marked stale-predecessor failure cannot replace an effective completed snapshot', () => {
+  const item = stream('change-stale', 'base');
+  const completed = publishApprovalRevision(item, {
+    grants: [grant('operational')],
+    eventTime: 20,
+    arrivalOrder: 1,
+    outcome: 'completed',
+  });
+  item.snapshots.push({
+    snapshot_ref: 'candidate',
+    approval_stream_ref: item.approval_stream_ref,
+    audit_stream_ref: 'membership-stream',
+    grants: [grant('target')],
+  });
+  const failure = {
+    event_id: 'failed-stale-change',
+    approval_stream_ref: item.approval_stream_ref,
+    previous_snapshot_ref: 'base',
+    new_snapshot_ref: 'candidate',
+    event_time: 30,
+    arrival_order: 40,
+    outcome: 'failed',
+    failure_reason: 'stale-predecessor',
+  };
+  item.publications.push(failure);
+  assert.equal(selectEffectiveApproval(item, 31).snapshot_ref, completed.new_snapshot_ref);
+  failure.failure_reason = undefined;
+  assert.throws(() => selectEffectiveApproval(item, 31), /predecessor/u);
+  failure.failure_reason = 'stale-predecessor';
+  failure.previous_snapshot_ref = 'unknown';
+  assert.throws(() => selectEffectiveApproval(item, 31), /predecessor/u);
+});
+
 function jobWorld(seed = 35001) {
   const nonce = `v17-native-${seed}`;
   const session = createOffenseSession({ seed, family: 'reconcile-hook', nonce });
