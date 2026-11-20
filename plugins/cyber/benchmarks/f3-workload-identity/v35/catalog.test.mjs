@@ -4,19 +4,28 @@ import { test } from 'node:test';
 import { FAMILIES, sha256Hex } from '../shared/estate.mjs';
 import { planReferenceContainment } from '../v20/reference.mjs';
 import { resolveCurrentApprovals } from '../v23/ledger.mjs';
-import { buildEpisode as buildV30Episode } from '../v30/producer.mjs';
 import { listWorkloads } from '../v30/queries.mjs';
+import { buildEpisode as buildV32Episode } from '../v32/producer.mjs';
 import {
   buildCoupledCatalog,
+  hasUniqueStagedPlans,
   solveMixedCover,
   solveNoExceptionCover,
   validateCoupledCatalog,
 } from './catalog.mjs';
+import { buildPairedSchedule } from './schedule.mjs';
 
 const key = ({ kind, id }) => `${kind}:${id}`;
 
+const cases = new Map();
+const pairedCheckpoints = new WeakMap();
+
 function caseData(seed, family) {
-  const episode = buildV30Episode({ seed, family });
+  const cacheKey = [seed, family].join('|');
+  if (cases.has(cacheKey)) {
+    return cases.get(cacheKey);
+  }
+  const episode = buildV32Episode({ seed, family });
   const { visible } = episode;
   const current = new Map([
     ...visible.job_queue.map(({ job_uid }) => [
@@ -37,7 +46,9 @@ function caseData(seed, family) {
   );
   const unsafe = new Set(required.map((action) => byAction.get(JSON.stringify(action))));
   assert.equal(unsafe.has(undefined), false);
-  return { episode, index: listWorkloads(visible), current, required, unsafe };
+  const data = { episode, index: listWorkloads(visible), current, required, unsafe };
+  cases.set(cacheKey, data);
+  return data;
 }
 
 function pair(family = FAMILIES[0]) {
@@ -45,7 +56,14 @@ function pair(family = FAMILIES[0]) {
 }
 
 function options(even, odd, nonce = 0, family = FAMILIES[0]) {
+  if (!pairedCheckpoints.has(even)) {
+    pairedCheckpoints.set(
+      even,
+      buildPairedSchedule(even.episode.visible, odd.episode.visible).checkpoints,
+    );
+  }
   return {
+    checkpoints: pairedCheckpoints.get(even),
     pairSeed: 100000,
     family,
     nonce,
@@ -295,30 +313,39 @@ test('visible group IDs and member order depend on membership rather than round 
   }
 });
 
-test('builder deterministically retries a round with duplicate exception membership', () => {
-  const index = {
-    job_uids: Array.from({ length: 24 }, (_, item) => `j${item}`),
-    access_key_refs: Array.from({ length: 24 }, (_, item) => `s${item}`),
-  };
-  const currentKeys = new Set([
-    ...index.job_uids.slice(0, 12).map((id) => `job:${id}`),
-    ...index.access_key_refs.slice(0, 12).map((id) => `session:${id}`),
-  ]);
-  const evenUnsafeKeys = new Set([
-    ...index.job_uids.slice(0, 8).map((id) => `job:${id}`),
-    ...index.access_key_refs.slice(0, 7).map((id) => `session:${id}`),
-  ]);
-  const args = {
-    pairSeed: 100000,
-    family: FAMILIES[0],
-    nonce: 1750,
-    currentKeys,
-    evenUnsafeKeys,
-    oddUnsafeKeys: new Set([...evenUnsafeKeys, 'session:s7']),
-  };
-  const first = buildCoupledCatalog(index, args);
-  assert.doesNotThrow(() => validateCoupledCatalog(first));
-  assert.deepEqual(buildCoupledCatalog(index, args), first);
+test('paired witness uses cumulative evidence at each board slot', () => {
+  const [even, odd] = pair();
+  const args = options(even, odd);
+  const catalogs = buildCoupledCatalog(even.index, args);
+  assert.deepEqual(catalogs.witnesses.even.slice(0, 3), catalogs.witnesses.odd.slice(0, 3));
+  const seen = new Set();
+  for (const [stage, ordinal] of [20, 24, 30].entries()) {
+    const command = catalogs.witnesses.even[stage];
+    const members = currentOccupancy([command], catalogs, even.current);
+    assert.equal(members.length, 6);
+    for (const member of members) {
+      assert.equal(seen.has(member), false);
+      seen.add(member);
+    }
+    const statuses = members.map((key) => args.checkpoints[ordinal][key].status).sort();
+    assert.deepEqual(
+      statuses,
+      [
+        Array(6).fill('unsafe'),
+        ['approved', 'approved', ...Array(4).fill('unsafe')],
+        ['unresolved', ...Array(5).fill('unsafe')],
+      ][stage].sort(),
+      'ordinal ' + ordinal,
+    );
+    if (ordinal === 30) {
+      const flipped = members.find((key) => args.checkpoints[ordinal][key].status === 'unresolved');
+      assert.ok(flipped.startsWith('job:') && odd.unsafe.has(flipped) && !even.unsafe.has(flipped));
+    }
+  }
+  assert.throws(
+    () => buildCoupledCatalog(even.index, { ...args, checkpoints: {} }),
+    /checkpoint/iu,
+  );
 });
 
 test('reported development pair has many disjoint six-current cohort triples', () => {
@@ -491,30 +518,48 @@ test('paired witnesses and visible solver require the corresponding exception', 
 test('same effective coverage retains distinct raw occupancy, including exempted members', () => {
   const [even, odd] = pair();
   const catalogs = buildCoupledCatalog(even.index, options(even, odd));
-  const exception = catalogs.exception_bundles.bundles.find(
-    (group) => group.exception_id === 'exception-01e74aca8cb8ec2da826',
+  const cohorts = catalogs.containment_cohorts.cohorts.map(
+    (group) => new Set(group.selectors.map(key).filter((k) => even.current.has(k))),
   );
-  const groups = [
-    'cohort-1c54f6c0c29e3db08576',
-    'cohort-40c598c1de8c6a3f9a6a',
-    'cohort-e10f254911d44561a7e8',
-  ].map((id) => catalogs.containment_cohorts.cohorts.find((group) => group.cohort_id === id));
-  assert.ok(exception);
-  assert.ok(groups.every(Boolean));
-  const exempt = new Set(exception.selectors.map(key));
-  const occupancy = groups.map(
-    (group) => new Set(group.selectors.map(key).filter((selector) => even.current.has(selector))),
-  );
-  const coverage = (members) => [...members].filter((selector) => !exempt.has(selector)).sort();
-  assert.deepEqual(coverage(occupancy[0]), coverage(occupancy[1]));
-  assert.notDeepEqual(occupancy[0], occupancy[1]);
-  assert.ok(
-    [...occupancy[0]].some((selector) => occupancy[2].has(selector) && exempt.has(selector)),
-  );
-  assert.ok([...occupancy[1]].every((selector) => !occupancy[2].has(selector)));
-  const required = new Set(
-    [...occupancy[1], ...occupancy[2]].filter((selector) => !exempt.has(selector)),
-  );
+  let required;
+  for (const bundle of catalogs.exception_bundles.bundles) {
+    const exempt = new Set(bundle.selectors.map(key));
+    const coverage = (members) =>
+      [...members]
+        .filter((k) => !exempt.has(k))
+        .sort()
+        .join('|');
+    const equivalent = new Map();
+    for (const members of cohorts) {
+      const signature = coverage(members);
+      if (!signature) {
+        continue;
+      }
+      for (const earlier of equivalent.get(signature) ?? []) {
+        const third = cohorts.find(
+          (other) =>
+            coverage(other) &&
+            [...other].some((k) => earlier.has(k)) &&
+            [...other].every((k) => !members.has(k)),
+        );
+        if (third) {
+          required = new Set([...members, ...third].filter((k) => !exempt.has(k)));
+          break;
+        }
+      }
+      if (required) {
+        break;
+      }
+      if (!equivalent.has(signature)) {
+        equivalent.set(signature, []);
+      }
+      equivalent.get(signature).push(members);
+    }
+    if (required) {
+      break;
+    }
+  }
+  assert.ok(required, 'fixture contains equal effective coverage with different raw occupancy');
   const plan = solveMixedCover(
     catalogs,
     even.current,
@@ -530,42 +575,34 @@ test('mixed Q, E, and direct plans agree with independent exhaustive replay for 
   const [even, odd] = pair();
   const catalogs = buildCoupledCatalog(even.index, options(even, odd));
   const selectors = [...even.current.keys()].sort();
-  const bulkRequired = [
-    'session:dest-akref-renewed-7915d6245ebf15fb',
-    'session:dest-akref-renewed-ef32d650d5be8818',
-    'job:job-977b44b1796023df',
-    'session:dest-akref-renewed-0c85d7da3c2bfb43',
-    'job:job-01824882a1a71647',
+  const bulk = catalogs.witnesses.even[0];
+  const bulkRequired = currentOccupancy([bulk], catalogs, even.current);
+  const group = catalogs.exception_bundles.bundles.find((e) => {
+    const members = e.selectors.map(key);
+    return bulkRequired.filter((k) => members.includes(k)).length >= 2;
+  });
+  const exemptJobOrSession = bulkRequired.find((k) => group.selectors.map(key).includes(k));
+  const directPlan = [
+    bulk,
+    { tool: 'except-cohort', args: { exception_id: group.exception_id } },
+    even.current.get(exemptJobOrSession),
   ];
-  const directOverlapRequired = [
-    'session:dest-akref-35a3e4b0b87a26fe',
-    'session:dest-akref-renewed-f3e6d6bab7eafb6e',
-    'job:job-ab102643b7527e9e',
-    'job:job-01824882a1a71647',
-    'session:dest-akref-renewed-0c85d7da3c2bfb43',
-    'job:job-e05abdf56d699f11',
-  ];
+  const withDirectOverlap = blockedFrom(directPlan, catalogs, even.current);
+  assert.equal(exactNativePlan(directPlan, catalogs, even.current, withDirectOverlap), true);
   for (const required of [
     new Set(),
     new Set(selectors.slice(0, 1)),
     new Set(selectors.slice(0, 2)),
     new Set(selectors.slice(0, 3)),
     new Set(bulkRequired),
-    new Set([...bulkRequired, 'session:dest-akref-310c03a7ec612f81']),
-    new Set(directOverlapRequired),
+    new Set([...bulkRequired, selectors.find((k) => !bulkRequired.includes(k))]),
+    withDirectOverlap,
   ]) {
     const actions = [...required].map((selector) => even.current.get(selector));
     const plan = solveMixedCover(catalogs, even.current, actions, { maxActions: 3 });
     assert.equal(plan?.length ?? null, exhaustiveMinimumLength(catalogs, even.current, required));
     if (plan) {
       assert.equal(exactNativePlan(plan, catalogs, even.current, required), true);
-      if (required.has('job:job-e05abdf56d699f11')) {
-        const direct = plan.find((action) => action.tool === 'pause-job');
-        assert.ok(direct);
-        assert.ok(
-          currentOccupancy(plan, catalogs, even.current).includes(`job:${direct.args.job_uid}`),
-        );
-      }
     }
   }
 });
@@ -693,4 +730,108 @@ test('builder rejects malformed paired sets and validation catches catalog corru
     () => solveMixedCover(catalog, even.current, even.required, { maxActions: -1 }),
     /maxActions/iu,
   );
+});
+
+test('visible staged planner rejects incomplete, ambiguous and ineffective choices', async () => {
+  const { chooseStagedQuarantine, chooseStagedException } = await import('./staged_plan.mjs');
+  const [even, odd] = pair();
+  const args = options(even, odd);
+  const { checkpoints } = args;
+  let catalogs;
+  for (let nonce = 0; nonce < 256; nonce++) {
+    const candidate = buildCoupledCatalog(even.index, { ...args, nonce });
+    if (hasUniqueStagedPlans(candidate, checkpoints, even.unsafe, odd.unsafe)) {
+      catalogs = candidate;
+      break;
+    }
+  }
+  assert.ok(catalogs);
+  // Model/reference API crosses a serialization boundary with only public data.
+  const visible = JSON.parse(
+    JSON.stringify({
+      containment_cohorts: catalogs.containment_cohorts,
+      exception_bundles: catalogs.exception_bundles,
+    }),
+  );
+  const prior = [];
+  for (const [stage, ordinal] of [20, 24, 30].entries()) {
+    const rows = checkpoints[ordinal];
+    const cmd = chooseStagedQuarantine(visible, rows, prior);
+    assert.deepEqual(cmd, catalogs.witnesses.even[stage]);
+    const ambiguous = structuredClone(visible);
+    const cohort = ambiguous.containment_cohorts.cohorts.find(
+      (g) => g.cohort_id === cmd.args.cohort_id,
+    );
+    ambiguous.containment_cohorts.cohorts.push({ ...cohort, cohort_id: 'other' });
+    assert.equal(chooseStagedQuarantine(ambiguous, rows, prior), null);
+    prior.push(cmd.args.cohort_id);
+  }
+  assert.equal(chooseStagedQuarantine(visible, {}, []), null);
+  for (const [name, data] of [
+    ['even', even],
+    ['odd', odd],
+  ]) {
+    const rows = Object.fromEntries(
+      [...data.current.keys()].map((k) => [
+        k,
+        { status: data.unsafe.has(k) ? 'unsafe' : 'approved' },
+      ]),
+    );
+    const cmd = chooseStagedException(visible, rows, prior);
+    assert.deepEqual(cmd, catalogs.witnesses[name][3]);
+    assert.equal(chooseStagedException(visible, checkpoints[30], prior), null);
+    assert.equal(chooseStagedException(visible, rows, [prior[0], ...prior.slice(0, 2)]), null);
+    const overbroad = structuredClone(visible);
+    const bundle = overbroad.exception_bundles.bundles.find(
+      (e) => e.exception_id === cmd.args.exception_id,
+    );
+    const outside = [...data.current.keys()].find(
+      (k) =>
+        !currentOccupancy(catalogs.witnesses[name].slice(0, 3), catalogs, data.current).includes(k),
+    );
+    const filler = bundle.selectors.findIndex((s) => !data.current.has(key(s)));
+    bundle.selectors[filler] = overbroad.containment_cohorts.candidates.find(
+      (s) => key(s) === outside,
+    );
+    assert.deepEqual(chooseStagedException(overbroad, rows, prior), cmd);
+    const ambiguous = structuredClone(visible);
+    const e = ambiguous.exception_bundles.bundles.find(
+      (g) => g.exception_id === cmd.args.exception_id,
+    );
+    ambiguous.exception_bundles.bundles.push({ ...e, exception_id: 'other' });
+    assert.equal(chooseStagedException(ambiguous, rows, prior), null);
+    assert.equal(
+      chooseStagedException({ ...visible, exception_bundles: { bundles: [] } }, rows, prior),
+      null,
+    );
+  }
+});
+
+test('catalog and schedule admit several competing staged sequences without authorization facts', () => {
+  const [even, odd] = pair();
+  const args = options(even, odd);
+  const catalog = buildCoupledCatalog(even.index, args);
+  const witness = catalog.witnesses.even.slice(0, 3).map((cmd) => cmd.args.cohort_id);
+  const flip = [...odd.unsafe].find((key) => !even.unsafe.has(key));
+  const shapes = catalog.containment_cohorts.cohorts
+    .map((q) => ({
+      id: q.cohort_id,
+      members: q.selectors.map(key).filter((k) => even.current.has(k)),
+    }))
+    .filter((q) => q.members.length === 6);
+  const occupied = new Set();
+  for (const [stage, ordinal] of [20, 24, 30].entries()) {
+    const rivals = shapes.filter(
+      (q) =>
+        q.id !== witness[stage] &&
+        q.members.every((k) => !occupied.has(k)) &&
+        q.members.filter((k) => args.checkpoints[ordinal][k].status === 'unresolved').length ===
+          (stage === 2 ? 1 : 0) &&
+        (stage !== 2 || q.members.includes(flip)),
+    );
+    assert.ok(rivals.length >= 3, 'ordinal ' + ordinal + ' has ' + rivals.length + ' rivals');
+    for (const k of shapes.find((q) => q.id === witness[stage]).members) {
+      occupied.add(k);
+    }
+  }
 });

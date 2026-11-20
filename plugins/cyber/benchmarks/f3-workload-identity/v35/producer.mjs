@@ -7,6 +7,7 @@ import { listWorkloads } from '../v30/queries.mjs';
 import { buildEpisode as buildV32Episode } from '../v32/producer.mjs';
 import {
   buildCoupledCatalog,
+  hasUniqueStagedPlans,
   solveMixedCover,
   solveNoExceptionCover,
   validateCoupledCatalog,
@@ -326,6 +327,7 @@ export function buildEpisode(spec) {
         family: spec.family,
         nonce,
         currentKeys,
+        checkpoints: scheduleProof.checkpoints,
         evenUnsafeKeys: unsafe[0],
         oddUnsafeKeys: unsafe[1],
       });
@@ -339,7 +341,10 @@ export function buildEpisode(spec) {
       throw error;
     }
     validateCoupledCatalog(catalogs);
-    if (candidatePasses(episodes, current, required, catalogs)) {
+    if (
+      hasUniqueStagedPlans(catalogs, scheduleProof.checkpoints, unsafe[0], unsafe[1]) &&
+      candidatePasses(episodes, current, required, catalogs)
+    ) {
       const consoles = episodes.map((episode, variant) =>
         buildDefenseSession({ ...spec, seed: pairSeed + variant }, () => episode),
       );

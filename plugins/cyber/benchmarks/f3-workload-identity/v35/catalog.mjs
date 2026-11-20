@@ -1,5 +1,92 @@
 import { sha256Hex } from '../shared/estate.mjs';
 import { extractCohortCandidates, selectorKey } from '../v31/cohorts.mjs';
+import { chooseStagedException, chooseStagedQuarantine } from './staged_plan.mjs';
+
+// Count complete sequences using only the current index, public E pair shapes,
+// final query ID, and which evidence can be resolved at each cutoff. No
+// authorization value is used to rank any sequence.
+function hasTimingMotifRivals(catalogs, checkpoints, witness, flip) {
+  const current = (group) =>
+    group.selectors.map(exactSelector).filter((key) => Object.hasOwn(checkpoints[30], key));
+  const six = catalogs.containment_cohorts.cohorts
+    .map((group) => ({
+      id: group.cohort_id,
+      keys: current(group),
+    }))
+    .filter(({ keys }) => keys.length === 6);
+  const bundles = catalogs.exception_bundles.bundles.map(current);
+  const larger = bundles.filter((keys) => keys.length === 3 && keys.includes(flip));
+  const pairs = bundles.filter(
+    (keys) => keys.length === 2 && larger.some((group) => keys.every((key) => group.includes(key))),
+  );
+  const stages = [20, 24, 30].map((ordinal, stage) =>
+    six.filter(
+      ({ keys }) =>
+        keys.filter((key) => checkpoints[ordinal][key].status === 'unresolved').length ===
+          (stage === 2 ? 1 : 0) &&
+        (stage !== 2 || keys.includes(flip)) &&
+        (stage !== 1 || pairs.some((pair) => pair.every((key) => keys.includes(key)))),
+    ),
+  );
+  const counts = [new Map(), new Map(), new Map()];
+  const disjoint = (a, b) => a.keys.every((key) => !b.keys.includes(key));
+  for (const first of stages[0]) {
+    for (const second of stages[1]) {
+      if (!disjoint(first, second)) {
+        continue;
+      }
+      for (const third of stages[2]) {
+        if (!disjoint(first, third) || !disjoint(second, third)) {
+          continue;
+        }
+        for (const [stage, group] of [first, second, third].entries()) {
+          counts[stage].set(group.id, 1 + (counts[stage].get(group.id) ?? 0));
+          if (group.id !== witness[stage]) {
+            break;
+          }
+        }
+      }
+    }
+  }
+  return counts.every((rank, stage) => {
+    const target = rank.get(witness[stage]);
+    const rivals = [...rank].filter(([id]) => id !== witness[stage]).map(([, count]) => count);
+    return rivals.length >= 3 && rivals.some((n) => n >= target) && rivals.some((n) => n <= target);
+  });
+}
+
+/** Producer-only gate; the chooser receives only catalog groups and visible statuses. */
+export function hasUniqueStagedPlans(catalogs, checkpoints, evenUnsafeKeys, oddUnsafeKeys) {
+  const visible = {
+    containment_cohorts: catalogs.containment_cohorts,
+    exception_bundles: catalogs.exception_bundles,
+  };
+  const prior = [];
+  for (const ordinal of [20, 24, 30]) {
+    const cmd = chooseStagedQuarantine(visible, checkpoints[ordinal], prior);
+    if (!cmd || cmd.args.cohort_id !== catalogs.witnesses.even[prior.length].args.cohort_id) {
+      return false;
+    }
+    prior.push(cmd.args.cohort_id);
+  }
+  const flip = [...oddUnsafeKeys].find((key) => !evenUnsafeKeys.has(key));
+  if (!hasTimingMotifRivals(visible, checkpoints, prior, flip)) {
+    return false;
+  }
+  return [
+    ['even', evenUnsafeKeys],
+    ['odd', oddUnsafeKeys],
+  ].every(([variant, unsafe]) => {
+    const rows = Object.fromEntries(
+      Object.keys(checkpoints[30]).map((key) => [
+        key,
+        { status: unsafe.has(key) ? 'unsafe' : 'approved' },
+      ]),
+    );
+    const chosen = chooseStagedException(visible, rows, prior);
+    return chosen?.args.exception_id === catalogs.witnesses[variant][3].args.exception_id;
+  });
+}
 
 const Q_SIZE = 8;
 const E_SIZE = 6;
@@ -17,14 +104,13 @@ function exactSelector(selector) {
 }
 
 function hashOrder(items, salt, identity) {
-  return [...items].sort((left, right) => {
-    const leftId = identity(left);
-    const rightId = identity(right);
-    return (
-      sha256Hex(`${salt}|${leftId}`).localeCompare(sha256Hex(`${salt}|${rightId}`)) ||
-      leftId.localeCompare(rightId)
-    );
-  });
+  return items
+    .map((item) => {
+      const id = identity(item);
+      return { item, id, rank: sha256Hex(salt + '|' + id) };
+    })
+    .sort((left, right) => left.rank.localeCompare(right.rank) || left.id.localeCompare(right.id))
+    .map(({ item }) => item);
 }
 
 function canonicalMembership(members) {
@@ -181,92 +267,183 @@ function partitionRounds(candidates, { rounds, size, reserved, salt, idName, pre
   return hashOrder(groups, `${salt}|${prefix}|catalog-order`, (group) => group[idName]);
 }
 
-function decoyQuarantines(candidates, current, even, planted, archive, salt) {
+// Each rival triple has the same public timing pattern as the witness, including
+// the final Job. Third-stage rivals also remain available after the real Q1/Q2.
+function decoyQuarantines(candidates, checkpoints, planted, archive, flip, salt) {
   const reserved = [...planted];
-  const memberships = new Set(reserved.map(canonicalMembership));
-  const currentCandidates = candidates.filter((selector) => current.has(exactSelector(selector)));
-  for (let triple = 0; triple < 3; triple += 1) {
-    let decoys = null;
-    for (let retry = 0; retry < 64 && decoys === null; retry += 1) {
-      const decoySalt = `${salt}|decoy-triple|${triple}|${retry}`;
-      const selectedCurrent = hashOrder(currentCandidates, `${decoySalt}|current`, exactSelector);
-      const selectedArchive = hashOrder(archive, `${decoySalt}|archive`, exactSelector);
-      const groups = Array.from({ length: 3 }, (_, index) => [
-        ...selectedCurrent.slice(index * 6, (index + 1) * 6),
-        ...selectedArchive.slice(index * 2, (index + 1) * 2),
-      ]);
-      const keys = groups.map(canonicalMembership);
-      if (
-        keys.some((key) => memberships.has(key)) ||
-        new Set(keys).size !== groups.length ||
-        groups.some((group) =>
-          group.slice(0, 6).every((selector) => !even.has(exactSelector(selector))),
-        )
-      ) {
-        continue;
+  const memberKeys = (group) =>
+    group
+      .map(exactSelector)
+      .filter((key) => checkpoints[30][key])
+      .sort()
+      .join('|');
+  const used = new Set(planted.map(memberKeys));
+  for (let triple = 0; triple < 3; triple++) {
+    let accepted = false;
+    for (let retry = 0; retry < 256 && !accepted; retry++) {
+      const decoySalt = salt + '|rival|' + triple + '|' + retry;
+      const ordered = hashOrder(candidates, decoySalt, exactSelector);
+      const fillers = hashOrder(archive, decoySalt + '|archive', exactSelector);
+      const unavailable = new Set();
+      const groups = [];
+      for (const [stage, ordinal] of [20, 24, 30].entries()) {
+        const known = ordered.filter((s) => {
+          const row = checkpoints[ordinal][exactSelector(s)];
+          return (
+            row &&
+            row.status !== 'unresolved' &&
+            !unavailable.has(s) &&
+            (stage !== 2 || (!planted[0].includes(s) && !planted[1].includes(s)))
+          );
+        });
+        const members = stage === 2 ? [...known.slice(0, 5), flip] : known.slice(0, 6);
+        const unsafe = members.filter(
+          (s) => checkpoints[ordinal][exactSelector(s)].status === 'unsafe',
+        ).length;
+        if (
+          members.length !== 6 ||
+          unsafe === 0 ||
+          unsafe === [6, 4, 5][stage] ||
+          used.has(memberKeys(members))
+        ) {
+          break;
+        }
+        groups.push([...members, ...fillers.slice(2 * stage, 2 * stage + 2)]);
+        for (const s of members) {
+          unavailable.add(s);
+        }
       }
-      decoys = groups;
-      for (const key of keys) {
-        memberships.add(key);
+      if (groups.length === 3) {
+        reserved.push(...groups);
+        for (const g of groups) {
+          used.add(memberKeys(g));
+        }
+        accepted = true;
       }
     }
-    if (decoys === null) {
-      throw new Error('v35 cohort cannot construct a unique partition round');
+    if (!accepted) {
+      throw new Error('v35 cannot construct a unique partition round with staged rivals');
     }
-    reserved.push(...decoys);
   }
   return reserved;
 }
 
-function decoyExceptions(reservedQ, current, archive, plantedEven, plantedOdd, salt) {
-  const reserved = [plantedEven, plantedOdd];
-  const memberships = new Set(reserved.map(canonicalMembership));
-  const motifs = [
-    [3, 4, 5],
-    [3, 4, 5],
-    [6, 7, 8],
-    [6, 7, 8],
-    [9, 10, 11],
-  ];
-  for (const [motif, groupIndices] of motifs.entries()) {
-    const currentUnion = new Map();
-    for (const index of groupIndices) {
-      for (const selector of reservedQ[index]) {
-        const key = exactSelector(selector);
-        if (current.has(key)) {
-          currentUnion.set(key, selector);
+// Keep several authorization-disqualified seconds available after the real Q1,
+// even if the deadline leaves only seven eligible selectors outside it.
+function addSecondStageRivals(reserved, candidates, checkpoints, archive, salt) {
+  const first = reserved[0];
+  const second = reserved[1].slice(0, 6);
+  const status = (selector) => checkpoints[24][exactSelector(selector)]?.status;
+  const extra = candidates.filter(
+    (selector) =>
+      ['approved', 'unsafe'].includes(status(selector)) &&
+      !first.includes(selector) &&
+      !second.includes(selector),
+  );
+  const existing = new Set(
+    reserved.map((group) => group.slice(0, 6).map(exactSelector).sort().join('|')),
+  );
+  const choices = [];
+  for (const outsider of extra) {
+    for (const omit of second) {
+      if (status(omit) === status(outsider)) {
+        continue;
+      }
+      const members = [...second.filter((key) => key !== omit), outsider];
+      const signature = members.map(exactSelector).sort().join('|');
+      if (!existing.has(signature)) {
+        choices.push({ members, signature });
+      }
+    }
+  }
+  const ranked = hashOrder(choices, salt + '|seconds', (choice) => choice.signature);
+  for (const { members, signature } of ranked.slice(0, 4)) {
+    const fillers = hashOrder(archive, salt + '|second-fillers|' + signature, exactSelector);
+    reserved.push([...members, ...fillers.slice(0, 2)]);
+  }
+}
+
+// Additional second-stage choices remain available after rival first Qs.
+// Otherwise the correct first Q can have a uniquely high continuation count.
+function addRivalContinuations(reserved, archive, salt) {
+  const seen = new Set(
+    reserved.map((group) => group.slice(0, 6).map(exactSelector).sort().join('|')),
+  );
+  const thirds = [2, 5, 8, 11].map((i) => reserved[i].slice(0, 6));
+  const seconds = [reserved[1], reserved[4], reserved[7], reserved[10], ...reserved.slice(12)];
+  const disjoint = (a, b) => a.every((s) => !b.includes(s));
+  const firsts = [3, 6, 9]
+    .map((i) => reserved[i].slice(0, 6))
+    .sort(
+      (a, b) =>
+        thirds.filter((g) => disjoint(b, g)).length - thirds.filter((g) => disjoint(a, g)).length,
+    );
+  // Favor one structurally compatible rival in addition to the witness. Keep
+  // other rivals at their natural ranks so neither tail signals authorization.
+  const first = firsts[0];
+  const borrow = reserved[0].slice(0, 6).filter((s) => !first.includes(s));
+  const choices = new Map();
+  for (const secondGroup of seconds) {
+    const second = secondGroup.slice(0, 6);
+    for (const selector of borrow.filter((s) => !second.includes(s))) {
+      for (const omit of second) {
+        const members = [...second.filter((s) => s !== omit), selector];
+        if (!disjoint(first, members)) {
+          continue;
+        }
+        const signature = members.map(exactSelector).sort().join('|');
+        if (seen.has(signature)) {
+          continue;
+        }
+        const continuations = thirds.filter(
+          (g) => disjoint(first, g) && disjoint(members, g),
+        ).length;
+        if (continuations) {
+          choices.set(signature, { members, signature, continuations });
         }
       }
     }
-    if (currentUnion.size !== 18) {
-      throw new Error('v35 exception decoy lacks a disjoint current triple');
-    }
-    let pair = null;
-    for (let retry = 0; retry < 64 && pair === null; retry += 1) {
-      const decoySalt = `${salt}|exception-decoy|${motif}|${retry}`;
-      const selectedCurrent = hashOrder(
-        [...currentUnion.values()],
-        `${decoySalt}|current`,
-        exactSelector,
-      );
-      const selectedArchive = hashOrder(archive, `${decoySalt}|archive`, exactSelector);
-      const groups = [
-        [...selectedCurrent.slice(0, 3), ...selectedArchive.slice(0, 3)],
-        [...selectedCurrent.slice(0, 2), ...selectedArchive.slice(3, 7)],
-      ];
-      const keys = groups.map(canonicalMembership);
-      if (keys.some((key) => memberships.has(key)) || keys[0] === keys[1]) {
-        continue;
+  }
+  const ordered = hashOrder(
+    [...choices.values()],
+    salt + '|continuations',
+    (choice) => choice.signature,
+  ).sort((a, b) => b.continuations - a.continuations);
+  // Allow untouched partition rounds to contribute ordinary random groups too.
+  for (const { members, signature } of ordered.slice(0, 12)) {
+    const fillers = hashOrder(archive, salt + '|continuation-fillers|' + signature, exactSelector);
+    reserved.push([...members, ...fillers.slice(0, 2)]);
+  }
+}
+
+// Include the public two-to-three member E motif in every staged rival, with
+// the same unresolved Job added to the larger E as in the winning pair.
+function decoyExceptions(reservedQ, archive, flip, plantedEven, plantedOdd, salt) {
+  const reserved = [plantedEven, plantedOdd];
+  const pairKey = (members) => members.slice(0, 2).map(exactSelector).sort().join('|');
+  const seen = new Set([pairKey(plantedOdd)]);
+  for (const start of [0, 3, 6, 9]) {
+    for (let motif = start === 0 ? 1 : 0; motif < 3; motif++) {
+      let accepted = false;
+      for (let retry = 0; retry < 64 && !accepted; retry++) {
+        const decoySalt = salt + '|exception-rival|' + start + '|' + motif + '|' + retry;
+        const pair = hashOrder(reservedQ[start + 1].slice(0, 6), decoySalt, exactSelector).slice(
+          0,
+          2,
+        );
+        const signature = pairKey(pair);
+        if (seen.has(signature)) {
+          continue;
+        }
+        const fillers = hashOrder(archive, decoySalt, exactSelector);
+        reserved.push([...pair, flip, ...fillers.slice(0, 3)], [...pair, ...fillers.slice(3, 7)]);
+        seen.add(signature);
+        accepted = true;
       }
-      pair = groups;
-      for (const key of keys) {
-        memberships.add(key);
+      if (!accepted) {
+        throw new Error('v35 cannot construct a unique partition round with exception rivals');
       }
     }
-    if (pair === null) {
-      throw new Error('v35 exception cannot construct a unique partition round');
-    }
-    reserved.push(...pair);
   }
   return reserved;
 }
@@ -277,36 +454,63 @@ export function buildCoupledCatalog(index, options = {}) {
   const { current, even, odd } = validateBuilderInputs(candidates, options);
   const unsafeDigest = sha256Hex(JSON.stringify([...odd].sort()));
   const salt = `v35|coupled|${options.pairSeed}|${options.family}|${options.nonce}|${unsafeDigest}`;
-  const unsafe = hashOrder(
-    candidates.filter((selector) => odd.has(exactSelector(selector))),
-    `${salt}|unsafe-order`,
-    exactSelector,
-  );
-  const safe = hashOrder(
-    candidates.filter(
-      (selector) => current.has(exactSelector(selector)) && !odd.has(exactSelector(selector)),
-    ),
-    `${salt}|approved-order`,
-    exactSelector,
-  ).slice(0, 2);
+  const { checkpoints } = options;
+  const flipKey = [...odd].find((key) => !even.has(key));
+  for (const ordinal of [20, 24, 30]) {
+    const rows = checkpoints?.[ordinal];
+    if (
+      !record(rows) ||
+      Object.keys(rows).length !== current.size ||
+      [...current].some((key) => {
+        const status = rows[key]?.status;
+        return (
+          !['approved', 'unsafe', 'unresolved'].includes(status) ||
+          (status === 'approved' && odd.has(key)) ||
+          (status === 'unsafe' && !even.has(key))
+        );
+      })
+    ) {
+      throw new Error('v35 checkpoint rows differ from the paired authorization sets');
+    }
+  }
+  const ordered = hashOrder(candidates, salt + '|witness', exactSelector);
+  const taken = new Set();
+  function take(ordinal, status, count) {
+    const batch = ordered
+      .filter((s) => !taken.has(s) && checkpoints[ordinal][exactSelector(s)]?.status === status)
+      .slice(0, count);
+    if (batch.length !== count) {
+      throw new Error('v35 checkpoint lacks required selectors');
+    }
+    for (const selector of batch) {
+      taken.add(selector);
+    }
+    return batch;
+  }
+  const first = take(20, 'unsafe', 6);
+  const second = take(24, 'unsafe', 4);
+  const safe = take(24, 'approved', 2);
+  const third = take(30, 'unsafe', 5);
+  const flip = candidates.find((s) => exactSelector(s) === flipKey);
+  if (flip.kind !== 'job' || checkpoints[30][flipKey].status !== 'unresolved') {
+    throw new Error('v35 flipped renewal Job must remain unresolved at checkpoint 30');
+  }
   const archive = hashOrder(
     candidates.filter((selector) => !current.has(exactSelector(selector))),
-    `${salt}|archive-order`,
+    salt + '|archive-order',
     exactSelector,
   );
-  const flip = unsafe.find((selector) => !even.has(exactSelector(selector)));
-  if (!flip || safe.length !== 2 || archive.length < 13) {
-    throw new Error('v35 paired construction lacks its approved, flipped, or archive selectors');
-  }
   const plantedQ = [
-    [...unsafe.slice(0, 6), archive[0], archive[1]],
-    [...unsafe.slice(6, 11), safe[0], archive[2], archive[3]],
-    [...unsafe.slice(11, 16), safe[1], archive[4], archive[5]],
+    [...first, ...archive.slice(0, 2)],
+    [...second, ...safe, ...archive.slice(2, 4)],
+    [...third, flip, ...archive.slice(4, 6)],
   ];
-  const reservedQ = decoyQuarantines(candidates, current, even, plantedQ, archive, salt);
+  const reservedQ = decoyQuarantines(candidates, checkpoints, plantedQ, archive, flip, salt);
   const plantedEvenE = [...safe, flip, archive[6], archive[7], archive[8]];
   const plantedOddE = [...safe, archive[9], archive[10], archive[11], archive[12]];
-  const reservedE = decoyExceptions(reservedQ, current, archive, plantedEvenE, plantedOddE, salt);
+  const reservedE = decoyExceptions(reservedQ, archive, flip, plantedEvenE, plantedOddE, salt);
+  addSecondStageRivals(reservedQ, candidates, checkpoints, archive, salt);
+  addRivalContinuations(reservedQ, archive, salt);
   const cohorts = partitionRounds(candidates, {
     rounds: 32,
     size: Q_SIZE,
