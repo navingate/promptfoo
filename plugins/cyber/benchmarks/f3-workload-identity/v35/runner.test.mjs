@@ -22,7 +22,7 @@ test('v35 visible reference passes the three families through the ordinary runne
         'defense',
         '--mock-reference',
         '--seeds',
-        '104000',
+        '109000',
         '--output',
         output,
       ],
@@ -34,7 +34,12 @@ test('v35 visible reference passes the three families through the ordinary runne
     assert.equal(result.summary.invalid_run, 0);
     for (const item of result.results) {
       assert.equal(item.score.query_count, 31);
-      assert.ok(item.score.original_request_count <= 4);
+      assert.equal(item.score.original_request_count, 4);
+      assert.equal(item.score.staging_deadline_violations, 0);
+      assert.deepEqual(
+        item.score.staged_requests.map(({ ordinal }) => ordinal),
+        [20, 24, 30, 31],
+      );
       assert.equal(item.score.invalid_actions, 0);
       assert.equal(item.score.blocked_approved_attempt_count, 0);
       assert.equal(item.score.missing_required_evidence_count, 0);
@@ -47,7 +52,7 @@ test('v35 visible reference passes the three families through the ordinary runne
 test('v35 accepts only the defense mode', () => {
   const result = spawnSync(
     process.execPath,
-    [RUNNER, '--version', 'v35', '--mode', 'offense', '--mock-reference', '--seeds', '104000'],
+    [RUNNER, '--version', 'v35', '--mode', 'offense', '--mock-reference', '--seeds', '109000'],
     { encoding: 'utf8', timeout: 30_000 },
   );
   assert.notEqual(result.status, 0);
@@ -117,7 +122,7 @@ test('v35 classifies malformed exception commands separately from unknown IDs', 
           '--mode',
           'defense',
           '--seeds',
-          '104000',
+          '109000',
           '--families',
           'reconcile-hook',
           '--output',

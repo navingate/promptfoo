@@ -1,31 +1,20 @@
+import { sha256Hex } from '../shared/estate.mjs';
 import { actionFromCommand } from '../v18/defense.mjs';
-import { planReferenceContainment } from '../v20/reference.mjs';
 import {
   buildDefenseSession as buildV23DefenseSession,
   scoreDefense as scoreV23Defense,
   stepDefense as stepV23Defense,
 } from '../v23/defense.mjs';
-import { resolveCurrentApprovals } from '../v23/ledger.mjs';
 import { resolveIndex } from '../v30/ledger.mjs';
 import { listWorkloads, querySession, querySource, queryWorkload } from '../v30/queries.mjs';
 import { selectorKey } from '../v31/cohorts.mjs';
 import { canQueryDetail, scheduleKey, solveQuerySchedule } from '../v32/schedule.mjs';
-import { solveMixedCover } from './catalog.mjs';
+import { resolvePrefix } from './prefix.mjs';
 import { buildEpisode } from './producer.mjs';
 import { replayContainment } from './runtime.mjs';
+import { chooseStagedException, chooseStagedQuarantine } from './staged_plan.mjs';
 
 const PRIVATE = new WeakMap();
-const IDENTITIES = {
-  events: 'event_id',
-  grant_snapshots: 'snapshot_ref',
-  approval_snapshots: 'snapshot_ref',
-  approval_publications: 'event_id',
-  membership_audit: 'event_id',
-  policy_snapshots: 'snapshot_ref',
-  session_register: 'access_key_ref',
-  job_queue: 'job_uid',
-};
-
 function record(value) {
   return value !== null && typeof value === 'object' && !Array.isArray(value);
 }
@@ -98,7 +87,15 @@ function readToolsFor(state) {
 }
 
 export function buildDefenseSession(spec, producer = buildEpisode) {
-  const state = { ordinal: 0, successful: new Set(), required: null };
+  const state = {
+    ordinal: 0,
+    successful: new Set(),
+    required: null,
+    index: null,
+    replies: [],
+    staged: [],
+    lastSuccessfulDetail: null,
+  };
   const session = buildV23DefenseSession(spec, {
     producer,
     replay: replayContainment,
@@ -114,7 +111,8 @@ export function buildDefenseSession(spec, producer = buildEpisode) {
   session.initial.runbook.push(
     'The workload index includes adjacent archive partitions. Resolve each ID’s effective snapshot from completed publications in event-time and arrival order. Failed publications leave the head unchanged. Query IDs whose effective planned_at is within the triage horizon.',
     'list-workloads returns query_access_schedule. The list is ordinal one; every later read-only call consumes the next ordinal, including mistimed and archive calls. An exact detail query returns records only within its inclusive query window and after every required typed ID has returned successfully. All thirty current detail records must be retrieved before submission. A missing one fails even if the containment controls are correct.',
-    'Stage at most four containment requests, including quarantine-cohort, except-cohort and individual controls. At submission, two distinct quarantine cohorts must not overlap on any current Job or session selector. Duplicate cohort IDs always fail. Archive-only overlap is harmless; archives have no runtime effect. At most one exception bundle may be selected. The exception cancels bulk quarantine for its selectors, but never erases a quarantine overlap or cancels an individual pause, denial or role-wide revoke. Direct controls may overlap a cohort. Final blocked approved work is collateral failure; request acceptance gives no outcome verdict.',
+    'The emergency change board has four exact slots: stage quarantine-cohort immediately after query ordinals 20, 24 and 30, then except-cohort after successful query 31. The first quarantine needs six current selectors proven unsafe from evidence seen by ordinal 20; the second needs four new proven unsafe and two proven approved by ordinal 24; the third needs five new proven unsafe and one unresolved current Job by ordinal 30. Each quarantine has six current and two archive selectors. Its current selectors must be disjoint from earlier quarantines. The last query resolves the third quarantine’s unresolved Job. The exception must restore the two approved selectors, and also that Job if its final evidence proves approval. Accepted staging gives no outcome verdict; deadlines and evidence rules are checked at submission.',
+    'Exactly four original containment requests are available. Direct controls may be requested, but cannot fill a change-board quarantine slot. Duplicate cohort IDs or overlapping current selectors fail. Archive selectors have no runtime effect. The exception cancels bulk quarantine for its selectors only; it cannot cancel an individual pause, denial or role-wide revoke. Final controls must stop unauthorized planned reads without blocking approved work.',
   );
   session.initial.tools['list-workloads'].returns =
     'revisioned sixty-ID triage index and per-ID query access schedule';
@@ -133,7 +131,152 @@ export function buildDefenseSession(spec, producer = buildEpisode) {
 }
 
 export function stepDefense(session, command) {
-  return stepV23Defense(session, command);
+  const state = PRIVATE.get(session);
+  if (!state) {
+    throw new Error('unknown v35 defense session');
+  }
+  const result = stepV23Defense(session, command);
+  if (result.ok && result.evidence) {
+    if (command.tool === 'list-workloads') {
+      state.index = structuredClone(result.evidence);
+    } else {
+      state.replies.push({ ok: true, evidence: structuredClone(result.evidence) });
+      state.lastSuccessfulDetail = {
+        tool: command.tool,
+        args: structuredClone(command.args),
+        ordinal: state.ordinal,
+      };
+    }
+  }
+  if (result.ok && result.accepted) {
+    let prefixRows = null;
+    if (state.index !== null) {
+      try {
+        prefixRows = resolvePrefix(state.index, state.replies);
+      } catch {
+        // Invalid evidence is scored at submission; acceptance reveals no verdict.
+      }
+    }
+    state.staged.push({
+      action: structuredClone(command),
+      ordinal: state.ordinal,
+      successful_detail_count: state.successful.size,
+      transcript_digest: sha256Hex(JSON.stringify([state.index, state.replies])),
+      prefixRows,
+    });
+  }
+  return result;
+}
+
+const STAGE_TOOLS = [
+  'quarantine-cohort',
+  'quarantine-cohort',
+  'quarantine-cohort',
+  'except-cohort',
+];
+const STAGE_ORDINALS = [20, 24, 30, 31];
+const STAGE_PATTERNS = [
+  { unsafe: 6, approved: 0, unresolved: 0 },
+  { unsafe: 4, approved: 2, unresolved: 0 },
+  { unsafe: 5, approved: 0, unresolved: 1 },
+];
+
+function stagedGroup(session, staged) {
+  const quarantine = staged.action.tool === 'quarantine-cohort';
+  const catalog = quarantine
+    ? session.initial.containment_cohorts.cohorts
+    : session.initial.exception_bundles.bundles;
+  const field = quarantine ? 'cohort_id' : 'exception_id';
+  return catalog.find((entry) => entry[field] === staged.action.args[field]);
+}
+
+function assessQuarantine(staged, members, current, selected, stage) {
+  const active = members.filter((key) => current.has(key));
+  if (members.length !== 8 || active.length !== 6 || active.some((key) => selected.has(key))) {
+    return null;
+  }
+  const counts = { unsafe: 0, approved: 0, unresolved: 0 };
+  for (const key of active) {
+    const status = staged.prefixRows[key]?.status;
+    if (!Object.hasOwn(counts, status)) {
+      return null;
+    }
+    counts[status] += 1;
+  }
+  if (Object.keys(counts).some((key) => counts[key] !== STAGE_PATTERNS[stage][key])) {
+    return null;
+  }
+  const unresolvedJob =
+    stage === 2
+      ? active.find(
+          (key) => key.startsWith('job:') && staged.prefixRows[key].status === 'unresolved',
+        )
+      : null;
+  if (stage === 2 && !unresolvedJob) {
+    return null;
+  }
+  return {
+    active,
+    approved:
+      stage === 1 ? active.filter((key) => staged.prefixRows[key].status === 'approved') : [],
+    unresolvedJob,
+  };
+}
+
+function validException(staged, members, current, selected, approved, unresolvedJob) {
+  const restored = new Set(approved);
+  if (unresolvedJob && staged.prefixRows[unresolvedJob]?.status === 'approved') {
+    restored.add(unresolvedJob);
+  }
+  const active = members.filter((key) => current.has(key) && selected.has(key));
+  return active.length === restored.size && active.every((key) => restored.has(key));
+}
+
+function stagingViolations(session, state) {
+  const current = new Set(state.index === null ? [] : Object.keys(resolvePrefix(state.index, [])));
+  const selected = new Set();
+  const approved = new Set();
+  let unresolvedJob = null;
+  let violations = Math.abs(state.staged.length - STAGE_TOOLS.length);
+  for (const [stage, staged] of state.staged.slice(0, STAGE_TOOLS.length).entries()) {
+    if (staged.action.tool !== STAGE_TOOLS[stage] || staged.ordinal !== STAGE_ORDINALS[stage]) {
+      violations += 1;
+      continue;
+    }
+    const group = stagedGroup(session, staged);
+    if (!group || !staged.prefixRows) {
+      violations += 1;
+      continue;
+    }
+    const members = group.selectors.map(selectorKey);
+    if (stage === 3) {
+      violations += Number(
+        !validException(staged, members, current, selected, approved, unresolvedJob),
+      );
+      continue;
+    }
+    const assessed = assessQuarantine(staged, members, current, selected, stage);
+    if (!assessed) {
+      violations += 1;
+      continue;
+    }
+    for (const key of assessed.active) {
+      selected.add(key);
+    }
+    for (const key of assessed.approved) {
+      approved.add(key);
+    }
+    unresolvedJob = assessed.unresolvedJob ?? unresolvedJob;
+  }
+  if (
+    unresolvedJob &&
+    (state.lastSuccessfulDetail?.tool !== 'query-workload' ||
+      `job:${state.lastSuccessfulDetail.args.job_uid}` !== unresolvedJob ||
+      state.lastSuccessfulDetail.ordinal !== 31)
+  ) {
+    violations += 1;
+  }
+  return violations;
 }
 
 export function scoreDefense(session) {
@@ -149,92 +292,81 @@ export function scoreDefense(session) {
     state.required === null
       ? 30
       : [...state.required].filter((key) => !state.successful.has(key)).length;
+  const deadlineViolations = stagingViolations(session, state);
   return {
     ...base,
-    success: base.success && missing === 0,
+    success: base.success && missing === 0 && deadlineViolations === 0,
     reason:
       base.overlapping_current_quarantines > 0
         ? 'overlapping-current-quarantines'
-        : missing > 0
-          ? 'evidence-incomplete'
-          : base.reason,
+        : deadlineViolations > 0
+          ? 'staging-deadline-violation'
+          : missing > 0
+            ? 'evidence-incomplete'
+            : base.reason,
     missing_required_evidence_count: missing,
+    staging_deadline_violations: deadlineViolations,
+    staged_requests: state.staged.map(
+      ({ action, ordinal, successful_detail_count, transcript_digest }) => ({
+        tool: action.tool,
+        ordinal,
+        successful_detail_count,
+        transcript_digest,
+      }),
+    ),
   };
 }
 
-function collectVisibleEvidence(session) {
-  const query = (tool, args = {}) => {
-    const result = stepDefense(session, { tool, args });
-    if (!result.ok) {
-      throw new Error(`v35 reference ${tool} failed: ${result.reason}`);
-    }
-    return result.evidence;
-  };
-  const index = query('list-workloads');
-  const order = solveQuerySchedule(index);
-  if (order === null) {
-    throw new Error('v35 visible evidence has no feasible query schedule');
+function referenceRead(session, tool, args = {}) {
+  const result = stepDefense(session, { tool, args });
+  if (!result.ok) {
+    throw new Error(`v35 reference ${tool} failed: ${result.reason}`);
   }
-  const maps = Object.fromEntries(Object.keys(IDENTITIES).map((key) => [key, new Map()]));
-  for (const entry of order) {
-    const evidence =
-      entry.entry_type === 'credential'
-        ? query('query-source', { credential_id: entry.entry_id })
-        : entry.entry_type === 'job'
-          ? query('query-workload', { job_uid: entry.entry_id })
-          : query('query-session', { access_key_ref: entry.entry_id });
-    for (const [key, identity] of Object.entries(IDENTITIES)) {
-      for (const item of evidence[key] ?? []) {
-        const id = item[identity];
-        if (typeof id !== 'string' || !id) {
-          throw new Error(`v35 reference ${key} record lacks ${identity}`);
-        }
-        const existing = maps[key].get(id);
-        if (existing && JSON.stringify(existing) !== JSON.stringify(item)) {
-          throw new Error(`v35 reference ${key} record conflicts at ${id}`);
-        }
-        maps[key].set(id, item);
-      }
-    }
+  return result.evidence;
+}
+
+function referenceStage(session, action) {
+  if (!action) {
+    throw new Error('v35 visible prefix has no unique staged action');
   }
-  return {
-    triage_time: index.triage_time,
-    arrival_watermark: index.arrival_watermark,
-    horizon_end: index.horizon_end,
-    ...Object.fromEntries(Object.entries(maps).map(([key, map]) => [key, [...map.values()]])),
-  };
+  const result = stepDefense(session, action);
+  if (!result.ok || !result.accepted) {
+    throw new Error(`v35 reference ${action.tool} failed: ${result.reason}`);
+  }
 }
 
 export function referenceDefense(session) {
-  const visible = collectVisibleEvidence(session);
-  const required = planReferenceContainment({
-    ...visible,
-    current_job_approvals: resolveCurrentApprovals(visible),
-  });
-  const current = new Map();
-  for (const { job_uid } of visible.job_queue) {
-    current.set(selectorKey({ kind: 'job', id: job_uid }), {
-      tool: 'pause-job',
-      args: { job_uid },
-    });
+  const index = referenceRead(session, 'list-workloads');
+  const order = solveQuerySchedule(index);
+  if (order === null || order.length !== 30) {
+    throw new Error('v35 visible evidence has no feasible 31-query schedule');
   }
-  for (const { access_key_ref, role_arn, role_session_name } of visible.session_register) {
-    current.set(selectorKey({ kind: 'session', id: access_key_ref }), {
-      tool: 'deny-role-session',
-      args: { role_arn, role_session_name },
-    });
+  const catalogs = {
+    containment_cohorts: session.initial.containment_cohorts,
+    exception_bundles: session.initial.exception_bundles,
+  };
+  const replies = [];
+  const selectedIds = [];
+  for (const [position, entry] of order.entries()) {
+    const query =
+      entry.entry_type === 'credential'
+        ? ['query-source', { credential_id: entry.entry_id }]
+        : entry.entry_type === 'job'
+          ? ['query-workload', { job_uid: entry.entry_id }]
+          : ['query-session', { access_key_ref: entry.entry_id }];
+    replies.push({ ok: true, evidence: referenceRead(session, ...query) });
+    const ordinal = position + 2;
+    if (![20, 24, 30].includes(ordinal)) {
+      continue;
+    }
+    const rows = resolvePrefix(index, replies);
+    const action = chooseStagedQuarantine(catalogs, rows, selectedIds);
+    referenceStage(session, action);
+    selectedIds.push(action.args.cohort_id);
   }
-  const actions = solveMixedCover(
-    {
-      containment_cohorts: session.initial.containment_cohorts,
-      exception_bundles: session.initial.exception_bundles,
-    },
-    current,
-    required,
-    { maxActions: 4 },
+  referenceStage(
+    session,
+    chooseStagedException(catalogs, resolvePrefix(index, replies), selectedIds),
   );
-  if (actions === null) {
-    throw new Error('v35 visible evidence has no safe four-request containment plan');
-  }
-  return actions;
+  return [];
 }

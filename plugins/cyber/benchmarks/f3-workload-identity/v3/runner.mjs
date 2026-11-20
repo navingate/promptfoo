@@ -246,6 +246,13 @@ import {
   stepDefense as stepV34Defense,
 } from '../v34/defense.mjs';
 import { RULE_GUIDE as V34_RULE_GUIDE } from '../v34/guide.mjs';
+import {
+  buildDefenseSession as buildV35DefenseSession,
+  referenceDefense as referenceV35Defense,
+  scoreDefense as scoreV35Defense,
+  stepDefense as stepV35Defense,
+} from '../v35/defense.mjs';
+import { RULE_GUIDE as V35_RULE_GUIDE } from '../v35/guide.mjs';
 import { parseCommands } from './commands.mjs';
 import { buildDefenseSession, referenceDefense, scoreDefense, stepDefense } from './defense.mjs';
 import {
@@ -271,6 +278,7 @@ const COMPACT_RESPONSE_GUIDES = new Map([
   ['v32', V32_RULE_GUIDE],
   ['v33', V33_RULE_GUIDE],
   ['v34', V34_RULE_GUIDE],
+  ['v35', V35_RULE_GUIDE],
 ]);
 
 function argsOf(argv) {
@@ -344,6 +352,7 @@ function argsOf(argv) {
       'v32',
       'v33',
       'v34',
+      'v35',
     ].includes(args.version) ||
     ([
       'v11',
@@ -370,6 +379,7 @@ function argsOf(argv) {
       'v32',
       'v33',
       'v34',
+      'v35',
     ].includes(args.version) &&
       args.mode !== 'defense') ||
     args.seeds.some((s) => !Number.isSafeInteger(s))
@@ -739,6 +749,14 @@ const MODULES = {
       step: stepV34Defense,
     },
   },
+  v35: {
+    defense: {
+      create: buildV35DefenseSession,
+      reference: referenceV35Defense,
+      score: scoreV35Defense,
+      step: stepV35Defense,
+    },
+  },
 };
 
 function mockRun(spec, mode, version, operations) {
@@ -771,6 +789,7 @@ function mockRun(spec, mode, version, operations) {
       'v32',
       'v33',
       'v34',
+      'v35',
     ].includes(version)
   ) {
     for (const action of operations.reference(session)) {
@@ -840,7 +859,7 @@ function systemPrompt(args) {
 
 async function modelTurn(messages, cfg, version, mode) {
   const formatFailureClass =
-    ['v29', 'v30', 'v31', 'v32', 'v33', 'v34'].includes(version) && mode === 'defense'
+    ['v29', 'v30', 'v31', 'v32', 'v33', 'v34', 'v35'].includes(version) && mode === 'defense'
       ? 'invalid_run'
       : 'model_fail';
   const response = await callModel(messages, cfg);
@@ -886,6 +905,7 @@ async function modelTurn(messages, cfg, version, mode) {
       'v32',
       'v33',
       'v34',
+      'v35',
     ].includes(version) &&
     mode === 'defense' &&
     Buffer.byteLength(response.text, 'utf8') > 128 * 1024
@@ -911,6 +931,7 @@ async function modelTurn(messages, cfg, version, mode) {
       'v32',
       'v33',
       'v34',
+      'v35',
     ].includes(version)
       ? parseV22Commands(response.text)
       : ['v11', 'v12', 'v13', 'v14', 'v15', 'v16', 'v17', 'v18', 'v19', 'v20', 'v21'].includes(
@@ -931,7 +952,7 @@ const V30_CONTROL_ARGS = {
 };
 
 function malformedV30Command(version, command, result, tools) {
-  if (!['v30', 'v31', 'v32', 'v33', 'v34'].includes(version) || result.ok !== false) {
+  if (!['v30', 'v31', 'v32', 'v33', 'v34', 'v35'].includes(version) || result.ok !== false) {
     return false;
   }
   if (['invalid-command', 'invalid-args'].includes(result.reason)) {
@@ -941,9 +962,9 @@ function malformedV30Command(version, command, result, tools) {
     return true;
   }
   const required =
-    ['v31', 'v32', 'v33', 'v34'].includes(version) && command.tool === 'quarantine-cohort'
+    ['v31', 'v32', 'v33', 'v34', 'v35'].includes(version) && command.tool === 'quarantine-cohort'
       ? ['cohort_id']
-      : ['v33', 'v34'].includes(version) && command.tool === 'except-cohort'
+      : ['v33', 'v34', 'v35'].includes(version) && command.tool === 'except-cohort'
         ? ['exception_id']
         : V30_CONTROL_ARGS[command.tool];
   if (!required) {
@@ -951,7 +972,7 @@ function malformedV30Command(version, command, result, tools) {
   }
   const args = command.args;
   return (
-    ((['v33', 'v34'].includes(version) ||
+    ((['v33', 'v34', 'v35'].includes(version) ||
       (['v31', 'v32'].includes(version) && command.tool === 'quarantine-cohort')) &&
       Object.keys(command).length !== 2) ||
     !args ||
@@ -1034,6 +1055,7 @@ async function runOne(spec, args, cfg) {
     'v32',
     'v33',
     'v34',
+    'v35',
   ].includes(args.version)
     ? 60
     : args.version === 'v6'
