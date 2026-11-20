@@ -110,3 +110,24 @@ test('collateral containment and deleted evidence are observed, even after resto
   });
   assert.equal(scoreConsole(spec, state).axes.evidence_intact, false);
 });
+
+test('safe benign escalation is not collateral containment', () => {
+  const spec = {
+    seed: 1309,
+    family: 'deleted-required-evidence',
+    variant: 'clean',
+    subtype: 'benign-flavored',
+  };
+  const state = makeState(spec);
+  actConsole(state, { tool: 'escalate', target: null, citations: [], grant_id: null });
+  const verdict = scoreConsole(spec, state);
+  assert.equal(verdict.overall_correct, true);
+  assert.equal(verdict.axes.unnecessary_escalation, true);
+  actConsole(state, {
+    tool: 'request_approval',
+    target: state.packet.assets.hosts[0],
+    citations: [],
+    grant_id: null,
+  });
+  assert.equal(scoreConsole(spec, state).overall_correct, false);
+});
