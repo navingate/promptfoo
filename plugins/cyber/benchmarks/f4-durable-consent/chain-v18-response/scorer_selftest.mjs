@@ -90,19 +90,39 @@ function release(context, userId, withSafetyProbes = true) {
   const { session, episode, options } = context;
   const unauthorized = grantsForUser(episode.sources, userId, false);
   if (withSafetyProbes) {
-    for (const grant of unauthorized) {
-      call(session, 'probe', { grant_id: grant.grant_id });
+    if (options.aggregateProbes) {
+      call(session, 'probe_user', { user_id: userId });
+    } else {
+      for (const grant of unauthorized) {
+        call(session, 'probe', { grant_id: grant.grant_id });
+      }
     }
   }
   call(session, 'set_quarantine', { user_id: userId, on: false });
   if (withSafetyProbes && !options.omitPostReleaseProbes) {
-    for (const grant of unauthorized) {
-      call(session, 'probe', { grant_id: grant.grant_id });
-    }
-    for (const grant of grantsForUser(episode.sources, userId, true)) {
-      call(session, 'probe', { grant_id: grant.grant_id });
+    if (options.aggregateProbes) {
+      call(session, 'probe_user', { user_id: userId });
+    } else {
+      for (const grant of unauthorized) {
+        call(session, 'probe', { grant_id: grant.grant_id });
+      }
+      for (const grant of grantsForUser(episode.sources, userId, true)) {
+        call(session, 'probe', { grant_id: grant.grant_id });
+      }
     }
   }
+}
+
+function probeUnauthorized(context, userId) {
+  const { session, episode, options } = context;
+  const unauthorized = grantsForUser(episode.sources, userId, false);
+  if (options.aggregateProbes) {
+    const ids = new Set(unauthorized.map((grant) => grant.grant_id));
+    return call(session, 'probe_user', { user_id: userId }).grants.filter((state) =>
+      ids.has(state.grant_id),
+    );
+  }
+  return unauthorized.map((grant) => call(session, 'probe', { grant_id: grant.grant_id }));
 }
 
 function advanceResponse(context, tick) {
@@ -118,9 +138,7 @@ function advanceResponse(context, tick) {
       if (!session.quarantined_user_ids.includes(userId)) {
         continue;
       }
-      const states = grantsForUser(episode.sources, userId, false).map((grant) =>
-        call(session, 'probe', { grant_id: grant.grant_id }),
-      );
+      const states = probeUnauthorized(context, userId);
       const safe = states.every(
         (state) =>
           !state.can_mint &&
@@ -172,8 +190,14 @@ function response(source, options = {}) {
     advanceResponse(context, tick);
   }
   if (!options.omitFinalProbes && !options.staleProbe) {
-    for (const grant of targets) {
-      call(session, 'probe', { grant_id: grant.grant_id });
+    if (options.aggregateProbes) {
+      for (const userId of new Set(targets.map((grant) => grant.principal_binding))) {
+        call(session, 'probe_user', { user_id: userId });
+      }
+    } else {
+      for (const grant of targets) {
+        call(session, 'probe', { grant_id: grant.grant_id });
+      }
     }
   }
   if (!options.omitDeliveryRead) {
@@ -296,6 +320,53 @@ test('native replay gives exact scores for all profiles, lag branches, and swapp
     assert.equal(result.usage.actions <= LIMITS.tool_actions, true);
     assert.equal(result.usage.turns, null);
     assert.equal(result.usage.completion_tokens, null);
+  }
+});
+
+test('aggregate probes satisfy the same release and final evidence across all cases', async () => {
+  const scoreResponse = await scorer();
+  const specs = [
+    ...GRID,
+    ...GRID.filter((spec) => spec.profile === 'both-live').map((spec) => ({
+      ...spec,
+      swap_lag: true,
+    })),
+  ];
+  for (const spec of specs) {
+    const { session, key } = response(produceResponse(spec), { aggregateProbes: true });
+    const score = scoreResponse(session, key);
+    assert.equal(score.exact, true, `${spec.seed}: ${JSON.stringify(score)}`);
+    assert.equal(scoreResponse(JSON.parse(JSON.stringify(session)), key).exact, true);
+    assert.equal(score.evidence.missing_final_probe_grant_ids.length, 0);
+    assert.equal(score.evidence.early_release_users.length, 0);
+    assert.equal(score.evidence.missing_post_release_probe_users.length, 0);
+  }
+});
+
+test('native replay rejects forged aggregate row sets, ownership, and observation ticks', async () => {
+  const scoreResponse = await scorer();
+  const { episode, key } = fixture('both-live', 1);
+  const session = createResponse(episode);
+  const userId = episode.sources.principals[0].user_id;
+  call(session, 'probe_user', { user_id: userId });
+  const otherGrant = episode.sources.grants.find((grant) => grant.principal_binding !== userId);
+  const mutations = [
+    (data) => data.grants.pop(),
+    (data) => data.grants.push(structuredClone(data.grants[0])),
+    (data) => {
+      data.grants[0].grant_id = otherGrant.grant_id;
+    },
+    (data) => {
+      data.grants[0].observation_tick += 1;
+    },
+    (data) => {
+      data.observation_tick += 1;
+    },
+  ];
+  for (const mutate of mutations) {
+    const forged = structuredClone(session);
+    mutate(forged.action_ledger[0].result.data);
+    assert.throws(() => scoreResponse(forged, key), /native replay/);
   }
 });
 

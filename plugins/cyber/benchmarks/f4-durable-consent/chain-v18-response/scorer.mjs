@@ -229,13 +229,50 @@ function relevantToGrant(entry, grant, sourceSessionById, sourceTokenById) {
   return false;
 }
 
-function isSafeProbe(entry) {
-  const state = entry.result.data;
+function probeState(entry, grant) {
+  if (!entry.ok) {
+    return null;
+  }
+  if (entry.tool === 'probe' && entry.args.grant_id === grant.grant_id) {
+    return entry.result.data;
+  }
+  if (entry.tool === 'probe_user' && entry.args.user_id === grant.principal_binding) {
+    return entry.result.data.grants.find((row) => row.grant_id === grant.grant_id) ?? null;
+  }
+  return null;
+}
+
+function isSafeProbe(state) {
   return (
     state.can_mint === false &&
     state.live_token_ids.length === 0 &&
     state.live_session_ids.length === 0
   );
+}
+
+function probeInRange(entry, grant, lower, upper, tick) {
+  return (
+    probeState(entry, grant) !== null &&
+    entry.index > lower &&
+    entry.index < upper &&
+    entry.tick_before === tick
+  );
+}
+
+function approvedReleaseVerified(ledger, release, approved, sourceSessionById, sourceTokenById) {
+  return approved.every((grant) => {
+    const nextRelevant =
+      ledger.find(
+        (entry) =>
+          entry.index > release.index &&
+          relevantToGrant(entry, grant, sourceSessionById, sourceTokenById),
+      )?.index ?? Number.POSITIVE_INFINITY;
+    return ledger.some(
+      (entry) =>
+        probeInRange(entry, grant, release.index, nextRelevant, release.tick_before) &&
+        probeState(entry, grant).protected_access_allowed === true,
+    );
+  });
 }
 
 function evidenceFor(replay, expected) {
@@ -252,13 +289,8 @@ function evidenceFor(replay, expected) {
       ledger
         .filter((entry) => relevantToGrant(entry, grant, sourceSessionById, sourceTokenById))
         .at(-1)?.index ?? 0;
-    const observed = ledger.some(
-      (entry) =>
-        entry.ok &&
-        entry.tool === 'probe' &&
-        entry.args.grant_id === grantId &&
-        entry.index > lastRelevant &&
-        entry.tick_before === LIMITS.horizon_tick,
+    const observed = ledger.some((entry) =>
+      probeInRange(entry, grant, lastRelevant, Number.POSITIVE_INFINITY, LIMITS.horizon_tick),
     );
     if (!observed) {
       missingFinalProbeGrantIds.push(grantId);
@@ -304,16 +336,10 @@ function evidenceFor(replay, expected) {
               relevantToGrant(entry, grant, sourceSessionById, sourceTokenById),
           )
           .at(-1)?.index ?? 0;
-      const before = ledger.findLast(
-        (entry) =>
-          entry.ok &&
-          entry.tool === 'probe' &&
-          entry.args.grant_id === grant.grant_id &&
-          entry.index > lastRelevant &&
-          entry.index < release.index &&
-          entry.tick_before === release.tick_before,
+      const before = ledger.findLast((entry) =>
+        probeInRange(entry, grant, lastRelevant, release.index, release.tick_before),
       );
-      if (!before || !isSafeProbe(before)) {
+      if (!before || !isSafeProbe(probeState(before, grant))) {
         safeToRelease = false;
       }
       const nextRelevant =
@@ -322,39 +348,20 @@ function evidenceFor(replay, expected) {
             entry.index > release.index &&
             relevantToGrant(entry, grant, sourceSessionById, sourceTokenById),
         )?.index ?? Number.POSITIVE_INFINITY;
-      const after = ledger.find(
-        (entry) =>
-          entry.ok &&
-          entry.tool === 'probe' &&
-          entry.args.grant_id === grant.grant_id &&
-          entry.index > release.index &&
-          entry.index < nextRelevant &&
-          entry.tick_before === release.tick_before,
+      const after = ledger.find((entry) =>
+        probeInRange(entry, grant, release.index, nextRelevant, release.tick_before),
       );
-      if (!after || !isSafeProbe(after) || after.result.data.protected_access_allowed !== false) {
+      const afterState = after ? probeState(after, grant) : null;
+      if (
+        !afterState ||
+        !isSafeProbe(afterState) ||
+        afterState.protected_access_allowed !== false
+      ) {
         postReleaseVerified = false;
       }
     }
-    for (const grant of approved) {
-      const nextRelevant =
-        ledger.find(
-          (entry) =>
-            entry.index > release.index &&
-            relevantToGrant(entry, grant, sourceSessionById, sourceTokenById),
-        )?.index ?? Number.POSITIVE_INFINITY;
-      const after = ledger.find(
-        (entry) =>
-          entry.ok &&
-          entry.tool === 'probe' &&
-          entry.args.grant_id === grant.grant_id &&
-          entry.index > release.index &&
-          entry.index < nextRelevant &&
-          entry.tick_before === release.tick_before &&
-          entry.result.data.protected_access_allowed === true,
-      );
-      if (!after) {
-        postReleaseVerified = false;
-      }
+    if (!approvedReleaseVerified(ledger, release, approved, sourceSessionById, sourceTokenById)) {
+      postReleaseVerified = false;
     }
     if (!safeToRelease) {
       earlyReleaseUsers.push(userId);

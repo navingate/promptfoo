@@ -28,6 +28,7 @@ const READ_TOOLS = new Set([
   'get_dashboard',
   'get_deliveries',
   'probe',
+  'probe_user',
 ]);
 const privateFacts = new WeakMap();
 
@@ -514,7 +515,9 @@ function validateCommand(command) {
 }
 
 function validateIdentifiers(session, tool, args) {
-  if (['get_user_grants', 'get_activity', 'get_reset', 'set_quarantine'].includes(tool)) {
+  if (
+    ['get_user_grants', 'get_activity', 'get_reset', 'probe_user', 'set_quarantine'].includes(tool)
+  ) {
     return session.sources.principals.some((item) => item.user_id === args.user_id)
       ? null
       : bad('unknown_user', 'Unknown client principal.');
@@ -566,6 +569,14 @@ function executeRead(session, tool, args) {
       return session.delivery_records;
     case 'probe':
       return accessState(session, args.grant_id);
+    case 'probe_user':
+      return {
+        user_id: args.user_id,
+        observation_tick: session.now_tick,
+        grants: session.sources.grants
+          .filter((grant) => grant.principal_binding === args.user_id)
+          .map((grant) => accessState(session, grant.grant_id)),
+      };
     default:
       throw new Error(`unreachable read tool: ${tool}`);
   }

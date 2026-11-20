@@ -41,6 +41,7 @@ export const TOOL_CONTRACT = Object.freeze({
   get_dashboard: [],
   get_deliveries: [],
   probe: ['grant_id'],
+  probe_user: ['user_id'],
   revoke_grant: ['grant_id'],
   terminate_session: ['session_id'],
   block_client: [],

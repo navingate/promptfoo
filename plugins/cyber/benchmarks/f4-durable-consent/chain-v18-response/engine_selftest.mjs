@@ -57,7 +57,7 @@ function visibleResults(stepResponse, session) {
       continue;
     }
     let args = {};
-    if (['get_user_grants', 'get_activity', 'get_reset'].includes(tool)) {
+    if (['get_user_grants', 'get_activity', 'get_reset', 'probe_user'].includes(tool)) {
       args = { user_id: session.sources.principals[0].user_id };
     } else if (['probe', 'revoke_grant'].includes(tool)) {
       args = { grant_id: session.sources.grants[0].grant_id };
@@ -187,6 +187,49 @@ test('strict command schema rejects malformed and unknown actions without changi
       initial: { ...episode.initial, source_queries: ['target_grant_ids'] },
     }),
   );
+});
+
+test('aggregate probe returns exactly the native grant states for one user at one tick', async () => {
+  const { createResponse, stepResponse, accessState } = await engine();
+  for (const spec of GRID) {
+    const { episode } = produceResponse(spec);
+    const session = createResponse(episode);
+    for (const principal of episode.sources.principals) {
+      const userId = principal.user_id;
+      const expected = () => ({
+        user_id: userId,
+        observation_tick: session.now_tick,
+        grants: episode.sources.grants
+          .filter((grant) => grant.principal_binding === userId)
+          .map((grant) => accessState(session, grant.grant_id)),
+      });
+      assert.deepEqual(call(stepResponse, session, 'probe_user', { user_id: userId }), expected());
+      assert.equal(session.control_requests.length, 0);
+      assert.equal(session.dynamic_events.length, 0);
+      assert.equal(session.action_ledger.at(-1).tick_before, session.now_tick);
+    }
+    call(stepResponse, session, 'advance');
+    const userId = episode.sources.principals[0].user_id;
+    assert.deepEqual(call(stepResponse, session, 'probe_user', { user_id: userId }), {
+      user_id: userId,
+      observation_tick: 1,
+      grants: episode.sources.grants
+        .filter((grant) => grant.principal_binding === userId)
+        .map((grant) => accessState(session, grant.grant_id)),
+    });
+    assert.equal(
+      JSON.stringify(session.action_ledger.at(-1).result).includes('revocation_lag_ticks'),
+      false,
+    );
+    assert.equal(
+      stepResponse(session, { tool: 'probe_user', args: { user_id: 'unknown' } }).error.code,
+      'unknown_user',
+    );
+    assert.equal(
+      stepResponse(session, { tool: 'probe_user', args: {} }).error.code,
+      'invalid_arguments',
+    );
+  }
 });
 
 test('audit ledger retains the full command shape with JSON-safe invalid values', async () => {
