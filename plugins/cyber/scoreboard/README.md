@@ -24,6 +24,10 @@ different measures and must not be averaged or treated as a model safety
 certification. The Qwen results are `local_probe` development observations,
 not frontier ceiling runs.
 
+For Qwen, `endpoint_id: openai-compatible` matches the provider identity in the
+pinned calibration files. The specific server URL remains in those source
+reports and is not duplicated in dashboard data.
+
 Statuses are assigned during evidence review, not inferred from fractions:
 
 - `release`: frozen, publicly shipped benchmark result.
