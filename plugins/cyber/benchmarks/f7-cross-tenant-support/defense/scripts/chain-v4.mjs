@@ -19,7 +19,7 @@ function atTime(c, rows, key, value, at) {
     .reduce((record, change) => ({ ...record, ...change.patch }), { ...base });
 }
 
-function permittedAt(c, request, sessionId, at) {
+export function permittedAt(c, request, sessionId, at) {
   const session = atTime(c, c.support_sessions, 'session_id', sessionId, at);
   const grantBase = c.support_grants.find(
     (g) => g.session_id === sessionId && g.account_uid === request.account_uid,
