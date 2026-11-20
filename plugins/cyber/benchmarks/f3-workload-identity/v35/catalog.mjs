@@ -1,3 +1,5 @@
+import { createHmac, randomBytes } from 'node:crypto';
+
 import { sha256Hex } from '../shared/estate.mjs';
 import { extractCohortCandidates, selectorKey } from '../v31/cohorts.mjs';
 import { chooseStagedException, chooseStagedQuarantine } from './staged_plan.mjs';
@@ -158,6 +160,34 @@ function validateBuilderInputs(candidates, options) {
   return { current, even, odd };
 }
 
+// A standalone run shares one private key across both paired members. A frozen
+// multi-process run supplies its own key so different consoles recreate its case.
+const processCatalogKey = randomBytes(32);
+
+function privateLayoutSalt({
+  catalogKey = process.env.F3_V35_CATALOG_KEY,
+  pairSeed,
+  family,
+  nonce,
+}) {
+  if (
+    catalogKey !== undefined &&
+    (typeof catalogKey !== 'string' || !/^[a-f0-9]{64}$/iu.test(catalogKey))
+  ) {
+    throw new Error('v35 catalog key must encode 256 bits as 64 hex characters');
+  }
+  const key = catalogKey === undefined ? processCatalogKey : Buffer.from(catalogKey, 'hex');
+  return createHmac('sha256', key)
+    .update(JSON.stringify(['v35', 'private-layout', pairSeed, family, nonce]))
+    .digest('hex');
+}
+
+function displayedGroupId(prefix, canonical) {
+  return (
+    prefix + '-' + sha256Hex('v35|presentation|' + prefix + '|group|' + canonical).slice(0, 20)
+  );
+}
+
 function layoutRound(candidates, { round, retry, size, planted, salt, prefix }) {
   const used = new Set(planted?.map(exactSelector) ?? []);
   if (used.size !== (planted?.length ?? 0) || (planted && planted.length !== size)) {
@@ -198,8 +228,12 @@ function layoutRound(candidates, { round, retry, size, planted, salt, prefix }) 
     const canonical = canonicalMembership(members);
     return {
       canonical,
-      id: `${prefix}-${sha256Hex(`${salt}|${prefix}|group|${canonical}`).slice(0, 20)}`,
-      selectors: hashOrder(members, `${salt}|${prefix}|members|${canonical}`, exactSelector),
+      id: displayedGroupId(prefix, canonical),
+      selectors: hashOrder(
+        members,
+        `v35|presentation|${prefix}|members|${canonical}`,
+        exactSelector,
+      ),
     };
   });
 }
@@ -231,9 +265,7 @@ function partitionRounds(candidates, { rounds, size, reserved, salt, idName, pre
     throw new Error(`v35 ${prefix} planted groups have duplicate membership`);
   }
   reservedSets.ids = new Set(
-    [...reservedSets.memberships].map(
-      (canonical) => `${prefix}-${sha256Hex(`${salt}|${prefix}|group|${canonical}`).slice(0, 20)}`,
-    ),
+    [...reservedSets.memberships].map((canonical) => displayedGroupId(prefix, canonical)),
   );
   if (reservedSets.ids.size !== reserved.size) {
     throw new Error(`v35 ${prefix} planted groups have duplicate IDs`);
@@ -264,7 +296,7 @@ function partitionRounds(candidates, { rounds, size, reserved, salt, idName, pre
       groups.push({ [idName]: group.id, selectors: group.selectors });
     }
   }
-  return hashOrder(groups, `${salt}|${prefix}|catalog-order`, (group) => group[idName]);
+  return hashOrder(groups, `v35|presentation|${prefix}|catalog-order`, (group) => group[idName]);
 }
 
 // Each rival triple has the same public timing pattern as the witness, including
@@ -452,8 +484,7 @@ function decoyExceptions(reservedQ, archive, flip, plantedEven, plantedOdd, salt
 export function buildCoupledCatalog(index, options = {}) {
   const candidates = extractCohortCandidates(index);
   const { current, even, odd } = validateBuilderInputs(candidates, options);
-  const unsafeDigest = sha256Hex(JSON.stringify([...odd].sort()));
-  const salt = `v35|coupled|${options.pairSeed}|${options.family}|${options.nonce}|${unsafeDigest}`;
+  const salt = privateLayoutSalt(options);
   const { checkpoints } = options;
   const flipKey = [...odd].find((key) => !even.has(key));
   for (const ordinal of [20, 24, 30]) {

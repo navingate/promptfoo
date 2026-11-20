@@ -20,6 +20,13 @@ shape, pair stability, checkpoint-prefix choices, a four-request minimum and
 native replay before exposing a case. The reference uses the same serialized
 console to query and stage each control. Construction witnesses stay private.
 
+The public IDs and display order derive from group membership. A separate private
+256-bit key determines the catalog layout. In a standalone process V35 creates a
+fresh key. For paired runs or replay across processes, provision one random key
+as 64 hex characters in `F3_V35_CATALOG_KEY` in each trusted console process.
+Changing this key creates a different catalog for the same seed and family. Keep
+the key in the producer environment and record its fingerprint in the run protocol.
+
 Run from the repository root with `node
 plugins/cyber/benchmarks/f3-workload-identity/v3/runner.mjs --version v35
 --mode defense --mock-reference --seeds 109000 --output /private/tmp/f3-v35.json`.

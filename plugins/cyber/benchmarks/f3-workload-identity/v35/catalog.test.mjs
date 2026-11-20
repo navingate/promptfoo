@@ -1,4 +1,5 @@
 import assert from 'node:assert/strict';
+import { execFileSync } from 'node:child_process';
 import { test } from 'node:test';
 
 import { FAMILIES, sha256Hex } from '../shared/estate.mjs';
@@ -64,6 +65,7 @@ function options(even, odd, nonce = 0, family = FAMILIES[0]) {
   }
   return {
     checkpoints: pairedCheckpoints.get(even),
+    catalogKey: sha256Hex('V35 catalog unit test fixture'),
     pairSeed: 100000,
     family,
     nonce,
@@ -279,37 +281,123 @@ test('balanced pair-stable catalogs have opaque IDs and no visible witness', () 
   }
 });
 
-test('visible group IDs and member order depend on membership rather than round coordinates', () => {
-  const [even, odd] = pair();
-  const nonce = 3;
-  const catalog = buildCoupledCatalog(even.index, options(even, odd, nonce));
-  const unsafeDigest = sha256Hex(JSON.stringify([...odd.unsafe].sort()));
-  const salt = `v35|coupled|100000|${FAMILIES[0]}|${nonce}|${unsafeDigest}`;
-  for (const [groups, prefix, idName, rounds, perRound] of [
-    [catalog.containment_cohorts.cohorts, 'cohort', 'cohort_id', 32, 6],
-    [catalog.exception_bundles.bundles, 'exception', 'exception_id', 24, 8],
+test('public IDs and display order can be reproduced from membership alone across private layouts', () => {
+  const [even, odd] = [caseData(109000, FAMILIES[0]), caseData(109001, FAMILIES[0])];
+  const args = { ...options(even, odd), pairSeed: 109000 };
+  const layouts = [];
+  for (const [nonce, catalogKey] of [
+    [0, '01'.repeat(32)],
+    [0, '02'.repeat(32)],
+    [1, '02'.repeat(32)],
   ]) {
-    const coordinateIds = new Set(
-      Array.from(
-        { length: rounds * perRound },
-        (_, index) =>
-          `${prefix}-${sha256Hex(`${salt}|${prefix}|id|${Math.floor(index / perRound)}|${index % perRound}`).slice(0, 20)}`,
-      ),
-    );
-    for (const group of groups) {
-      const canonical = JSON.stringify(group.selectors.map(key).sort());
-      assert.equal(coordinateIds.has(group[idName]), false);
+    const catalogs = buildCoupledCatalog(even.index, { ...args, nonce, catalogKey });
+    const display = [catalogs.containment_cohorts.cohorts, catalogs.exception_bundles.bundles];
+    assert.equal(JSON.stringify(display).includes(catalogKey), false);
+    for (const [side, prefix, id] of [
+      [0, 'cohort', 'cohort_id'],
+      [1, 'exception', 'exception_id'],
+    ]) {
+      // Reconstruct every public byte of labeling and ordering after stripping the IDs
+      // and order. This computation receives no seed, label guess, or private key.
+      const domain = 'v35|presentation|' + prefix;
+      const groups = display[side].map(({ selectors }) => {
+        const canonical = JSON.stringify(selectors.map(key).sort());
+        const rank = (selector) =>
+          sha256Hex(domain + '|members|' + canonical + '|' + key(selector));
+        return {
+          [id]: prefix + '-' + sha256Hex(domain + '|group|' + canonical).slice(0, 20),
+          selectors: [...selectors].sort((a, b) => rank(a).localeCompare(rank(b))),
+        };
+      });
+      const rank = (group) => sha256Hex(domain + '|catalog-order|' + group[id]);
       assert.equal(
-        group[idName],
-        `${prefix}-${sha256Hex(`${salt}|${prefix}|group|${canonical}`).slice(0, 20)}`,
+        sha256Hex(JSON.stringify(groups.sort((a, b) => rank(a).localeCompare(rank(b))))),
+        sha256Hex(JSON.stringify(display[side])),
       );
-      const expectedOrder = [...group.selectors].sort((left, right) =>
-        sha256Hex(`${salt}|${prefix}|members|${canonical}|${key(left)}`).localeCompare(
-          sha256Hex(`${salt}|${prefix}|members|${canonical}|${key(right)}`),
-        ),
-      );
-      assert.deepEqual(group.selectors, expectedOrder);
     }
+    layouts.push(catalogs.witnesses.even.slice(0, 3).map((q) => q.args.cohort_id));
+  }
+  assert.notDeepEqual(
+    layouts[0],
+    layouts[1],
+    'public seed/nonce cannot determine the private plan',
+  );
+  assert.notDeepEqual(layouts[1], layouts[2]);
+});
+
+test('knowledge of seed, family, nonce and even the true unsafe set cannot regenerate the private archive assignments', () => {
+  const seed = 109000;
+  const family = FAMILIES[0];
+  const [even, odd] = [caseData(seed, family), caseData(seed + 1, family)];
+  const args = { ...options(even, odd), pairSeed: seed };
+  const archiveAssignments = (catalog) =>
+    catalog.witnesses.even.slice(0, 3).map((command) =>
+      catalog.containment_cohorts.cohorts
+        .find((group) => group.cohort_id === command.args.cohort_id)
+        .selectors.map(key)
+        .filter((selector) => !even.current.has(selector))
+        .sort(),
+    );
+  const frozen = archiveAssignments(buildCoupledCatalog(even.index, args));
+  // Grant this public-input baseline even more than the index exposes: include a
+  // correct label hypothesis as well as two alternatives. Reconstructing the
+  // public presentation cannot establish that any of them is the layout key.
+  const labels = [...odd.unsafe].sort();
+  for (const hypothesis of [labels, [...even.unsafe].sort(), labels.slice(1)]) {
+    const publicInputKey = sha256Hex(JSON.stringify([seed, family, args.nonce, hypothesis]));
+    const regenerated = buildCoupledCatalog(even.index, { ...args, catalogKey: publicInputKey });
+    assert.notDeepEqual(archiveAssignments(regenerated), frozen);
+  }
+});
+
+test('explicit private keys validate and reproduce the catalog across isolated generator processes', () => {
+  const pairs = [
+    [109000, FAMILIES[0]],
+    [109002, FAMILIES[1]],
+  ].map(([pairSeed, family]) => {
+    const even = caseData(pairSeed, family);
+    const odd = caseData(pairSeed + 1, family);
+    const configuration = { ...options(even, odd, 0, family), pairSeed };
+    delete configuration.catalogKey;
+    return { index: even.index, options: configuration };
+  });
+  const code = `
+    import { readFileSync } from 'node:fs';
+    import { createHash } from 'node:crypto';
+    import { buildCoupledCatalog } from ${JSON.stringify(new URL('./catalog.mjs', import.meta.url).href)};
+    const cases = JSON.parse(readFileSync(0, 'utf8'));
+    const digests = cases.map(({index, options}) => {
+      for (const name of ['currentKeys', 'evenUnsafeKeys', 'oddUnsafeKeys']) {
+        options[name] = new Set(options[name]);
+      }
+      const catalog = buildCoupledCatalog(index, options);
+      return createHash('sha256').update(JSON.stringify(catalog)).digest('hex');
+    });
+    process.stdout.write(digests.sort().join('|'));
+  `;
+  const run = (catalogKey, cases = pairs) => {
+    const input = JSON.stringify(cases, (_, value) => (value instanceof Set ? [...value] : value));
+    const env = { ...process.env };
+    if (catalogKey === undefined) {
+      delete env.F3_V35_CATALOG_KEY;
+    } else {
+      env.F3_V35_CATALOG_KEY = catalogKey;
+    }
+    return execFileSync(process.execPath, ['--input-type=module', '-e', code], {
+      input,
+      env,
+      encoding: 'utf8',
+    });
+  };
+  const first = run('01'.repeat(32));
+  assert.notEqual(first, run('02'.repeat(32)));
+  assert.equal(first, run('01'.repeat(32), [...pairs].reverse()));
+  assert.notEqual(run(undefined), run(undefined));
+  for (const catalogKey of ['', null, 'not-a-key', '0'.repeat(63)]) {
+    assert.throws(
+      () => buildCoupledCatalog(pairs[0].index, { ...pairs[0].options, catalogKey }),
+      /256-bit|64 hex/iu,
+    );
   }
 });
 
