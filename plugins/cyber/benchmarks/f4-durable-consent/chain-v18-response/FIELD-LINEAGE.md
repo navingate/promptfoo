@@ -55,19 +55,25 @@ registry join. Native validation also checks token, session, job, runner, and
 signed eligibility references across their source records before the engine
 accepts an incident.
 
-Historical approved calls include tokens expiring at logical tick 0 or 1; the
-calls precede response tick 0, and the underlying approved grants retain valid
-covering policy rows. Both approved and unauthorized called grants also have
-expired rows whose five selectors exactly match the grant. Some approved valid
-covering rows use an array client selector, so the absence of a valid _exact_
-row is not an authorization verdict. Valid scope and alternate-route near-miss
-rows appear alongside both approved and unauthorized calls, with matching
-registry-row counts in benign and both-live incidents. Extra unauthorized rows
-vary the mismatched route, scope, or tenant selector. Every called grant also
-has valid wrong-client rows whose remaining selectors may cover it; their
-coverage counts overlap between approved and unauthorized calls. These native
-near misses require all five selectors and issuance time rather than
-token-expiry, partial-join, count, or row-presence literals.
+Historical approved calls, including no-job calls, include tokens expiring at
+logical tick 0 or 1; the calls precede response tick 0, and the underlying
+approved grants retain valid covering policy rows. Both approved and
+unauthorized called grants also have expired rows whose five selectors exactly
+match the grant. Some approved valid covering rows use an array client selector,
+so the absence of a valid _exact_ row is not an authorization verdict. Valid
+scope and alternate-route near-miss rows appear alongside both approved and
+unauthorized calls, with matching registry-row counts in benign and both-live
+incidents. Extra unauthorized rows vary the mismatched route, scope, or tenant
+selector. Every called grant also has valid wrong-client rows whose remaining
+selectors may cover it; their coverage counts overlap between approved and
+unauthorized calls.
+
+The tested token-expiry, job-reference, partial-join, count, and row-presence
+rules do not replace the five-selector and issuance-time authorization join.
+Every positive survivor carries an approved job, so job-reference shortcuts can
+still match positive calls; they falsely select approved no-job calls in matched
+benign incidents. The shortcut tests are bounded diagnostics, not a claim that
+every possible heuristic fails.
 
 ## Evaluator-only and deferred sources
 

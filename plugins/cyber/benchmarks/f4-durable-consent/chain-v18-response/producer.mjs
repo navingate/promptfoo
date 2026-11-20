@@ -503,7 +503,7 @@ function makeEvents(grants, roles, resets, operations, ids) {
           ? 0
           : role === 'mint'
             ? 1
-            : role === 'survivor'
+            : role === 'survivor' || role === 'approved-call'
               ? Number.parseInt(
                   sha(`${ids.salt}|${grant.grant_id}|approved-expiry`).slice(0, 2),
                   16,

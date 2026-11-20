@@ -714,6 +714,62 @@ test('short-lived token alone cannot identify the unauthorized called grant', as
   assert.ok(exact <= 12, `expiry shortcut solved ${exact}/36`);
 });
 
+test('short-lived token without an approved job cannot identify unauthorized calls', async () => {
+  const { GRID, produceResponse } = await modules();
+  let exact = 0;
+  let approvedShortLivedNoJobCalls = 0;
+  let benignFalsePositives = 0;
+  for (const spec of GRID) {
+    const { native, key } = produceResponse(spec);
+    const rows = native.public.resets.flatMap((reset) =>
+      calledRowsForUser(native.public, reset.compromised_user),
+    );
+    const candidateRows = rows.filter(
+      (row) =>
+        row.token.expires_at_tick <= 1 &&
+        !native.public.jobs.some((job) => job.approved_grant_id === row.grant.grant_id),
+    );
+    approvedShortLivedNoJobCalls += candidateRows.filter((row) =>
+      authorizedByJoin(row.grant, native.public.registry, row.grant.issue_time),
+    ).length;
+    const candidate = candidateRows.map(citedFinding);
+    exact += Number(sameFindings(candidate, key.expected_findings));
+    benignFalsePositives += Number(key.expected_findings.length === 0 && candidate.length > 0);
+  }
+  assert.ok(exact <= 24, `expiry-and-no-job shortcut solved ${exact}/36`);
+  assert.ok(approvedShortLivedNoJobCalls > 0, 'approved no-job calls need short-lived tokens');
+  assert.ok(benignFalsePositives > 0, 'expiry-and-no-job shortcut must flag benign calls');
+});
+
+test('no job and no valid exact row still flags authorized benign calls', async () => {
+  const { GRID, produceResponse } = await modules();
+  let exact = 0;
+  let approvedCallsSelected = 0;
+  let benignFalsePositives = 0;
+  for (const spec of GRID) {
+    const { native, key } = produceResponse(spec);
+    const rows = native.public.resets.flatMap((reset) =>
+      calledRowsForUser(native.public, reset.compromised_user),
+    );
+    const candidateRows = rows.filter(
+      (row) =>
+        !native.public.jobs.some((job) => job.approved_grant_id === row.grant.grant_id) &&
+        !native.public.registry.some(
+          (entry) => exactSelectors(entry, row.grant) && entryValidAt(entry, row.grant.issue_time),
+        ),
+    );
+    approvedCallsSelected += candidateRows.filter((row) =>
+      authorizedByJoin(row.grant, native.public.registry, row.grant.issue_time),
+    ).length;
+    const candidate = candidateRows.map(citedFinding);
+    exact += Number(sameFindings(candidate, key.expected_findings));
+    benignFalsePositives += Number(key.expected_findings.length === 0 && candidate.length > 0);
+  }
+  assert.ok(approvedCallsSelected > 0, 'compound must select authorized no-job calls');
+  assert.ok(benignFalsePositives > 0, 'compound must false-positive on benign incidents');
+  assert.ok(exact <= 29, `job-and-exact-row shortcut solved ${exact}/36`);
+});
+
 test('expired exact-selector row alone cannot identify unauthorized called grants', async () => {
   const { GRID, produceResponse } = await modules();
   let exact = 0;
