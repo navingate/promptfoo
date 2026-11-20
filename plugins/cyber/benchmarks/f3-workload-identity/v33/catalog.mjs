@@ -181,35 +181,28 @@ function partitionRounds(candidates, { rounds, size, reserved, salt, idName, pre
   return hashOrder(groups, `${salt}|${prefix}|catalog-order`, (group) => group[idName]);
 }
 
-function decoyQuarantines(candidates, current, odd, planted, archive, salt) {
-  const plantedKeys = new Set(planted.flat().map(exactSelector));
-  const complement = [
-    ...candidates.filter(
-      (selector) =>
-        current.has(exactSelector(selector)) && !plantedKeys.has(exactSelector(selector)),
-    ),
-    archive[13],
-    archive[14],
-  ];
-  if (complement.length !== Q_SIZE) {
-    throw new Error('v33 planted quarantine partition lacks its current complement');
-  }
-  const reserved = [...planted, complement];
+function decoyQuarantines(candidates, current, even, planted, archive, salt) {
+  const reserved = [...planted];
   const memberships = new Set(reserved.map(canonicalMembership));
   const currentCandidates = candidates.filter((selector) => current.has(exactSelector(selector)));
-  const hiddenSalt = sha256Hex(JSON.stringify([...odd].sort()));
-  for (let partition = 0; partition < 2; partition += 1) {
+  for (let triple = 0; triple < 3; triple += 1) {
     let decoys = null;
     for (let retry = 0; retry < 64 && decoys === null; retry += 1) {
-      const decoySalt = `${salt}|decoy|${hiddenSalt}|${partition}|${retry}`;
+      const decoySalt = `${salt}|decoy-triple|${triple}|${retry}`;
       const selectedCurrent = hashOrder(currentCandidates, `${decoySalt}|current`, exactSelector);
       const selectedArchive = hashOrder(archive, `${decoySalt}|archive`, exactSelector);
-      const groups = Array.from({ length: 4 }, (_, index) => [
+      const groups = Array.from({ length: 3 }, (_, index) => [
         ...selectedCurrent.slice(index * 6, (index + 1) * 6),
         ...selectedArchive.slice(index * 2, (index + 1) * 2),
       ]);
       const keys = groups.map(canonicalMembership);
-      if (keys.some((key) => memberships.has(key)) || new Set(keys).size !== groups.length) {
+      if (
+        keys.some((key) => memberships.has(key)) ||
+        new Set(keys).size !== groups.length ||
+        groups.some((group) =>
+          group.slice(0, 6).every((selector) => !even.has(exactSelector(selector))),
+        )
+      ) {
         continue;
       }
       decoys = groups;
@@ -229,11 +222,11 @@ function decoyExceptions(reservedQ, current, archive, plantedEven, plantedOdd, s
   const reserved = [plantedEven, plantedOdd];
   const memberships = new Set(reserved.map(canonicalMembership));
   const motifs = [
-    [0, 1, 2],
-    [0, 1, 2],
-    [4, 5, 6],
-    [5, 6, 7],
-    [8, 9, 10],
+    [3, 4, 5],
+    [3, 4, 5],
+    [6, 7, 8],
+    [6, 7, 8],
+    [9, 10, 11],
   ];
   for (const [motif, groupIndices] of motifs.entries()) {
     const currentUnion = new Map();
@@ -310,7 +303,7 @@ export function buildCoupledCatalog(index, options = {}) {
     [...unsafe.slice(6, 11), safe[0], archive[2], archive[3]],
     [...unsafe.slice(11, 16), safe[1], archive[4], archive[5]],
   ];
-  const reservedQ = decoyQuarantines(candidates, current, odd, plantedQ, archive, salt);
+  const reservedQ = decoyQuarantines(candidates, current, even, plantedQ, archive, salt);
   const plantedEvenE = [...safe, flip, archive[6], archive[7], archive[8]];
   const plantedOddE = [...safe, archive[9], archive[10], archive[11], archive[12]];
   const reservedE = decoyExceptions(reservedQ, current, archive, plantedEvenE, plantedOddE, salt);

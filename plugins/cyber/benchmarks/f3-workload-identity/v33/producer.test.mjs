@@ -54,6 +54,7 @@ function structuralRivals(catalogs, current, plan) {
     .map((group) => ({
       id: group.cohort_id,
       current: members(group).filter((selector) => currentKeys.has(selector)),
+      archive: members(group).filter((selector) => !currentKeys.has(selector)),
     }))
     .filter((group) => group.current.length === 6);
   const exceptions = catalogs.exception_bundles.bundles.map((group) => ({
@@ -80,12 +81,21 @@ function structuralRivals(catalogs, current, plan) {
         if (union.size !== 18) {
           continue;
         }
+        const archiveUnion = new Set(groups.flatMap((group) => group.archive));
         triples.push({
           ids: groups
             .map((group) => group.id)
             .sort()
             .join('|'),
           count: ePairs.filter((pair) => [...pair].every((selector) => union.has(selector))).length,
+          completable:
+            archiveUnion.size === 6 &&
+            qSix.some(
+              (group) =>
+                !groups.includes(group) &&
+                new Set([...union, ...group.current]).size === 24 &&
+                new Set([...archiveUnion, ...group.archive]).size === 8,
+            ),
         });
       }
     }
@@ -97,14 +107,16 @@ function structuralRivals(catalogs, current, plan) {
     .join('|');
   const selectedCount = triples.find((triple) => triple.ids === selected)?.count;
   assert.notEqual(selectedCount, undefined, 'reference uses a disjoint six-current Q triple');
+  const nonCompletable = triples.filter((triple) => !triple.completable && triple.ids !== selected);
   return {
     selectedCount,
-    rivals: triples.filter((triple) => triple.ids !== selected && triple.count >= selectedCount)
-      .length,
+    completable: triples.some((triple) => triple.completable),
+    higherRivals: nonCompletable.filter((triple) => triple.count >= selectedCount).length,
+    lowerRivals: nonCompletable.filter((triple) => triple.count <= selectedCount).length,
   };
 }
 
-test('development grid leaves at least three equal-or-higher structural Q/E triples', () => {
+test('development grid leaves non-completable Q/E rivals on both motif tails', () => {
   for (let pairSeed = 104000; pairSeed < 104012; pairSeed += 2) {
     for (const family of FAMILIES) {
       const even = episode(pairSeed, family);
@@ -112,12 +124,31 @@ test('development grid leaves at least three equal-or-higher structural Q/E trip
       const catalogs = visibleCatalogs(even);
       for (const variant of [even, odd]) {
         const current = currentActions(variant);
-        const plan = solveMixedCover(catalogs, current, requiredActions(variant));
+        const required = requiredActions(variant);
+        const unsafeActions = new Set(required.map((action) => JSON.stringify(action)));
+        const unsafe = new Set(
+          [...current]
+            .filter(([, action]) => unsafeActions.has(JSON.stringify(action)))
+            .map(([key]) => key),
+        );
+        const plan = solveMixedCover(catalogs, current, required);
         assert.ok(plan, `${pairSeed}/${family}: visible reference`);
-        const { rivals } = structuralRivals(catalogs, current, plan);
+        const { completable, higherRivals, lowerRivals } = structuralRivals(
+          catalogs,
+          current,
+          plan,
+        );
+        const allSafe = catalogs.containment_cohorts.cohorts.filter((group) => {
+          const selected = group.selectors
+            .map((selector) => `${selector.kind}:${selector.id}`)
+            .filter((key) => current.has(key));
+          return selected.length === 6 && selected.every((key) => !unsafe.has(key));
+        });
+        assert.equal(allSafe.length, 0, `${pairSeed}/${family}: all-safe Q6 marker`);
+        assert.equal(completable, false, `${pairSeed}/${family}: full Q4 partition marker`);
         assert.ok(
-          rivals >= 3,
-          `${pairSeed}/${family}/${variant === even ? 'even' : 'odd'}: only ${rivals} equal-or-higher Q/E triples`,
+          higherRivals >= 3 && lowerRivals >= 3,
+          `${pairSeed}/${family}/${variant === even ? 'even' : 'odd'}: Q/E rivals ${higherRivals} higher, ${lowerRivals} lower`,
         );
       }
     }

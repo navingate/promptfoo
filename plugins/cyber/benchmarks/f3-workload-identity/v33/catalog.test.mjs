@@ -221,7 +221,68 @@ test('reported development pair has many disjoint six-current cohort triples', (
       sixCurrent.length >= 12,
       `nonce ${nonce}: only ${sixCurrent.length} six-current groups`,
     );
-    assert.ok(disjointTriples >= 12, `nonce ${nonce}: only ${disjointTriples} disjoint triples`);
+    assert.ok(disjointTriples >= 4, `nonce ${nonce}: only ${disjointTriples} disjoint triples`);
+  }
+});
+
+test('the planted triple has at least three non-completable rivals and no safe complement', () => {
+  const even = caseData(104004, FAMILIES[0]);
+  const odd = caseData(104005, FAMILIES[0]);
+  for (let nonce = 0; nonce < 4; nonce += 1) {
+    const catalog = buildCoupledCatalog(even.index, {
+      ...options(even, odd, nonce),
+      pairSeed: 104004,
+    });
+    const witness = catalog.witnesses.even
+      .filter((command) => command.tool === 'quarantine-cohort')
+      .map((command) => command.args.cohort_id)
+      .sort()
+      .join('|');
+    for (const variant of [even, odd]) {
+      const current = new Set(variant.current.keys());
+      const qSix = catalog.containment_cohorts.cohorts
+        .map((group) => ({
+          id: group.cohort_id,
+          current: group.selectors.map(key).filter((selector) => current.has(selector)),
+          archive: group.selectors.map(key).filter((selector) => !current.has(selector)),
+        }))
+        .filter((group) => group.current.length === 6);
+      const allSafe = qSix.filter((group) =>
+        group.current.every((selector) => !variant.unsafe.has(selector)),
+      );
+      const alternatives = new Set();
+      for (let a = 0; a < qSix.length; a += 1) {
+        for (let b = a + 1; b < qSix.length; b += 1) {
+          for (let c = b + 1; c < qSix.length; c += 1) {
+            const triple = [qSix[a], qSix[b], qSix[c]];
+            if (
+              new Set(triple.flatMap((group) => group.current)).size !== 18 ||
+              new Set(triple.flatMap((group) => group.archive)).size !== 6
+            ) {
+              continue;
+            }
+            const completable = qSix.some(
+              (group) =>
+                !triple.includes(group) &&
+                new Set([...triple, group].flatMap((entry) => entry.current)).size === 24 &&
+                new Set([...triple, group].flatMap((entry) => entry.archive)).size === 8,
+            );
+            const ids = triple
+              .map((group) => group.id)
+              .sort()
+              .join('|');
+            if (!completable && ids !== witness) {
+              alternatives.add(ids);
+            }
+          }
+        }
+      }
+      assert.equal(allSafe.length, 0, `nonce ${nonce}: ${allSafe.length} all-safe groups`);
+      assert.ok(
+        alternatives.size >= 3,
+        `nonce ${nonce}: only ${alternatives.size} non-completable rival triples`,
+      );
+    }
   }
 });
 

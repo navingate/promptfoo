@@ -135,6 +135,7 @@ function structuralMotifScores(catalogs, currentActions) {
     .map((group) => ({
       id: group.cohort_id,
       current: keys(group).filter((selector) => currentKeys.has(selector)),
+      archive: keys(group).filter((selector) => !currentKeys.has(selector)),
     }))
     .filter((group) => group.current.length === 6);
   const exceptions = catalogs.exception_bundles.bundles.map((group) => ({
@@ -161,15 +162,24 @@ function structuralMotifScores(catalogs, currentActions) {
         if (union.size !== 18) {
           continue;
         }
+        const archiveUnion = new Set(triple.flatMap((group) => group.archive));
+        const completable =
+          archiveUnion.size === 6 &&
+          qSix.some(
+            (group) =>
+              !triple.includes(group) &&
+              new Set([...union, ...group.current]).size === 24 &&
+              new Set([...archiveUnion, ...group.archive]).size === 8,
+          );
         const ids = triple
           .map((group) => group.id)
           .sort()
           .join('|');
-        scores.set(
-          ids,
-          plausiblePairs.filter((pair) => [...pair].every((selector) => union.has(selector)))
+        scores.set(ids, {
+          count: plausiblePairs.filter((pair) => [...pair].every((selector) => union.has(selector)))
             .length,
-        );
+          completable,
+        });
       }
     }
   }
@@ -185,11 +195,25 @@ function hasStructuralRivals(scores, plan) {
     .map((command) => command.args.cohort_id)
     .sort()
     .join('|');
-  const score = scores.get(selected);
-  if (score === undefined) {
+  const selectedScore = scores.get(selected);
+  if (selectedScore === undefined || selectedScore.completable) {
     return false;
   }
-  return [...scores].filter(([ids, count]) => ids !== selected && count >= score).length >= 3;
+  const rivals = [...scores].filter(([ids, score]) => ids !== selected && !score.completable);
+  return (
+    rivals.filter(([, score]) => score.count >= selectedScore.count).length >= 3 &&
+    rivals.filter(([, score]) => score.count <= selectedScore.count).length >= 3
+  );
+}
+
+function hasAllSafeSixCurrentGroup(catalogs, current, unsafe) {
+  const currentKeys = new Set(current.keys());
+  return catalogs.containment_cohorts.cohorts.some((group) => {
+    const selected = group.selectors
+      .map((selector) => `${selector.kind}:${selector.id}`)
+      .filter((key) => currentKeys.has(key));
+    return selected.length === 6 && selected.every((key) => !unsafe.has(key));
+  });
 }
 
 function candidatePasses(episodes, current, required, catalogs) {
@@ -198,11 +222,23 @@ function candidatePasses(episodes, current, required, catalogs) {
     exception_bundles: catalogs.exception_bundles,
   };
   const scores = structuralMotifScores(visibleCatalogs, current[0]);
-  if (!hasStructuralRivals(scores, catalogs.witnesses.even)) {
+  if (
+    [...scores.values()].some(({ completable }) => completable) ||
+    !hasStructuralRivals(scores, catalogs.witnesses.even)
+  ) {
     return false;
   }
   const referencePlans = [];
   for (const variant of [0, 1]) {
+    if (
+      hasAllSafeSixCurrentGroup(
+        visibleCatalogs,
+        current[variant],
+        unsafeSelectors(current[variant], required[variant]),
+      )
+    ) {
+      return false;
+    }
     if (solveNoExceptionCover(visibleCatalogs, current[variant], required[variant]) !== null) {
       return false;
     }
