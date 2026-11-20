@@ -20,6 +20,28 @@ function sameCitation(candidate, expected) {
   return FINDING_FIELDS.every((field) => candidate[field] === expected[field]);
 }
 
+function quarantineSnapshot(session, userId, targetGrantIds) {
+  const nextExportTick = session.now_tick < LIMITS.horizon_tick ? session.now_tick + 1 : null;
+  const tokens = byId([...session.sources.tokens, ...session.dynamic_tokens], 'token_id');
+  const sessions = byId(session.sources.sessions, 'session_id');
+  return session.sources.grants
+    .filter((grant) => grant.principal_binding === userId && targetGrantIds.has(grant.grant_id))
+    .map((grant) => {
+      const state = accessState(session, grant.grant_id);
+      return {
+        grant_id: grant.grant_id,
+        can_mint: state.can_mint,
+        token_survives_next_export:
+          nextExportTick !== null &&
+          state.live_token_ids.some((tokenId) => {
+            const token = tokens.get(tokenId);
+            return !token || token.expires_at_tick > nextExportTick;
+          }),
+        sessions_terminable: state.live_session_ids.every((sessionId) => sessions.has(sessionId)),
+      };
+    });
+}
+
 /** Reconstruct the observed action trace from the native estate and evaluator-only lag. */
 function replayRecorded(session, key) {
   if (
@@ -38,6 +60,8 @@ function replayRecorded(session, key) {
     hidden: { revocation_lag_ticks: key.revocation_lag_ticks },
     initial: session.initial,
   });
+  const targetGrantIds = new Set(nativeCitations(replay.sources).keys());
+  const quarantineSnapshots = new Map();
   for (const [position, entry] of session.action_ledger.entries()) {
     if (
       !entry ||
@@ -51,6 +75,10 @@ function replayRecorded(session, key) {
     ) {
       throw new Error('invalid response action ledger');
     }
+    const snapshot =
+      entry.command?.tool === 'set_quarantine' && entry.command.args?.on === true
+        ? quarantineSnapshot(replay, entry.command.args.user_id, targetGrantIds)
+        : null;
     // The engine records a JSON-safe copy of the entire command, including
     // malformed wrapper fields. Replay it without consulting the claimed error.
     const result = stepResponse(replay, entry.command);
@@ -67,11 +95,14 @@ function replayRecorded(session, key) {
     ) {
       throw new Error('response action ledger disagrees with native replay');
     }
+    if (result.ok && snapshot) {
+      quarantineSnapshots.set(replayedEntry.index, snapshot);
+    }
   }
   if (replay.action_count !== session.action_count || replay.submitted !== session.submitted) {
     throw new Error('response action count or submission disagrees with native replay');
   }
-  return replay;
+  return { replay, quarantineSnapshots };
 }
 
 /** Derive observed unauthorized post-reset calls from causal native events. */
@@ -340,7 +371,7 @@ function evidenceFor(replay, expected) {
   };
 }
 
-function outcomesFor(replay, expected, evidence) {
+function outcomesFor(replay, expected, evidence, quarantineSnapshots) {
   const sources = replay.sources;
   const targetIds = [...expected.keys()];
   const targetUsers = new Set(
@@ -384,10 +415,14 @@ function outcomesFor(replay, expected, evidence) {
       approvedOnlyQuarantines.push(userId);
       continue;
     }
-    const userTargets = sources.grants.filter(
-      (grant) => grant.principal_binding === userId && expected.has(grant.grant_id),
-    );
-    if (userTargets.every((grant) => grant.revoked_at_tick !== null)) {
+    const states = quarantineSnapshots.get(entry.index);
+    if (
+      states?.length > 0 &&
+      states.every(
+        (state) =>
+          !state.can_mint && !state.token_survives_next_export && state.sessions_terminable,
+      )
+    ) {
       avoidableSessionOnlyQuarantines.push(userId);
     }
   }
@@ -410,12 +445,12 @@ function outcomesFor(replay, expected, evidence) {
 
 /** Score citations, replayed effects, legitimate work, restoration, and observed evidence. */
 export function scoreResponse(session, key) {
-  const replay = replayRecorded(session, key);
+  const { replay, quarantineSnapshots } = replayRecorded(session, key);
   const expected = nativeCitations(replay.sources);
   const submitted = replay.submitted && replay.now_tick === LIMITS.horizon_tick;
   const findings = attribution(replay.sources, replay.findings, expected);
   const evidence = evidenceFor(replay, expected);
-  const outcomes = outcomesFor(replay, expected, evidence);
+  const outcomes = outcomesFor(replay, expected, evidence, quarantineSnapshots);
   const stages = {
     attribution:
       submitted &&

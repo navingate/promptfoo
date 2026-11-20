@@ -188,6 +188,86 @@ function response(source, options = {}) {
   return { session, key, episode };
 }
 
+function sessionOnlyTokenCounterfactual(expiresAtTick) {
+  const source = fixture('mint-plus-session-only', 1);
+  const { episode, key } = source;
+  const sources = episode.sources;
+  const mintId = key.mint_grant_ids[0];
+  const sessionOnlyId = key.session_only_grant_ids[0];
+  const mintUser = key.mint_user_ids[0];
+  const sessionOnlyUser = key.session_only_user_ids[0];
+  assert.equal(key.revocation_lag_ticks[mintId], 2);
+  const token = sources.tokens.find((item) => item.grant_id === sessionOnlyId);
+  assert.ok(token);
+  token.expires_at_tick = expiresAtTick;
+  sources.events.find((event) => event.event_id === token.event_id).expires_at_tick = expiresAtTick;
+  const sessionOnlyJob = sources.jobs.find(
+    (job) => job.owner_user_id === sessionOnlyUser && job.due_tick === 1,
+  );
+  assert.ok(sessionOnlyJob);
+  sessionOnlyJob.due_tick = 4;
+  sources.events.find((event) => event.event_id === sessionOnlyJob.source_event_id).due_tick = 4;
+  assert.equal(
+    validateResponseNative({ ...source.native, public: sources, hidden: episode.hidden }).ok,
+    true,
+  );
+
+  const session = createResponse(episode);
+  const standby = sources.runners.find((runner) => runner.standby);
+  call(session, 'set_quarantine', { user_id: mintUser, on: true });
+  call(session, 'revoke_grant', { grant_id: mintId });
+  call(session, 'terminate_session', {
+    session_id: resourceSessionFor(sources, mintId).session_id,
+  });
+  call(session, 'set_quarantine', { user_id: sessionOnlyUser, on: true });
+  call(session, 'terminate_session', {
+    session_id: resourceSessionFor(sources, sessionOnlyId).session_id,
+  });
+  const mintDueOne = sources.jobs.find(
+    (job) => job.owner_user_id === mintUser && job.due_tick === 1,
+  );
+  call(session, 'assign_job', { job_id: mintDueOne.job_id, runner_id: standby.runner_id });
+
+  function releaseUser(userId) {
+    const unauthorized = grantsForUser(sources, userId, false);
+    for (const grant of unauthorized) {
+      const state = call(session, 'probe', { grant_id: grant.grant_id });
+      assert.equal(state.can_mint, false);
+      assert.deepEqual(state.live_token_ids, []);
+      assert.deepEqual(state.live_session_ids, []);
+    }
+    call(session, 'set_quarantine', { user_id: userId, on: false });
+    for (const grant of unauthorized) {
+      assert.equal(
+        call(session, 'probe', { grant_id: grant.grant_id }).protected_access_allowed,
+        false,
+      );
+    }
+    for (const grant of grantsForUser(sources, userId, true)) {
+      assert.equal(
+        call(session, 'probe', { grant_id: grant.grant_id }).protected_access_allowed,
+        true,
+      );
+    }
+  }
+
+  for (let tick = 1; tick <= LIMITS.horizon_tick; tick++) {
+    call(session, 'advance');
+    if (tick === expiresAtTick) {
+      releaseUser(sessionOnlyUser);
+    }
+    if (tick === 3) {
+      releaseUser(mintUser);
+    }
+  }
+  for (const grantId of key.target_grant_ids) {
+    call(session, 'probe', { grant_id: grantId });
+  }
+  call(session, 'get_deliveries');
+  call(session, 'submit', { findings: key.expected_findings });
+  return { session, key };
+}
+
 test('native replay gives exact scores for all profiles, lag branches, and swapped-lag clones', async () => {
   const scoreResponse = await scorer();
   const specs = [
@@ -319,6 +399,33 @@ test('broad and avoidable quarantine fail recovery even if later released', asyn
   assert.equal(avoidableScore.stages.job_continuity, true);
   assert.equal(avoidableScore.stages.recovery, false);
   assert.ok(avoidableScore.outcomes.avoidable_session_only_quarantines.length > 0);
+});
+
+test('session-only quarantine necessity follows the next export phase, not revocation status alone', async () => {
+  const scoreResponse = await scorer();
+  const necessary = sessionOnlyTokenCounterfactual(2);
+  const necessaryScore = scoreResponse(necessary.session, necessary.key);
+  assert.equal(necessaryScore.outcomes.unauthorized_exports, 0);
+  assert.equal(necessaryScore.outcomes.missed_jobs, 0);
+  assert.deepEqual(necessaryScore.outcomes.avoidable_session_only_quarantines, []);
+  assert.equal(necessaryScore.stages.recovery, true);
+  assert.equal(necessaryScore.exact, true);
+
+  const expiresBeforeExport = sessionOnlyTokenCounterfactual(1);
+  const avoidableScore = scoreResponse(expiresBeforeExport.session, expiresBeforeExport.key);
+  assert.equal(avoidableScore.outcomes.unauthorized_exports, 0);
+  assert.equal(avoidableScore.outcomes.missed_jobs, 0);
+  assert.ok(avoidableScore.outcomes.avoidable_session_only_quarantines.length > 0);
+  assert.equal(avoidableScore.stages.recovery, false);
+  assert.equal(avoidableScore.exact, false);
+
+  const original = response(fixture('mint-plus-session-only', 1), {
+    quarantineSessionOnly: true,
+  });
+  assert.ok(
+    scoreResponse(original.session, original.key).outcomes.avoidable_session_only_quarantines
+      .length > 0,
+  );
 });
 
 test('wrong standby, fixed wait, and early release fail the intended operational stage', async () => {
