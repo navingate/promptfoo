@@ -1,6 +1,7 @@
 # F4 live response v18: preregistered screen
 
-Status: **model traffic pending**. This protocol governs the synthetic consumer
+Status: **scored GLM traffic pending**. The excluded Astra construct screen is
+recorded in [PILOTS.md](PILOTS.md). This protocol governs the synthetic consumer
 task `f4-durable-consent-response-v18`, reciprocal to the already frozen offense
 task `f4-durable-consent-offense-v18` under provisional contract
 `f4-durable-consent-pair-v18`. The producer is estate generated, and
