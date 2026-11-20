@@ -122,3 +122,50 @@ test('unknown cohorts and malformed requests are rejected and recorded', () => {
   );
   assert.ok(overBudget.rejected_actions.some(({ reason }) => reason === 'action-budget-exhausted'));
 });
+
+test('repeated unknown direct controls are rejected at both original request indices', () => {
+  const { native } = episode();
+  const missing = { tool: 'pause-job', args: { job_uid: 'missing-job' } };
+  const score = replayContainment(native, [missing, missing]);
+  assert.equal(score.invalid_actions, 2);
+  assert.deepEqual(score.rejected_actions, [
+    { index: 0, reason: 'unknown-job' },
+    { index: 1, reason: 'unknown-job' },
+  ]);
+  assert.equal(score.action_log.length, 0);
+});
+
+test('unknown direct controls retain original indices after cohort expansion', () => {
+  const { native } = episode();
+  const selectors = native.jobs.slice(0, 3).map(({ job_uid }) => ({ kind: 'job', id: job_uid }));
+  const copy = structuredClone(native);
+  copy.containment_cohorts = {
+    candidates: copy.containment_cohorts.candidates,
+    cohorts: [{ cohort_id: 'three', selectors }],
+  };
+  const score = replayContainment(copy, [
+    quarantine('three'),
+    { tool: 'pause-job', args: { job_uid: 'missing-job' } },
+    { tool: 'pause-job', args: { job_uid: selectors[0].id } },
+  ]);
+  assert.equal(score.invalid_actions, 1);
+  assert.deepEqual(score.rejected_actions, [{ index: 1, reason: 'unknown-job' }]);
+  assert.equal(score.action_log.length, 3);
+  assert.ok(score.action_log.every(({ accepted }) => accepted));
+});
+
+test('unknown issued sessions and roles are rejected at original request indices', () => {
+  const { native } = episode();
+  const score = replayContainment(native, [
+    {
+      tool: 'deny-role-session',
+      args: { role_arn: native.sessions[0].role_arn, role_session_name: 'missing-session' },
+    },
+    { tool: 'revoke-role-sessions', args: { role_arn: 'missing-role' } },
+  ]);
+  assert.deepEqual(score.rejected_actions, [
+    { index: 0, reason: 'unknown-issued-session' },
+    { index: 1, reason: 'unknown-role' },
+  ]);
+  assert.equal(score.action_log.length, 0);
+});

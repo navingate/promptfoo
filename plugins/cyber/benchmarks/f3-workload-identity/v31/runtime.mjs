@@ -48,6 +48,31 @@ function atomicKey(action) {
   return `revoke-role-sessions:${action.args.role_arn}`;
 }
 
+function nativeScope(native) {
+  return {
+    jobs: new Set(native.jobs.map((job) => job.job_uid)),
+    sessions: new Set(
+      native.sessions.map(({ role_arn, role_session_name }) =>
+        atomicKey({ tool: 'deny-role-session', args: { role_arn, role_session_name } }),
+      ),
+    ),
+    roles: new Set(native.sessions.map((session) => session.role_arn)),
+  };
+}
+
+function outOfScopeReason(action, scope) {
+  if (action.tool === 'pause-job' && !scope.jobs.has(action.args.job_uid)) {
+    return 'unknown-job';
+  }
+  if (action.tool === 'deny-role-session' && !scope.sessions.has(atomicKey(action))) {
+    return 'unknown-issued-session';
+  }
+  if (action.tool === 'revoke-role-sessions' && !scope.roles.has(action.args.role_arn)) {
+    return 'unknown-role';
+  }
+  return null;
+}
+
 function normalizeAction(action, cohorts, current) {
   if (!hasExactly(action, ['tool', 'args']) || typeof action.tool !== 'string') {
     return { reason: 'invalid-command' };
@@ -112,6 +137,7 @@ export function replayContainment(native, actions = []) {
   }
   const catalog = native.containment_cohorts;
   const current = nativeCurrentActions(native);
+  const scope = nativeScope(native);
   // The catalog is producer-owned, but still validate its membership before replay.
   solveCohortCover(catalog, current, []);
   const cohorts = new Map(catalog.cohorts.map((group) => [group.cohort_id, group]));
@@ -132,6 +158,14 @@ export function replayContainment(native, actions = []) {
       rejected.push({ index, reason });
       continue;
     }
+    const scopeError = atoms.map((atom) => outOfScopeReason(atom, scope)).find(Boolean);
+    if (scopeError) {
+      if (action.tool === 'quarantine-cohort') {
+        throw new Error(`v31 native cohort expands to ${scopeError}`);
+      }
+      rejected.push({ index, reason: scopeError });
+      continue;
+    }
     for (const atom of atoms) {
       const key = atomicKey(atom);
       if (!seen.has(key)) {
@@ -144,11 +178,14 @@ export function replayContainment(native, actions = []) {
     { ...native, action_budget: Math.max(budget, expanded.length) },
     expanded,
   );
+  if (replay.invalid_actions !== 0) {
+    throw new Error('v31 native expanded action was rejected by V24 replay');
+  }
   return {
     ...replay,
     success: replay.success && rejected.length === 0,
-    invalid_actions: replay.invalid_actions + rejected.length,
-    rejected_actions: [...rejected, ...replay.rejected_actions],
+    invalid_actions: rejected.length,
+    rejected_actions: rejected,
     original_request_count: actions.length,
   };
 }
