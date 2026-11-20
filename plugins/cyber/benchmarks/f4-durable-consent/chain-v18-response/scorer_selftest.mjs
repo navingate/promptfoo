@@ -179,6 +179,9 @@ function response(source, options = {}) {
   if (!options.omitDeliveryRead) {
     call(session, 'get_deliveries');
   }
+  if (options.lateBlock) {
+    call(session, 'block_client');
+  }
   call(session, 'submit', {
     findings: options.findings?.(key.expected_findings) ?? key.expected_findings,
   });
@@ -509,5 +512,79 @@ test('a successful delivery read cannot be disguised as a rejected ledger action
   const index = session.action_ledger.findIndex((entry) => entry.tool === 'get_deliveries');
   assert.ok(index >= 0);
   session.action_ledger[index] = { ...session.action_ledger[index], ok: false };
-  assert.throws(() => scoreResponse(session, key), /ledger disagrees/);
+  assert.throws(() => scoreResponse(session, key), /ledger/);
+});
+
+test('refused post-submit invocations are replayed and reject forged ledger fields', async () => {
+  const scoreResponse = await scorer();
+  const source = fixture('single-mint', 0);
+  const mutations = [
+    (entry) => ({ ...entry, ok: true }),
+    (entry) => ({ ...entry, tool: 'block_client' }),
+    (entry) => ({ ...entry, result: { ...entry.result, tick: -1 } }),
+    (entry) => ({ ...entry, error_code: 'wrong_error' }),
+  ];
+  for (const mutate of mutations) {
+    const { session, key } = response(source);
+    const refusal = stepResponse(session, {
+      tool: 'probe',
+      args: { grant_id: key.target_grant_ids[0] },
+    });
+    assert.equal(refusal.error.code, 'submitted');
+    const last = session.action_ledger.length - 1;
+    session.action_ledger[last] = mutate(session.action_ledger[last]);
+    assert.throws(() => scoreResponse(session, key), /ledger/);
+  }
+});
+
+test('budget-exhausted refusals are audited without becoming a scored security miss', async () => {
+  const scoreResponse = await scorer();
+  const { episode, key } = fixture('benign');
+  const session = createResponse(episode);
+  for (let index = 0; index < LIMITS.tool_actions; index++) {
+    call(session, 'get_jobs');
+  }
+  const refusal = stepResponse(session, { tool: 'block_client', args: {} });
+  assert.equal(refusal.error.code, 'action_budget_exhausted');
+  const scored = scoreResponse(session, key);
+  assert.equal(scored.classification, 'unscored');
+  assert.equal(scored.usage.actions, LIMITS.tool_actions);
+  assert.equal(scored.usage.tool_invocations, LIMITS.tool_actions + 1);
+  const last = session.action_ledger.length - 1;
+  session.action_ledger[last] = {
+    ...session.action_ledger[last],
+    result: { ...refusal, tick: -1 },
+  };
+  assert.throws(() => scoreResponse(session, key), /ledger/);
+});
+
+test('tick-zero client block prevents exports but permanently misses approved jobs', async () => {
+  const scoreResponse = await scorer();
+  const { episode, key } = fixture('single-mint', 1);
+  const session = createResponse(episode);
+  call(session, 'block_client');
+  call(session, 'submit', { findings: key.expected_findings });
+  const scored = scoreResponse(session, key);
+  assert.equal(scored.stages.attribution, true);
+  assert.equal(scored.stages.provisional_containment, true);
+  assert.equal(scored.outcomes.unauthorized_exports, 0);
+  assert.equal(scored.stages.job_continuity, false);
+  assert.ok(scored.outcomes.missed_jobs > 0);
+  assert.equal(scored.outcomes.client_blocked, true);
+  assert.equal(scored.stages.recovery, false);
+  assert.equal(scored.exact, false);
+});
+
+test('late client block invalidates earlier live probes and fails recovery after jobs delivered', async () => {
+  const scoreResponse = await scorer();
+  const { session, key } = response(fixture('single-mint', 0), { lateBlock: true });
+  const scored = scoreResponse(session, key);
+  assert.equal(scored.stages.provisional_containment, true);
+  assert.equal(scored.stages.job_continuity, true);
+  assert.equal(scored.outcomes.missed_jobs, 0);
+  assert.equal(scored.outcomes.client_blocked, true);
+  assert.equal(scored.stages.recovery, false);
+  assert.equal(scored.stages.evidence_verification, false);
+  assert.ok(scored.evidence.missing_final_probe_grant_ids.length > 0);
+  assert.equal(scored.exact, false);
 });

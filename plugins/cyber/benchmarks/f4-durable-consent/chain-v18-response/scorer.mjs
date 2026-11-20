@@ -40,6 +40,7 @@ function replayRecorded(session, key) {
   });
   for (const [position, entry] of session.action_ledger.entries()) {
     if (
+      !Object.isFrozen(entry) ||
       entry.index !== position + 1 ||
       (typeof entry.tool !== 'string' && (entry.ok || entry.tool !== null)) ||
       typeof entry.ok !== 'boolean' ||
@@ -48,19 +49,22 @@ function replayRecorded(session, key) {
     ) {
       throw new Error('invalid response action ledger');
     }
-    if (!entry.counts_toward_budget) {
-      if (!replay.submitted && replay.action_count < LIMITS.tool_actions) {
-        throw new Error('unexpected uncounted response invocation');
-      }
-      continue;
-    }
     // Stored malformed arguments may be a safe rendering, so compare their
     // rejection and tick without requiring identical diagnostic wording.
+    // Refusals made after submission or budget exhaustion bypass validation,
+    // so their complete result and error code must still match native replay.
     const result = stepResponse(replay, { tool: entry.tool, args: entry.args });
+    const replayedEntry = replay.action_ledger.at(-1);
+    const comparableError =
+      !entry.ok && !['invalid_command', 'invalid_arguments'].includes(entry.error_code);
     if (
+      replayedEntry.counts_toward_budget !== entry.counts_toward_budget ||
       result.ok !== entry.ok ||
       entry.tick_after !== replay.now_tick ||
-      (entry.ok && !isDeepStrictEqual(result, entry.result))
+      entry.error_code !== (entry.result.error?.code ?? null) ||
+      ((entry.ok || !entry.counts_toward_budget) && !isDeepStrictEqual(result, entry.result)) ||
+      ((!entry.counts_toward_budget || comparableError) &&
+        replayedEntry.error_code !== entry.error_code)
     ) {
       throw new Error('response action ledger disagrees with native replay');
     }
@@ -179,7 +183,7 @@ function relevantToGrant(entry, grant, sourceSessionById, sourceTokenById) {
   if (!entry.ok) {
     return false;
   }
-  if (entry.tool === 'advance') {
+  if (entry.tool === 'advance' || entry.tool === 'block_client') {
     return true;
   }
   if (entry.tool === 'revoke_grant') {
@@ -389,6 +393,7 @@ function outcomesFor(replay, expected, evidence) {
     }
   }
   return {
+    client_blocked: replay.client_blocked,
     unauthorized_exports: unauthorizedExports.length,
     unauthorized_export_event_ids: unauthorizedExports.map((attempt) => attempt.event_id),
     live_unauthorized_path_ids: liveUnauthorizedPathIds,
@@ -423,6 +428,7 @@ export function scoreResponse(session, key) {
     revocation_session_closure: submitted && outcomes.live_unauthorized_path_ids.length === 0,
     recovery:
       submitted &&
+      !outcomes.client_blocked &&
       outcomes.live_unauthorized_path_ids.length === 0 &&
       outcomes.approved_unusable_grant_ids.length === 0 &&
       outcomes.approved_revoked_grant_ids.length === 0 &&
