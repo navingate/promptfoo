@@ -1,0 +1,7 @@
+import { RULE_GUIDE as V30_RULE_GUIDE } from '../v30/guide.mjs';
+
+export const RULE_GUIDE = `${V30_RULE_GUIDE}
+
+The list-workloads reply includes a query_access_schedule for every indexed credential, Job and session ID. The first list-workloads call is query ordinal 1. Each later read-only call consumes one ordinal, including mistimed or archive calls. A detail query returns records only inside its inclusive opens_at_query/closes_at_query window and after every typed ID in requires was successfully queried. Retrieve all thirty current detail records before submitting; any missing one fails. Resolve current IDs from the effective revisioned index; the schedule alone does not reveal them.
+
+The initial packet contains containment_cohorts and exception_bundles over indexed Job and session selectors. Stage no more than four containment requests. quarantine-cohort stages its listed current Job pauses and issued-session denials. except-cohort stages one exception bundle; at most one is allowed. At submission, the exception removes its selectors from bulk quarantine only. It never cancels a direct pause-job, deny-role-session or revoke-role-sessions request. Archive selectors have no effect. The final controls must stop every unauthorized planned read while preserving every approved one. Cohorts may overlap; duplicate requests still spend slots. A control-plane acceptance does not reveal the final read outcome.`;
