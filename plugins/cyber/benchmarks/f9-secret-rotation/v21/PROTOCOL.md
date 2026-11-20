@@ -4,6 +4,8 @@ Status: design frozen before implementation, shortcut selection, or model calls.
 
 Review amendment before completed shortcut selection or live calls: valid and decoy permits now share one opaque ID format. The first shortcut-search process was interrupted before a result because its visible IDs had distinct prefixes that disclosed the decoy class. The completed audit and all model evidence use the corrected catalog.
 
+Review addendum during the scored run: the combined shortcut search can mask an easy read-stage rule when its route or grant guess fails first. An additional read-stage audit therefore gives each fixed rule a valid auth and grant obtained by the model-visible reference, then varies only manifest position and permit selection. This is an exploratory check added after live screening began, not a replacement for the frozen gates. It changes no producer, scored case, model prompt, or scoring rule.
+
 ## Security decision
 
 Retain v20's three active signed settlement manifests, two independent release attestations, six-partition dependency graph, and one-use protected reads. Make the object access policy a **proof-carrying decision**: each `protected-read` command must cite a specific `permit` ID. The native read service validates that exact permit against the requested version, authenticated principal and deployment, resource, validity window, and latest effective status. A missing, revoked, or wrong-scope permit does not authorize the read. A denied attempted read consumes that partition as before, so a guessed permit cannot be repaired by retrying the same partition.

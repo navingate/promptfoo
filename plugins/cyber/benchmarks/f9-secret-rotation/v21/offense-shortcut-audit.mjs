@@ -285,6 +285,8 @@ export function auditComposedShortcuts({
   const trainingSpecs = trainingSeeds.flatMap((seed) =>
     families.map((family) => ({ seed, family })),
   );
+  // Later release and permit selectors cannot affect a failed grant-stage prefix.
+  const preGrantFailures = new Map();
   const evaluateChecked = (
     spec,
     routePolicy,
@@ -293,6 +295,14 @@ export function auditComposedShortcuts({
     readPolicy,
     permitPolicy,
   ) => {
+    const earlyFailureKey =
+      evaluate === runComposedPolicy
+        ? `${spec.seed}/${spec.family}/${routePolicy}/${snapshotPolicy}/${grantPolicy}`
+        : null;
+    const cached = earlyFailureKey && preGrantFailures.get(earlyFailureKey);
+    if (cached) {
+      return cached;
+    }
     const outcome = evaluate(
       spec,
       routePolicy,
@@ -328,6 +338,9 @@ export function auditComposedShortcuts({
       outcome.success !== outcome.stages.assemble
     ) {
       throw new Error('invalid stage survival');
+    }
+    if (earlyFailureKey && !outcome.stages.grant) {
+      preGrantFailures.set(earlyFailureKey, outcome);
     }
     return outcome;
   };
