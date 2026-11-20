@@ -26,6 +26,7 @@ test('read-only reference completes real and benign incident responses within bu
         const { state, score } = runVisibleReference(spec);
         assert.equal(score.overall_correct, true, JSON.stringify(spec));
         assert.equal(state.reads <= 32, true);
+        assert.equal(state.query_log.length, state.reads);
         assert.equal(state.writes <= 12, true);
         assert.equal(JSON.stringify(state.packet).includes('F11MARK-'), false);
         assert.equal(JSON.stringify(state.packet).includes('evaluator'), false);

@@ -39,6 +39,7 @@ export function makeState(spec) {
   return {
     packet: { ...packet, guide: INTERACTIVE_GUIDE },
     reads: 0,
+    query_log: [],
     writes: 0,
     ledger: [],
     contained: [],
@@ -87,6 +88,7 @@ export function readConsole(state, command, target = null) {
     return { error: 'read-budget-exhausted' };
   }
   state.reads += 1;
+  state.query_log.push({ sequence: state.reads, command, target });
   const packet = state.packet;
   switch (command) {
     case 'overview':
