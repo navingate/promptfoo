@@ -9,6 +9,7 @@ const FAMILIES = ['reconcile-hook', 'mutating-webhook', 'owner-reference'];
 
 test('visible-only reference stages four timely requests on paired episodes', () => {
   for (const family of FAMILIES) {
+    const pair = [];
     for (const seed of [109000, 109001]) {
       const session = buildDefenseSession({ seed, family });
       assert.equal(session.initial.action_budget, 4);
@@ -39,7 +40,14 @@ test('visible-only reference stages four timely requests on paired episodes', ()
         score.staged_requests.map(({ successful_detail_count }) => successful_detail_count),
         [19, 23, 29, 30],
       );
+      pair.push(score.staged_requests);
     }
+    assert.deepEqual(
+      pair[0].slice(0, 3),
+      pair[1].slice(0, 3),
+      `${family}: the three early decisions must be unchanged by the future approval flip`,
+    );
+    assert.notDeepEqual(pair[0][3].args, pair[1][3].args);
   }
 });
 

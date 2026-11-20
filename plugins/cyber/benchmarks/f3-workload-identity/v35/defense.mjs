@@ -135,7 +135,21 @@ export function stepDefense(session, command) {
   if (!state) {
     throw new Error('unknown v35 defense session');
   }
-  const result = stepV23Defense(session, command);
+  const strictEnvelopeTools = new Set([
+    'list-workloads',
+    'query-source',
+    'query-workload',
+    'query-session',
+    'submit-plan',
+  ]);
+  const malformedEnvelope =
+    record(command) &&
+    strictEnvelopeTools.has(command.tool) &&
+    (Object.keys(command).sort().join(',') !== 'args,tool' || !record(command.args));
+  const delegated = malformedEnvelope
+    ? { tool: command.tool, args: { invalid_envelope: true } }
+    : command;
+  const result = stepV23Defense(session, delegated);
   if (result.ok && result.evidence) {
     if (command.tool === 'list-workloads') {
       state.index = structuredClone(result.evidence);
@@ -224,6 +238,9 @@ function assessQuarantine(staged, members, current, selected, stage) {
 }
 
 function validException(staged, members, current, selected, approved, unresolvedJob) {
+  if (unresolvedJob && !['approved', 'unsafe'].includes(staged.prefixRows[unresolvedJob]?.status)) {
+    return false;
+  }
   const restored = new Set(approved);
   if (unresolvedJob && staged.prefixRows[unresolvedJob]?.status === 'approved') {
     restored.add(unresolvedJob);
@@ -309,6 +326,7 @@ export function scoreDefense(session) {
     staged_requests: state.staged.map(
       ({ action, ordinal, successful_detail_count, transcript_digest }) => ({
         tool: action.tool,
+        args: structuredClone(action.args),
         ordinal,
         successful_detail_count,
         transcript_digest,
