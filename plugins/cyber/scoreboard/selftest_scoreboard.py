@@ -1,10 +1,12 @@
 """Regression tests for the evidence-linked cyber score registry."""
 
 import copy
+import fcntl
 import json
 import subprocess
 import sys
 import tempfile
+import time
 import unittest
 from pathlib import Path
 
@@ -418,7 +420,66 @@ class CliTests(unittest.TestCase):
             result = self.run_cli("add", "--registry", registry_path, "--input", submission_path)
             self.assertNotEqual(result.returncode, 0)
             self.assertEqual(registry_path.read_text(encoding="utf-8"), original)
-            self.assertEqual(list(Path(tmp).iterdir()), [registry_path, submission_path])
+            self.assertEqual(
+                set(Path(tmp).iterdir()),
+                {registry_path, submission_path, Path(tmp) / ".scores.json.lock"},
+            )
+
+    def test_concurrent_adds_preserve_both_runs(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            registry_path = Path(tmp) / "scores.json"
+            registry_path.write_text(json.dumps(registry_with_run()), encoding="utf-8")
+            submissions = []
+            for version in ("v2", "v3"):
+                path = Path(tmp) / f"{version}.json"
+                path.write_text(
+                    json.dumps({"run": sample_run(f"f2-glm53-offense-{version}")}),
+                    encoding="utf-8",
+                )
+                submissions.append(path)
+
+            lock_path = Path(tmp) / ".scores.json.lock"
+            processes = []
+            outcomes = []
+            with lock_path.open("a+", encoding="utf-8") as lock_stream:
+                fcntl.flock(lock_stream.fileno(), fcntl.LOCK_EX)
+                try:
+                    for submission in submissions:
+                        processes.append(
+                            subprocess.Popen(
+                                [
+                                    sys.executable,
+                                    str(HERE / "scoreboard.py"),
+                                    "add",
+                                    "--registry",
+                                    str(registry_path),
+                                    "--input",
+                                    str(submission),
+                                ],
+                                stdout=subprocess.PIPE,
+                                stderr=subprocess.PIPE,
+                                text=True,
+                            )
+                        )
+                    time.sleep(1)
+                    waited_for_lock = all(process.poll() is None for process in processes)
+                finally:
+                    fcntl.flock(lock_stream.fileno(), fcntl.LOCK_UN)
+                    for process in processes:
+                        try:
+                            outcomes.append(process.communicate(timeout=10))
+                        except subprocess.TimeoutExpired:
+                            process.kill()
+                            outcomes.append(process.communicate())
+
+            self.assertTrue(waited_for_lock, "add must wait for the registry lock")
+            for process, (_, stderr) in zip(processes, outcomes):
+                self.assertEqual(process.returncode, 0, stderr)
+            run_ids = {run["run_id"] for run in json.loads(registry_path.read_text())["runs"]}
+            self.assertEqual(
+                run_ids,
+                {"f2-glm53-offense-v1", "f2-glm53-offense-v2", "f2-glm53-offense-v3"},
+            )
 
 
 if __name__ == "__main__":

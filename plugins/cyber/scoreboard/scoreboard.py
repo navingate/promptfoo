@@ -2,6 +2,7 @@
 
 import argparse
 import copy
+import fcntl
 import json
 import os
 import re
@@ -277,14 +278,21 @@ def main() -> int:
     add.add_argument("--current", action="store_true", help="select the new run as current")
     arguments = parser.parse_args()
     try:
-        data = _load_json(arguments.registry)
         if arguments.command == "validate":
+            data = _load_json(arguments.registry)
             validate_registry(data)
             print(f"valid score registry: {arguments.registry}")
         else:
-            submission = _load_json(arguments.input)
-            updated = append_result(data, submission, current=arguments.current)
-            _write_json_atomic(arguments.registry, updated)
+            lock_path = arguments.registry.with_name(f".{arguments.registry.name}.lock")
+            with lock_path.open("a+", encoding="utf-8") as lock_stream:
+                fcntl.flock(lock_stream.fileno(), fcntl.LOCK_EX)
+                try:
+                    data = _load_json(arguments.registry)
+                    submission = _load_json(arguments.input)
+                    updated = append_result(data, submission, current=arguments.current)
+                    _write_json_atomic(arguments.registry, updated)
+                finally:
+                    fcntl.flock(lock_stream.fileno(), fcntl.LOCK_UN)
             print(f"updated score registry: {arguments.registry}")
     except (OSError, ValueError) as exc:
         print(f"scoreboard: {exc}", file=sys.stderr)
