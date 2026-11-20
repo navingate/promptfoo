@@ -10,8 +10,9 @@ one-shot: after any code change, preregister a new untouched range.
    required detail replies, at most four original controls, and zero
    invalid runs. Verify pair catalog/schedule stability, one-selector
    approval difference, no-exception/wrong-exception and shortcut failures,
-   native parity, current-density/Q-E-intersection audit, and V30–V32 byte
-   parity.
+   native parity, at least twelve disjoint six-current quarantine triples
+   per catalog, at least three structurally plausible exception pairs for
+   the construction witness, and V30–V32 byte parity.
 2. Score fresh `105000`–`105011` cases in `reconcile-hook`,
    `mutating-webhook`, `owner-reference` order. Each case uses an independent
    `gpt-6.2-astra` context with inherited reasoning effort and its own

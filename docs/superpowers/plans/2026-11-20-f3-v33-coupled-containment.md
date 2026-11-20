@@ -6,7 +6,8 @@
    uses pair-visible required sets only to plant construction witnesses, then
    shuffles opaque groups. Add red-green tests for shape, uniform degree,
    pair stability, wrong exceptions, infeasible catalogs, no-exception
-   rejection, and deterministic planning. A model-free feasibility prototype
+   rejection, deterministic planning, and decoy triple/exception-pair
+   ambiguity. A model-free feasibility prototype
    exists only under `/private/tmp/f3_v33_feasibility.mjs`; implement reviewed
    production code rather than copying it verbatim.
 2. **Atomic native replay.** Add V33 runtime and tests. Validate original
@@ -34,7 +35,8 @@
    malformed-versus-well-formed-unknown classification. Add runner and
    development-grid shortcut tests for no action, Q-only, E-only,
    direct-only, blanket/role revoke, fixed wrong E, degree/co-occurrence,
-   current-density, and Q/E-intersection guesses, plus the inherited V32
+   current-density, disjoint six-current triples, and Q/E-intersection
+   guesses, plus the inherited V32
    query scheduling trap.
 5. **Reviews and gate.** Obtain independent spec and quality reviews of
    each scoped implementation. Run focused tests, scoped Biome/Prettier,

@@ -52,10 +52,13 @@ The quarantine catalog has 96 opaque, shuffled groups of eight: sixteen
 rounds that each partition all 48 selectors into six groups. Every selector
 therefore appears exactly sixteen times. Three groups in distinct rounds
 form a construction witness: together they cover the union of unsafe
-selectors and two approved current selectors. Each planted group has six
-current and two archive selectors, a density shared by many random groups.
-The remaining members in their rounds are filled by hash-shuffled
-unrestricted candidates. Other rounds are random full
+selectors and two approved current selectors. Each has six current and two
+archive selectors. A fourth group covers the six remaining current
+selectors. Two further four-group decoy partitions also use six current and
+two archive members per group. This creates at least twelve disjoint
+six-current triples, so current density and disjointness alone do not
+identify the witness. The remaining members in those rounds are
+hash-shuffled unrestricted candidates. Other rounds are random full
 partitions; do not stratify every round by current/archive status.
 
 The exception catalog has 96 opaque, shuffled groups of six: twelve rounds
@@ -67,8 +70,12 @@ selectors, with archive fillers making both groups size six. Thus three
 quarantines plus the correct one exception use four requests and preserve
 approved work for either pair member. Choosing the paired alternative
 exception either blocks approved work or restores one unsafe selector.
-Other valid plans remain allowed by native scoring. No planted group,
-round, variant label, or answer appears in the visible catalog.
+Five additional 3-current/2-current exception-bundle pairs have the same
+visible containment-intersection motif, including two pairs for the witness
+triple. Other valid plans remain allowed by native scoring. The catalog salt
+incorporates a digest of the paired unsafe selector set, so public seed and
+source alone do not reconstruct the group layout. No planted group, round,
+variant label, or answer appears in the visible catalog.
 
 Search a bounded deterministic nonce range until both variants pass a
 visible-only mixed reference and **no plan of four or fewer quarantine and
