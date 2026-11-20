@@ -834,6 +834,30 @@ test('visible staged planner rejects incomplete, ambiguous and ineffective choic
     }
   }
   assert.ok(catalogs);
+  // Leave every current selector and both witnesses alone. Force an archive
+  // collision for each third-slot alternative with the real first Q. The
+  // current-only timing test cannot distinguish this from the accepted case.
+  const archiveLeak = structuredClone(catalogs);
+  const witness = catalogs.witnesses.even.slice(0, 3).map((command) => command.args.cohort_id);
+  const first = archiveLeak.containment_cohorts.cohorts.find(
+    (group) => group.cohort_id === witness[0],
+  );
+  const filler = first.selectors.find((selector) => !even.current.has(key(selector)));
+  const flip = [...odd.unsafe].find((selector) => !even.unsafe.has(selector));
+  for (const group of archiveLeak.containment_cohorts.cohorts) {
+    if (
+      group.cohort_id === witness[2] ||
+      !group.selectors.some((selector) => key(selector) === flip) ||
+      group.selectors.some((selector) => key(selector) === key(filler))
+    ) {
+      continue;
+    }
+    const at = group.selectors.findIndex((selector) => !even.current.has(key(selector)));
+    if (at >= 0) {
+      group.selectors[at] = filler;
+    }
+  }
+  assert.equal(hasUniqueStagedPlans(archiveLeak, checkpoints, even.unsafe, odd.unsafe), false);
   // Model/reference API crosses a serialization boundary with only public data.
   const visible = JSON.parse(
     JSON.stringify({

@@ -8,6 +8,8 @@ import { fileURLToPath, pathToFileURL } from 'node:url';
 
 import { solveQuerySchedule } from '../v32/schedule.mjs';
 
+const fixtureEnv = { ...process.env, F3_V35_CATALOG_KEY: '01'.repeat(32) };
+
 const RUNNER = fileURLToPath(new URL('../v3/runner.mjs', import.meta.url));
 
 test('v35 visible reference passes the three families through the ordinary runner', () => {
@@ -28,7 +30,7 @@ test('v35 visible reference passes the three families through the ordinary runne
         '--output',
         output,
       ],
-      { timeout: 180_000 },
+      { env: fixtureEnv, timeout: 180_000 },
     );
     const result = JSON.parse(readFileSync(output, 'utf8'));
     assert.equal(result.summary.total, 3);
@@ -53,7 +55,6 @@ test('v35 visible reference passes the three families through the ordinary runne
 
 test('the ordinary runner rejects an exception batched with its proving final read', () => {
   const directory = mkdtempSync(path.join(tmpdir(), 'f3-v35-batched-exception-'));
-  const catalogKey = '01'.repeat(32);
   try {
     const defenseUrl = pathToFileURL(fileURLToPath(new URL('./defense.mjs', import.meta.url))).href;
     const helper = `import { buildDefenseSession, referenceDefense, scoreDefense, stepDefense } from ${JSON.stringify(defenseUrl)};
@@ -68,7 +69,7 @@ test('the ordinary runner rejects an exception batched with its proving final re
     const { actions, index } = JSON.parse(
       execFileSync(process.execPath, ['--input-type=module', '-e', helper], {
         encoding: 'utf8',
-        env: { ...process.env, F3_V35_CATALOG_KEY: catalogKey },
+        env: fixtureEnv,
         timeout: 60_000,
       }),
     );
@@ -113,8 +114,7 @@ test('the ordinary runner rejects an exception batched with its proving final re
       ],
       {
         env: {
-          ...process.env,
-          F3_V35_CATALOG_KEY: catalogKey,
+          ...fixtureEnv,
           F3_TEST_TURNS: JSON.stringify(turns),
           CYBER_SUT_ENDPOINT: 'http://not-used.invalid',
           CYBER_ENDPOINT_ID: 'local-test',
@@ -143,7 +143,7 @@ test('v35 accepts only the defense mode', () => {
   const result = spawnSync(
     process.execPath,
     [RUNNER, '--version', 'v35', '--mode', 'offense', '--mock-reference', '--seeds', '109000'],
-    { encoding: 'utf8', timeout: 30_000 },
+    { env: fixtureEnv, encoding: 'utf8', timeout: 30_000 },
   );
   assert.notEqual(result.status, 0);
   assert.match(result.stderr, /invalid mode or seeds/u);
@@ -220,7 +220,7 @@ test('v35 classifies malformed exception commands separately from unknown IDs', 
         ],
         {
           env: {
-            ...process.env,
+            ...fixtureEnv,
             CYBER_SUT_ENDPOINT: 'http://not-used.invalid',
             CYBER_ENDPOINT_ID: 'local-test',
             CYBER_MODEL: 'local-stub',

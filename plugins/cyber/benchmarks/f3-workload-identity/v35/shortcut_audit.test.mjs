@@ -9,6 +9,10 @@ import { buildEpisode } from './producer.mjs';
 import { replayContainment } from './runtime.mjs';
 import { chooseStagedQuarantine } from './staged_plan.mjs';
 
+function fixtureEpisode(spec) {
+  return buildEpisode(spec, { catalogKey: '01'.repeat(32) });
+}
+
 const POLICIES = ['index', 'lexicographic', 'earliest-deadline', 'earliest-opening', 'topological'];
 
 function key(selector) {
@@ -30,8 +34,8 @@ function groupDensity(groups, current) {
 
 test('paired development cases retain the scheduled evidence trap and catalog ambiguity', () => {
   for (const family of FAMILIES) {
-    const even = buildEpisode({ seed: 104000, family });
-    const odd = buildEpisode({ seed: 104001, family });
+    const even = fixtureEpisode({ seed: 104000, family });
+    const odd = fixtureEpisode({ seed: 104001, family });
     const current = currentKeys(even.visible);
     assert.deepEqual(current, currentKeys(odd.visible));
     assert.equal(current.size, 24);
@@ -69,7 +73,7 @@ test('paired development cases retain the scheduled evidence trap and catalog am
 test('no-action, fixed catalog guesses and broad revokes fail native scoring', () => {
   for (const family of FAMILIES) {
     for (const seed of [104000, 104001]) {
-      const { visible, native } = buildEpisode({ seed, family });
+      const { visible, native } = fixtureEpisode({ seed, family });
       const q = visible.containment_cohorts.cohorts;
       const e = visible.exception_bundles.bundles;
       const guess = [
@@ -101,18 +105,30 @@ test('no-action, fixed catalog guesses and broad revokes fail native scoring', (
   }
 });
 
-function publicMotifs(catalog, current, flip, resolvable) {
+function publicMotifs(catalog, current, flip, resolvable, distinctArchives = false) {
   const currentKeys = (group) => group.selectors.map(key).filter((k) => current.has(k));
+  const archiveKeys = (group) => group.selectors.map(key).filter((k) => !current.has(k));
   const groups = catalog.containment_cohorts.cohorts
     .map((q) => ({
       id: q.cohort_id,
       current: currentKeys(q),
+      archive: archiveKeys(q),
     }))
     .filter((q) => q.current.length === 6);
-  const bundles = catalog.exception_bundles.bundles.map(currentKeys);
-  const small = bundles.filter((m) => m.length === 2);
-  const large = bundles.filter((m) => m.length === 3 && m.includes(flip));
-  const pairs = small.filter((m) => large.some((l) => m.every((k) => l.includes(k))));
+  const bundles = catalog.exception_bundles.bundles.map((group) => ({
+    current: currentKeys(group),
+    archive: archiveKeys(group),
+  }));
+  const pairs = [];
+  for (const small of bundles.filter((group) => group.current.length === 2)) {
+    for (const large of bundles.filter(
+      (group) => group.current.length === 3 && group.current.includes(flip),
+    )) {
+      if (small.current.every((k) => large.current.includes(k))) {
+        pairs.push({ current: small.current, archive: [...small.archive, ...large.archive] });
+      }
+    }
+  }
   // Give the no-detail baseline the additional knowledge of exactly which
   // authorizations could be resolved by each deadline. Their values stay hidden.
   const stages = [20, 24, 30].map((n, i) =>
@@ -120,7 +136,7 @@ function publicMotifs(catalog, current, flip, resolvable) {
       (q) =>
         q.current.filter((k) => !resolvable[n].has(k)).length === (i === 2 ? 1 : 0) &&
         (i !== 2 || q.current.includes(flip)) &&
-        (i !== 1 || pairs.some((pair) => pair.every((k) => q.current.includes(k)))),
+        (i !== 1 || pairs.some((pair) => pair.current.every((k) => q.current.includes(k)))),
     ),
   );
   const disjoint = (a, b) => a.current.every((k) => !b.current.includes(k));
@@ -132,7 +148,17 @@ function publicMotifs(catalog, current, flip, resolvable) {
       }
       for (const q3 of stages[2]) {
         if (disjoint(q1, q3) && disjoint(q2, q3)) {
-          sequences.push([q1, q2, q3]);
+          const fillers = [...q1.archive, ...q2.archive, ...q3.archive];
+          if (
+            !distinctArchives ||
+            pairs.some(
+              (pair) =>
+                pair.current.every((k) => q2.current.includes(k)) &&
+                new Set([...fillers, ...pair.archive]).size === 13,
+            )
+          ) {
+            sequences.push([q1, q2, q3]);
+          }
         }
       }
     }
@@ -142,8 +168,12 @@ function publicMotifs(catalog, current, flip, resolvable) {
 
 test('public schedule, index, Q/E motifs and prefix resolvability leave multiple rival sequences', () => {
   const matches = { id: 0, order: 0, earliest: 0 };
-  for (const family of FAMILIES) {
-    const { visible } = buildEpisode({ seed: 109000, family });
+  const grid = [
+    ...FAMILIES.map((family) => ({ family, seed: 109000 })),
+    { family: 'owner-reference', seed: 109002 },
+  ];
+  for (const { family, seed } of grid) {
+    const { visible } = fixtureEpisode({ seed, family });
     const index = {
       ...listWorkloads(visible),
       query_access_schedule: visible.query_access_schedule,
@@ -166,6 +196,27 @@ test('public schedule, index, Q/E motifs and prefix resolvability leave multiple
       chosen.push(chooseStagedQuarantine(visible, prefix, chosen).args.cohort_id);
     }
     const sequences = publicMotifs(visible, currentKeys(visible), flip, resolvable);
+    const archiveMatches = publicMotifs(visible, currentKeys(visible), flip, resolvable, true);
+    for (let stage = 0; stage < 3; stage++) {
+      const rivals = new Set(
+        archiveMatches
+          .filter((sequence) =>
+            sequence.slice(0, stage).every((group, index) => group.id === chosen[index]),
+          )
+          .map((sequence) => sequence[stage].id),
+      );
+      assert.ok(
+        rivals.has(chosen[stage]) && rivals.size >= 4,
+        seed +
+          '/' +
+          family +
+          ' stage ' +
+          (stage + 1) +
+          ' had ' +
+          rivals.size +
+          ' matching five-group archive choices',
+      );
+    }
     const winners = sequences.filter((s) => s.every((g, i) => g.id === chosen[i]));
     assert.equal(winners.length, 1);
     for (let stage = 0; stage < 3; stage++) {
@@ -222,6 +273,6 @@ test('public schedule, index, Q/E motifs and prefix resolvability leave multiple
     }
   }
   for (const [policy, count] of Object.entries(matches)) {
-    assert.ok(count < FAMILIES.length, policy + ' identified every winning Q sequence');
+    assert.ok(count < grid.length, policy + ' identified every winning Q sequence');
   }
 });

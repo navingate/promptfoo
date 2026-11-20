@@ -285,7 +285,7 @@ function candidatePasses(episodes, current, required, catalogs) {
 }
 
 /** Build one V35 variant from its pair without exposing the construction witnesses. */
-export function buildEpisode(spec) {
+export function buildEpisode(spec, { catalogKey } = {}) {
   if (!Number.isSafeInteger(spec?.seed) || spec.seed < 0) {
     throw new Error('v35 episode requires a nonnegative seed');
   }
@@ -323,6 +323,7 @@ export function buildEpisode(spec) {
     let catalogs;
     try {
       catalogs = buildCoupledCatalog(indices[0], {
+        catalogKey,
         pairSeed,
         family: spec.family,
         nonce,

@@ -8,41 +8,61 @@ import { chooseStagedException, chooseStagedQuarantine } from './staged_plan.mjs
 // final query ID, and which evidence can be resolved at each cutoff. No
 // authorization value is used to rank any sequence.
 function hasTimingMotifRivals(catalogs, checkpoints, witness, flip) {
-  const current = (group) =>
-    group.selectors.map(exactSelector).filter((key) => Object.hasOwn(checkpoints[30], key));
+  const classify = (group) => {
+    const all = group.selectors.map(exactSelector);
+    return {
+      keys: all.filter((key) => Object.hasOwn(checkpoints[30], key)),
+      archive: all.filter((key) => !Object.hasOwn(checkpoints[30], key)),
+    };
+  };
   const six = catalogs.containment_cohorts.cohorts
-    .map((group) => ({
-      id: group.cohort_id,
-      keys: current(group),
-    }))
-    .filter(({ keys }) => keys.length === 6);
-  const bundles = catalogs.exception_bundles.bundles.map(current);
-  const larger = bundles.filter((keys) => keys.length === 3 && keys.includes(flip));
-  const pairs = bundles.filter(
-    (keys) => keys.length === 2 && larger.some((group) => keys.every((key) => group.includes(key))),
-  );
+    .map((group) => ({ id: group.cohort_id, ...classify(group) }))
+    .filter((group) => group.keys.length === 6);
+  const bundles = catalogs.exception_bundles.bundles.map(classify);
+  const larger = bundles.filter((group) => group.keys.length === 3 && group.keys.includes(flip));
+  const pairs = bundles
+    .filter((group) => group.keys.length === 2)
+    .flatMap((small) =>
+      larger
+        .filter((large) => small.keys.every((key) => large.keys.includes(key)))
+        .map((large) => ({
+          keys: small.keys,
+          archive: [...small.archive, ...large.archive],
+        })),
+    );
   const stages = [20, 24, 30].map((ordinal, stage) =>
     six.filter(
       ({ keys }) =>
         keys.filter((key) => checkpoints[ordinal][key].status === 'unresolved').length ===
           (stage === 2 ? 1 : 0) &&
         (stage !== 2 || keys.includes(flip)) &&
-        (stage !== 1 || pairs.some((pair) => pair.every((key) => keys.includes(key)))),
+        (stage !== 1 || pairs.some((pair) => pair.keys.every((key) => keys.includes(key)))),
     ),
   );
   const counts = [new Map(), new Map(), new Map()];
+  const archiveCounts = [new Map(), new Map(), new Map()];
   const disjoint = (a, b) => a.keys.every((key) => !b.keys.includes(key));
   for (const first of stages[0]) {
     for (const second of stages[1]) {
       if (!disjoint(first, second)) {
         continue;
       }
+      const candidatePairs = pairs.filter((pair) =>
+        pair.keys.every((key) => second.keys.includes(key)),
+      );
       for (const third of stages[2]) {
         if (!disjoint(first, third) || !disjoint(second, third)) {
           continue;
         }
+        const fillers = [...first.archive, ...second.archive, ...third.archive];
+        const matchesArchive = candidatePairs.some(
+          (pair) => new Set([...fillers, ...pair.archive]).size === 13,
+        );
         for (const [stage, group] of [first, second, third].entries()) {
           counts[stage].set(group.id, 1 + (counts[stage].get(group.id) ?? 0));
+          if (matchesArchive) {
+            archiveCounts[stage].set(group.id, 1 + (archiveCounts[stage].get(group.id) ?? 0));
+          }
           if (group.id !== witness[stage]) {
             break;
           }
@@ -50,11 +70,15 @@ function hasTimingMotifRivals(catalogs, checkpoints, witness, flip) {
       }
     }
   }
-  return counts.every((rank, stage) => {
-    const target = rank.get(witness[stage]);
-    const rivals = [...rank].filter(([id]) => id !== witness[stage]).map(([, count]) => count);
-    return rivals.length >= 3 && rivals.some((n) => n >= target) && rivals.some((n) => n <= target);
-  });
+  return [counts, archiveCounts].every((ranks) =>
+    ranks.every((rank, stage) => {
+      const target = rank.get(witness[stage]);
+      const rivals = [...rank].filter(([id]) => id !== witness[stage]).map(([, count]) => count);
+      return (
+        rivals.length >= 3 && rivals.some((n) => n >= target) && rivals.some((n) => n <= target)
+      );
+    }),
+  );
 }
 
 /** Producer-only gate; the chooser receives only catalog groups and visible statuses. */
@@ -299,9 +323,30 @@ function partitionRounds(candidates, { rounds, size, reserved, salt, idName, pre
   return hashOrder(groups, `v35|presentation|${prefix}|catalog-order`, (group) => group[idName]);
 }
 
+function quarantineWithArchive(members, pool, salt) {
+  const order = hashOrder(
+    pool,
+    salt + '|quarantine-fillers|' + canonicalMembership(members),
+    exactSelector,
+  );
+  return [...members, ...order.slice(0, 2)];
+}
+
+function exceptionPairWithArchive(pair, flip, pool, salt) {
+  const order = hashOrder(
+    pool,
+    salt + '|exception-fillers|' + canonicalMembership(pair),
+    exactSelector,
+  );
+  return [
+    [...pair, flip, ...order.slice(0, 3)],
+    [...pair, ...order.slice(3, 7)],
+  ];
+}
+
 // Each rival triple has the same public timing pattern as the witness, including
 // the final Job. Third-stage rivals also remain available after the real Q1/Q2.
-function decoyQuarantines(candidates, checkpoints, planted, archive, flip, salt) {
+function decoyQuarantines(candidates, checkpoints, planted, archivePools, flip, salt) {
   const reserved = [...planted];
   const memberKeys = (group) =>
     group
@@ -315,7 +360,6 @@ function decoyQuarantines(candidates, checkpoints, planted, archive, flip, salt)
     for (let retry = 0; retry < 256 && !accepted; retry++) {
       const decoySalt = salt + '|rival|' + triple + '|' + retry;
       const ordered = hashOrder(candidates, decoySalt, exactSelector);
-      const fillers = hashOrder(archive, decoySalt + '|archive', exactSelector);
       const unavailable = new Set();
       const groups = [];
       for (const [stage, ordinal] of [20, 24, 30].entries()) {
@@ -340,7 +384,7 @@ function decoyQuarantines(candidates, checkpoints, planted, archive, flip, salt)
         ) {
           break;
         }
-        groups.push([...members, ...fillers.slice(2 * stage, 2 * stage + 2)]);
+        groups.push(quarantineWithArchive(members, archivePools[stage], salt));
         for (const s of members) {
           unavailable.add(s);
         }
@@ -389,9 +433,8 @@ function addSecondStageRivals(reserved, candidates, checkpoints, archive, salt) 
     }
   }
   const ranked = hashOrder(choices, salt + '|seconds', (choice) => choice.signature);
-  for (const { members, signature } of ranked.slice(0, 4)) {
-    const fillers = hashOrder(archive, salt + '|second-fillers|' + signature, exactSelector);
-    reserved.push([...members, ...fillers.slice(0, 2)]);
+  for (const { members } of ranked.slice(0, 4)) {
+    reserved.push(quarantineWithArchive(members, archive, salt));
   }
 }
 
@@ -442,9 +485,8 @@ function addRivalContinuations(reserved, archive, salt) {
     (choice) => choice.signature,
   ).sort((a, b) => b.continuations - a.continuations);
   // Allow untouched partition rounds to contribute ordinary random groups too.
-  for (const { members, signature } of ordered.slice(0, 12)) {
-    const fillers = hashOrder(archive, salt + '|continuation-fillers|' + signature, exactSelector);
-    reserved.push([...members, ...fillers.slice(0, 2)]);
+  for (const { members } of ordered.slice(0, 12)) {
+    reserved.push(quarantineWithArchive(members, archive, salt));
   }
 }
 
@@ -467,8 +509,7 @@ function decoyExceptions(reservedQ, archive, flip, plantedEven, plantedOdd, salt
         if (seen.has(signature)) {
           continue;
         }
-        const fillers = hashOrder(archive, decoySalt, exactSelector);
-        reserved.push([...pair, flip, ...fillers.slice(0, 3)], [...pair, ...fillers.slice(3, 7)]);
+        reserved.push(...exceptionPairWithArchive(pair, flip, archive, salt));
         seen.add(signature);
         accepted = true;
       }
@@ -531,17 +572,19 @@ export function buildCoupledCatalog(index, options = {}) {
     salt + '|archive-order',
     exactSelector,
   );
-  const plantedQ = [
-    [...first, ...archive.slice(0, 2)],
-    [...second, ...safe, ...archive.slice(2, 4)],
-    [...third, flip, ...archive.slice(4, 6)],
-  ];
-  const reservedQ = decoyQuarantines(candidates, checkpoints, plantedQ, archive, flip, salt);
-  const plantedEvenE = [...safe, flip, archive[6], archive[7], archive[8]];
-  const plantedOddE = [...safe, archive[9], archive[10], archive[11], archive[12]];
-  const reservedE = decoyExceptions(reservedQ, archive, flip, plantedEvenE, plantedOddE, salt);
-  addSecondStageRivals(reservedQ, candidates, checkpoints, archive, salt);
-  addRivalContinuations(reservedQ, archive, salt);
+  // Give each Q slot its own archive pool and draw both paired E groups from
+  // the remainder. The thirteen distinct fillers therefore occur throughout
+  // the competing plans, including alternatives after the real first two Qs.
+  const qPools = [archive.slice(0, 5), archive.slice(5, 10), archive.slice(10, 15)];
+  const ePool = archive.slice(15);
+  const plantedQ = [first, [...second, ...safe], [...third, flip]].map((members, stage) =>
+    quarantineWithArchive(members, qPools[stage], salt),
+  );
+  const reservedQ = decoyQuarantines(candidates, checkpoints, plantedQ, qPools, flip, salt);
+  const [plantedEvenE, plantedOddE] = exceptionPairWithArchive(safe, flip, ePool, salt);
+  const reservedE = decoyExceptions(reservedQ, ePool, flip, plantedEvenE, plantedOddE, salt);
+  addSecondStageRivals(reservedQ, candidates, checkpoints, qPools[1], salt);
+  addRivalContinuations(reservedQ, qPools[1], salt);
   const cohorts = partitionRounds(candidates, {
     rounds: 32,
     size: Q_SIZE,
