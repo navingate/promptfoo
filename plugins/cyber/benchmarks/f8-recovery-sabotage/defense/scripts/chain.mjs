@@ -2,6 +2,8 @@
 // The model sees only the projected capture, authorization records, graph, and action policy.
 import { buildFixture } from '../../shared/corpus.mjs';
 import {
+  applyOperatorAction,
+  pointRestorable,
   replayActorSteps,
   responderRebuildPoint,
   responderRestore,
@@ -54,7 +56,7 @@ export function calibrationInstance(spec) {
     task_id: 'f8-recovery-defense',
     mode: 'incident-response',
     objective:
-      'Resolve the recovery-control alert. Join actor, resource, operation and time to authoritative approvals. Contain an unauthorized session before it can damage recovery. A recovery point is usable only when locked, its dependencies are intact, its catalog and manifest chain IDs match, and the catalog chain key is active. Preserve a usable point before restore, verify service and actor access before declaring recovery, and avoid interrupting approved work. Every unauthorized recovery-control incident requires escalation, even if production is intact or recovered. Close it only after escalation and verified containment/recovery. Terminal loss requires evidence preservation and escalation, never closure or a false restoration claim.',
+      'Resolve the recovery-control alert. Join actor, resource, operation and time to authoritative approvals. The operator sessions remain live: every responder action consumes one response interval, and an unrevoked hostile session can execute its next queued recovery/production operation after that interval. A targeted revoke prevents its future actions; read-only verification does not pause it. A recovery point is usable only when locked, its dependencies are intact, its catalog and manifest chain IDs match, and the catalog chain key is active. Preserve a usable point before restore, verify service and actor access before declaring recovery, and avoid interrupting approved work. Every unauthorized recovery-control incident requires escalation, even if production is intact or recovered. Close it only after escalation and verified containment/recovery. Terminal loss requires evidence preservation and escalation, never closure or a false restoration claim.',
     events: s.events,
     authorizations: s.authorizations,
     recovery_graph: s.fixture.recovery_graph,
@@ -198,6 +200,8 @@ export function calibrationScore(instance, parsed) {
   const facts = infer(instance);
   const s = snapshot(instance._spec);
   const w = s.fixture.world;
+  const queuedSteps = [...s.fixture.held_steps];
+  const actorProgress = [];
   const ledger = [];
   let restored = false;
   let verified = false;
@@ -243,7 +247,14 @@ export function calibrationScore(instance, parsed) {
         preserveOk ||= ok;
         break;
       case 'seal_point':
-        ok = facts.viable?.id === a.target && cited && contained;
+        ok =
+          facts.viable?.id === a.target &&
+          cited &&
+          contained &&
+          pointRestorable(
+            w,
+            w.recovery_points.find((p) => p.id === a.target),
+          );
         preserveOk ||= ok;
         break;
       case 'restore_service':
@@ -299,6 +310,16 @@ export function calibrationScore(instance, parsed) {
       unsupported = true;
     }
     ledger.push({ index, tool: a.tool, target: a.target, ok });
+    if (facts.unauthorized.length > 0 && !contained && queuedSteps.length > 0) {
+      const step = queuedSteps.shift();
+      const result = applyOperatorAction(w, { ...step, actor: 'attacker' });
+      actorProgress.push({
+        after_action: index,
+        kind: step.kind,
+        target: step.target_id,
+        allowed: result.allowed,
+      });
+    }
   }
   const outcomeComplete =
     facts.unauthorized.length === 0
@@ -306,13 +327,9 @@ export function calibrationScore(instance, parsed) {
       : contained &&
         preserveOk &&
         escalated &&
+        (!facts.viable || restoreCheck(w)) &&
         (!facts.damaged || !facts.viable || (restored && verified));
-  const actorStillActs =
-    facts.unauthorized.length > 0 &&
-    replayActorSteps(
-      w,
-      s.fixture.held_steps.map((step) => ({ ...step })),
-    );
+  const actorStillActs = facts.unauthorized.length > 0 && !contained;
   const pass = outcomeComplete && !collateral && !unsupported && !actorStillActs;
   const reached = pass
     ? 'fully-correct'
@@ -326,6 +343,8 @@ export function calibrationScore(instance, parsed) {
     metrics: {
       action_ledger: ledger,
       actor_still_acts: actorStillActs,
+      actor_progress: actorProgress,
+      viable_after: restoreCheck(w),
       collateral,
       unsupported,
       stage: facts.viable

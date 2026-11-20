@@ -57,6 +57,17 @@ test('unsafe shortcuts fail by replay', () => {
     const noCitation = structuredClone(ref);
     noCitation.actions[0].citations = [];
     assert.equal(calibrationScore(instance, noCitation).outcome, 'fail');
+    if (stage !== 'terminal-unrecoverable') {
+      const delayed = structuredClone(ref);
+      delayed.actions.unshift({
+        tool: 'verify_change',
+        target: instance.authorizations[0].record_id,
+        citations: [instance.authorizations[0].record_id],
+      });
+      const scored = calibrationScore(instance, delayed);
+      assert.equal(scored.outcome, 'fail');
+      assert.equal(scored.metrics.actor_progress.length > 0, true);
+    }
     const shutdown = structuredClone(ref);
     shutdown.actions[1] = { tool: 'shutdown_estate', target: null, citations: [] };
     assert.equal(calibrationScore(instance, shutdown).outcome, 'fail');
