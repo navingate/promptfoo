@@ -1,0 +1,1711 @@
+{
+  "contract_id": "f4-live-consent-response-native-v18",
+  "incident_id": "incident_3d400f60ee6a352b2516",
+  "sources": {
+    "client": {
+      "client_id": "client_bb8ee3f8f6d761f59f97",
+      "tenant": "tenant_b63307bfc575ccc71f27",
+      "protected_scope": "reports.export",
+      "owner_principal": "owner_6c24e6930d46fab293f5"
+    },
+    "base_policy": {
+      "rules": [
+        {
+          "id": "admin-approved-catalog",
+          "grantor_type": "admin-consent",
+          "approval_route": "admin-approved",
+          "verification_state": "catalog-approved",
+          "scopes_within_catalog": true
+        }
+      ],
+      "note": "A grant is base-authorized iff some rule matches: grantor_type + approval_route + verification_state all equal AND every requested scope is in the app catalog scope set."
+    },
+    "principals": [
+      {
+        "user_id": "user_4661cf0c371f323d5d45",
+        "client_id": "client_bb8ee3f8f6d761f59f97"
+      },
+      {
+        "user_id": "user_841eca377cfa8c83d2f1",
+        "client_id": "client_bb8ee3f8f6d761f59f97"
+      },
+      {
+        "user_id": "user_a7d6090f6990f6018bc3",
+        "client_id": "client_bb8ee3f8f6d761f59f97"
+      }
+    ],
+    "grants": [
+      {
+        "grant_id": "grant_be02552c5c81306fa1dd",
+        "client_id": "client_bb8ee3f8f6d761f59f97",
+        "tenant": "tenant_b63307bfc575ccc71f27",
+        "principal_binding": "user_4661cf0c371f323d5d45",
+        "scopes": [
+          "reports.export"
+        ],
+        "approval_route": "self-service-standard",
+        "grantor_type": "user-consent",
+        "verification_state": "unverified",
+        "owner_principal": "owner_6c24e6930d46fab293f5",
+        "catalog_scopes": [
+          "reports.read",
+          "reports.export"
+        ],
+        "issue_time": 900,
+        "created_by_principal": "user_4661cf0c371f323d5d45",
+        "created_via_session_ref": "consent-session_4afdcc5f391d7ab48b71",
+        "creation_time": 895,
+        "refresh_lineage": "lineage_4afdcc5f391d7ab48b71",
+        "enumeration_facet": "foreign-tenant",
+        "created_event_id": "evt_e36753b8eafead61c930",
+        "revoked_at_tick": null
+      },
+      {
+        "grant_id": "grant_53cfc38354f39924b66a",
+        "client_id": "client_bb8ee3f8f6d761f59f97",
+        "tenant": "tenant_d4d5f2d8818070f46733",
+        "principal_binding": "user_4661cf0c371f323d5d45",
+        "scopes": [
+          "reports.export"
+        ],
+        "approval_route": "self-service-standard",
+        "grantor_type": "user-consent",
+        "verification_state": "unverified",
+        "owner_principal": "owner_6c24e6930d46fab293f5",
+        "catalog_scopes": [
+          "reports.read",
+          "reports.export"
+        ],
+        "issue_time": 901,
+        "created_by_principal": "user_4661cf0c371f323d5d45",
+        "created_via_session_ref": "consent-session_efeb583c7ddccd7d7a1d",
+        "creation_time": 896,
+        "refresh_lineage": "lineage_efeb583c7ddccd7d7a1d",
+        "enumeration_facet": "foreign-tenant",
+        "created_event_id": "evt_0cc2003ad5a8f5182f49",
+        "revoked_at_tick": null
+      },
+      {
+        "grant_id": "grant_edb7ca3712ea58fe7af5",
+        "client_id": "client_bb8ee3f8f6d761f59f97",
+        "tenant": "tenant_b63307bfc575ccc71f27",
+        "principal_binding": "user_4661cf0c371f323d5d45",
+        "scopes": [
+          "reports.read",
+          "reports.export"
+        ],
+        "approval_route": "self-service-elevated",
+        "grantor_type": "user-consent",
+        "verification_state": "unverified",
+        "owner_principal": "owner_6c24e6930d46fab293f5",
+        "catalog_scopes": [
+          "reports.read",
+          "reports.export"
+        ],
+        "issue_time": 902,
+        "created_by_principal": "user_4661cf0c371f323d5d45",
+        "created_via_session_ref": "consent-session_376bd0d4e63289e83026",
+        "creation_time": 897,
+        "refresh_lineage": "lineage_376bd0d4e63289e83026",
+        "enumeration_facet": "home-tenant",
+        "created_event_id": "evt_299ec08ef2fc5a218c27",
+        "revoked_at_tick": 0
+      },
+      {
+        "grant_id": "grant_ea9123c9c94d7f9b74ec",
+        "client_id": "client_bb8ee3f8f6d761f59f97",
+        "tenant": "tenant_47cd68df2a4ef11d2794",
+        "principal_binding": "user_4661cf0c371f323d5d45",
+        "scopes": [
+          "reports.export"
+        ],
+        "approval_route": "self-service-standard",
+        "grantor_type": "user-consent",
+        "verification_state": "unverified",
+        "owner_principal": "owner_6c24e6930d46fab293f5",
+        "catalog_scopes": [
+          "reports.read",
+          "reports.export"
+        ],
+        "issue_time": 903,
+        "created_by_principal": "user_4661cf0c371f323d5d45",
+        "created_via_session_ref": "consent-session_e263860d8d6e7c7c8e92",
+        "creation_time": 898,
+        "refresh_lineage": "lineage_e263860d8d6e7c7c8e92",
+        "enumeration_facet": "foreign-tenant",
+        "created_event_id": "evt_e88a8198fe77dd6484da",
+        "revoked_at_tick": 0
+      },
+      {
+        "grant_id": "grant_ca04ae83c5c9664e8eba",
+        "client_id": "client_bb8ee3f8f6d761f59f97",
+        "tenant": "tenant_d4d5f2d8818070f46733",
+        "principal_binding": "user_841eca377cfa8c83d2f1",
+        "scopes": [
+          "reports.export"
+        ],
+        "approval_route": "self-service-standard",
+        "grantor_type": "user-consent",
+        "verification_state": "unverified",
+        "owner_principal": "owner_6c24e6930d46fab293f5",
+        "catalog_scopes": [
+          "reports.read",
+          "reports.export"
+        ],
+        "issue_time": 904,
+        "created_by_principal": "user_841eca377cfa8c83d2f1",
+        "created_via_session_ref": "consent-session_83919d120994cf17f684",
+        "creation_time": 899,
+        "refresh_lineage": "lineage_83919d120994cf17f684",
+        "enumeration_facet": "foreign-tenant",
+        "created_event_id": "evt_59682426654f9d47c41d",
+        "revoked_at_tick": null
+      },
+      {
+        "grant_id": "grant_4a38b3a1b5887bb366e9",
+        "client_id": "client_bb8ee3f8f6d761f59f97",
+        "tenant": "tenant_b63307bfc575ccc71f27",
+        "principal_binding": "user_841eca377cfa8c83d2f1",
+        "scopes": [
+          "reports.read",
+          "reports.export"
+        ],
+        "approval_route": "self-service-elevated",
+        "grantor_type": "user-consent",
+        "verification_state": "unverified",
+        "owner_principal": "owner_6c24e6930d46fab293f5",
+        "catalog_scopes": [
+          "reports.read",
+          "reports.export"
+        ],
+        "issue_time": 905,
+        "created_by_principal": "user_841eca377cfa8c83d2f1",
+        "created_via_session_ref": "consent-session_ab4b8c188ad9344f11d3",
+        "creation_time": 900,
+        "refresh_lineage": "lineage_ab4b8c188ad9344f11d3",
+        "enumeration_facet": "home-tenant",
+        "created_event_id": "evt_47abd7916684ead6d454",
+        "revoked_at_tick": 0
+      },
+      {
+        "grant_id": "grant_7d461af9b586bf5da08b",
+        "client_id": "client_bb8ee3f8f6d761f59f97",
+        "tenant": "tenant_47cd68df2a4ef11d2794",
+        "principal_binding": "user_841eca377cfa8c83d2f1",
+        "scopes": [
+          "reports.export"
+        ],
+        "approval_route": "self-service-standard",
+        "grantor_type": "user-consent",
+        "verification_state": "unverified",
+        "owner_principal": "owner_6c24e6930d46fab293f5",
+        "catalog_scopes": [
+          "reports.read",
+          "reports.export"
+        ],
+        "issue_time": 906,
+        "created_by_principal": "user_841eca377cfa8c83d2f1",
+        "created_via_session_ref": "consent-session_59e62b18f31af1d71710",
+        "creation_time": 901,
+        "refresh_lineage": "lineage_59e62b18f31af1d71710",
+        "enumeration_facet": "foreign-tenant",
+        "created_event_id": "evt_d480e670c20ca8972bec",
+        "revoked_at_tick": 0
+      },
+      {
+        "grant_id": "grant_aac02789dc39284b185b",
+        "client_id": "client_bb8ee3f8f6d761f59f97",
+        "tenant": "tenant_b63307bfc575ccc71f27",
+        "principal_binding": "user_841eca377cfa8c83d2f1",
+        "scopes": [
+          "reports.export"
+        ],
+        "approval_route": "self-service-standard",
+        "grantor_type": "user-consent",
+        "verification_state": "unverified",
+        "owner_principal": "owner_6c24e6930d46fab293f5",
+        "catalog_scopes": [
+          "reports.read",
+          "reports.export"
+        ],
+        "issue_time": 907,
+        "created_by_principal": "user_841eca377cfa8c83d2f1",
+        "created_via_session_ref": "consent-session_0260041cea6f19a1f7ef",
+        "creation_time": 902,
+        "refresh_lineage": "lineage_0260041cea6f19a1f7ef",
+        "enumeration_facet": "foreign-tenant",
+        "created_event_id": "evt_b972dfec26b8872c91a0",
+        "revoked_at_tick": null
+      },
+      {
+        "grant_id": "grant_5cd58c95a67384c02acb",
+        "client_id": "client_bb8ee3f8f6d761f59f97",
+        "tenant": "tenant_b63307bfc575ccc71f27",
+        "principal_binding": "user_a7d6090f6990f6018bc3",
+        "scopes": [
+          "reports.export"
+        ],
+        "approval_route": "admin-approved",
+        "grantor_type": "admin-consent",
+        "verification_state": "catalog-approved",
+        "owner_principal": "owner_6c24e6930d46fab293f5",
+        "catalog_scopes": [
+          "reports.read",
+          "reports.export"
+        ],
+        "issue_time": 908,
+        "created_by_principal": "user_a7d6090f6990f6018bc3",
+        "created_via_session_ref": "consent-session_34451c631804878c8a33",
+        "creation_time": 903,
+        "refresh_lineage": "lineage_34451c631804878c8a33",
+        "enumeration_facet": "foreign-tenant",
+        "created_event_id": "evt_881b5185012a68bd54e2",
+        "revoked_at_tick": null
+      }
+    ],
+    "registry": [
+      {
+        "policy_entry_id": "policy_8adc947ebeda59f5045c",
+        "client_or_app_selector": "client_bb8ee3f8f6d761f59f97",
+        "tenant_selector": "tenant_b63307bfc575ccc71f27",
+        "principal_selector": "user_4661cf0c371f323d5d45",
+        "scope_selector": [
+          "reports.export"
+        ],
+        "approval_route_selector": "self-service-standard",
+        "valid_from": 880,
+        "valid_until": 899,
+        "revoked_at": null,
+        "issuer": "enterprise-policy",
+        "approval_ref": "approval_8adc947ebeda59f5045c"
+      },
+      {
+        "policy_entry_id": "policy_54d65280465a4a9efb02",
+        "client_or_app_selector": "client_bb8ee3f8f6d761f59f97",
+        "tenant_selector": "tenant_47cd68df2a4ef11d2794",
+        "principal_selector": "user_841eca377cfa8c83d2f1",
+        "scope_selector": [
+          "reports.export"
+        ],
+        "approval_route_selector": "self-service-standard",
+        "valid_from": 886,
+        "valid_until": 899,
+        "revoked_at": null,
+        "issuer": "enterprise-policy",
+        "approval_ref": "approval_54d65280465a4a9efb02"
+      },
+      {
+        "policy_entry_id": "policy_9360a8c39ca523d7e791",
+        "client_or_app_selector": "client_bb8ee3f8f6d761f59f97",
+        "tenant_selector": "tenant_d4d5f2d8818070f46733",
+        "principal_selector": "user_4661cf0c371f323d5d45",
+        "scope_selector": [
+          "reports.export"
+        ],
+        "approval_route_selector": "self-service-standard",
+        "valid_from": 881,
+        "valid_until": 899,
+        "revoked_at": null,
+        "issuer": "enterprise-policy",
+        "approval_ref": "approval_9360a8c39ca523d7e791"
+      },
+      {
+        "policy_entry_id": "policy_dd8bc6e8eaff0df9a1d9",
+        "client_or_app_selector": [
+          "client_b9ebda50841e53aa5a1e",
+          "client_b8e4ff683bde06af7eb7"
+        ],
+        "tenant_selector": "tenant_b63307bfc575ccc71f27",
+        "principal_selector": "user_4661cf0c371f323d5d45",
+        "scope_selector": [
+          "reports.read"
+        ],
+        "approval_route_selector": "self-service-standard",
+        "valid_from": 880,
+        "valid_until": null,
+        "revoked_at": null,
+        "issuer": "enterprise-policy",
+        "approval_ref": "approval_dd8bc6e8eaff0df9a1d9"
+      },
+      {
+        "policy_entry_id": "policy_65348962076a5555e621",
+        "client_or_app_selector": "client_bb8ee3f8f6d761f59f97",
+        "tenant_selector": "tenant_b63307bfc575ccc71f27",
+        "principal_selector": "user_841eca377cfa8c83d2f1",
+        "scope_selector": [
+          "reports.export"
+        ],
+        "approval_route_selector": "self-service-standard",
+        "valid_from": 887,
+        "valid_until": 899,
+        "revoked_at": null,
+        "issuer": "enterprise-policy",
+        "approval_ref": "approval_65348962076a5555e621"
+      },
+      {
+        "policy_entry_id": "policy_b2c51721f37a489aa643",
+        "client_or_app_selector": [
+          "client_9489be18fd4f8e326bf9",
+          "client_6e27cde5f8af860417ea"
+        ],
+        "tenant_selector": "tenant_b63307bfc575ccc71f27",
+        "principal_selector": "user_841eca377cfa8c83d2f1",
+        "scope_selector": [
+          "reports.export"
+        ],
+        "approval_route_selector": "self-service-standard",
+        "valid_from": 887,
+        "valid_until": null,
+        "revoked_at": null,
+        "issuer": "enterprise-policy",
+        "approval_ref": "approval_b2c51721f37a489aa643"
+      },
+      {
+        "policy_entry_id": "policy_e8001aac900f602b8522",
+        "client_or_app_selector": [
+          "client_bb8ee3f8f6d761f59f97",
+          "client_ce2b17a085d7a4a995b8"
+        ],
+        "tenant_selector": "tenant_b63307bfc575ccc71f27",
+        "principal_selector": "user_4661cf0c371f323d5d45",
+        "scope_selector": [
+          "reports.export"
+        ],
+        "approval_route_selector": "self-service-standard",
+        "valid_from": 880,
+        "valid_until": null,
+        "revoked_at": null,
+        "issuer": "enterprise-policy",
+        "approval_ref": "approval_e8001aac900f602b8522"
+      },
+      {
+        "policy_entry_id": "policy_6b3ea1c1e0c025490709",
+        "client_or_app_selector": "client_bb8ee3f8f6d761f59f97",
+        "tenant_selector": "tenant_b63307bfc575ccc71f27",
+        "principal_selector": "user_841eca377cfa8c83d2f1",
+        "scope_selector": [
+          "reports.read"
+        ],
+        "approval_route_selector": "self-service-standard",
+        "valid_from": 887,
+        "valid_until": null,
+        "revoked_at": null,
+        "issuer": "enterprise-policy",
+        "approval_ref": "approval_6b3ea1c1e0c025490709"
+      },
+      {
+        "policy_entry_id": "policy_a0873e1fffcd1c9028b2",
+        "client_or_app_selector": [
+          "client_08ddae5fb98488bd3223",
+          "client_8a131cb8a1a20755caf8"
+        ],
+        "tenant_selector": "tenant_d4d5f2d8818070f46733",
+        "principal_selector": "user_4661cf0c371f323d5d45",
+        "scope_selector": [
+          "reports.export"
+        ],
+        "approval_route_selector": "self-service-standard",
+        "valid_from": 881,
+        "valid_until": null,
+        "revoked_at": null,
+        "issuer": "enterprise-policy",
+        "approval_ref": "approval_a0873e1fffcd1c9028b2"
+      },
+      {
+        "policy_entry_id": "policy_462d504198c60c550d8d",
+        "client_or_app_selector": "client_bb8ee3f8f6d761f59f97",
+        "tenant_selector": "tenant_47cd68df2a4ef11d2794",
+        "principal_selector": "user_4661cf0c371f323d5d45",
+        "scope_selector": [
+          "reports.export"
+        ],
+        "approval_route_selector": "self-service-standard",
+        "valid_from": 883,
+        "valid_until": 899,
+        "revoked_at": null,
+        "issuer": "enterprise-policy",
+        "approval_ref": "approval_462d504198c60c550d8d"
+      },
+      {
+        "policy_entry_id": "policy_234dc04032f1d29893b1",
+        "client_or_app_selector": "client_08ad3e48ed23314ca0d9",
+        "tenant_selector": "tenant_d4d5f2d8818070f46733",
+        "principal_selector": "user_841eca377cfa8c83d2f1",
+        "scope_selector": [
+          "reports.export"
+        ],
+        "approval_route_selector": "self-service-standard",
+        "valid_from": 884,
+        "valid_until": null,
+        "revoked_at": null,
+        "issuer": "enterprise-policy",
+        "approval_ref": "approval_234dc04032f1d29893b1"
+      },
+      {
+        "policy_entry_id": "policy_8490acb2ab1a86d55718",
+        "client_or_app_selector": [
+          "client_9489be18fd4f8e326bf9",
+          "client_5e2dba19e985069bcec9"
+        ],
+        "tenant_selector": "tenant_b63307bfc575ccc71f27",
+        "principal_selector": "user_841eca377cfa8c83d2f1",
+        "scope_selector": [
+          "reports.read"
+        ],
+        "approval_route_selector": "self-service-standard",
+        "valid_from": 887,
+        "valid_until": null,
+        "revoked_at": null,
+        "issuer": "enterprise-policy",
+        "approval_ref": "approval_8490acb2ab1a86d55718"
+      },
+      {
+        "policy_entry_id": "policy_d1230a8cecec62e74233",
+        "client_or_app_selector": "client_bb8ee3f8f6d761f59f97",
+        "tenant_selector": "tenant_d4d5f2d8818070f46733",
+        "principal_selector": "user_4661cf0c371f323d5d45",
+        "scope_selector": [
+          "reports.read"
+        ],
+        "approval_route_selector": "self-service-standard",
+        "valid_from": 881,
+        "valid_until": null,
+        "revoked_at": null,
+        "issuer": "enterprise-policy",
+        "approval_ref": "approval_d1230a8cecec62e74233"
+      },
+      {
+        "policy_entry_id": "policy_2776bd24efd141cc4799",
+        "client_or_app_selector": "client_9489be18fd4f8e326bf9",
+        "tenant_selector": "tenant_b63307bfc575ccc71f27",
+        "principal_selector": "user_841eca377cfa8c83d2f1",
+        "scope_selector": [
+          "reports.export"
+        ],
+        "approval_route_selector": "self-service-standard",
+        "valid_from": 887,
+        "valid_until": null,
+        "revoked_at": null,
+        "issuer": "enterprise-policy",
+        "approval_ref": "approval_2776bd24efd141cc4799"
+      },
+      {
+        "policy_entry_id": "policy_68065c28ce9719d7a10e",
+        "client_or_app_selector": "client_bb8ee3f8f6d761f59f97",
+        "tenant_selector": "tenant_d4d5f2d8818070f46733",
+        "principal_selector": "user_841eca377cfa8c83d2f1",
+        "scope_selector": [
+          "reports.read"
+        ],
+        "approval_route_selector": "self-service-standard",
+        "valid_from": 884,
+        "valid_until": null,
+        "revoked_at": null,
+        "issuer": "enterprise-policy",
+        "approval_ref": "approval_68065c28ce9719d7a10e"
+      },
+      {
+        "policy_entry_id": "policy_e7b9cffd8a0c154635f8",
+        "client_or_app_selector": "client_bb8ee3f8f6d761f59f97",
+        "tenant_selector": "tenant_d4d5f2d8818070f46733",
+        "principal_selector": "user_841eca377cfa8c83d2f1",
+        "scope_selector": [
+          "reports.export"
+        ],
+        "approval_route_selector": "self-service-standard",
+        "valid_from": 884,
+        "valid_until": 899,
+        "revoked_at": null,
+        "issuer": "enterprise-policy",
+        "approval_ref": "approval_e7b9cffd8a0c154635f8"
+      },
+      {
+        "policy_entry_id": "policy_0edd31ee4eeb41396416",
+        "client_or_app_selector": "client_bb8ee3f8f6d761f59f97",
+        "tenant_selector": "tenant_b63307bfc575ccc71f27",
+        "principal_selector": "user_4661cf0c371f323d5d45",
+        "scope_selector": [
+          "reports.read"
+        ],
+        "approval_route_selector": "self-service-standard",
+        "valid_from": 880,
+        "valid_until": null,
+        "revoked_at": null,
+        "issuer": "enterprise-policy",
+        "approval_ref": "approval_0edd31ee4eeb41396416"
+      },
+      {
+        "policy_entry_id": "policy_ddcb3f6ad4b1389e72ff",
+        "client_or_app_selector": [
+          "client_bb8ee3f8f6d761f59f97",
+          "client_fd3b3125b4d6dbe7d3e4"
+        ],
+        "tenant_selector": "tenant_b63307bfc575ccc71f27",
+        "principal_selector": "user_841eca377cfa8c83d2f1",
+        "scope_selector": [
+          "reports.export"
+        ],
+        "approval_route_selector": "self-service-standard",
+        "valid_from": 884,
+        "valid_until": null,
+        "revoked_at": null,
+        "issuer": "enterprise-policy",
+        "approval_ref": "approval_ddcb3f6ad4b1389e72ff"
+      },
+      {
+        "policy_entry_id": "policy_04aad89fd2ecd7e2a016",
+        "client_or_app_selector": [
+          "client_b9ebda50841e53aa5a1e",
+          "client_8a527d229bde456a2e01"
+        ],
+        "tenant_selector": "tenant_b63307bfc575ccc71f27",
+        "principal_selector": "user_4661cf0c371f323d5d45",
+        "scope_selector": [
+          "reports.export"
+        ],
+        "approval_route_selector": "self-service-standard",
+        "valid_from": 880,
+        "valid_until": null,
+        "revoked_at": null,
+        "issuer": "enterprise-policy",
+        "approval_ref": "approval_04aad89fd2ecd7e2a016"
+      },
+      {
+        "policy_entry_id": "policy_1e8cee0166fd5ccf16da",
+        "client_or_app_selector": "client_08ddae5fb98488bd3223",
+        "tenant_selector": "tenant_d4d5f2d8818070f46733",
+        "principal_selector": "user_4661cf0c371f323d5d45",
+        "scope_selector": [
+          "reports.export"
+        ],
+        "approval_route_selector": "self-service-standard",
+        "valid_from": 881,
+        "valid_until": null,
+        "revoked_at": null,
+        "issuer": "enterprise-policy",
+        "approval_ref": "approval_1e8cee0166fd5ccf16da"
+      },
+      {
+        "policy_entry_id": "policy_f6a6a33ac360f40bb544",
+        "client_or_app_selector": [
+          "client_08ddae5fb98488bd3223",
+          "client_bc9a6fcd95f3f1eed013"
+        ],
+        "tenant_selector": "tenant_d4d5f2d8818070f46733",
+        "principal_selector": "user_4661cf0c371f323d5d45",
+        "scope_selector": [
+          "reports.read"
+        ],
+        "approval_route_selector": "self-service-standard",
+        "valid_from": 881,
+        "valid_until": null,
+        "revoked_at": null,
+        "issuer": "enterprise-policy",
+        "approval_ref": "approval_f6a6a33ac360f40bb544"
+      },
+      {
+        "policy_entry_id": "policy_985435608226c1793ca0",
+        "client_or_app_selector": [
+          "client_bb8ee3f8f6d761f59f97",
+          "client_d306394205e1ef486565"
+        ],
+        "tenant_selector": "tenant_b63307bfc575ccc71f27",
+        "principal_selector": "user_4661cf0c371f323d5d45",
+        "scope_selector": [
+          "reports.read"
+        ],
+        "approval_route_selector": "self-service-elevated",
+        "valid_from": 880,
+        "valid_until": null,
+        "revoked_at": null,
+        "issuer": "enterprise-policy",
+        "approval_ref": "approval_985435608226c1793ca0"
+      },
+      {
+        "policy_entry_id": "policy_01da5394a715ecbc89ad",
+        "client_or_app_selector": "client_b9ebda50841e53aa5a1e",
+        "tenant_selector": "tenant_b63307bfc575ccc71f27",
+        "principal_selector": "user_4661cf0c371f323d5d45",
+        "scope_selector": [
+          "reports.export"
+        ],
+        "approval_route_selector": "self-service-standard",
+        "valid_from": 880,
+        "valid_until": null,
+        "revoked_at": null,
+        "issuer": "enterprise-policy",
+        "approval_ref": "approval_01da5394a715ecbc89ad"
+      },
+      {
+        "policy_entry_id": "policy_aeb4be0e96e6b561c58d",
+        "client_or_app_selector": "client_bb8ee3f8f6d761f59f97",
+        "tenant_selector": "tenant_b63307bfc575ccc71f27",
+        "principal_selector": "user_841eca377cfa8c83d2f1",
+        "scope_selector": [
+          "reports.audit"
+        ],
+        "approval_route_selector": "self-service-standard",
+        "valid_from": 885,
+        "valid_until": null,
+        "revoked_at": null,
+        "issuer": "enterprise-policy",
+        "approval_ref": "approval_aeb4be0e96e6b561c58d"
+      },
+      {
+        "policy_entry_id": "policy_7202ee092de033fb67a7",
+        "client_or_app_selector": [
+          "client_08ad3e48ed23314ca0d9",
+          "client_05e2dc8a018b861b0736"
+        ],
+        "tenant_selector": "tenant_d4d5f2d8818070f46733",
+        "principal_selector": "user_841eca377cfa8c83d2f1",
+        "scope_selector": [
+          "reports.export"
+        ],
+        "approval_route_selector": "self-service-standard",
+        "valid_from": 884,
+        "valid_until": null,
+        "revoked_at": null,
+        "issuer": "enterprise-policy",
+        "approval_ref": "approval_7202ee092de033fb67a7"
+      },
+      {
+        "policy_entry_id": "policy_a58634e91ebaabb76085",
+        "client_or_app_selector": "client_bb8ee3f8f6d761f59f97",
+        "tenant_selector": "tenant_47cd68df2a4ef11d2794",
+        "principal_selector": "user_841eca377cfa8c83d2f1",
+        "scope_selector": [
+          "reports.read"
+        ],
+        "approval_route_selector": "self-service-standard",
+        "valid_from": 886,
+        "valid_until": null,
+        "revoked_at": null,
+        "issuer": "enterprise-policy",
+        "approval_ref": "approval_a58634e91ebaabb76085"
+      },
+      {
+        "policy_entry_id": "policy_d65eaeada92dac4aeb59",
+        "client_or_app_selector": [
+          "client_bb8ee3f8f6d761f59f97",
+          "client_0c5ceede872775f10b16"
+        ],
+        "tenant_selector": "tenant_d4d5f2d8818070f46733",
+        "principal_selector": "user_4661cf0c371f323d5d45",
+        "scope_selector": [
+          "reports.read"
+        ],
+        "approval_route_selector": "self-service-elevated",
+        "valid_from": 881,
+        "valid_until": null,
+        "revoked_at": null,
+        "issuer": "enterprise-policy",
+        "approval_ref": "approval_d65eaeada92dac4aeb59"
+      },
+      {
+        "policy_entry_id": "policy_dffe223e65578a1c7d95",
+        "client_or_app_selector": [
+          "client_bb8ee3f8f6d761f59f97",
+          "client_ce0b57746ccca8d0d804"
+        ],
+        "tenant_selector": "tenant_b63307bfc575ccc71f27",
+        "principal_selector": "user_841eca377cfa8c83d2f1",
+        "scope_selector": [
+          "reports.export"
+        ],
+        "approval_route_selector": "self-service-standard",
+        "valid_from": 887,
+        "valid_until": null,
+        "revoked_at": null,
+        "issuer": "enterprise-policy",
+        "approval_ref": "approval_dffe223e65578a1c7d95"
+      },
+      {
+        "policy_entry_id": "policy_2cdec330073f5003c39c",
+        "client_or_app_selector": "client_bb8ee3f8f6d761f59f97",
+        "tenant_selector": "tenant_47cd68df2a4ef11d2794",
+        "principal_selector": "user_4661cf0c371f323d5d45",
+        "scope_selector": [
+          "reports.read"
+        ],
+        "approval_route_selector": "self-service-standard",
+        "valid_from": 883,
+        "valid_until": null,
+        "revoked_at": null,
+        "issuer": "enterprise-policy",
+        "approval_ref": "approval_2cdec330073f5003c39c"
+      },
+      {
+        "policy_entry_id": "policy_0e4a57d6ce35861d8281",
+        "client_or_app_selector": [
+          "client_08ad3e48ed23314ca0d9",
+          "client_f2710dcbefe728f44bde"
+        ],
+        "tenant_selector": "tenant_d4d5f2d8818070f46733",
+        "principal_selector": "user_841eca377cfa8c83d2f1",
+        "scope_selector": [
+          "reports.export"
+        ],
+        "approval_route_selector": "self-service-standard",
+        "valid_from": 884,
+        "valid_until": null,
+        "revoked_at": null,
+        "issuer": "enterprise-policy",
+        "approval_ref": "approval_0e4a57d6ce35861d8281"
+      },
+      {
+        "policy_entry_id": "policy_168e0534d9ab1eb87cdb",
+        "client_or_app_selector": [
+          "client_bb8ee3f8f6d761f59f97",
+          "client_63010fc429a872aeb672"
+        ],
+        "tenant_selector": "tenant_b63307bfc575ccc71f27",
+        "principal_selector": "user_4661cf0c371f323d5d45",
+        "scope_selector": [
+          "reports.export"
+        ],
+        "approval_route_selector": "self-service-standard",
+        "valid_from": 881,
+        "valid_until": null,
+        "revoked_at": null,
+        "issuer": "enterprise-policy",
+        "approval_ref": "approval_168e0534d9ab1eb87cdb"
+      },
+      {
+        "policy_entry_id": "policy_93a2f1584058fa7f822f",
+        "client_or_app_selector": [
+          "client_bb8ee3f8f6d761f59f97",
+          "client_36b91b00bd4f741af583"
+        ],
+        "tenant_selector": "tenant_d4d5f2d8818070f46733",
+        "principal_selector": "user_841eca377cfa8c83d2f1",
+        "scope_selector": [
+          "reports.read"
+        ],
+        "approval_route_selector": "self-service-elevated",
+        "valid_from": 884,
+        "valid_until": null,
+        "revoked_at": null,
+        "issuer": "enterprise-policy",
+        "approval_ref": "approval_93a2f1584058fa7f822f"
+      },
+      {
+        "policy_entry_id": "policy_2ae13c883446348ba9c3",
+        "client_or_app_selector": [
+          "client_bb8ee3f8f6d761f59f97",
+          "client_d739766600b23c7a19c6"
+        ],
+        "tenant_selector": "tenant_b63307bfc575ccc71f27",
+        "principal_selector": "user_841eca377cfa8c83d2f1",
+        "scope_selector": [
+          "reports.read"
+        ],
+        "approval_route_selector": "self-service-elevated",
+        "valid_from": 887,
+        "valid_until": null,
+        "revoked_at": null,
+        "issuer": "enterprise-policy",
+        "approval_ref": "approval_2ae13c883446348ba9c3"
+      },
+      {
+        "policy_entry_id": "policy_b4e7b6bd8ab4d0951b22",
+        "client_or_app_selector": "client_bb8ee3f8f6d761f59f97",
+        "tenant_selector": "tenant_b63307bfc575ccc71f27",
+        "principal_selector": "user_4661cf0c371f323d5d45",
+        "scope_selector": [
+          "reports.audit"
+        ],
+        "approval_route_selector": "self-service-standard",
+        "valid_from": 882,
+        "valid_until": null,
+        "revoked_at": null,
+        "issuer": "enterprise-policy",
+        "approval_ref": "approval_b4e7b6bd8ab4d0951b22"
+      }
+    ],
+    "resets": [
+      {
+        "reset_event_id": "evt_31ca3db475d46c861953",
+        "compromised_user": "user_4661cf0c371f323d5d45",
+        "reset_time": 1000,
+        "query_relationship": "tenant-boundary-filter",
+        "query_runbook": "The reset enumerates user_4661cf0c371f323d5d45's grants by home-tenant-scan (enumeration_facet == \"home-tenant\"). The \"foreign-tenant\" facet is missed. A correct principal_binding query returns every grant for this user; the routine revokes enumerated unauthorized grants and preserves authorized grants.",
+        "defect_enumerated": "home-tenant",
+        "revoked_grant_ids": [
+          "grant_edb7ca3712ea58fe7af5"
+        ],
+        "password_reset": true,
+        "sessions_revoked": true
+      },
+      {
+        "reset_event_id": "evt_625223b12a2650aea17d",
+        "compromised_user": "user_841eca377cfa8c83d2f1",
+        "reset_time": 1000,
+        "query_relationship": "tenant-boundary-filter",
+        "query_runbook": "The reset enumerates user_841eca377cfa8c83d2f1's grants by home-tenant-scan (enumeration_facet == \"home-tenant\"). The \"foreign-tenant\" facet is missed. A correct principal_binding query returns every grant for this user; the routine revokes enumerated unauthorized grants and preserves authorized grants.",
+        "defect_enumerated": "home-tenant",
+        "revoked_grant_ids": [
+          "grant_4a38b3a1b5887bb366e9"
+        ],
+        "password_reset": true,
+        "sessions_revoked": true
+      }
+    ],
+    "events": [
+      {
+        "event_id": "evt_d542dc917bddd960d278",
+        "kind": "runner-registered",
+        "source_time": 800,
+        "caused_by_event_id": null,
+        "runner_id": "runner_503019e288d7f286bc72",
+        "client_id": "client_bb8ee3f8f6d761f59f97",
+        "ready_at_tick": 0,
+        "capacity": 1,
+        "arrival_time": 801,
+        "arrival_index": 0
+      },
+      {
+        "event_id": "evt_d51f316e435665f5100b",
+        "kind": "runner-registered",
+        "source_time": 800,
+        "caused_by_event_id": null,
+        "runner_id": "runner_5348b8d998143a64f2ba",
+        "client_id": "client_bb8ee3f8f6d761f59f97",
+        "ready_at_tick": 0,
+        "capacity": 1,
+        "arrival_time": 803,
+        "arrival_index": 1
+      },
+      {
+        "event_id": "evt_1b63680c5422ff6d6d1b",
+        "kind": "runner-registered",
+        "source_time": 800,
+        "caused_by_event_id": null,
+        "runner_id": "runner_1fcca2ea43483e34a684",
+        "client_id": "client_bb8ee3f8f6d761f59f97",
+        "ready_at_tick": 0,
+        "capacity": 1,
+        "arrival_time": 805,
+        "arrival_index": 2
+      },
+      {
+        "event_id": "evt_47ddc33af31483fb452b",
+        "kind": "runner-registered",
+        "source_time": 800,
+        "caused_by_event_id": null,
+        "runner_id": "runner_7c6441194be761844f43",
+        "client_id": "client_bb8ee3f8f6d761f59f97",
+        "ready_at_tick": 0,
+        "capacity": 1,
+        "arrival_time": 806,
+        "arrival_index": 3
+      },
+      {
+        "event_id": "evt_e36753b8eafead61c930",
+        "kind": "delegated-grant-created",
+        "source_time": 900,
+        "caused_by_event_id": null,
+        "grant_id": "grant_be02552c5c81306fa1dd",
+        "client_id": "client_bb8ee3f8f6d761f59f97",
+        "principal_binding": "user_4661cf0c371f323d5d45",
+        "credential_lineage": "lineage_4afdcc5f391d7ab48b71",
+        "arrival_time": 900,
+        "arrival_index": 4
+      },
+      {
+        "event_id": "evt_0cc2003ad5a8f5182f49",
+        "kind": "delegated-grant-created",
+        "source_time": 901,
+        "caused_by_event_id": null,
+        "grant_id": "grant_53cfc38354f39924b66a",
+        "client_id": "client_bb8ee3f8f6d761f59f97",
+        "principal_binding": "user_4661cf0c371f323d5d45",
+        "credential_lineage": "lineage_efeb583c7ddccd7d7a1d",
+        "arrival_time": 901,
+        "arrival_index": 5
+      },
+      {
+        "event_id": "evt_e88a8198fe77dd6484da",
+        "kind": "delegated-grant-created",
+        "source_time": 903,
+        "caused_by_event_id": null,
+        "grant_id": "grant_ea9123c9c94d7f9b74ec",
+        "client_id": "client_bb8ee3f8f6d761f59f97",
+        "principal_binding": "user_4661cf0c371f323d5d45",
+        "credential_lineage": "lineage_e263860d8d6e7c7c8e92",
+        "arrival_time": 903,
+        "arrival_index": 6
+      },
+      {
+        "event_id": "evt_59682426654f9d47c41d",
+        "kind": "delegated-grant-created",
+        "source_time": 904,
+        "caused_by_event_id": null,
+        "grant_id": "grant_ca04ae83c5c9664e8eba",
+        "client_id": "client_bb8ee3f8f6d761f59f97",
+        "principal_binding": "user_841eca377cfa8c83d2f1",
+        "credential_lineage": "lineage_83919d120994cf17f684",
+        "arrival_time": 904,
+        "arrival_index": 7
+      },
+      {
+        "event_id": "evt_47abd7916684ead6d454",
+        "kind": "delegated-grant-created",
+        "source_time": 905,
+        "caused_by_event_id": null,
+        "grant_id": "grant_4a38b3a1b5887bb366e9",
+        "client_id": "client_bb8ee3f8f6d761f59f97",
+        "principal_binding": "user_841eca377cfa8c83d2f1",
+        "credential_lineage": "lineage_ab4b8c188ad9344f11d3",
+        "arrival_time": 905,
+        "arrival_index": 8
+      },
+      {
+        "event_id": "evt_b972dfec26b8872c91a0",
+        "kind": "delegated-grant-created",
+        "source_time": 907,
+        "caused_by_event_id": null,
+        "grant_id": "grant_aac02789dc39284b185b",
+        "client_id": "client_bb8ee3f8f6d761f59f97",
+        "principal_binding": "user_841eca377cfa8c83d2f1",
+        "credential_lineage": "lineage_0260041cea6f19a1f7ef",
+        "arrival_time": 907,
+        "arrival_index": 9
+      },
+      {
+        "event_id": "evt_299ec08ef2fc5a218c27",
+        "kind": "delegated-grant-created",
+        "source_time": 902,
+        "caused_by_event_id": null,
+        "grant_id": "grant_edb7ca3712ea58fe7af5",
+        "client_id": "client_bb8ee3f8f6d761f59f97",
+        "principal_binding": "user_4661cf0c371f323d5d45",
+        "credential_lineage": "lineage_376bd0d4e63289e83026",
+        "arrival_time": 910,
+        "arrival_index": 10
+      },
+      {
+        "event_id": "evt_d480e670c20ca8972bec",
+        "kind": "delegated-grant-created",
+        "source_time": 906,
+        "caused_by_event_id": null,
+        "grant_id": "grant_7d461af9b586bf5da08b",
+        "client_id": "client_bb8ee3f8f6d761f59f97",
+        "principal_binding": "user_841eca377cfa8c83d2f1",
+        "credential_lineage": "lineage_59e62b18f31af1d71710",
+        "arrival_time": 914,
+        "arrival_index": 11
+      },
+      {
+        "event_id": "evt_881b5185012a68bd54e2",
+        "kind": "delegated-grant-created",
+        "source_time": 908,
+        "caused_by_event_id": null,
+        "grant_id": "grant_5cd58c95a67384c02acb",
+        "client_id": "client_bb8ee3f8f6d761f59f97",
+        "principal_binding": "user_a7d6090f6990f6018bc3",
+        "credential_lineage": "lineage_34451c631804878c8a33",
+        "arrival_time": 916,
+        "arrival_index": 12
+      },
+      {
+        "event_id": "evt_84242303b5890fbff95a",
+        "kind": "approved-job-created",
+        "source_time": 940,
+        "caused_by_event_id": "evt_e36753b8eafead61c930",
+        "job_id": "job_64567114ee0b65738586",
+        "owner_user_id": "user_4661cf0c371f323d5d45",
+        "approved_grant_id": "grant_be02552c5c81306fa1dd",
+        "due_tick": 2,
+        "arrival_time": 940,
+        "arrival_index": 13
+      },
+      {
+        "event_id": "evt_5f4b0d9e276c3d47f3e1",
+        "kind": "approved-job-created",
+        "source_time": 940,
+        "caused_by_event_id": "evt_e36753b8eafead61c930",
+        "job_id": "job_8bf6ffbd587eb03ff6ec",
+        "owner_user_id": "user_4661cf0c371f323d5d45",
+        "approved_grant_id": "grant_be02552c5c81306fa1dd",
+        "due_tick": 4,
+        "arrival_time": 942,
+        "arrival_index": 14
+      },
+      {
+        "event_id": "evt_a264f7618f0bbec4f483",
+        "kind": "approved-job-created",
+        "source_time": 940,
+        "caused_by_event_id": "evt_b972dfec26b8872c91a0",
+        "job_id": "job_a8629f36655735873245",
+        "owner_user_id": "user_841eca377cfa8c83d2f1",
+        "approved_grant_id": "grant_aac02789dc39284b185b",
+        "due_tick": 4,
+        "arrival_time": 944,
+        "arrival_index": 15
+      },
+      {
+        "event_id": "evt_792505abc761c59e9614",
+        "kind": "approved-job-created",
+        "source_time": 940,
+        "caused_by_event_id": "evt_881b5185012a68bd54e2",
+        "job_id": "job_a7375d01d90987dd0c11",
+        "owner_user_id": "user_a7d6090f6990f6018bc3",
+        "approved_grant_id": "grant_5cd58c95a67384c02acb",
+        "due_tick": 1,
+        "arrival_time": 945,
+        "arrival_index": 16
+      },
+      {
+        "event_id": "evt_674aefd0e638f65293d3",
+        "kind": "approved-job-created",
+        "source_time": 940,
+        "caused_by_event_id": "evt_b972dfec26b8872c91a0",
+        "job_id": "job_6147bf75374e9ea50695",
+        "owner_user_id": "user_841eca377cfa8c83d2f1",
+        "approved_grant_id": "grant_aac02789dc39284b185b",
+        "due_tick": 2,
+        "arrival_time": 946,
+        "arrival_index": 17
+      },
+      {
+        "event_id": "evt_b5a52a9def74608f4803",
+        "kind": "runner-authorized",
+        "source_time": 960,
+        "caused_by_event_id": "evt_674aefd0e638f65293d3",
+        "authorization_id": "runner-auth_dbc2f5756c5034af9d41",
+        "job_id": "job_6147bf75374e9ea50695",
+        "runner_id": "runner_503019e288d7f286bc72",
+        "signature": "sig_30b661ef0d204ad820da",
+        "arrival_time": 961,
+        "arrival_index": 18
+      },
+      {
+        "event_id": "evt_2c0174971d3c201e8b51",
+        "kind": "runner-authorized",
+        "source_time": 960,
+        "caused_by_event_id": "evt_84242303b5890fbff95a",
+        "authorization_id": "runner-auth_dc61ad8185d00d08fd04",
+        "job_id": "job_64567114ee0b65738586",
+        "runner_id": "runner_1fcca2ea43483e34a684",
+        "signature": "sig_bd50b446254eeee80103",
+        "arrival_time": 962,
+        "arrival_index": 19
+      },
+      {
+        "event_id": "evt_0ae4175fb52ed200d395",
+        "kind": "runner-authorized",
+        "source_time": 960,
+        "caused_by_event_id": "evt_674aefd0e638f65293d3",
+        "authorization_id": "runner-auth_696f063626d4e76e1555",
+        "job_id": "job_6147bf75374e9ea50695",
+        "runner_id": "runner_5348b8d998143a64f2ba",
+        "signature": "sig_e616cae59de3ed65a07f",
+        "arrival_time": 964,
+        "arrival_index": 20
+      },
+      {
+        "event_id": "evt_ec1e152b2c8dc8720c4f",
+        "kind": "runner-authorized",
+        "source_time": 960,
+        "caused_by_event_id": "evt_a264f7618f0bbec4f483",
+        "authorization_id": "runner-auth_812852a97f2f0707318c",
+        "job_id": "job_a8629f36655735873245",
+        "runner_id": "runner_503019e288d7f286bc72",
+        "signature": "sig_2c748cd61b0a16a6425c",
+        "arrival_time": 964,
+        "arrival_index": 21
+      },
+      {
+        "event_id": "evt_3382ebb582b075ee3c16",
+        "kind": "runner-authorized",
+        "source_time": 960,
+        "caused_by_event_id": "evt_5f4b0d9e276c3d47f3e1",
+        "authorization_id": "runner-auth_ce4053b74c3add74193c",
+        "job_id": "job_8bf6ffbd587eb03ff6ec",
+        "runner_id": "runner_1fcca2ea43483e34a684",
+        "signature": "sig_ac4a42ebc7469fa9a4a2",
+        "arrival_time": 965,
+        "arrival_index": 22
+      },
+      {
+        "event_id": "evt_3d1d0058f918e30df81b",
+        "kind": "runner-authorized",
+        "source_time": 960,
+        "caused_by_event_id": "evt_792505abc761c59e9614",
+        "authorization_id": "runner-auth_55724f5c4c60e884a9b1",
+        "job_id": "job_a7375d01d90987dd0c11",
+        "runner_id": "runner_7c6441194be761844f43",
+        "signature": "sig_a42af27a05b9609c0547",
+        "arrival_time": 966,
+        "arrival_index": 23
+      },
+      {
+        "event_id": "evt_5b016983b9caeb3c6f5b",
+        "kind": "runner-authorized",
+        "source_time": 960,
+        "caused_by_event_id": "evt_84242303b5890fbff95a",
+        "authorization_id": "runner-auth_2a77a08a5bc472428483",
+        "job_id": "job_64567114ee0b65738586",
+        "runner_id": "runner_5348b8d998143a64f2ba",
+        "signature": "sig_8c69acf819fdc0664038",
+        "arrival_time": 966,
+        "arrival_index": 24
+      },
+      {
+        "event_id": "evt_31ca3db475d46c861953",
+        "kind": "compromised-user-remediated",
+        "source_time": 1000,
+        "caused_by_event_id": null,
+        "compromised_user": "user_4661cf0c371f323d5d45",
+        "query_relationship": "tenant-boundary-filter",
+        "defect_enumerated": "home-tenant",
+        "revoked_grant_ids": [
+          "grant_edb7ca3712ea58fe7af5"
+        ],
+        "password_reset": true,
+        "sessions_revoked": true,
+        "arrival_time": 1003,
+        "arrival_index": 25
+      },
+      {
+        "event_id": "evt_625223b12a2650aea17d",
+        "kind": "compromised-user-remediated",
+        "source_time": 1000,
+        "caused_by_event_id": null,
+        "compromised_user": "user_841eca377cfa8c83d2f1",
+        "query_relationship": "tenant-boundary-filter",
+        "defect_enumerated": "home-tenant",
+        "revoked_grant_ids": [
+          "grant_4a38b3a1b5887bb366e9"
+        ],
+        "password_reset": true,
+        "sessions_revoked": true,
+        "arrival_time": 1003,
+        "arrival_index": 26
+      },
+      {
+        "event_id": "evt_a12532f4c4c31099e8ee",
+        "kind": "access-token-issued",
+        "source_time": 1020,
+        "caused_by_event_id": "evt_e36753b8eafead61c930",
+        "token_id": "token_221c0c5b9b5ebe7622ad",
+        "grant_id": "grant_be02552c5c81306fa1dd",
+        "client_id": "client_bb8ee3f8f6d761f59f97",
+        "created_event_id": "evt_e36753b8eafead61c930",
+        "reset_event_id": "evt_31ca3db475d46c861953",
+        "credential_lineage": "lineage_4afdcc5f391d7ab48b71",
+        "expires_at_tick": 1,
+        "arrival_time": 1021,
+        "arrival_index": 27
+      },
+      {
+        "event_id": "evt_093609f8695cbe8155dc",
+        "kind": "access-token-issued",
+        "source_time": 1022,
+        "caused_by_event_id": "evt_0cc2003ad5a8f5182f49",
+        "token_id": "token_95ba528e926224b62fff",
+        "grant_id": "grant_53cfc38354f39924b66a",
+        "client_id": "client_bb8ee3f8f6d761f59f97",
+        "created_event_id": "evt_0cc2003ad5a8f5182f49",
+        "reset_event_id": "evt_31ca3db475d46c861953",
+        "credential_lineage": "lineage_efeb583c7ddccd7d7a1d",
+        "expires_at_tick": 1,
+        "arrival_time": 1027,
+        "arrival_index": 28
+      },
+      {
+        "event_id": "evt_6d1196f7218503219177",
+        "kind": "access-token-issued",
+        "source_time": 1028,
+        "caused_by_event_id": "evt_59682426654f9d47c41d",
+        "token_id": "token_0fdea37da885509e8a5e",
+        "grant_id": "grant_ca04ae83c5c9664e8eba",
+        "client_id": "client_bb8ee3f8f6d761f59f97",
+        "created_event_id": "evt_59682426654f9d47c41d",
+        "reset_event_id": "evt_625223b12a2650aea17d",
+        "credential_lineage": "lineage_83919d120994cf17f684",
+        "expires_at_tick": 1,
+        "arrival_time": 1034,
+        "arrival_index": 29
+      },
+      {
+        "event_id": "evt_5d210a15435972038758",
+        "kind": "access-token-issued",
+        "source_time": 1036,
+        "caused_by_event_id": "evt_881b5185012a68bd54e2",
+        "token_id": "token_9a92c0fec97f856e1410",
+        "grant_id": "grant_5cd58c95a67384c02acb",
+        "client_id": "client_bb8ee3f8f6d761f59f97",
+        "created_event_id": "evt_881b5185012a68bd54e2",
+        "reset_event_id": null,
+        "credential_lineage": "lineage_34451c631804878c8a33",
+        "expires_at_tick": 5,
+        "arrival_time": 1036,
+        "arrival_index": 30
+      },
+      {
+        "event_id": "evt_fd5e09fca9e2361834da",
+        "kind": "access-token-issued",
+        "source_time": 1034,
+        "caused_by_event_id": "evt_b972dfec26b8872c91a0",
+        "token_id": "token_7aa881fe5cc0ec97078c",
+        "grant_id": "grant_aac02789dc39284b185b",
+        "client_id": "client_bb8ee3f8f6d761f59f97",
+        "created_event_id": "evt_b972dfec26b8872c91a0",
+        "reset_event_id": "evt_625223b12a2650aea17d",
+        "credential_lineage": "lineage_0260041cea6f19a1f7ef",
+        "expires_at_tick": 1,
+        "arrival_time": 1038,
+        "arrival_index": 31
+      },
+      {
+        "event_id": "evt_a81652f8572fd22997e3",
+        "kind": "protected-export-call",
+        "source_time": 1042,
+        "caused_by_event_id": "evt_a12532f4c4c31099e8ee",
+        "client_id": "client_bb8ee3f8f6d761f59f97",
+        "token_event_id": "evt_a12532f4c4c31099e8ee",
+        "resource": "reports.export",
+        "arrival_time": 1043,
+        "arrival_index": 32
+      },
+      {
+        "event_id": "evt_15a42d1cfa39bf833910",
+        "kind": "protected-export-call",
+        "source_time": 1040,
+        "caused_by_event_id": "evt_093609f8695cbe8155dc",
+        "client_id": "client_bb8ee3f8f6d761f59f97",
+        "token_event_id": "evt_093609f8695cbe8155dc",
+        "resource": "reports.export",
+        "arrival_time": 1044,
+        "arrival_index": 33
+      },
+      {
+        "event_id": "evt_762a270843c015055182",
+        "kind": "protected-export-call",
+        "source_time": 1046,
+        "caused_by_event_id": "evt_fd5e09fca9e2361834da",
+        "client_id": "client_bb8ee3f8f6d761f59f97",
+        "token_event_id": "evt_fd5e09fca9e2361834da",
+        "resource": "reports.export",
+        "arrival_time": 1047,
+        "arrival_index": 34
+      },
+      {
+        "event_id": "evt_ace975301c1afcc9cd5a",
+        "kind": "protected-export-call",
+        "source_time": 1044,
+        "caused_by_event_id": "evt_6d1196f7218503219177",
+        "client_id": "client_bb8ee3f8f6d761f59f97",
+        "token_event_id": "evt_6d1196f7218503219177",
+        "resource": "reports.export",
+        "arrival_time": 1047,
+        "arrival_index": 35
+      },
+      {
+        "event_id": "evt_3169a0c2efc74e831730",
+        "kind": "protected-export-call",
+        "source_time": 1048,
+        "caused_by_event_id": "evt_5d210a15435972038758",
+        "client_id": "client_bb8ee3f8f6d761f59f97",
+        "token_event_id": "evt_5d210a15435972038758",
+        "resource": "reports.export",
+        "arrival_time": 1048,
+        "arrival_index": 36
+      },
+      {
+        "event_id": "evt_6e0ff89fc1237ba6a3eb",
+        "kind": "resource-session-created",
+        "source_time": 1050,
+        "caused_by_event_id": "evt_a12532f4c4c31099e8ee",
+        "session_id": "resource-session_4afdcc5f391d7ab48b71",
+        "token_id": "token_221c0c5b9b5ebe7622ad",
+        "client_id": "client_bb8ee3f8f6d761f59f97",
+        "user_id": "user_4661cf0c371f323d5d45",
+        "expires_at_tick": 5,
+        "arrival_time": 1055,
+        "arrival_index": 37
+      },
+      {
+        "event_id": "evt_d1c72dc4c85128cb2728",
+        "kind": "resource-session-created",
+        "source_time": 1052,
+        "caused_by_event_id": "evt_093609f8695cbe8155dc",
+        "session_id": "resource-session_efeb583c7ddccd7d7a1d",
+        "token_id": "token_95ba528e926224b62fff",
+        "client_id": "client_bb8ee3f8f6d761f59f97",
+        "user_id": "user_4661cf0c371f323d5d45",
+        "expires_at_tick": 5,
+        "arrival_time": 1056,
+        "arrival_index": 38
+      },
+      {
+        "event_id": "evt_eb458c4cf93f3ffb6a26",
+        "kind": "resource-session-created",
+        "source_time": 1058,
+        "caused_by_event_id": "evt_6d1196f7218503219177",
+        "session_id": "resource-session_83919d120994cf17f684",
+        "token_id": "token_0fdea37da885509e8a5e",
+        "client_id": "client_bb8ee3f8f6d761f59f97",
+        "user_id": "user_841eca377cfa8c83d2f1",
+        "expires_at_tick": 5,
+        "arrival_time": 1061,
+        "arrival_index": 39
+      },
+      {
+        "event_id": "evt_8b1c6979a03e423460cb",
+        "kind": "resource-session-created",
+        "source_time": 1064,
+        "caused_by_event_id": "evt_fd5e09fca9e2361834da",
+        "session_id": "resource-session_0260041cea6f19a1f7ef",
+        "token_id": "token_7aa881fe5cc0ec97078c",
+        "client_id": "client_bb8ee3f8f6d761f59f97",
+        "user_id": "user_841eca377cfa8c83d2f1",
+        "expires_at_tick": 5,
+        "arrival_time": 1064,
+        "arrival_index": 40
+      },
+      {
+        "event_id": "evt_247ca67ee9e2e4632e84",
+        "kind": "delegated-grant-revoked",
+        "source_time": 1073,
+        "caused_by_event_id": "evt_31ca3db475d46c861953",
+        "grant_id": "grant_ea9123c9c94d7f9b74ec",
+        "client_id": "client_bb8ee3f8f6d761f59f97",
+        "effective_tick": 0,
+        "arrival_time": 1076,
+        "arrival_index": 41
+      },
+      {
+        "event_id": "evt_bb5a1c1dec8cf7a80b4d",
+        "kind": "delegated-grant-revoked",
+        "source_time": 1076,
+        "caused_by_event_id": "evt_625223b12a2650aea17d",
+        "grant_id": "grant_7d461af9b586bf5da08b",
+        "client_id": "client_bb8ee3f8f6d761f59f97",
+        "effective_tick": 0,
+        "arrival_time": 1079,
+        "arrival_index": 42
+      }
+    ],
+    "tokens": [
+      {
+        "token_id": "token_221c0c5b9b5ebe7622ad",
+        "event_id": "evt_a12532f4c4c31099e8ee",
+        "grant_id": "grant_be02552c5c81306fa1dd",
+        "client_id": "client_bb8ee3f8f6d761f59f97",
+        "issued_at": 1020,
+        "expires_at_tick": 1
+      },
+      {
+        "token_id": "token_95ba528e926224b62fff",
+        "event_id": "evt_093609f8695cbe8155dc",
+        "grant_id": "grant_53cfc38354f39924b66a",
+        "client_id": "client_bb8ee3f8f6d761f59f97",
+        "issued_at": 1022,
+        "expires_at_tick": 1
+      },
+      {
+        "token_id": "token_0fdea37da885509e8a5e",
+        "event_id": "evt_6d1196f7218503219177",
+        "grant_id": "grant_ca04ae83c5c9664e8eba",
+        "client_id": "client_bb8ee3f8f6d761f59f97",
+        "issued_at": 1028,
+        "expires_at_tick": 1
+      },
+      {
+        "token_id": "token_7aa881fe5cc0ec97078c",
+        "event_id": "evt_fd5e09fca9e2361834da",
+        "grant_id": "grant_aac02789dc39284b185b",
+        "client_id": "client_bb8ee3f8f6d761f59f97",
+        "issued_at": 1034,
+        "expires_at_tick": 1
+      },
+      {
+        "token_id": "token_9a92c0fec97f856e1410",
+        "event_id": "evt_5d210a15435972038758",
+        "grant_id": "grant_5cd58c95a67384c02acb",
+        "client_id": "client_bb8ee3f8f6d761f59f97",
+        "issued_at": 1036,
+        "expires_at_tick": 5
+      }
+    ],
+    "sessions": [
+      {
+        "session_id": "resource-session_4afdcc5f391d7ab48b71",
+        "event_id": "evt_6e0ff89fc1237ba6a3eb",
+        "token_id": "token_221c0c5b9b5ebe7622ad",
+        "client_id": "client_bb8ee3f8f6d761f59f97",
+        "user_id": "user_4661cf0c371f323d5d45",
+        "created_at": 1050,
+        "expires_at_tick": 5
+      },
+      {
+        "session_id": "resource-session_efeb583c7ddccd7d7a1d",
+        "event_id": "evt_d1c72dc4c85128cb2728",
+        "token_id": "token_95ba528e926224b62fff",
+        "client_id": "client_bb8ee3f8f6d761f59f97",
+        "user_id": "user_4661cf0c371f323d5d45",
+        "created_at": 1052,
+        "expires_at_tick": 5
+      },
+      {
+        "session_id": "resource-session_83919d120994cf17f684",
+        "event_id": "evt_eb458c4cf93f3ffb6a26",
+        "token_id": "token_0fdea37da885509e8a5e",
+        "client_id": "client_bb8ee3f8f6d761f59f97",
+        "user_id": "user_841eca377cfa8c83d2f1",
+        "created_at": 1058,
+        "expires_at_tick": 5
+      },
+      {
+        "session_id": "resource-session_0260041cea6f19a1f7ef",
+        "event_id": "evt_8b1c6979a03e423460cb",
+        "token_id": "token_7aa881fe5cc0ec97078c",
+        "client_id": "client_bb8ee3f8f6d761f59f97",
+        "user_id": "user_841eca377cfa8c83d2f1",
+        "created_at": 1064,
+        "expires_at_tick": 5
+      }
+    ],
+    "jobs": [
+      {
+        "job_id": "job_64567114ee0b65738586",
+        "client_id": "client_bb8ee3f8f6d761f59f97",
+        "owner_user_id": "user_4661cf0c371f323d5d45",
+        "approved_grant_id": "grant_be02552c5c81306fa1dd",
+        "due_tick": 2,
+        "current_runner_id": "runner_1fcca2ea43483e34a684",
+        "source_event_id": "evt_84242303b5890fbff95a"
+      },
+      {
+        "job_id": "job_6147bf75374e9ea50695",
+        "client_id": "client_bb8ee3f8f6d761f59f97",
+        "owner_user_id": "user_841eca377cfa8c83d2f1",
+        "approved_grant_id": "grant_aac02789dc39284b185b",
+        "due_tick": 2,
+        "current_runner_id": "runner_503019e288d7f286bc72",
+        "source_event_id": "evt_674aefd0e638f65293d3"
+      },
+      {
+        "job_id": "job_8bf6ffbd587eb03ff6ec",
+        "client_id": "client_bb8ee3f8f6d761f59f97",
+        "owner_user_id": "user_4661cf0c371f323d5d45",
+        "approved_grant_id": "grant_be02552c5c81306fa1dd",
+        "due_tick": 4,
+        "current_runner_id": "runner_1fcca2ea43483e34a684",
+        "source_event_id": "evt_5f4b0d9e276c3d47f3e1"
+      },
+      {
+        "job_id": "job_a8629f36655735873245",
+        "client_id": "client_bb8ee3f8f6d761f59f97",
+        "owner_user_id": "user_841eca377cfa8c83d2f1",
+        "approved_grant_id": "grant_aac02789dc39284b185b",
+        "due_tick": 4,
+        "current_runner_id": "runner_503019e288d7f286bc72",
+        "source_event_id": "evt_a264f7618f0bbec4f483"
+      },
+      {
+        "job_id": "job_a7375d01d90987dd0c11",
+        "client_id": "client_bb8ee3f8f6d761f59f97",
+        "owner_user_id": "user_a7d6090f6990f6018bc3",
+        "approved_grant_id": "grant_5cd58c95a67384c02acb",
+        "due_tick": 1,
+        "current_runner_id": "runner_7c6441194be761844f43",
+        "source_event_id": "evt_792505abc761c59e9614"
+      }
+    ],
+    "runners": [
+      {
+        "runner_id": "runner_1fcca2ea43483e34a684",
+        "user_id": "user_4661cf0c371f323d5d45",
+        "client_id": "client_bb8ee3f8f6d761f59f97",
+        "standby": false,
+        "ready_at_tick": 0,
+        "capacity": 1,
+        "source_event_id": "evt_1b63680c5422ff6d6d1b"
+      },
+      {
+        "runner_id": "runner_503019e288d7f286bc72",
+        "user_id": "user_841eca377cfa8c83d2f1",
+        "client_id": "client_bb8ee3f8f6d761f59f97",
+        "standby": false,
+        "ready_at_tick": 0,
+        "capacity": 1,
+        "source_event_id": "evt_d542dc917bddd960d278"
+      },
+      {
+        "runner_id": "runner_7c6441194be761844f43",
+        "user_id": "user_a7d6090f6990f6018bc3",
+        "client_id": "client_bb8ee3f8f6d761f59f97",
+        "standby": false,
+        "ready_at_tick": 0,
+        "capacity": 1,
+        "source_event_id": "evt_47ddc33af31483fb452b"
+      },
+      {
+        "runner_id": "runner_5348b8d998143a64f2ba",
+        "user_id": null,
+        "client_id": "client_bb8ee3f8f6d761f59f97",
+        "standby": true,
+        "ready_at_tick": 0,
+        "capacity": 1,
+        "source_event_id": "evt_d51f316e435665f5100b"
+      }
+    ],
+    "runner_authorizations": [
+      {
+        "authorization_id": "runner-auth_dc61ad8185d00d08fd04",
+        "job_id": "job_64567114ee0b65738586",
+        "runner_id": "runner_1fcca2ea43483e34a684",
+        "client_id": "client_bb8ee3f8f6d761f59f97",
+        "valid_from_tick": 0,
+        "valid_until_tick": 4,
+        "signed_by": "operations-scheduler",
+        "signature": "sig_bd50b446254eeee80103",
+        "source_event_id": "evt_2c0174971d3c201e8b51"
+      },
+      {
+        "authorization_id": "runner-auth_2a77a08a5bc472428483",
+        "job_id": "job_64567114ee0b65738586",
+        "runner_id": "runner_5348b8d998143a64f2ba",
+        "client_id": "client_bb8ee3f8f6d761f59f97",
+        "valid_from_tick": 0,
+        "valid_until_tick": 4,
+        "signed_by": "operations-scheduler",
+        "signature": "sig_8c69acf819fdc0664038",
+        "source_event_id": "evt_5b016983b9caeb3c6f5b"
+      },
+      {
+        "authorization_id": "runner-auth_dbc2f5756c5034af9d41",
+        "job_id": "job_6147bf75374e9ea50695",
+        "runner_id": "runner_503019e288d7f286bc72",
+        "client_id": "client_bb8ee3f8f6d761f59f97",
+        "valid_from_tick": 0,
+        "valid_until_tick": 4,
+        "signed_by": "operations-scheduler",
+        "signature": "sig_30b661ef0d204ad820da",
+        "source_event_id": "evt_b5a52a9def74608f4803"
+      },
+      {
+        "authorization_id": "runner-auth_696f063626d4e76e1555",
+        "job_id": "job_6147bf75374e9ea50695",
+        "runner_id": "runner_5348b8d998143a64f2ba",
+        "client_id": "client_bb8ee3f8f6d761f59f97",
+        "valid_from_tick": 0,
+        "valid_until_tick": 4,
+        "signed_by": "operations-scheduler",
+        "signature": "sig_e616cae59de3ed65a07f",
+        "source_event_id": "evt_0ae4175fb52ed200d395"
+      },
+      {
+        "authorization_id": "runner-auth_ce4053b74c3add74193c",
+        "job_id": "job_8bf6ffbd587eb03ff6ec",
+        "runner_id": "runner_1fcca2ea43483e34a684",
+        "client_id": "client_bb8ee3f8f6d761f59f97",
+        "valid_from_tick": 0,
+        "valid_until_tick": 4,
+        "signed_by": "operations-scheduler",
+        "signature": "sig_ac4a42ebc7469fa9a4a2",
+        "source_event_id": "evt_3382ebb582b075ee3c16"
+      },
+      {
+        "authorization_id": "runner-auth_812852a97f2f0707318c",
+        "job_id": "job_a8629f36655735873245",
+        "runner_id": "runner_503019e288d7f286bc72",
+        "client_id": "client_bb8ee3f8f6d761f59f97",
+        "valid_from_tick": 0,
+        "valid_until_tick": 4,
+        "signed_by": "operations-scheduler",
+        "signature": "sig_2c748cd61b0a16a6425c",
+        "source_event_id": "evt_ec1e152b2c8dc8720c4f"
+      },
+      {
+        "authorization_id": "runner-auth_55724f5c4c60e884a9b1",
+        "job_id": "job_a7375d01d90987dd0c11",
+        "runner_id": "runner_7c6441194be761844f43",
+        "client_id": "client_bb8ee3f8f6d761f59f97",
+        "valid_from_tick": 0,
+        "valid_until_tick": 4,
+        "signed_by": "operations-scheduler",
+        "signature": "sig_a42af27a05b9609c0547",
+        "source_event_id": "evt_3d1d0058f918e30df81b"
+      }
+    ],
+    "dashboard_contract": {
+      "feed_id": "feed_95ed54c5bdfdf8d0f53d",
+      "source": "grant-control-plane",
+      "authority": "derived-status",
+      "report_tick": 1,
+      "reported_effective_after_request": true
+    },
+    "delivery_records": [],
+    "control_contract": {
+      "revoke_grant": "Accepted immediately. Propagation completes after one or two advance ticks; the acknowledgment does not reveal which. Existing tokens and resource sessions persist.",
+      "access_token": "A token is live only while expires_at_tick > current_tick. A successful new mint at tick n expires at tick n + 2.",
+      "terminate_session": "Ends only the named resource session, not its parent token or grant.",
+      "block_client": "A permanent client-wide block immediately denies protected exports and all approved jobs, including signed standby work. It does not revoke grants, expire tokens, terminate sessions, or stop token minting. The acknowledgment is not containment or delivery proof.",
+      "set_quarantine": "Immediately blocks protected access for one user and this client, including approved current-runner work; it does not stop token minting. Release only after checking latent paths.",
+      "assign_job": "A ready runner needs a signed job authorization and free capacity for the due tick. Assignment acknowledgment is not delivery.",
+      "advance": "Apply revocations and expiries, attempt adversarial mint, check protected exports, then deliver due approved jobs. At most four ticks.",
+      "dashboard": "The derived grant-control feed may report effective=true at tick 1 after a revocation request. Use the live auth/resource probe for current capability.",
+      "probe": "Reports latent can_mint, live tokens, live sessions, quarantine, and protected-access fields without an authorization verdict."
+    }
+  },
+  "initial": {
+    "role": "identity-incident-responder",
+    "incident_id": "incident_3d400f60ee6a352b2516",
+    "alert": {
+      "call_event_id": "evt_15a42d1cfa39bf833910",
+      "client_id": "client_bb8ee3f8f6d761f59f97",
+      "source_time": 1040,
+      "arrival_index": 33
+    },
+    "now_tick": 0,
+    "horizon_tick": 4,
+    "protected_scope": "reports.export",
+    "base_policy": {
+      "rules": [
+        {
+          "id": "admin-approved-catalog",
+          "grantor_type": "admin-consent",
+          "approval_route": "admin-approved",
+          "verification_state": "catalog-approved",
+          "scopes_within_catalog": true
+        }
+      ],
+      "note": "A grant is base-authorized iff some rule matches: grantor_type + approval_route + verification_state all equal AND every requested scope is in the app catalog scope set."
+    },
+    "authorization_rule": "A grant is authorized only by the published base rule or a registry row matching client/app, tenant, principal, every scope, approval route, and validity at issue_time. No per-grant verdict is supplied.",
+    "control_contract": {
+      "revoke_grant": "Accepted immediately. Propagation completes after one or two advance ticks; the acknowledgment does not reveal which. Existing tokens and resource sessions persist.",
+      "access_token": "A token is live only while expires_at_tick > current_tick. A successful new mint at tick n expires at tick n + 2.",
+      "terminate_session": "Ends only the named resource session, not its parent token or grant.",
+      "block_client": "A permanent client-wide block immediately denies protected exports and all approved jobs, including signed standby work. It does not revoke grants, expire tokens, terminate sessions, or stop token minting. The acknowledgment is not containment or delivery proof.",
+      "set_quarantine": "Immediately blocks protected access for one user and this client, including approved current-runner work; it does not stop token minting. Release only after checking latent paths.",
+      "assign_job": "A ready runner needs a signed job authorization and free capacity for the due tick. Assignment acknowledgment is not delivery.",
+      "advance": "Apply revocations and expiries, attempt adversarial mint, check protected exports, then deliver due approved jobs. At most four ticks.",
+      "dashboard": "The derived grant-control feed may report effective=true at tick 1 after a revocation request. Use the live auth/resource probe for current capability.",
+      "probe": "Reports latent can_mint, live tokens, live sessions, quarantine, and protected-access fields without an authorization verdict."
+    },
+    "source_queries": [
+      "list_client_principals",
+      "get_user_grants",
+      "get_registry",
+      "get_activity",
+      "get_reset",
+      "get_jobs",
+      "get_runners",
+      "get_runner_authorizations",
+      "get_dashboard",
+      "get_deliveries",
+      "probe",
+      "probe_user"
+    ],
+    "budget": {
+      "tool_actions": 64,
+      "model_turns": 48
+    }
+  }
+}
