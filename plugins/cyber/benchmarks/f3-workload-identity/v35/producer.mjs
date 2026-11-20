@@ -11,7 +11,9 @@ import {
   solveNoExceptionCover,
   validateCoupledCatalog,
 } from './catalog.mjs';
+import { buildDefenseSession, stepDefense } from './defense.mjs';
 import { replayContainment } from './runtime.mjs';
+import { buildPairedSchedule, verifyPairedConsole } from './schedule.mjs';
 
 const MAX_CATALOG_NONCE = 256;
 
@@ -295,14 +297,9 @@ export function buildEpisode(spec) {
     buildV32Episode({ ...spec, seed: pairSeed + 1 }),
   ];
   const indices = episodes.map((episode) => listWorkloads(episode.visible));
-  if (
-    !isDeepStrictEqual(indices[0], indices[1]) ||
-    !isDeepStrictEqual(
-      episodes[0].visible.query_access_schedule,
-      episodes[1].visible.query_access_schedule,
-    )
-  ) {
-    throw new Error('v35 paired workload index or query schedule differs');
+  const scheduleProof = buildPairedSchedule(episodes[0].visible, episodes[1].visible);
+  for (const episode of episodes) {
+    episode.visible.query_access_schedule = structuredClone(scheduleProof.schedule);
   }
   const selected = resolveIndex(indices[0]);
   if (!isDeepStrictEqual(selected, resolveIndex(indices[1]))) {
@@ -343,6 +340,10 @@ export function buildEpisode(spec) {
     }
     validateCoupledCatalog(catalogs);
     if (candidatePasses(episodes, current, required, catalogs)) {
+      const consoles = episodes.map((episode, variant) =>
+        buildDefenseSession({ ...spec, seed: pairSeed + variant }, () => episode),
+      );
+      verifyPairedConsole(consoles, stepDefense, scheduleProof);
       return episodes[spec.seed % 2];
     }
   }

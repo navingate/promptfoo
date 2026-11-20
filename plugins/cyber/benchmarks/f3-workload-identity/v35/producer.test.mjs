@@ -117,7 +117,7 @@ function structuralRivals(catalogs, current, plan) {
 }
 
 test('development grid leaves non-completable Q/E rivals on both motif tails', () => {
-  for (let pairSeed = 104000; pairSeed < 104012; pairSeed += 2) {
+  for (let pairSeed = 109000; pairSeed < 109012; pairSeed += 2) {
     for (const family of FAMILIES) {
       const even = episode(pairSeed, family);
       const odd = buildV30Episode({ seed: pairSeed + 1, family });
@@ -155,9 +155,9 @@ test('development grid leaves non-completable Q/E rivals on both motif tails', (
   }
 });
 
-test('paired V35 episodes expose identical catalogs and preserve the V32 evidence schedule', () => {
-  const even = episode(104000, FAMILIES[0]);
-  const odd = episode(104001, FAMILIES[0]);
+test('paired V35 episodes expose identical catalogs and share their retimed evidence schedule', () => {
+  const even = episode(109000, FAMILIES[0]);
+  const odd = episode(109001, FAMILIES[0]);
   assert.deepEqual(listWorkloads(even.visible), listWorkloads(odd.visible));
   assert.deepEqual(even.visible.query_access_schedule, odd.visible.query_access_schedule);
   assert.deepEqual(visibleCatalogs(even), visibleCatalogs(odd));
@@ -175,8 +175,8 @@ test('paired V35 episodes expose identical catalogs and preserve the V32 evidenc
   }
 });
 
-test('V35 preserves V32 native chain and visible incident outside containment catalogs', () => {
-  const spec = { seed: 104000, family: FAMILIES[0] };
+test('V35 preserves V32 native chain and visible incident outside containment catalogs and schedule windows', () => {
+  const spec = { seed: 109000, family: FAMILIES[0] };
   const v32 = buildV32Episode(spec);
   const v35 = episode(spec.seed, spec.family);
   const {
@@ -194,13 +194,19 @@ test('V35 preserves V32 native chain and visible incident outside containment ca
   assert.equal(oldBudget, 7);
   assert.equal(newBudget, 4);
   assert.deepEqual(newNative, oldNative);
-  const { containment_cohorts: oldVisibleCatalog, ...oldVisible } = v32.visible;
+  const {
+    containment_cohorts: oldVisibleCatalog,
+    query_access_schedule: oldSchedule,
+    ...oldVisible
+  } = v32.visible;
   const {
     containment_cohorts: newVisibleCatalog,
     exception_bundles: visibleExceptions,
+    query_access_schedule: newSchedule,
     ...newVisible
   } = v35.visible;
   assert.ok(oldVisibleCatalog && newVisibleCatalog && visibleExceptions);
+  assert.notDeepEqual(newSchedule, oldSchedule);
   assert.deepEqual(newVisible, oldVisible);
   const sessions = new Map(v35.native.sessions.map((item) => [item.access_key_ref, item]));
   for (const item of v35.visible.session_register) {
@@ -212,8 +218,8 @@ test('V35 preserves V32 native chain and visible incident outside containment ca
 
 test('all three settings have visible four-request paired plans and no exception-free plan', () => {
   for (const family of FAMILIES) {
-    const even = episode(104000, family);
-    const odd = episode(104001, family);
+    const even = episode(109000, family);
+    const odd = episode(109001, family);
     const plans = [];
     for (const produced of [even, odd]) {
       const current = currentActions(produced);
@@ -256,7 +262,7 @@ test('all three settings have visible four-request paired plans and no exception
 });
 
 test('every role-wide revoke blocks approved work in the paired estate', () => {
-  for (const produced of [episode(104000, FAMILIES[0]), episode(104001, FAMILIES[0])]) {
+  for (const produced of [episode(109000, FAMILIES[0]), episode(109001, FAMILIES[0])]) {
     for (const role_arn of new Set(produced.native.sessions.map((session) => session.role_arn))) {
       const replay = replayContainment(produced.native, [
         { tool: 'revoke-role-sessions', args: { role_arn } },
@@ -269,5 +275,5 @@ test('every role-wide revoke blocks approved work in the paired estate', () => {
 
 test('V35 producer rejects malformed specifications', () => {
   assert.throws(() => buildEpisode({ seed: -1, family: FAMILIES[0] }), /seed/iu);
-  assert.throws(() => buildEpisode({ seed: 104000, family: '' }), /family/iu);
+  assert.throws(() => buildEpisode({ seed: 109000, family: '' }), /family/iu);
 });
