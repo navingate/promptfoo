@@ -163,6 +163,7 @@ function executeResponse(incident, response) {
   }
   if (r.contain) {
     responderRevokeSession(w, { target_actor: 'attacker' });
+    responderRevokeSession(w, { target_actor: 'attacker-alt' });
     log('revoke-session', true);
   }
   if (r.preserve) {
