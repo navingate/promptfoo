@@ -18,6 +18,17 @@ function matchAction(native, action) {
       )
     );
   }
+  if (action?.tool === 'deny-session-resource') {
+    return (
+      Object.keys(args).length === 3 &&
+      native.iam_policy.resources.includes(args.resource) &&
+      native.sessions.some(
+        (session) =>
+          session.role_arn === args.role_arn &&
+          session.role_session_name === args.role_session_name,
+      )
+    );
+  }
   if (action?.tool === 'pause-job') {
     return (
       Object.keys(args).length === 1 && native.jobs.some((job) => job.job_uid === args.job_uid)
@@ -51,6 +62,15 @@ function attemptOutcome(attempt, controls) {
         sessionKey(control.args.role_arn, control.args.role_session_name) ===
           sessionKey(attempt.role_arn, attempt.role_session_name),
     );
+  const deniedResource =
+    attempt.kind === 'active' &&
+    relevant.some(
+      (control) =>
+        control.tool === 'deny-session-resource' &&
+        control.args.role_arn === attempt.role_arn &&
+        control.args.role_session_name === attempt.role_session_name &&
+        control.args.resource === attempt.resource,
+    );
   const blockedReason = retired
     ? 'old-role-retired'
     : held
@@ -59,7 +79,9 @@ function attemptOutcome(attempt, controls) {
         ? 'job-paused'
         : denied
           ? 'exact-session-denied'
-          : null;
+          : deniedResource
+            ? 'session-resource-denied'
+            : null;
   return {
     ...attempt,
     completed: blockedReason === null,
