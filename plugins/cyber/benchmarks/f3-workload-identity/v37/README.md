@@ -19,6 +19,11 @@ This is desirable enterprise practice and leaves no substantive decision for
 an Astra pilot. The screen is retained as regression coverage and no model
 score is carried forward. See [the audit](../../../../../.agents/cyber-benchmarks/F3-V37-DRAIN-SCREEN.md).
 
+A [capture audit](../../../../../.agents/cyber-benchmarks/F3-V37-CAPTURE-AUDIT.md)
+shows why draining only one old request is insufficient in the larger F3
+estate: another approved request can still be queued on the same role. A
+visible-only scoped response preserves it; this finding has no model pilot.
+
 Run from the repository root under the `.nvmrc` Node version:
 
 ```bash
