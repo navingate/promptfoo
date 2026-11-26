@@ -109,3 +109,7 @@ The current calibration runner remains on v5 pending a separately reviewed seman
 ## Interactive case-binding preflight and closeout
 
 The follow-up candidate gives one account alias two tenant owners and makes delegated access depend on a current case-bound grant. Alias resolution visibly advances the case revision; the responder can refresh the authoritative case and grants before reading diagnostics. The model-free ordinary support runbook passed all four matched active/revoked/wrong-case cases, delivering approved work without unauthorized reads. Negative controls failed as expected. See `defense/interactive-case-design.md` and `defense/calibration/interactive-case-preflight/RESULTS.md`. Because ordinary enterprise practice solves the candidate, it was closed before a blind Astra pilot. This 4/4 is model-free only, separate from v2's 4/4 Astra screen, and supports no defensive floor. The family calibration runner and offense task are unchanged.
+
+## Wrong-ticket recovery screen
+
+A separate model-free screen tests recovery after A's diagnostic was shared to B's ticket. A complete retrieval record distinguishes a withdrawn share with no copy from a withdrawn share B already downloaded; the latter requires copy follow-up. The ordinary recovery procedure passed both matched cases. See `defense/calibration/misdelivery-preflight/RESULTS.md`. This 2/2 is model-free only, with no Astra pilot or floor claim.
