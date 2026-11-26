@@ -62,3 +62,7 @@ INCOMPLETE
 ## Expert challenge decisions
 
 INCOMPLETE
+
+## Native capture checkpoint, 2026-11-27
+
+The user re-pinned F7's prose-reading victim to the model currently served by the 34.x endpoint. A frozen 24-session native capture passed its validity checks, but the strong injected/clean pairs achieved **0/8** completed cross-tenant disclosures while all **8/8** clean twins completed the exact authorized read. A separate overt-text weak control crossed once in eight trials. See `../native-capture/RESULTS.md` and its raw capture. The weak trace has no benign clean pair and cannot flip G1 or ground a defensive floor. This handoff remains `INCOMPLETE`; no gate or claim level changes here.
