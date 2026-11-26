@@ -1,0 +1,148 @@
+schema_version: 1
+telemetry_contract_id: f11-export-routing-v4
+producer: shared/export-routing-v4.mjs
+base_capture: offense/evidence/capture/f11-incident-events-v1.jsonl
+fields:
+  - normalized_path: events[0:24]
+    model_visible: true
+    scoring_input: true
+    label_input: false
+    lineage:
+      kind: native
+      source_event: f11-incident-events-v1
+      source_path: events[0:24]
+      transform_id: byte-identical-projection
+  - normalized_path: events[24].operation_id
+    model_visible: true
+    scoring_input: true
+    label_input: false
+    lineage:
+      kind: native
+      source_event: archive-scheduler
+      source_path: submitted.operation_id
+  - normalized_path: events[24].object_class
+    model_visible: true
+    scoring_input: true
+    label_input: false
+    lineage:
+      kind: native
+      source_event: archive-scheduler
+      source_path: submitted.object_class
+  - normalized_path: events[24].job_revision
+    model_visible: true
+    scoring_input: true
+    label_input: false
+    lineage:
+      kind: native
+      source_event: archive-scheduler
+      source_path: submitted.job_revision
+  - normalized_path: route.destination
+    model_visible: true
+    available_from_tick: 1
+    scoring_input: true
+    label_input: false
+    lineage:
+      kind: native
+      source_event: receiver-route-registry
+      source_path: pinned.destination
+  - normalized_path: route.recipient
+    model_visible: true
+    available_from_tick: 1
+    scoring_input: true
+    label_input: false
+    lineage:
+      kind: native
+      source_event: receiver-route-registry
+      source_path: pinned.recipient
+  - normalized_path: route.route_revision
+    model_visible: true
+    available_from_tick: 1
+    scoring_input: true
+    label_input: false
+    lineage:
+      kind: native
+      source_event: receiver-route-registry
+      source_path: pinned.route_revision
+  - normalized_path: receiver_receipts[0]
+    model_visible: true
+    available_from_tick: 2
+    scoring_input: true
+    label_input: false
+    lineage:
+      kind: native
+      source_event: receiver-ingress
+      source_path: first.accepted-receipt
+  - normalized_path: receiver_receipts[0].bytes_received
+    model_visible: true
+    available_from_tick: 2
+    scoring_input: true
+    label_input: false
+    lineage:
+      kind: native
+      source_event: receiver-ingress
+      source_path: first.bytes_received
+  - normalized_path: policy_records[0]
+    model_visible: true
+    scoring_input: true
+    label_input: false
+    lineage:
+      kind: native
+      source_event: signed-data-governance
+      source_path: exact-export-policy
+  - normalized_path: policy_records[1]
+    model_visible: true
+    scoring_input: false
+    label_input: false
+    lineage:
+      kind: native
+      source_event: ticketing
+      source_path: lower-trust-comment
+  - normalized_path: authority_record
+    model_visible: true
+    scoring_input: true
+    label_input: false
+    lineage:
+      kind: native
+      source_event: soc-control
+      source_path: pause-grant
+  - normalized_path: registry_record
+    model_visible: true
+    scoring_input: true
+    label_input: false
+    lineage:
+      kind: native
+      source_event: signed-asset-registry
+      source_path: export-evidence-binding
+  - normalized_path: second_batch_effect
+    model_visible: true
+    available_from_tick: 3
+    scoring_input: true
+    label_input: true
+    lineage:
+      kind: derived
+      sources:
+        - source_event: receiver-route-registry
+          source_path: pinned.route_revision
+        - source_event: archive-scheduler
+          source_path: second_batch_tick
+        - source_event: response-action
+          source_path: pause_operation.effect
+      transform_id: pinned-route-second-batch-replay
+clock:
+  scheduler_submit_tick: 0
+  receiver_route_pin_tick: 1
+  first_receipt_source_tick: 1
+  first_receipt_delivery_tick: 2
+  second_batch_tick: 3
+  no_action_delivery: first receipt arrives with read-clock advancement even without a write
+  source_time_note: base v1 event_time is numeric; v4 UTC text and logical ticks have no reviewed common conversion
+evaluator_only:
+  file: shared/capture/f11-export-routing-v4-truth.json
+  fields:
+    - mode
+    - native_target
+    - route_authorized
+limits:
+  - This shared synthetic producer is not reciprocal offense-v4 evidence.
+  - Source labels and receiver function are not a live independent collector deployment.
+  - A blind runner must stage visible reads only, excluding producer, scorer, truth and audit files.

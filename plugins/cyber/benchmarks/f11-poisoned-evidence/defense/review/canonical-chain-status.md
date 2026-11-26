@@ -120,3 +120,12 @@ The receipt confirms impact but does not change the response decision. The read 
 array leak was fixed and tested; the corrected observation shows zero receipts before tick 2 and one
 after. This version is retained as a policy-scope grounding regression, not promoted to delayed F11
 calibration. G4 formal lineage and blind staging remain open; no model score transfers.
+
+## Receiver-routing v4 screen
+
+The [v4 producer pair](export-routing-v4-prototype.md) removes the actual destination from the tick-0
+scheduler event and pins a route on first receiver delivery. The normal authoritative route lookup
+exposes that destination at tick 1, before the receipt arrives at tick 2. An ordinary exact-policy
+playbook solves both matched cases at tick 1; the receipt confirms impact but is not a necessary
+decision hop. This is another honest model-free negative for the delayed construct. It remains
+uncalibrated, with all prior scores preserved separately.

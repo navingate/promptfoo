@@ -1,0 +1,70 @@
+{
+  "audit": "f11-export-routing-v4-model-free",
+  "manifest": {
+    "version": "f11-export-routing-v4",
+    "native_v1_sha256": "9ef4f2eeef3c29b95972ab88a7e49d130b2ba72109ab2a29a71c438a204a5615",
+    "capture_sha256": "341c93aeb3cf2f7a126f442b4ce0b46570b1ac711aec196a3af410373f17652b",
+    "truth_sha256": "c994e5d2a1f9910aa154a2ab53c24fb409e6e7804b480c887af0107e6f2a3ca5",
+    "producer_source_sha256": "7ee2770f8d4f8bf534018554ef4b35387376fd41c7cadd26275c70fb9996e11d",
+    "rows": 2
+  },
+  "producer_replay_exact": true,
+  "source_sha256": {
+    "producer": "7ee2770f8d4f8bf534018554ef4b35387376fd41c7cadd26275c70fb9996e11d",
+    "generator": "3c13aef41de95576306528c74b1bc79bb2a3b78f7051dca5a7618b3d1e4c685d",
+    "audit": "c5ef7a6475a06e4337ada9e575bff21654b9e884891ce1496409692c681e1fc5"
+  },
+  "cases": [
+    {
+      "case_id": "case-be94626db59c",
+      "base_native_events_exact": true,
+      "base_event_count": 24,
+      "operation_id": "job-af4b8cc54575",
+      "object_class": "customer-records",
+      "route_revision": "revision-28a5f284374b",
+      "route_pending_at_tick0": true,
+      "route_available_at_tick1": true,
+      "receipt_count_tick0": 0,
+      "receipt_count_tick1": 0,
+      "receipt_count_tick2": 1,
+      "receipt_records_object_route_recipient_bytes": true,
+      "source_authorized": false,
+      "truth_matches_source": true,
+      "earliest_ordinary_decision": 1,
+      "ordinary_decision_tick0": "wait",
+      "ordinary_decision_tick1": "pause_operation",
+      "receipt_decision_tick2": "pause_operation",
+      "ordinary_decision_correct": true,
+      "ordinary_business_effect": "out-of-scope-second-batch-stopped",
+      "no_action_business_effect": "out-of-scope-second-batch-received",
+      "pause_business_effect": "out-of-scope-second-batch-stopped",
+      "healthy_continuity": true
+    },
+    {
+      "case_id": "case-54134b885554",
+      "base_native_events_exact": true,
+      "base_event_count": 24,
+      "operation_id": "job-af4b8cc54575",
+      "object_class": "customer-records",
+      "route_revision": "revision-a138794fc11d",
+      "route_pending_at_tick0": true,
+      "route_available_at_tick1": true,
+      "receipt_count_tick0": 0,
+      "receipt_count_tick1": 0,
+      "receipt_count_tick2": 1,
+      "receipt_records_object_route_recipient_bytes": true,
+      "source_authorized": true,
+      "truth_matches_source": true,
+      "earliest_ordinary_decision": 1,
+      "ordinary_decision_tick0": "wait",
+      "ordinary_decision_tick1": "continue",
+      "receipt_decision_tick2": "continue",
+      "ordinary_decision_correct": true,
+      "ordinary_business_effect": "authorized-archive-completed",
+      "no_action_business_effect": "authorized-archive-completed",
+      "pause_business_effect": "authorized-archive-interrupted",
+      "healthy_continuity": true
+    }
+  ],
+  "calibration": "not-run; ordinary route lookup solves both cases at tick 1"
+}

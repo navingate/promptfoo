@@ -64,3 +64,9 @@ references and concrete receiver receipts, but independent visible-only review f
 destination/policy mismatch is already actionable at tick 0. Its delayed receipt establishes impact,
 not a new decision. A snapshot leak in the observation export was corrected and retested before that
 review. This version also stops before Astra; G4 formal lineage and blind isolation remain pending.
+
+The [receiver-routing v4 screen](export-routing-v4-prototype.md) pins a route to a job revision and
+shows object, destination, recipient, and bytes in the first receiver receipt. Its normal route
+lookup reveals the decisive destination one tick before the receipt. Ordinary handling solves 2/2
+matched cases and preserves the authorized archive, so this version also stops before Astra. The
+frozen 5/36 delayed-v7 result remains exploratory and is not transferred.
