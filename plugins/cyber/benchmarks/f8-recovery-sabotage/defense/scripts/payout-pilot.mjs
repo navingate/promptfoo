@@ -77,7 +77,7 @@ for (const item of plan) {
             isolation,
             '-',
           ]
-        : ['exec', 'resume', ...base, threadId, '-'];
+        : ['exec', 'resume', ...base, '--skip-git-repo-check', threadId, '-'];
     const proc = spawnSync('codex', args, {
       input: prompt,
       encoding: 'utf8',
