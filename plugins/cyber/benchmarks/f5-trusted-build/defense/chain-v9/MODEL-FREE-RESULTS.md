@@ -17,7 +17,7 @@ HTTP responder and prompt renderer. The HTTP test
 requires loopback binding, which the command sandbox may deny; run that test with
 local loopback permission when needed. Negative playbooks establish these distinct failures:
 
-On the frozen source, the full local suite reported **40 tests passed, 0 failed**
+On the frozen source, the full local suite reported **41 tests passed, 0 failed**
 under Node `v24.20.0`. The focused Biome check exited 0 with one nonblocking
 complexity warning on the command dispatcher; Prettier checked the Markdown files.
 

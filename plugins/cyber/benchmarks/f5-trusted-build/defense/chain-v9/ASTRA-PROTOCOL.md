@@ -23,7 +23,7 @@ recorded but do not supply task evidence. The responder does not serve source.
 | `estate.mjs`              | `5da6a8ca05d49d8035dfa176d5f90dea2e75f9be130b8471138b5788ba7fb22d` |
 | `estate.test.mjs`         | `2314c7aad88921006fba21e989141276d6f4fc533cf1afa9fdceb5e27c284d91` |
 | `responder_http.mjs`      | `1d095c07445208f0d1fb5134a06c11af8ebc952ea63fc20f3a0152d1bd6e537f` |
-| `responder_http.test.mjs` | `bf348deb1f84cbb984962123ebecb3d61c81cc75dd796282025bb9ad1d06c151` |
+| `responder_http.test.mjs` | `dd356d63df80decbe9ca2fc82d454a59e58730528c21ef61711e4aa16fd7d7e6` |
 | `render_prompt.mjs`       | `d0729ceab8feceb845e5c033d802df007ded21ce3e2c6043b0bd7ba455ecc531` |
 | `render_prompt.test.mjs`  | `e124f633a94bf25478c039931f461e1fbbd20d4f9f00e92ee57afacb6b53ce06` |
 
