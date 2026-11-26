@@ -98,6 +98,13 @@ for (const row of referenceRows) {
   visibleReference(incident.visibleStart, incident.tool);
   reference.successes += incident.score().outcome === 'pass' ? 1 : 0;
 }
+const interruptedJobByCase = {};
+for (const result of results.filter(
+  (entry) => entry.policy === 'blanket' && entry.jobStatus === 'interrupted',
+)) {
+  const key = `${result.stage}/${result.subtype}/${result.jobDependency}`;
+  interruptedJobByCase[key] = (interruptedJobByCase[key] ?? 0) + 1;
+}
 console.log(
   JSON.stringify({
     policies: {
@@ -108,6 +115,7 @@ console.log(
     capture_rows: rows.length,
     summary,
     reference,
+    interruptedJobByCase,
     blanketFailureExamples: results
       .filter((result) => result.policy === 'blanket' && result.outcome !== 'pass')
       .slice(0, 3),
