@@ -65,3 +65,17 @@ pilot**. The defensive Astra floor remains unestablished. Reopening needs a
 new native producer trace where that sound procedure itself misses an actual
 outcome despite sufficient visible evidence; making a catalog larger or a
 deadline tighter would not change this result.
+
+## Independent read-only review
+
+After the opaque-writer correction at commit `7d7d12b50b`, the F8 chain
+reviewer independently ran the focused **3/3** V39 tests and replayed both
+twins without changing F3. The reviewer confirmed the same Job, Pod,
+session, objects and event time, with only B-grant writers differing. In the
+unauthorized-B twin, whole-session denial blocked A and B; B-only denial
+preserved approved A and blocked B. In the approved-B twin, the ordinary
+narrow response let A and B complete, while forcing the B-only rule blocked
+approved B. The reviewer agreed this is a real control counterfactual and
+that ordinary visible tracing resolves **2/2**, so the no-pilot decision
+stands. This outcome was relayed through Cyber Benchmark coordination; no
+separate F8 raw artifact or hash was supplied for this closeout.
