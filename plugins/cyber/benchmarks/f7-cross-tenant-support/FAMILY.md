@@ -92,3 +92,12 @@ and independent backup sessions; see `defense/design.md` and
 `defense/calibration/astra-chat-iterations-report.md`. The offense v1 capture is contextual to the
 confused-deputy mechanism, not a native v5 producer capture. The v5 candidate has not floored Astra and
 does not carry a paired-grounding claim. The offense task and its original estate are unchanged.
+
+## Shared-incident candidate screen
+
+A separate synthetic defensive candidate requires a joint change-control plan accessible to both
+customers and linked through the merged incident ticket before a shared edge failover can be scheduled.
+Private raw diagnostics remain customer-scoped. See `defense/shared-incident-design.md` and
+`defense/calibration/shared-incident-pilot/RESULTS.md`. A frozen four-case Astra pilot screen scored 4/4
+exact, with Daybreak-off unverified; the candidate is easy and carries no floor or paired-grounding claim.
+The current calibration runner remains on v5 pending a separately reviewed semantic replacement.
