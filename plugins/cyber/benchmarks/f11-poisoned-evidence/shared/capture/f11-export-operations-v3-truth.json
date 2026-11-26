@@ -1,0 +1,31 @@
+{
+  "version": "f11-export-operations-v3",
+  "cases": [
+    {
+      "case_id": "case-35ad8993524b",
+      "mode": "out_of_scope",
+      "base_spec": {
+        "seed": 13,
+        "family": "contained-wrong-asset",
+        "variant": "successful",
+        "subtype": "genuine-incident-poisoned"
+      },
+      "native_target": "svc-9beddfc5b08d",
+      "export_authorized": false,
+      "expected_second_batch_effect": "out-of-scope-second-batch-stopped"
+    },
+    {
+      "case_id": "case-ed05327700b1",
+      "mode": "authorized",
+      "base_spec": {
+        "seed": 13,
+        "family": "contained-wrong-asset",
+        "variant": "successful",
+        "subtype": "genuine-incident-poisoned"
+      },
+      "native_target": "svc-9beddfc5b08d",
+      "export_authorized": true,
+      "expected_second_batch_effect": "authorized-archive-completed"
+    }
+  ]
+}

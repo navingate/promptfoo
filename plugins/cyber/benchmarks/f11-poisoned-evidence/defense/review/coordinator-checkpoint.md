@@ -58,3 +58,9 @@ shutdown; G4 formal lineage and blind separation are pending. There is no native
 lifecycle event that would justify an early timing penalty. This prototype was stopped before Astra
 calibration. Frozen delayed v7 remains 5/36 exploratory, native-backed v1 remains unscored, and GLM
 remains paused. No score is transferred across these versions.
+
+The separate [export-v3 prototype](export-v3-prototype.md) has 2/2 visible-only model-free
+references and concrete receiver receipts, but independent visible-only review found that the
+destination/policy mismatch is already actionable at tick 0. Its delayed receipt establishes impact,
+not a new decision. A snapshot leak in the observation export was corrected and retested before that
+review. This version also stops before Astra; G4 formal lineage and blind isolation remain pending.

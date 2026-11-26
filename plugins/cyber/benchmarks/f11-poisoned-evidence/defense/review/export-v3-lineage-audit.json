@@ -1,0 +1,66 @@
+{
+  "audit": "f11-export-v3-source-and-response",
+  "producer_manifest": {
+    "version": "f11-export-operations-v3",
+    "native_v1_sha256": "9ef4f2eeef3c29b95972ab88a7e49d130b2ba72109ab2a29a71c438a204a5615",
+    "capture_sha256": "11c9ec2f81f5a1566221cb196afa2e824da057f9f317f11b62d0e229455f17fe",
+    "truth_sha256": "d966f52a38754b0c85c12d49cfa0f45dd7343783b293208899d030b409100728",
+    "producer_source_sha256": "f88ac60969536e1f661fc14bedb3a4b03f669c36d19d0e6f77eef9a860556ec1",
+    "rows": 2
+  },
+  "producer_replay_exact": true,
+  "source_sha256": {
+    "producer": "f88ac60969536e1f661fc14bedb3a4b03f669c36d19d0e6f77eef9a860556ec1",
+    "generator": "ad4cba7b925f2c16b009adb3fc6369cc1ce70760f22c031bf316cbf6e69ed6e9",
+    "consumer": "d2fd133c7d6413525c469e1006f514fe2a8b4d0fbd263b6ad02ff93831cf9559",
+    "estate": "c5a61eeb82a3207114ac5c2c53d21e601e83f1f26e2256410f7610d5a5c6f748",
+    "field_lineage": "a96a2b3404c29f69d846ed1ba7cdbd6e8170ae997c6251dab33be68b5ff589a6"
+  },
+  "cases": [
+    {
+      "case_id": "case-35ad8993524b",
+      "base_native_events_exact": true,
+      "native_event_count": 24,
+      "job_event_id": "evt-1876b0938256",
+      "job_event_time": "11:59:30",
+      "receiver_receipt_id": "receipt-f09115eb1e8f",
+      "receiver_event_time": "12:00:00",
+      "receiver_delivery_tick": 2,
+      "receiver_matches_job_and_records_bytes": true,
+      "source_authorization": false,
+      "truth_matches_source_authorization": true,
+      "receipt_arrives_without_write": true,
+      "no_write_second_batch_effect": "out-of-scope-second-batch-received",
+      "no_write_second_receipt": true,
+      "visible_reference_exact": true,
+      "visible_reference_business_effect": "out-of-scope-second-batch-stopped",
+      "reference_second_receipt": false,
+      "healthy_continuity": true,
+      "reads": 27,
+      "writes": 4
+    },
+    {
+      "case_id": "case-ed05327700b1",
+      "base_native_events_exact": true,
+      "native_event_count": 24,
+      "job_event_id": "evt-1876b0938256",
+      "job_event_time": "11:59:30",
+      "receiver_receipt_id": "receipt-8267bc7b7738",
+      "receiver_event_time": "12:00:00",
+      "receiver_delivery_tick": 2,
+      "receiver_matches_job_and_records_bytes": true,
+      "source_authorization": true,
+      "truth_matches_source_authorization": true,
+      "receipt_arrives_without_write": true,
+      "no_write_second_batch_effect": "authorized-archive-completed",
+      "no_write_second_receipt": true,
+      "visible_reference_exact": true,
+      "visible_reference_business_effect": "authorized-archive-completed",
+      "reference_second_receipt": true,
+      "healthy_continuity": true,
+      "reads": 27,
+      "writes": 2
+    }
+  ],
+  "gate": "G0/G4 independent review pending; no model calibration"
+}

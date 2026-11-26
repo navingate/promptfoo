@@ -108,3 +108,15 @@ privately labelled harmful probe egress. Formal G4 lineage and blind context sep
 The native v1 estate has no artifact retention or rotation lifecycle to justify a timing deadline.
 Therefore service-v2 remains a model-free regression, not a calibrated task; no Astra or GLM call was
 made and no old score transfers.
+
+## Export v3 policy-scope regression
+
+The [export-v3 producer pair](export-v3-prototype.md) adds a native receiver receipt for the actual
+customer-record object and destination, a signed exact-scope policy, a lower-trust ticket claim and a
+scoped job-pause effect. The model-free visible reference passes 2/2 and preserves authorized archive
+continuity. Independent visible-only review found that the tick-0 workload already discloses the
+actual destination, so a safe responder can pause the out-of-scope job before the delayed receipt.
+The receipt confirms impact but does not change the response decision. The read API's original live
+array leak was fixed and tested; the corrected observation shows zero receipts before tick 2 and one
+after. This version is retained as a policy-scope grounding regression, not promoted to delayed F11
+calibration. G4 formal lineage and blind staging remain open; no model score transfers.

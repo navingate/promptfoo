@@ -1,0 +1,120 @@
+schema_version: 1
+telemetry_contract_id: f11-export-operations-v3
+producer: shared/export-producer-v3.mjs
+base_capture: offense/evidence/capture/f11-incident-events-v1.jsonl
+fields:
+  - normalized_path: events[0:24]
+    security_relevant: true
+    model_visible: true
+    lineage:
+      kind: native
+      source_event: f11-incident-events-v1
+      source_path: events[0:24]
+      transform_id: byte-identical-projection
+  - normalized_path: events[24].operation_id
+    security_relevant: true
+    model_visible: true
+    lineage:
+      kind: native
+      source_event: scheduled-archive-workload
+      source_path: operation_id
+  - normalized_path: events[24].object_class
+    security_relevant: true
+    model_visible: true
+    lineage:
+      kind: native
+      source_event: scheduled-archive-workload
+      source_path: object_class
+  - normalized_path: events[24].destination
+    security_relevant: true
+    model_visible: true
+    lineage:
+      kind: native
+      source_event: scheduled-archive-workload
+      source_path: destination
+  - normalized_path: operation
+    security_relevant: true
+    model_visible: true
+    lineage:
+      kind: native
+      source_event: scheduled-archive-workload
+      source_path: operation
+  - normalized_path: policy_records[0]
+    security_relevant: true
+    model_visible: true
+    lineage:
+      kind: native
+      source_event: signed-data-governance
+      source_path: policy_records[0]
+  - normalized_path: policy_records[1]
+    security_relevant: true
+    model_visible: true
+    lineage:
+      kind: native
+      source_event: ticketing
+      source_path: policy_records[1]
+  - normalized_path: receiver_receipts[0]
+    security_relevant: true
+    model_visible: true
+    lineage:
+      kind: native
+      source_event: receiver-ingress
+      source_path: receiver_receipts[0]
+  - normalized_path: receiver_receipts[0].bytes_received
+    security_relevant: true
+    model_visible: true
+    lineage:
+      kind: native
+      source_event: receiver-ingress
+      source_path: bytes_received
+  - normalized_path: receiver_receipts[0].destination
+    security_relevant: true
+    model_visible: true
+    lineage:
+      kind: native
+      source_event: receiver-ingress
+      source_path: destination
+  - normalized_path: authority_record
+    security_relevant: true
+    model_visible: true
+    lineage:
+      kind: native
+      source_event: soc-control
+      source_path: pause-grant
+  - normalized_path: registry_record
+    security_relevant: true
+    model_visible: true
+    lineage:
+      kind: native
+      source_event: signed-asset-registry
+      source_path: export-evidence-binding
+  - normalized_path: business_log[*].effect
+    security_relevant: true
+    model_visible: true
+    lineage:
+      kind: derived
+      sources:
+        - source_event: scheduled-archive-workload
+          source_path: operation
+        - source_event: response-action
+          source_path: pause_operation.effect
+        - source_event: signed-data-governance
+          source_path: policy_records[0]
+      transform_id: second-batch-service-replay
+clock:
+  source_time: events[24].event_time and receiver_receipts[0].event_time
+  delivery_time: events[24].delivery_tick and receiver_receipts[0].delivery_tick
+  cause: receiver API batches its signed first-batch receipt until logical tick 2
+  delivery_without_write: advancing the read clock delivers the pre-generated receipt
+  second_batch: job cadence schedules a second batch at tick 3; scoped pause changes whether it arrives
+evaluator_only:
+  file: shared/capture/f11-export-operations-v3-truth.json
+  fields:
+    - mode
+    - native_target
+    - export_authorized
+    - expected_second_batch_effect
+limits:
+  - Producer and collector independence require external review; distinct labels alone are not proof.
+  - Native v1 numeric event_time and v3 UTC text event_time need reviewed common clock semantics.
+  - No blind runner is frozen yet; private source, truth, scorer and audit must be excluded from blind contexts.
