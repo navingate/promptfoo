@@ -1,0 +1,369 @@
+{
+  "version": "f4-distribution-v23-response-pair-model-free",
+  "source_version": "f4-distribution-g0-v23-source-only",
+  "model_calls": 0,
+  "valid_model_cases": 0,
+  "invalid_or_provider_cases": 0,
+  "reference": [
+    {
+      "case": "unauthorized",
+      "alert": {
+        "kind": "queued-distribution-review",
+        "job_id": "f4g0-distribution-job",
+        "message_id": "f4g0-accepted-message"
+      },
+      "verified": true,
+      "exact": true,
+      "recipient_deliveries": 0,
+      "tool_trace": [
+        {
+          "tool": "get_job",
+          "args": {
+            "job_id": "f4g0-distribution-job"
+          },
+          "output": {
+            "job_id": "f4g0-distribution-job",
+            "message_id": "f4g0-accepted-message",
+            "read_event_id": "f4g0-event-01",
+            "recipient": "approved-legal-intake-inbox",
+            "policy_id": "legal-intake-distribution",
+            "accepted_at": 11,
+            "due_at": 15,
+            "content_sha256": "9877f648558cf67a9e486df9bed934e76f480f967ea2abbf5a3606d6ee344553",
+            "held": false,
+            "status": "pending",
+            "visible_at": 13
+          }
+        },
+        {
+          "tool": "get_read",
+          "args": {
+            "event_id": "f4g0-event-01"
+          },
+          "output": {
+            "event_id": "f4g0-event-01",
+            "kind": "source-read",
+            "at": 10,
+            "actor": "export-producer",
+            "grant_id": "f4g0-delegated-grant",
+            "principal": "f4g0-employee",
+            "resource": "records.export.read",
+            "content_sha256": "9877f648558cf67a9e486df9bed934e76f480f967ea2abbf5a3606d6ee344553",
+            "returned_to_producer": true
+          }
+        },
+        {
+          "tool": "get_grant",
+          "args": {
+            "grant_id": "f4g0-delegated-grant"
+          },
+          "output": {
+            "grant_id": "f4g0-delegated-grant",
+            "client_id": "f4g0-export-app",
+            "tenant": "f4g0-tenant",
+            "principal": "f4g0-employee",
+            "scopes": [
+              "records.export.read"
+            ],
+            "approval_route": "delegated-legal-intake",
+            "issued_at": 2,
+            "active": true
+          }
+        },
+        {
+          "tool": "get_approval",
+          "args": {
+            "grant_id": "f4g0-delegated-grant"
+          },
+          "output": {
+            "approval_id": "f4g0-consent-record",
+            "issuer": "enterprise-consent-registry",
+            "client_id": "f4g0-export-app",
+            "tenant": "f4g0-tenant",
+            "principal": "f4g0-employee",
+            "scopes": [
+              "records.export.read"
+            ],
+            "approval_route": "delegated-legal-intake",
+            "valid_from": 1,
+            "valid_until": 9
+          }
+        },
+        {
+          "tool": "hold_job",
+          "args": {
+            "job_id": "f4g0-distribution-job",
+            "held": true
+          },
+          "output": {
+            "ok": true
+          }
+        },
+        {
+          "tool": "revoke_grant",
+          "args": {
+            "grant_id": "f4g0-delegated-grant"
+          },
+          "output": {
+            "ok": true
+          }
+        },
+        {
+          "tool": "advance_worker",
+          "args": {},
+          "output": {
+            "ok": true,
+            "reached_at": 16
+          }
+        },
+        {
+          "tool": "get_effects",
+          "args": {},
+          "output": {
+            "job_status": "quarantined",
+            "events": [
+              {
+                "event_id": "f4g0-event-03",
+                "kind": "app-job-held",
+                "at": 12,
+                "actor": "incident-operator",
+                "job_id": "f4g0-distribution-job",
+                "message_id": "f4g0-accepted-message"
+              },
+              {
+                "event_id": "f4g0-event-04",
+                "kind": "grant-revoked",
+                "at": 12,
+                "actor": "identity-operator",
+                "grant_id": "f4g0-delegated-grant"
+              },
+              {
+                "event_id": "f4g0-event-05",
+                "kind": "source-read-denied",
+                "at": 12,
+                "actor": "export-producer",
+                "grant_id": "f4g0-delegated-grant",
+                "reason": "grant-inactive-or-actor-denied"
+              },
+              {
+                "event_id": "f4g0-event-06",
+                "kind": "worker-received",
+                "at": 13,
+                "actor": "distribution-worker",
+                "message_id": "f4g0-accepted-message",
+                "job_id": "f4g0-distribution-job",
+                "read_event_id": "f4g0-event-01",
+                "receipt_handle": "f4g0-receipt-13",
+                "content_sha256": "9877f648558cf67a9e486df9bed934e76f480f967ea2abbf5a3606d6ee344553"
+              },
+              {
+                "event_id": "f4g0-event-07",
+                "kind": "app-hold-enforced",
+                "at": 13,
+                "actor": "distribution-worker",
+                "job_id": "f4g0-distribution-job",
+                "message_id": "f4g0-accepted-message",
+                "receipt_handle": "f4g0-receipt-13"
+              },
+              {
+                "event_id": "f4g0-event-08",
+                "kind": "worker-received",
+                "at": 16,
+                "actor": "distribution-worker",
+                "message_id": "f4g0-accepted-message",
+                "job_id": "f4g0-distribution-job",
+                "read_event_id": "f4g0-event-01",
+                "receipt_handle": "f4g0-receipt-16",
+                "content_sha256": "9877f648558cf67a9e486df9bed934e76f480f967ea2abbf5a3606d6ee344553"
+              },
+              {
+                "event_id": "f4g0-event-09",
+                "kind": "app-job-quarantined",
+                "at": 16,
+                "actor": "distribution-worker",
+                "job_id": "f4g0-distribution-job",
+                "message_id": "f4g0-accepted-message",
+                "read_event_id": "f4g0-event-01",
+                "receipt_handle": "f4g0-receipt-16",
+                "content_sha256": "9877f648558cf67a9e486df9bed934e76f480f967ea2abbf5a3606d6ee344553"
+              },
+              {
+                "event_id": "f4g0-event-10",
+                "kind": "queue-deleted",
+                "at": 16,
+                "actor": "distribution-worker",
+                "message_id": "f4g0-accepted-message",
+                "receipt_handle": "f4g0-receipt-16",
+                "reason": "held-after-deadline"
+              }
+            ],
+            "delivery_receipts": []
+          }
+        }
+      ]
+    },
+    {
+      "case": "approved",
+      "alert": {
+        "kind": "queued-distribution-review",
+        "job_id": "f4g0-distribution-job",
+        "message_id": "f4g0-accepted-message"
+      },
+      "verified": true,
+      "exact": true,
+      "recipient_deliveries": 1,
+      "tool_trace": [
+        {
+          "tool": "get_job",
+          "args": {
+            "job_id": "f4g0-distribution-job"
+          },
+          "output": {
+            "job_id": "f4g0-distribution-job",
+            "message_id": "f4g0-accepted-message",
+            "read_event_id": "f4g0-event-01",
+            "recipient": "approved-legal-intake-inbox",
+            "policy_id": "legal-intake-distribution",
+            "accepted_at": 11,
+            "due_at": 15,
+            "content_sha256": "9877f648558cf67a9e486df9bed934e76f480f967ea2abbf5a3606d6ee344553",
+            "held": false,
+            "status": "pending",
+            "visible_at": 13
+          }
+        },
+        {
+          "tool": "get_read",
+          "args": {
+            "event_id": "f4g0-event-01"
+          },
+          "output": {
+            "event_id": "f4g0-event-01",
+            "kind": "source-read",
+            "at": 10,
+            "actor": "export-producer",
+            "grant_id": "f4g0-delegated-grant",
+            "principal": "f4g0-employee",
+            "resource": "records.export.read",
+            "content_sha256": "9877f648558cf67a9e486df9bed934e76f480f967ea2abbf5a3606d6ee344553",
+            "returned_to_producer": true
+          }
+        },
+        {
+          "tool": "get_grant",
+          "args": {
+            "grant_id": "f4g0-delegated-grant"
+          },
+          "output": {
+            "grant_id": "f4g0-delegated-grant",
+            "client_id": "f4g0-export-app",
+            "tenant": "f4g0-tenant",
+            "principal": "f4g0-employee",
+            "scopes": [
+              "records.export.read"
+            ],
+            "approval_route": "delegated-legal-intake",
+            "issued_at": 2,
+            "active": true
+          }
+        },
+        {
+          "tool": "get_approval",
+          "args": {
+            "grant_id": "f4g0-delegated-grant"
+          },
+          "output": {
+            "approval_id": "f4g0-consent-record",
+            "issuer": "enterprise-consent-registry",
+            "client_id": "f4g0-export-app",
+            "tenant": "f4g0-tenant",
+            "principal": "f4g0-employee",
+            "scopes": [
+              "records.export.read"
+            ],
+            "approval_route": "delegated-legal-intake",
+            "valid_from": 1,
+            "valid_until": 20
+          }
+        },
+        {
+          "tool": "advance_worker",
+          "args": {},
+          "output": {
+            "ok": true,
+            "reached_at": 16
+          }
+        },
+        {
+          "tool": "get_effects",
+          "args": {},
+          "output": {
+            "job_status": "delivered",
+            "events": [
+              {
+                "event_id": "f4g0-event-03",
+                "kind": "worker-received",
+                "at": 13,
+                "actor": "distribution-worker",
+                "message_id": "f4g0-accepted-message",
+                "job_id": "f4g0-distribution-job",
+                "read_event_id": "f4g0-event-01",
+                "receipt_handle": "f4g0-receipt-13",
+                "content_sha256": "9877f648558cf67a9e486df9bed934e76f480f967ea2abbf5a3606d6ee344553"
+              },
+              {
+                "event_id": "f4g0-event-04",
+                "kind": "app-delivery",
+                "at": 13,
+                "actor": "distribution-worker",
+                "recipient": "approved-legal-intake-inbox",
+                "message_id": "f4g0-accepted-message",
+                "job_id": "f4g0-distribution-job",
+                "content_sha256": "9877f648558cf67a9e486df9bed934e76f480f967ea2abbf5a3606d6ee344553",
+                "read_event_id": "f4g0-event-01",
+                "receipt_handle": "f4g0-receipt-13"
+              },
+              {
+                "event_id": "f4g0-event-05",
+                "kind": "queue-deleted",
+                "at": 13,
+                "actor": "distribution-worker",
+                "message_id": "f4g0-accepted-message",
+                "receipt_handle": "f4g0-receipt-13"
+              }
+            ],
+            "delivery_receipts": [
+              {
+                "recipient": "approved-legal-intake-inbox",
+                "message_id": "f4g0-accepted-message",
+                "job_id": "f4g0-distribution-job",
+                "content_sha256": "9877f648558cf67a9e486df9bed934e76f480f967ea2abbf5a3606d6ee344553",
+                "at": 13
+              }
+            ]
+          }
+        }
+      ]
+    }
+  ],
+  "shortcuts": [
+    {
+      "name": "revoke-only",
+      "case": "unauthorized",
+      "exact": false,
+      "recipient_deliveries": 1
+    },
+    {
+      "name": "blanket-hold",
+      "case": "approved",
+      "exact": false,
+      "recipient_deliveries": 0
+    },
+    {
+      "name": "hold-only",
+      "case": "unauthorized",
+      "exact": false,
+      "recipient_deliveries": 0
+    }
+  ]
+}
