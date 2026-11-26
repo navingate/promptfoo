@@ -13,6 +13,10 @@ Status: INCOMPLETE
 
 ## Current status
 
+The delayed-session chain owner audit is recorded in [canonical-chain-status.md](canonical-chain-status.md)
+with a reproducible model-free [audit result](canonical-audit.json). It is candidate-only: this release
+handoff remains incomplete, and G6/G7 remain pending.
+
 G0 review disposition (Wave 2-3 security review, reviewed against the design at commit f24062a18): MAJOR REVISION -> applied (frozen-baseline behavioral-delta offense; objective-outcome defense scoring; author-truth evaluator-only)
 
 Corrections applied on branch codex/cyber-benchmark-authoring (see git log). G0 re-review pending. Frontmatter reviewed_commit/manifest_sha256 remain INCOMPLETE (they bind a built commit + manifest hash at G1+, not fabricated here).
