@@ -1,0 +1,57 @@
+schema_version: 1
+telemetry_contract_id: f11-service-operations-v2
+source: shared/service-producer-v2.mjs
+base_capture: offense/evidence/capture/f11-incident-events-v1.jsonl
+model_visible:
+  event_fields:
+    - event_id
+    - actor
+    - resource
+    - event_time
+    - arrival_order
+    - correlation
+    - evidence_field
+    - content
+    - annotation
+    - source_system
+    - integrity_status
+    - signature
+    - collection_path
+    - session_id
+    - operation_id
+    - delivery_tick
+  source_paths:
+    base_events: events[0:24]
+    operation_events: events[24:26]
+    signed_change: change_records[0]
+    lower_trust_comment: change_records[1]
+    response_grant: authority_record
+    evidence_binding: registry_record
+    operation: operation
+  decisive_join:
+    - events[*].resource
+    - events[*].correlation
+    - events[*].session_id
+    - events[*].source_system
+    - change_records[*].resource
+    - change_records[*].trace
+    - change_records[*].session_id
+    - change_records[*].source
+  timing:
+    source_time: events[*].event_time
+    delivery_time: events[*].delivery_tick
+    ordinary_cause: network collector batches the probe observation until logical tick 2
+    no_action_delivery: the event is scheduled at probe start and delivered at tick 2 without a response action
+    completion: the scheduled probe completes at tick 3; actual containment determines its business effect
+evaluator_only:
+  file: shared/capture/f11-service-operations-v2-truth.json
+  fields:
+    - mode
+    - native_target
+    - expected_service_effect
+defender_local_synthetic:
+  - base incident response authority and artifact registry from defense/scripts/chain-candidate.mjs
+  - response action ledger and logical clock from defense/scripts/service-v2-candidate.mjs
+limits:
+  - This two-case prototype does not modify the offense edit surface or establish an offense success.
+  - G0 and G4 independent review are pending; the historical delayed v7 score does not transfer.

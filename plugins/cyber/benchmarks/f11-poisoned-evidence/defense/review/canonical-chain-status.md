@@ -96,3 +96,15 @@ floor remains the only qualifying blind grid, bound to its own frozen candidate 
 The archived [Astra report](../calibration/delayed-collateral-astra-report.md) and
 [GLM report](../calibration/glm53-v3-final-report.md) retain their original source, manifest, and raw
 record bindings.
+
+## Service v2 grounding regression
+
+The separate [service-v2 prototype](service-v2-prototype.md) freezes two producer-generated matched
+probe captures with native event IDs, source and delivery time, and a benign healthy-service continuity
+outcome. Its [lineage audit](service-v2-lineage-audit.json) proves 2/2 visible-only references and
+no-write delivery at logical tick 2. An ordinary wait-and-correlate playbook also solves both cases.
+Independent G0 review found that absent signed approval alone does not establish the prototype's
+privately labelled harmful probe egress. Formal G4 lineage and blind context separation are also open.
+The native v1 estate has no artifact retention or rotation lifecycle to justify a timing deadline.
+Therefore service-v2 remains a model-free regression, not a calibrated task; no Astra or GLM call was
+made and no old score transfers.

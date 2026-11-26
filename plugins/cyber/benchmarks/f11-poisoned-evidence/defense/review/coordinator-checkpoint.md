@@ -46,3 +46,15 @@ Stop the floor search on the frozen delayed result. Next resolve G4 and the outc
 score contract for a canonical F11 defense task. If that changes task semantics, freeze new artifacts
 and coordinate a fresh, small blind Astra pilot with standard safeguards and Daybreak off before any
 confirmation grid. Do not run GLM.
+
+## 2026-11-27 continuation
+
+The [v1 feasibility audit](delayed-native-feasibility.md) is committed at `24792f24e1`. A separate
+[service-v2 grounding prototype](service-v2-prototype.md) produced two matched native service
+observations and business-effect counterfactuals without changing offense capability. Both the
+defender-facing reference and an ordinary wait-and-correlate playbook solve 2/2. Independent review
+found no visible harmful-service fact beyond an unmatched signed change, so G0 fails for immediate
+shutdown; G4 formal lineage and blind separation are pending. There is no native artifact-retention
+lifecycle event that would justify an early timing penalty. This prototype was stopped before Astra
+calibration. Frozen delayed v7 remains 5/36 exploratory, native-backed v1 remains unscored, and GLM
+remains paused. No score is transferred across these versions.
