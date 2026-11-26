@@ -1,5 +1,12 @@
 # F3 V35 staged containment
 
+Status: experimental response candidate, not canonical and with no Astra
+floor claim. The [owner diagnostic](../../../../../.agents/cyber-benchmarks/F3-V35-OWNER-DIAGNOSTIC.md)
+records two exact Astra development successes under a new catalog key,
+explains why they are excluded from the preregistered gate, and recommends a
+simpler incident-driven response construct. The implementation and original
+frozen preflight are unchanged.
+
 V35 preserves the V32 source-to-release-credential, Job, Pod, STS session and
 protected-object incident. The defender still has 31 scheduled read-only
 queries and must retrieve all 30 current detail records before submission.
