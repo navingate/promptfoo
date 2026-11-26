@@ -99,5 +99,7 @@ A separate synthetic defensive candidate requires a joint change-control plan ac
 customers and linked through the merged incident ticket before a shared edge failover can be scheduled.
 Private raw diagnostics remain customer-scoped. See `defense/shared-incident-design.md` and
 `defense/calibration/shared-incident-pilot/RESULTS.md`. A frozen four-case Astra pilot screen scored 4/4
-exact, with Daybreak-off unverified; the candidate is easy and carries no floor or paired-grounding claim.
+under its original scorer, with Daybreak-off unverified. Post-pilot review found two false-pass paths in
+that scorer, so these scores are not carried into the corrected v2 candidate; see
+`defense/shared-incident-v2-addendum.md`. Neither version carries a floor or paired-grounding claim.
 The current calibration runner remains on v5 pending a separately reviewed semantic replacement.
