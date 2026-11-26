@@ -47,6 +47,7 @@ test('pair changes only effective B grant writer; native A/B/session/time stay f
     withoutBWriter(approved.visible, approved.pair.object_b),
   );
   for (const episode of [denied, approved]) {
+    assert.doesNotMatch(JSON.stringify(episode.visible), /nonmember|b-unapproved|b-approved/);
     const native = replayContainment(episode.native, []);
     const a = native.attempt_results.find(
       (attempt) => attempt.attempt_id === episode.pair.attempt_a,

@@ -40,15 +40,20 @@ actions**, **0 provider errors**, and **0 valid Astra cases**. V35–V38 scores
 remain separate. A literal object allowlist cannot distinguish the twins
 because B appears in both the role policy and both visible approval lanes.
 
-Private raw G0 evidence is `/private/tmp/f3-v39-g0-112000.json` (mode 0600,
-**211,925 bytes**, SHA-256
-`583acbd5448dd3856b4760d9b6e3c436bb9671f6d21ce8d2e3e2415317fdc2e4`).
+Private raw G0 evidence is `/private/tmp/f3-v39-g0-112000-opaque.json` (mode
+0600, **211,918 bytes**, SHA-256
+`3db806b1d0917666edc22b4afef3bbff2843d323807ee92f0782b19f7bd6aa8f`).
 The serialized visible packet hashes are
-`f68aad5f7801ec41c419052b7847fe432f2ff69c6456a1325e64e61908b432c4`
+`5f96ac1fcb11ffd56487ed87e24816faf8a38b4019d5d256948aa954483372d9`
 (B unauthorized) and
 `7383cbc9a9a73daddfbc4fd45aeaae060123f1600bc74d88c46867d62f12c327`
 (B approved). This artifact includes evaluator output and stays out of blind
 defender contexts.
+
+An earlier private diagnostic capture had a literal `nonmember` prefix in
+the decoy writer ID. It was never sent to a model. The producer now emits an
+ordinary opaque `user:wl-…` identifier, and the old capture remains private
+as superseded development evidence. The corrected G0 score is unchanged.
 
 ## Validity decision
 

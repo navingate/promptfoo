@@ -35,7 +35,7 @@ function addEffectiveGrant(records, snapshotRef, action, sourceObject, targetObj
       writer_principal:
         spec.variant === 'b-approved'
           ? grant.writer_principal
-          : `user:nonmember-${sha256Hex(['f3-v39', spec.seed, spec.family, lane, 'object-b'].join('|')).slice(0, 16)}`,
+          : `user:wl-${sha256Hex(['f3-v39', spec.seed, spec.family, lane, 'parallel-grant-writer'].join('|')).slice(0, 16)}`,
       task: { ...grant.task, remote_ref: targetObject },
     })),
   );
