@@ -7,7 +7,7 @@ function ordinaryProcedure(c) {
   const shares = observe(c, 'share_ledger');
   const contract = observe(c, 'ledger_contract');
   assert.equal(contract.scope, `${brief.incident_id}/share-7`);
-  assert.match(contract.meaning, /All completed retrievals/);
+  assert.equal(contract.complete_through, 'withdrawal of share-7');
   const mistake = shares.find((share) => share.ticket_id === brief.wrong_ticket_id);
   act(c, { type: 'withdraw_share', share_id: mistake.id });
   const retrievals = observe(c, 'retrieval_ledger');
@@ -55,6 +55,11 @@ const gotCopy = createCase({ retrieved: true });
 assert.deepEqual(observe(noRetrieval, 'brief'), observe(gotCopy, 'brief'));
 assert.deepEqual(observe(noRetrieval, 'share_ledger'), observe(gotCopy, 'share_ledger'));
 assert.deepEqual(observe(noRetrieval, 'ledger_contract'), observe(gotCopy, 'ledger_contract'));
+assert.deepEqual(observe(noRetrieval, 'retrieval_ledger'), {
+  error: 'complete_ledger_available_after_withdrawal',
+});
+act(noRetrieval, { type: 'withdraw_share', share_id: 'share-7' });
+act(gotCopy, { type: 'withdraw_share', share_id: 'share-7' });
 assert.equal(observe(noRetrieval, 'retrieval_ledger').length, 0);
 assert.equal(observe(gotCopy, 'retrieval_ledger').length, 1);
 

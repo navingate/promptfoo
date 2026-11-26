@@ -25,8 +25,8 @@ export function createCase({ retrieved }) {
     ledger_contract: {
       source: 'support-share-service',
       scope: 'INC-F7-204/share-7',
-      complete_through: 'incident intake',
-      meaning: 'All completed retrievals for this share before withdrawal are recorded.',
+      complete_through: 'withdrawal of share-7',
+      meaning: 'All completed retrievals for this share through its withdrawal are recorded.',
     },
     retrieved,
     actions: [],
@@ -42,6 +42,9 @@ export function observe(c, resource) {
     return structuredClone(c.share_ledger);
   }
   if (resource === 'retrieval_ledger') {
+    if (!c.actions.some((action) => action.type === 'withdraw_share')) {
+      return { error: 'complete_ledger_available_after_withdrawal' };
+    }
     return structuredClone(c.retrieval_ledger);
   }
   if (resource === 'ledger_contract') {
