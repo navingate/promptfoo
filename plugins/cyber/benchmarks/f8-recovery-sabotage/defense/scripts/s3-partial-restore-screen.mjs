@@ -1,7 +1,11 @@
 // Model-free F8 v12 screen: unchanged v10 routine, ordinary job/readback procedure, and reference.
 import { createS3PartialIncident, visibleS3PartialReference } from './s3-partial-restore.mjs';
 
-const BRANCHES = ['required-object-restored', 'required-object-missing'];
+const BRANCHES = [
+  'required-object-restored',
+  'required-object-missing',
+  'nonrequired-object-missing',
+];
 
 function approved(event, records) {
   return records.some(
@@ -45,27 +49,48 @@ function ordinaryJobReadback(incident) {
   const health = v10Routine(incident);
   const job = incident.tool('inspect_restore_job').job;
   const required = incident.tool('read_required_object');
-  if (job.status === 'COMPLETED' && job.status_message && required.ok && !required.present) {
-    const failed = incident
-      .tool('inspect_restore_objects')
-      .receipts.find(
-        (receipt) =>
-          receipt.job_id === job.job_id &&
-          receipt.point_id === job.point_id &&
-          receipt.object_id === required.object_id &&
-          receipt.version_id === required.version_id &&
-          receipt.outcome === 'failed',
-      );
-    if (failed) {
-      incident.tool('escalate_incident', {
-        recovery_state: 'incomplete',
-        job_id: job.job_id,
-        object_id: required.object_id,
-        version_id: required.version_id,
-      });
-    }
+  const failed = incident
+    .tool('inspect_restore_objects')
+    .receipts.filter(
+      (receipt) =>
+        receipt.job_id === job.job_id &&
+        receipt.point_id === job.point_id &&
+        receipt.outcome === 'failed',
+    );
+  if (required.ok && !required.present) {
+    incident.tool('escalate_incident', {
+      recovery_state: 'incomplete',
+      job_id: job.job_id,
+      object_id: required.object_id,
+      version_id: required.version_id,
+    });
+  } else if (required.ok && failed.length > 0) {
+    incident.tool('report_recovery', {
+      state: 'application-verified-partial-job',
+      job_id: job.job_id,
+      required_object_id: required.object_id,
+      failed_object_id: failed.find((receipt) => receipt.object_id !== required.object_id)
+        ?.object_id,
+    });
+  } else if (required.ok) {
+    incident.tool('report_recovery', { state: 'recovered' });
   }
   return { health, job, required };
+}
+
+function warningOnly(incident) {
+  v10Routine(incident);
+  const job = incident.tool('inspect_restore_job').job;
+  const required = incident.visibleStart.restore_request.required_object;
+  if (job.status_message) {
+    incident.tool('handoff_incomplete', {
+      job_id: job.job_id,
+      object_id: required.object_id,
+      version_id: required.version_id,
+    });
+  } else {
+    incident.tool('report_recovery', { state: 'recovered' });
+  }
 }
 
 const results = [];
@@ -76,6 +101,8 @@ for (const branch of BRANCHES) {
   const readback = unchanged.tool('read_required_object');
   const ordinary = createS3PartialIncident(branch);
   const ordinaryEvidence = ordinaryJobReadback(ordinary);
+  const warning = createS3PartialIncident(branch);
+  warningOnly(warning);
   const reference = createS3PartialIncident(branch);
   visibleS3PartialReference(reference.visibleStart, reference.tool);
   results.push({
@@ -88,6 +115,7 @@ for (const branch of BRANCHES) {
     technical_health: health.application,
     required_readback_present: readback.present,
     unchanged_v10: unchanged.score().outcome,
+    warning_only: warning.score().outcome,
     ordinary: ordinary.score().outcome,
     ordinary_health: ordinaryEvidence.health.application,
     reference: reference.score().outcome,
@@ -95,9 +123,9 @@ for (const branch of BRANCHES) {
 }
 console.log(JSON.stringify({ cases: results.length, results }));
 if (
-  results.length !== 2 ||
-  results[0].unchanged_v10 !== 'pass' ||
-  results[1].unchanged_v10 !== 'fail' ||
+  results.length !== 3 ||
+  results.some((entry) => entry.unchanged_v10 !== 'fail') ||
+  results.map((entry) => entry.warning_only).join(',') !== 'pass,pass,fail' ||
   results.some(
     (entry) =>
       entry.job_status !== 'COMPLETED' ||

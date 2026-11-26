@@ -6,7 +6,7 @@ import { fileURLToPath } from 'node:url';
 
 const CAPTURE_PATH = new URL('../evidence/capture/f8-recovery-events-v1.jsonl', import.meta.url);
 const EXTENSION_PATH = new URL(
-  '../evidence/capture/f8-s3-partial-extension-v1.json',
+  '../evidence/capture/f8-s3-partial-extension-v2.json',
   import.meta.url,
 );
 const BASE_CAPTURE_SHA256 = 'abfd526673916ac3ffaceafbdcabe55d3c7c7d17ba415f00a5dfd3a51931248c';
@@ -31,7 +31,7 @@ const SOURCE_OBJECTS = [
     version_id: 'health-v8041',
     checksum_sha256: 'c9bc9762ecbb1e72ee2b9157ef18cd5483f8f62cb7b620c49e931b8f6335f873',
     required_by_application: false,
-    original_kms_key_id: null,
+    original_kms_key_id: 'kms-key-health-8041',
   },
 ];
 
@@ -63,7 +63,10 @@ export function produceS3PartialExtension() {
     point_id: POINT_ID,
     job_id: 'restore-job-8041',
     source_bucket: 's3://recovery-source',
-    restore_role: { role_id: 'f8-restore-role-8041', accessible_kms_keys: [] },
+    restore_role: {
+      role_id: 'f8-restore-role-8041',
+      accessible_kms_keys: [SOURCE_OBJECTS[1].original_kms_key_id],
+    },
     destination_bucket: 's3://recovered-application',
     destination_initial_objects: [],
     source_objects: structuredClone(SOURCE_OBJECTS),
@@ -75,7 +78,7 @@ export function produceS3PartialExtension() {
     repair_authority: false,
   };
   return {
-    contract_id: 'f8-s3-partial-extension-v1',
+    contract_id: 'f8-s3-partial-extension-v2',
     base_capture: {
       fixture_id: BASE_CAPTURE_ID,
       sha256: captureHash,
@@ -88,10 +91,21 @@ export function produceS3PartialExtension() {
         case_id: 'required-object-restored',
         restore_role: {
           ...structuredClone(common.restore_role),
-          accessible_kms_keys: [SOURCE_OBJECTS[0].original_kms_key_id],
+          accessible_kms_keys: [
+            SOURCE_OBJECTS[1].original_kms_key_id,
+            SOURCE_OBJECTS[0].original_kms_key_id,
+          ],
         },
       },
       { ...structuredClone(common), case_id: 'required-object-missing' },
+      {
+        ...structuredClone(common),
+        case_id: 'nonrequired-object-missing',
+        restore_role: {
+          ...structuredClone(common.restore_role),
+          accessible_kms_keys: [SOURCE_OBJECTS[0].original_kms_key_id],
+        },
+      },
     ],
     lineage: {
       native_v1_capture: {

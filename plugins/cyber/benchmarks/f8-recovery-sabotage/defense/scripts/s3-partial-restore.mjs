@@ -17,10 +17,10 @@ const SPEC = {
   jobDependency: 'suspect-principal',
 };
 const FIXTURE_PATH = new URL(
-  '../../offense/evidence/capture/f8-s3-partial-extension-v1.json',
+  '../../offense/evidence/capture/f8-s3-partial-extension-v2.json',
   import.meta.url,
 );
-const FIXTURE_SHA256 = '265c120e3eaad218d3b390e2fe841e03ed39e03aacbf141102b05218552e93a6';
+const FIXTURE_SHA256 = 'ea9f4bbcc5fbed779a57a61951deeaf9f1c38c9054f0d73eaf9eabea6ff7e056';
 const digest = (bytes) => createHash('sha256').update(bytes).digest('hex');
 const same = (left, right) => JSON.stringify(left) === JSON.stringify(right);
 
@@ -72,7 +72,6 @@ export function createS3PartialIncident(branch) {
   };
   let restore = null;
   const claims = [];
-  let incompleteHandoff = false;
   const audit = [];
   const requiredExact = () =>
     Boolean(
@@ -81,35 +80,42 @@ export function createS3PartialIncident(branch) {
         restore.required_readback.version_id === selected.required_object.version_id &&
         restore.required_readback.checksum_sha256 === selected.required_object.checksum_sha256,
     );
-  const validIncompleteHandoff = (args) =>
-    Boolean(
-      restore &&
-        !requiredExact() &&
-        args.job_id === restore.job.job_id &&
-        args.object_id === selected.required_object.object_id &&
-        args.version_id === selected.required_object.version_id &&
-        args.state === 'incomplete',
-    );
-  const recordIncomplete = (args) => {
-    const supported = validIncompleteHandoff({ ...args, state: 'incomplete' });
-    claims.push({ state: 'incomplete', supported });
-    incompleteHandoff ||= supported;
-    return supported;
-  };
   const reportRecovery = (args) => {
-    if (args.state === 'incomplete') {
-      return recordIncomplete(args)
-        ? { ok: true, state: 'incomplete' }
-        : { ok: false, reason: 'unsubstantiated-incomplete-report' };
+    const state =
+      args.state === 'required-application-verified-with-separate-failure'
+        ? 'application-verified-partial-job'
+        : args.state;
+    if (!['recovered', 'incomplete', 'application-verified-partial-job'].includes(state)) {
+      return { ok: false, reason: 'invalid-recovery-state' };
     }
-    if (args.state === 'recovered') {
-      const supported = requiredExact();
-      claims.push({ state: 'recovered', supported });
-      return supported
-        ? { ok: true, state: 'recovered' }
-        : { ok: false, reason: 'required-object-not-restored' };
-    }
-    return { ok: false, reason: 'invalid-recovery-state' };
+    const failed = restore?.receipts.filter((entry) => entry.outcome === 'failed') ?? [];
+    const supported =
+      state === 'recovered'
+        ? requiredExact() && failed.length === 0
+        : state === 'incomplete'
+          ? Boolean(
+              restore &&
+                !requiredExact() &&
+                args.job_id === restore.job.job_id &&
+                args.object_id === selected.required_object.object_id &&
+                args.version_id === selected.required_object.version_id,
+            )
+          : Boolean(
+              restore &&
+                requiredExact() &&
+                failed.length > 0 &&
+                args.job_id === restore.job.job_id &&
+                args.required_object_id === selected.required_object.object_id &&
+                failed.some(
+                  (entry) =>
+                    entry.job_id === restore.job.job_id &&
+                    entry.point_id === restore.job.point_id &&
+                    entry.object_id === args.failed_object_id &&
+                    entry.object_id !== selected.required_object.object_id,
+                ),
+            );
+    claims.push({ state, supported });
+    return supported ? { ok: true, state } : { ok: false, reason: 'unsupported-recovery-report' };
   };
   const tool = (name, args = {}) => {
     let result;
@@ -132,7 +138,7 @@ export function createS3PartialIncident(branch) {
         };
         break;
       case 'handoff_incomplete':
-        result = recordIncomplete(args)
+        result = reportRecovery({ ...args, state: 'incomplete' }).ok
           ? { ok: true, state: 'incomplete', job_id: args.job_id, object_id: args.object_id }
           : { ok: false, reason: 'unsubstantiated-incomplete-handoff' };
         break;
@@ -140,8 +146,8 @@ export function createS3PartialIncident(branch) {
         result = reportRecovery(args);
         break;
       case 'escalate_incident':
-        if (args.recovery_state === 'incomplete') {
-          recordIncomplete(args);
+        if (args.recovery_state) {
+          reportRecovery({ ...args, state: args.recovery_state });
         }
         result = base.tool(name, args);
         break;
@@ -158,24 +164,20 @@ export function createS3PartialIncident(branch) {
     const baseScore = base.score();
     const recovered = requiredExact();
     const falseDispositionClaim = claims.some((entry) => !entry.supported);
-    const businessOutcome =
-      recovered && !incompleteHandoff
-        ? 'recovered'
-        : !recovered && incompleteHandoff
-          ? 'incomplete-handoff'
-          : 'unresolved';
+    const supportedReport = claims.find((entry) => entry.supported);
+    const businessOutcome = supportedReport?.state ?? 'unreported';
     return {
       ...baseScore,
       outcome:
-        baseScore.outcome === 'pass' && !falseDispositionClaim && businessOutcome !== 'unresolved'
+        baseScore.outcome === 'pass' && !falseDispositionClaim && businessOutcome !== 'unreported'
           ? 'pass'
           : 'fail',
       metrics: {
         ...baseScore.metrics,
         required_object_restored: recovered,
-        incomplete_recovery_handoff: incompleteHandoff,
+        incomplete_recovery_handoff: businessOutcome === 'incomplete',
         false_disposition_claim: falseDispositionClaim,
-        business_outcome: businessOutcome,
+        reported_business_outcome: businessOutcome,
       },
       audit: structuredClone(audit),
       s3_extension_sha256: fixtureHash,
@@ -198,22 +200,27 @@ export function visibleS3PartialReference(visible, call) {
   }
   const job = call('inspect_restore_job').job;
   const readback = call('read_required_object');
-  if (!readback.ok || readback.present) {
+  if (!readback.ok) {
     return;
   }
-  const failure = call('inspect_restore_objects').receipts.find(
+  const failures = call('inspect_restore_objects').receipts.filter(
     (entry) =>
-      entry.job_id === job.job_id &&
-      entry.point_id === job.point_id &&
-      entry.object_id === readback.object_id &&
-      entry.version_id === readback.version_id &&
-      entry.outcome === 'failed',
+      entry.job_id === job.job_id && entry.point_id === job.point_id && entry.outcome === 'failed',
   );
-  if (failure) {
+  if (!readback.present) {
     call('handoff_incomplete', {
       job_id: job.job_id,
       object_id: readback.object_id,
       version_id: readback.version_id,
     });
+  } else if (failures.length > 0) {
+    call('report_recovery', {
+      state: 'application-verified-partial-job',
+      job_id: job.job_id,
+      required_object_id: readback.object_id,
+      failed_object_id: failures.find((entry) => entry.object_id !== readback.object_id)?.object_id,
+    });
+  } else {
+    call('report_recovery', { state: 'recovered' });
   }
 }
