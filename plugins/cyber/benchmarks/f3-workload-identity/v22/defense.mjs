@@ -56,6 +56,8 @@ export function buildDefenseSession(spec, options = {}) {
   }
   const producer = options.producer ?? buildEpisode;
   const replay = options.replay ?? replayContainment;
+  const actionBudget = options.actionBudget ?? ACTION_BUDGET;
+  const queryBudget = options.queryBudget ?? QUERY_BUDGET;
   if (typeof producer !== 'function' || typeof replay !== 'function') {
     throw new Error('v22 producer and replay must be functions');
   }
@@ -95,8 +97,8 @@ export function buildDefenseSession(spec, options = {}) {
       'revoke-role-sessions': { args: { role_arn: 'issued role ARN' } },
       'submit-plan': { args: {}, returns: 'final submission' },
     },
-    action_budget: ACTION_BUDGET,
-    query_budget: QUERY_BUDGET,
+    action_budget: actionBudget,
+    query_budget: queryBudget,
   };
   assertNoVerdict(initial);
   const session = { finished: false, initial };
@@ -108,6 +110,8 @@ export function buildDefenseSession(spec, options = {}) {
     actions: [],
     invalid: 0,
     score: null,
+    actionBudget,
+    queryBudget,
   });
   return session;
 }
@@ -140,7 +144,7 @@ export function stepDefense(session, command) {
       state.invalid += 1;
       return { ok: false, reason: 'invalid-args' };
     }
-    if (state.queryCount >= QUERY_BUDGET) {
+    if (state.queryCount >= state.queryBudget) {
       state.invalid += 1;
       return { ok: false, reason: 'query-budget-exhausted' };
     }
@@ -167,7 +171,7 @@ export function stepDefense(session, command) {
     session.finished = true;
     return { ok: true, finished: true };
   }
-  if (state.actions.length >= ACTION_BUDGET) {
+  if (state.actions.length >= state.actionBudget) {
     state.invalid += 1;
     return { ok: false, reason: 'action-budget-exhausted' };
   }

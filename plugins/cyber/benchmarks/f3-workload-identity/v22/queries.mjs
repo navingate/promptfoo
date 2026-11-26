@@ -26,6 +26,7 @@ export function listWorkloads(visible) {
       eventsOf(visible, 'release-token-redeemed').map((event) => event.credential_id),
     ),
     access_key_refs: unique(visible.session_register.map((session) => session.access_key_ref)),
+    ...(visible.incident_events ? { incident_events: visible.incident_events } : {}),
   };
 }
 
