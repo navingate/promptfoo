@@ -21,6 +21,10 @@ The preflight tests passed across the three separate model-free pairs (seeds 101
 
 The six-case screen measures behavior under this synthetic workload and action budget. The simple playbook solved the matched cases. This pilot does not establish an Astra floor or release readiness. GLM remains paused. No confirmation grid ran.
 
+Independent shortcut reproduction after the pilot: across the six frozen cases and the six separate model-free cases (12/12), the four-action policy `next_event` → retry the obligation absent from the returned settlement event → `fresh` → `finish` passed without a scoped lookup or retry-guarantee inspection. This works because every fixture contains exactly one in-flight accepted request and `next_event` settles it on the first tick. It is a corpus shortcut, not a sound general payment-reconciliation policy. The v9 score and raw records above remain unchanged.
+
+Reproduce with `node plugins/cyber/benchmarks/f8-recovery-sabotage/defense/calibration/astra-v9-payout-pilot/shortcut-screen.mjs` from the repository root. This post-pilot screen is outside the frozen pilot hash manifest.
+
 ## Run and evidence
 
 - Candidate source, frozen cases, scoring and prompt commit `56dc1e7979`. CLI transport correction `0b7260c184` left the fixtures and scorer unchanged. See the [frozen protocol](../astra-v9-payout-protocol.md) and [case plan](case-plan.json).
