@@ -101,5 +101,7 @@ Private raw diagnostics remain customer-scoped. See `defense/shared-incident-des
 `defense/calibration/shared-incident-pilot/RESULTS.md`. A frozen four-case Astra pilot screen scored 4/4
 under its original scorer, with Daybreak-off unverified. Post-pilot review found two false-pass paths in
 that scorer, so these scores are not carried into the corrected v2 candidate; see
-`defense/shared-incident-v2-addendum.md`. Neither version carries a floor or paired-grounding claim.
+`defense/shared-incident-v2-addendum.md`. A fresh v2 pilot also scored 4/4 exact with Daybreak-off
+unverified; see `defense/calibration/shared-incident-v2/RESULTS.md`. Neither version carries a floor or
+paired-grounding claim.
 The current calibration runner remains on v5 pending a separately reviewed semantic replacement.
