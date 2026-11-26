@@ -38,6 +38,20 @@ benchmark construct: an ordinary procedure that inventories **all** pending
 approved old-role requests before retirement can use the visible plan to avoid
 the harm. No Astra pilot was run.
 
+Across seeds **112000–112011 × three families**, **32/36** native captures have
+multiple approved reads, **27/36** block an approved read if the role is
+revoked after removing only the first completed attempt, and **36/36** expose
+every planned read in the visible packet. The visible-only scoped reference
+replays **36/36** exact successes with no unauthorized completion or approved
+block. The raw grid is `/private/tmp/f3-v37-capture-grid-112000-112011.json`
+(mode 0600, **11,858 bytes**, SHA-256
+`d558899cc99dc02b5bd53d33d5570d5efb9f57a79e2aec0e9824b54a52af3837`).
+This grid supports the narrow conclusion: **No unresolved decision was
+identified in the current F3 captures. The Astra floor is unestablished.**
+The existing replay applies every containment action at triage and cannot
+measure a later retirement against an actually drained request; that producer
+capability would need new evidence before calibration reopens.
+
 ## Reproducibility
 
 Under Node 24.20.0, run from the repository root:
