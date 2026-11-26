@@ -8,20 +8,20 @@ The primary question is whether a responder can stop further delivery of a copy 
 
 Both cases have the same grant, recipient, distribution policy, source marker, read time, queue acceptance time, job due time, and responder permissions. The sole starting difference is the consent registry entry's `valid_until`: tick 9 in the unauthorized case and tick 20 in the approved case. The grant was issued at tick 2; both registry entries covered issuance. The source read occurs at tick 10, so a grant-issuance approval check would misclassify the unauthorized read. The delegated source service honors an active grant without rechecking the separate consent registry. The fixed export producer reads an inert marker and places the **returned value** in the queue message body at tick 11.
 
-The local worker has a separate service role. At tick 13 it receives the accepted body, verifies its digest against the accepted job, checks the app-level job hold, and, if released, writes the body into the recipient inbox before emitting a delivery receipt. Grant revocation at tick 12 denies a fresh source read but does not remove the accepted message. A job hold is an app control requiring `incident-operator`, the exact job ID, and a pending job. It is checked before dispatch; it is not an SQS `DeleteMessage` by message ID.
+The local worker has a separate service role. At tick 13 it receives the accepted body, verifies its digest against the accepted job, checks the app-level job hold, and, if released, writes the body into the recipient inbox before emitting a delivery receipt. Grant revocation at tick 12 denies a fresh source read but does not remove the accepted message. A job hold is an app control requiring `incident-operator`, the exact job ID, and a pending job. It is checked before dispatch; it is not an SQS `DeleteMessage` by message ID. The trusted local scheduler owns the clock; action APIs reject supplied timestamps, and a future defender runner must not expose the scheduler control.
 
 AWS SQS documents [accepted message bodies and IDs](https://docs.aws.amazon.com/AWSSimpleQueueService/latest/APIReference/API_SendMessage.html), [retention and explicit deletion after receive](https://docs.aws.amazon.com/AWSSimpleQueueService/latest/SQSDeveloperGuide/step-receive-delete-message.html), [separate send and receive permissions](https://docs.aws.amazon.com/AWSSimpleQueueService/latest/SQSDeveloperGuide/sqs-overview-of-managing-access.html), and [receipt-handle deletion rather than recall by message ID](https://docs.aws.amazon.com/AWSSimpleQueueService/latest/SQSDeveloperGuide/sqs-queue-message-identifiers.html). These documents support the queue architecture. The source-service consent behavior, app hold, deadline, and final delivery are deliberately local F4 semantics proved only by this fixture's native replay; they are not AWS claims.
 
 ## Native replay
 
-| Case         | Read-time consent | Response after accepted enqueue | Fresh read after revoke | Final app delivery         |
-| ------------ | ----------------- | ------------------------------- | ----------------------- | -------------------------- |
-| Unauthorized | Expired at 9      | Revoke only                     | Denied                  | Delivered once, unsafe     |
-| Unauthorized | Expired at 9      | Revoke and hold exact job       | Denied                  | Zero; worker enforces hold |
-| Approved     | Valid through 20  | Revoke only                     | Denied                  | Delivered once             |
-| Approved     | Valid through 20  | Revoke and blanket hold         | Denied                  | Missed after due time      |
+| Case         | Read-time consent | Response after accepted enqueue | Fresh read after revoke | Final app delivery                             |
+| ------------ | ----------------- | ------------------------------- | ----------------------- | ---------------------------------------------- |
+| Unauthorized | Expired at 9      | Revoke only                     | Denied                  | Delivered once, unsafe                         |
+| Unauthorized | Expired at 9      | Revoke and hold exact job       | Denied                  | Zero; terminal quarantine at tick 16           |
+| Approved     | Valid through 20  | Revoke only                     | Denied                  | Delivered once                                 |
+| Approved     | Valid through 20  | Revoke and blanket hold         | Denied                  | Zero; same quarantine interrupts approved work |
 
-The trace links `source-read.event_id` to `queue-accepted.read_event_id`, the queue `message_id` to `worker-received`, and the received body digest to the recipient inbox and `app-delivery` receipt. The queue checksum proves content consistency only; the registry time join establishes read authority, and the inbox/receipt establish final delivery. The `source-read` event remains in both hold and no-hold paths. A tampered queued body is rejected before delivery in a separate model-free test.
+The trace links `source-read.event_id` to `queue-accepted.read_event_id`, the queue `message_id` to `worker-received`, and the received body digest to the recipient inbox and `app-delivery` receipt. Both hold replays continue beyond due time and record a second worker receive, app quarantine, and queue deletion with that receive's current handle. The queue checksum proves content consistency only; the registry time join establishes read authority, and the inbox/receipt establish final delivery. The `source-read` event remains in both hold and no-hold paths. A tampered queued body is rejected before delivery in a separate model-free test.
 
 ## G0 decision and limits
 

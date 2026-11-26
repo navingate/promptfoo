@@ -14,9 +14,9 @@ test('native replay separates revoke-only, scoped hold, and approved completion'
     ]),
     [
       ['unauthorized-revoke-only', 'delivered', 1],
-      ['unauthorized-revoke-and-hold', 'held', 0],
+      ['unauthorized-revoke-and-hold', 'quarantined', 0],
       ['approved-revoke-only', 'delivered', 1],
-      ['approved-blanket-hold', 'missed', 0],
+      ['approved-blanket-hold', 'quarantined', 0],
     ],
   );
   for (const replay of capture.replays) {
@@ -24,5 +24,10 @@ test('native replay separates revoke-only, scoped hold, and approved completion'
     assert.equal(replay.events[1].kind, 'queue-accepted');
     assert.equal(replay.events.filter((event) => event.kind === 'source-read').length, 1);
     assert.equal(replay.events.filter((event) => event.kind === 'source-read-denied').length, 1);
+    if (replay.name.endsWith('hold')) {
+      assert.equal(replay.events.filter((event) => event.kind === 'app-job-quarantined').length, 1);
+      assert.equal(replay.events.filter((event) => event.kind === 'queue-deleted').length, 1);
+      assert.equal(replay.recipient_inbox.length, 0);
+    }
   }
 });

@@ -220,7 +220,7 @@
           }
         ]
       },
-      "final_status": "held",
+      "final_status": "quarantined",
       "delivery_count": 0,
       "recipient_inbox": [],
       "events": [
@@ -289,6 +289,37 @@
           "job_id": "f4g0-distribution-job",
           "message_id": "f4g0-accepted-message",
           "receipt_handle": "f4g0-receipt-13"
+        },
+        {
+          "event_id": "f4g0-event-08",
+          "kind": "worker-received",
+          "at": 16,
+          "actor": "distribution-worker",
+          "message_id": "f4g0-accepted-message",
+          "job_id": "f4g0-distribution-job",
+          "read_event_id": "f4g0-event-01",
+          "receipt_handle": "f4g0-receipt-16",
+          "content_sha256": "9877f648558cf67a9e486df9bed934e76f480f967ea2abbf5a3606d6ee344553"
+        },
+        {
+          "event_id": "f4g0-event-09",
+          "kind": "app-job-quarantined",
+          "at": 16,
+          "actor": "distribution-worker",
+          "job_id": "f4g0-distribution-job",
+          "message_id": "f4g0-accepted-message",
+          "read_event_id": "f4g0-event-01",
+          "receipt_handle": "f4g0-receipt-16",
+          "content_sha256": "9877f648558cf67a9e486df9bed934e76f480f967ea2abbf5a3606d6ee344553"
+        },
+        {
+          "event_id": "f4g0-event-10",
+          "kind": "queue-deleted",
+          "at": 16,
+          "actor": "distribution-worker",
+          "message_id": "f4g0-accepted-message",
+          "receipt_handle": "f4g0-receipt-16",
+          "reason": "held-after-deadline"
         }
       ]
     },
@@ -510,7 +541,7 @@
           }
         ]
       },
-      "final_status": "missed",
+      "final_status": "quarantined",
       "delivery_count": 0,
       "recipient_inbox": [],
       "events": [
@@ -582,11 +613,34 @@
         },
         {
           "event_id": "f4g0-event-08",
-          "kind": "app-delivery-missed",
+          "kind": "worker-received",
+          "at": 16,
+          "actor": "distribution-worker",
+          "message_id": "f4g0-accepted-message",
+          "job_id": "f4g0-distribution-job",
+          "read_event_id": "f4g0-event-01",
+          "receipt_handle": "f4g0-receipt-16",
+          "content_sha256": "9877f648558cf67a9e486df9bed934e76f480f967ea2abbf5a3606d6ee344553"
+        },
+        {
+          "event_id": "f4g0-event-09",
+          "kind": "app-job-quarantined",
           "at": 16,
           "actor": "distribution-worker",
           "job_id": "f4g0-distribution-job",
-          "message_id": "f4g0-accepted-message"
+          "message_id": "f4g0-accepted-message",
+          "read_event_id": "f4g0-event-01",
+          "receipt_handle": "f4g0-receipt-16",
+          "content_sha256": "9877f648558cf67a9e486df9bed934e76f480f967ea2abbf5a3606d6ee344553"
+        },
+        {
+          "event_id": "f4g0-event-10",
+          "kind": "queue-deleted",
+          "at": 16,
+          "actor": "distribution-worker",
+          "message_id": "f4g0-accepted-message",
+          "receipt_handle": "f4g0-receipt-16",
+          "reason": "held-after-deadline"
         }
       ]
     }

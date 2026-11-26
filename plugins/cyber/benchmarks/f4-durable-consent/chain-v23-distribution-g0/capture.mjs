@@ -1,6 +1,7 @@
 import { fileURLToPath } from 'node:url';
 
 import {
+  advanceServiceClock,
   attemptSourceRead,
   createProducerTrace,
   revokeGrant,
@@ -16,25 +17,26 @@ function replay(name, variant, hold) {
     job: structuredClone(session.job),
     events: structuredClone(session.events),
   };
-  revokeGrant(session, { actor: 'identity-operator', at: 12 });
-  attemptSourceRead(session, { actor: 'export-producer', at: 12 });
+  advanceServiceClock(session, 12);
+  revokeGrant(session, { actor: 'identity-operator' });
+  attemptSourceRead(session, { actor: 'export-producer' });
   if (hold) {
     setJobHold(session, {
       actor: 'incident-operator',
       job_id: session.job.job_id,
       held: true,
-      at: 12,
     });
   }
-  workerTick(session, 13);
-  if (name === 'approved-blanket-hold') {
-    workerTick(session, 16);
+  advanceServiceClock(session, 13);
+  workerTick(session);
+  if (hold) {
+    advanceServiceClock(session, 16);
+    workerTick(session);
   }
   return {
     name,
     initial,
-    final_status:
-      session.job.status === 'pending' && session.job.held ? 'held' : session.job.status,
+    final_status: session.job.status,
     delivery_count: session.recipientInbox.length,
     recipient_inbox: structuredClone(session.recipientInbox),
     events: structuredClone(session.events),

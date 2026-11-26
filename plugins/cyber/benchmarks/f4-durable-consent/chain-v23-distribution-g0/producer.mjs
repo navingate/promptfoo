@@ -6,6 +6,20 @@ const READ_AT = 10;
 const QUEUED_AT = 11;
 const WORKER_START = 13;
 const MARKER = 'F4_INERT_EXPORT_MARKER_v23';
+const hasKeys = (value, keys) =>
+  value &&
+  typeof value === 'object' &&
+  !Array.isArray(value) &&
+  JSON.stringify(Object.keys(value).sort()) === JSON.stringify([...keys].sort());
+
+// Trusted local scheduler only. A future defender tool must not expose this control.
+export function advanceServiceClock(session, to) {
+  if (!Number.isSafeInteger(to) || to < session.clock) {
+    return { ok: false, reason: 'nonmonotonic-time' };
+  }
+  session.clock = to;
+  return { ok: true };
+}
 
 function record(session, kind, at, actor, data = {}) {
   if (!Number.isSafeInteger(at) || at < session.clock) {
@@ -73,8 +87,10 @@ export function createProducerTrace(variant) {
     _source: { value: MARKER },
     _message: null,
   };
-  const read = attemptSourceRead(session, { actor: 'export-producer', at: READ_AT });
+  advanceServiceClock(session, READ_AT);
+  const read = attemptSourceRead(session, { actor: 'export-producer' });
   session._message = { message_id: job.message_id, body: read.value, read_event_id: read.event_id };
+  advanceServiceClock(session, QUEUED_AT);
   record(session, 'queue-accepted', QUEUED_AT, 'export-producer', {
     message_id: job.message_id,
     job_id: job.job_id,
@@ -88,10 +104,12 @@ export function createProducerTrace(variant) {
 
 // The delegated source service checks the still-active grant, while consent is
 // adjudicated by a separate registry. The returned value is staged by the app.
-export function attemptSourceRead(session, { actor, at }) {
-  if (!Number.isSafeInteger(at) || at < session.clock) {
-    return { ok: false, reason: 'nonmonotonic-time' };
+export function attemptSourceRead(session, options) {
+  if (!hasKeys(options, ['actor'])) {
+    return { ok: false, reason: 'invalid-action' };
   }
+  const { actor } = options;
+  const at = session.clock;
   if (actor !== 'export-producer' || !session.grant.active) {
     const denied = record(session, 'source-read-denied', at, actor, {
       grant_id: session.grant.grant_id,
@@ -133,8 +151,13 @@ export function readApproved(session) {
   );
 }
 
-export function revokeGrant(session, { actor, at }) {
-  if (actor !== 'identity-operator' || at !== 12 || at < session.clock || !session.grant.active) {
+export function revokeGrant(session, options) {
+  if (!hasKeys(options, ['actor'])) {
+    return { ok: false, reason: 'invalid-action' };
+  }
+  const { actor } = options;
+  const at = session.clock;
+  if (actor !== 'identity-operator' || at < 12 || !session.grant.active) {
     return { ok: false, reason: 'not-authorized-or-revocable' };
   }
   session.grant.active = false;
@@ -142,14 +165,17 @@ export function revokeGrant(session, { actor, at }) {
   return { ok: true };
 }
 
-export function setJobHold(session, { actor, job_id: jobId, held, at }) {
+export function setJobHold(session, options) {
+  if (!hasKeys(options, ['actor', 'job_id', 'held'])) {
+    return { ok: false, reason: 'invalid-action' };
+  }
+  const { actor, job_id: jobId, held } = options;
+  const at = session.clock;
   if (
     actor !== 'incident-operator' ||
     jobId !== session.job.job_id ||
     typeof held !== 'boolean' ||
-    !Number.isSafeInteger(at) ||
     at < 12 ||
-    at < session.clock ||
     at > session.job.due_at ||
     session.job.status !== 'pending'
   ) {
@@ -163,21 +189,22 @@ export function setJobHold(session, { actor, job_id: jobId, held, at }) {
   return { ok: true };
 }
 
-export function workerTick(session, at) {
+export function workerTick(session) {
   const { job } = session;
+  const at = session.clock;
   if (job.status === 'delivered') {
     return { status: 'already-delivered' };
+  }
+  if (job.status === 'quarantined') {
+    return { status: 'already-quarantined' };
   }
   if (job.status === 'missed') {
     return { status: 'already-missed' };
   }
-  if (!Number.isSafeInteger(at) || at < session.clock) {
-    return { status: 'nonmonotonic-time' };
-  }
   if (at < job.visible_at) {
     return { status: 'not-visible' };
   }
-  if (at > job.due_at) {
+  if (at > job.due_at && !job.held) {
     job.status = 'missed';
     record(session, 'app-delivery-missed', at, 'distribution-worker', {
       job_id: job.job_id,
@@ -202,6 +229,22 @@ export function workerTick(session, at) {
     });
     job.visible_at = at + 2;
     return { status: 'integrity-rejected' };
+  }
+  if (job.held && at > job.due_at) {
+    job.status = 'quarantined';
+    record(session, 'app-job-quarantined', at, 'distribution-worker', {
+      job_id: job.job_id,
+      message_id: job.message_id,
+      read_event_id: job.read_event_id,
+      receipt_handle: receiptHandle,
+      content_sha256: contentSha256,
+    });
+    record(session, 'queue-deleted', at, 'distribution-worker', {
+      message_id: job.message_id,
+      receipt_handle: receiptHandle,
+      reason: 'held-after-deadline',
+    });
+    return { status: 'quarantined' };
   }
   if (job.held) {
     record(session, 'app-hold-enforced', at, 'distribution-worker', {
