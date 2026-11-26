@@ -1,0 +1,17 @@
+# F9 response successor — independent G0 review feedback
+
+**G0 verdict: REVISION REQUIRED.** G0 remains pending.
+
+**Reviewer:** `codex-gpt-6-f9-g0-independent-2026-11-27`, an independent AI subagent who did not author the proposal. I reviewed commit `885087a5441efa1f141bbd1b0c332d943824da95`, specifically the proposed F9 response successor in `plugins/cyber/benchmarks/f9-secret-rotation/v23/STATUS-DECISION.md` (SHA-256 `9e4864792308649a37dca8f08e17b387faee9c911bd3ae1d7dd13e4c6098a3ef`). The review request was supplemental context, not part of the committed design.
+
+The construct is promising, and a portable estate with one in-flight dependency is sufficient for a _narrow synthetic response_ claim. Three design decisions need resolution before G0 approval:
+
+1. **Containment conflicts with continuity as written.** The alerted origin can also be a legitimate consumer origin: `v17/offense.mjs` binds consumers to origin slots, and the attack uses one of those slots. An origin-wide deny-new-auth could block that consumer's new v2 requests. Define the deny predicate and timing so it stops fresh attacker v1 use, preserves an already authenticated in-flight request, and permits legitimate v2 traffic; score each effect. If the estate cannot support that boundary, remove origin blocking as a required action.
+2. **Response authority and retirement need action-time semantics.** Specify producer-owned mandate issuer, signature, effective status, expiry, responder, target, and permitted actions for containment and source retirement. Define what partial or missing authority permits. Specify when an in-flight v1 request starts and completes, what retirement does to existing receipts, and which source acknowledgment and route-level replay decisions establish that v1 access ended. These facts must be visible to the responder as well as the scorer.
+3. **The paired projection and counterfactuals need an exact causal boundary.** A v23 protected read references grant, publication, permit status, and sometimes predecessor reads in `caused_by` (`v23/offense.mjs`). Define how a bounded projection preserves those native links and source hashes without silently dropping parents or importing the whole publication puzzle. The signed read approvals currently come from the separate `v17/producer.mjs`; successor approvals and mandates must be producer-owned. Include matched cases that vary the decisive read, mandate, drain, and retirement facts while retaining comparable privileged activity. Score observed outcomes and supported closure, allowing equivalent safe action sequences.
+
+This is **G0 design review only**. I do not approve G1 reference, G2 oracle resistance, G3 shortcut resistance, G4 grounding, G5 implementation, G6 calibration, or G7 claims/release. Historical v23 offense and v20 defense scores remain attached to their frozen tasks.
+
+## Provenance note
+
+The text above transcribes the separate reviewer's returned verdict; it is not an author-issued approval. The reviewer read the target design and the supplemental G0 request in a separate context with no author-session history, made no file edits, and ran no model pilot. The owner independently checked 36 v23 reference cases (`180001`–`180012` × three families): the auth causing the successful protected read matched a legitimate `consumer.binding` on `origin_ref`, `principal`, and `credential_ref` in 36/36. This corroborates finding 1, but is model-free author evidence, not part of the reviewer's attestation.
