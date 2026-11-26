@@ -16,6 +16,8 @@ Status: INCOMPLETE
 The delayed-session chain owner audit is recorded in [canonical-chain-status.md](canonical-chain-status.md)
 with a reproducible model-free [audit result](canonical-audit.json). It is candidate-only: this release
 handoff remains incomplete, and G6/G7 remain pending.
+The dated [coordinator checkpoint](coordinator-checkpoint.md) binds the frozen Astra floor and the
+native-backed fallback to their distinct evidence and gate states.
 
 G0 review disposition (Wave 2-3 security review, reviewed against the design at commit f24062a18): MAJOR REVISION -> applied (frozen-baseline behavioral-delta offense; objective-outcome defense scoring; author-truth evaluator-only)
 
