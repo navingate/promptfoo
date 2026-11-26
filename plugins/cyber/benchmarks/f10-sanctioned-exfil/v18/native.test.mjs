@@ -17,6 +17,21 @@ test('approval and revocation twins preserve the transfer and flip authorization
     assert.deepEqual(a.visible.receipts, b.visible.receipts);
     assert.deepEqual(a.visible.stages, b.visible.stages);
     assert.deepEqual(a.visible.registry_snapshot, b.visible.registry_snapshot);
+    const omitEffectiveTime = (capture) =>
+      capture.job_ledger.map(({ effective_at, ...revision }) => revision);
+    assert.deepEqual(omitEffectiveTime(a.visible), omitEffectiveTime(b.visible));
+    assert.equal(
+      a.visible.job_ledger.filter(
+        (revision, index) => revision.effective_at !== b.visible.job_ledger[index].effective_at,
+      ).length,
+      1,
+    );
+    const etlActor = a.visible.registry_snapshot.find((revision) =>
+      revision.cell_scope.columns.includes('dob'),
+    ).actor_bindings[0];
+    const etlFlow = a.visible.flows.find((flow) => flow.identity === etlActor);
+    assert.equal(a.answer.labels[etlFlow.flow_id], 'sanctioned-bulk');
+    assert.equal(b.answer.labels[etlFlow.flow_id], 'sanctioned-bulk');
     assert.notDeepEqual(a.answer.labels, b.answer.labels);
     assert.deepEqual(auditCapture(a.visible).labels, a.answer.labels);
     assert.deepEqual(auditCapture(b.visible).labels, b.answer.labels);
