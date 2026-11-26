@@ -1,0 +1,138 @@
+{
+  "contract_id": "f8-transaction-extension-v1",
+  "base_capture": {
+    "fixture_id": "f8cap-b96aa2ae54e6",
+    "sha256": "abfd526673916ac3ffaceafbdcabe55d3c7c7d17ba415f00a5dfd3a51931248c",
+    "point_id": "rp-9648d81774d6",
+    "spec": {
+      "seed": 13,
+      "family": "governance-mode-misuse",
+      "stage": "post-destruction-recoverable",
+      "subtype": "malicious-sabotage"
+    }
+  },
+  "authored_inputs": {
+    "transaction_id": "txn-8041",
+    "customer_account_id": "customer-271",
+    "amount_cents": 4875,
+    "commit_lsn": 811,
+    "approval_id": "journal-replay-approval-8041",
+    "checkpoint_lsns": [
+      811,
+      810
+    ]
+  },
+  "cases": [
+    {
+      "case_id": "checkpoint-covers-commit",
+      "receipt": {
+        "receipt_id": "commit-receipt-8041",
+        "transaction_id": "txn-8041",
+        "customer_account_id": "customer-271",
+        "amount_cents": 4875,
+        "commit_lsn": 811,
+        "acknowledged": true,
+        "durable": true
+      },
+      "checkpoint": {
+        "checkpoint_id": "checkpoint-rp-9648d81774d6",
+        "point_id": "rp-9648d81774d6",
+        "high_watermark_lsn": 811,
+        "transactions": [
+          {
+            "receipt_id": "commit-receipt-8041",
+            "transaction_id": "txn-8041",
+            "customer_account_id": "customer-271",
+            "amount_cents": 4875,
+            "commit_lsn": 811,
+            "acknowledged": true,
+            "durable": true
+          }
+        ]
+      },
+      "journal": {
+        "entry_id": "journal-entry-8041",
+        "transaction_id": "txn-8041",
+        "customer_account_id": "customer-271",
+        "amount_cents": 4875,
+        "commit_lsn": 811,
+        "approval_id": "journal-replay-approval-8041",
+        "approval_state": "approved"
+      }
+    },
+    {
+      "case_id": "checkpoint-precedes-commit",
+      "receipt": {
+        "receipt_id": "commit-receipt-8041",
+        "transaction_id": "txn-8041",
+        "customer_account_id": "customer-271",
+        "amount_cents": 4875,
+        "commit_lsn": 811,
+        "acknowledged": true,
+        "durable": true
+      },
+      "checkpoint": {
+        "checkpoint_id": "checkpoint-rp-9648d81774d6",
+        "point_id": "rp-9648d81774d6",
+        "high_watermark_lsn": 810,
+        "transactions": []
+      },
+      "journal": {
+        "entry_id": "journal-entry-8041",
+        "transaction_id": "txn-8041",
+        "customer_account_id": "customer-271",
+        "amount_cents": 4875,
+        "commit_lsn": 811,
+        "approval_id": "journal-replay-approval-8041",
+        "approval_state": "approved"
+      }
+    }
+  ],
+  "lineage": {
+    "native_v1_capture": {
+      "origin": "native-capture-v1",
+      "source": "offense/evidence/capture/f8-recovery-events-v1.jsonl",
+      "fields": [
+        "fixture_id",
+        "events",
+        "authorization_records",
+        "recovery_graph",
+        "restoration_evidence",
+        "session_inventory",
+        "evidence"
+      ]
+    },
+    "base_capture_binding": {
+      "origin": "derived",
+      "source": "native-v1-capture bytes and fixture_id",
+      "transform": "sha256-and-exact-id-v1"
+    },
+    "authored_inputs": {
+      "origin": "authored-scenario-v1",
+      "fields": [
+        "transaction_id",
+        "customer_account_id",
+        "amount_cents",
+        "commit_lsn",
+        "approval_id",
+        "checkpoint_lsns"
+      ],
+      "native_v1": false
+    },
+    "transaction_records": {
+      "origin": "extension-producer-v1",
+      "source": "authored_inputs",
+      "fields": [
+        "cases[*].receipt.*",
+        "cases[*].checkpoint.*",
+        "cases[*].journal.*"
+      ],
+      "native_v1": false
+    },
+    "recovered_readback": {
+      "origin": "derived-at-runtime",
+      "source": "selected checkpoint transactions and accepted journal replay effects",
+      "transform": "restore-then-replay-v1"
+    }
+  }
+}
