@@ -127,5 +127,9 @@ The [v4 producer pair](export-routing-v4-prototype.md) removes the actual destin
 scheduler event and pins a route on first receiver delivery. The normal authoritative route lookup
 exposes that destination at tick 1, before the receipt arrives at tick 2. An ordinary exact-policy
 playbook solves both matched cases at tick 1; the receipt confirms impact but is not a necessary
-decision hop. This is another honest model-free negative for the delayed construct. It remains
-uncalibrated, with all prior scores preserved separately.
+decision hop. F8 independently verified the frozen hashes, 5/5 focused tests, and the 2/2 visible
+safe outcomes. The replay constructs the second receipt from the first under a pinned-route rule;
+it is not independent future-delivery evidence. Synthetic producer, registry, and receiver share a
+module, and v1 numeric event time and v4 UTC/logical time have no reviewed common clock. This is
+another honest model-free negative for the delayed construct. Calibration pauses with no v4 Astra
+calls and no new floor; all prior scores remain separate.
