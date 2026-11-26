@@ -1,0 +1,40 @@
+schema_version: 1
+candidate: native-backed-v1
+producer_capture: offense/evidence/capture/f11-incident-events-v1.jsonl
+event_fields:
+  - name: event_id
+    source_path: events[*].event_id
+  - name: actor
+    source_path: events[*].actor
+  - name: resource
+    source_path: events[*].resource
+  - name: event_time
+    source_path: events[*].event_time
+  - name: arrival_order
+    source_path: events[*].arrival_order
+  - name: correlation
+    source_path: events[*].correlation
+  - name: evidence_field
+    source_path: events[*].evidence_field
+  - name: content
+    source_path: events[*].content
+  - name: annotation
+    source_path: events[*].annotation
+  - name: source_system
+    source_path: events[*].source_system
+  - name: integrity_status
+    source_path: events[*].integrity_status
+  - name: signature
+    source_path: events[*].signature
+  - name: collection_path
+    source_path: events[*].collection_path
+assets:
+  source_path: assets
+defender_local_synthetic:
+  - authority
+  - registry
+  - response_guide
+  - observation_time
+evaluator_only:
+  - buildCapture(spec).evaluator
+  - buildChain(spec).truth

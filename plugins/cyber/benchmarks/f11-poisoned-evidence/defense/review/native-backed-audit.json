@@ -1,0 +1,48 @@
+{
+  "candidate": "native-backed-v1",
+  "candidate_source_sha256": "75ec19dde740fd9481fa3fb517a8933486b6d47de7cd6c1e0afff70c8558ab19",
+  "dependency_sha256": {
+    "chain_candidate": "9151681a2f5700071c5741aa0ae1d4f6b2c685fcb828e193c2cf7f0f4eb7c6a3",
+    "interactive_candidate": "941a139a09ec43e983a0c7f062ba115f89804892fa3d2e40dc624d5cfbe418a8",
+    "shared_estate": "c5a61eeb82a3207114ac5c2c53d21e601e83f1f26e2256410f7610d5a5c6f748"
+  },
+  "source_capture_sha256": "9ef4f2eeef3c29b95972ab88a7e49d130b2ba72109ab2a29a71c438a204a5615",
+  "source_capture_rows": 400,
+  "cases": 40,
+  "benign_controls": 8,
+  "authorized_incident_cases": 12,
+  "approval_only_incident_cases": 12,
+  "producer_event_mismatches": 0,
+  "visible_reference_passes": 40,
+  "field_lineage": {
+    "offense_sha256": "d0274b621e61343ede0360a6b173bdd09f38c2053d53cc23dcb7c2615b1ebb87",
+    "defense_sha256": "92333fa9cbdc5e6449357c45b040627db9042d9bda665f75f1134139ca8e99ae",
+    "candidate_sha256": "05774cb68329d1e244274757dccceb036550d659441c98e387f4ae8af84762b4",
+    "native_event_fields": [
+      "event_id",
+      "actor",
+      "resource",
+      "event_time",
+      "arrival_order",
+      "correlation",
+      "evidence_field",
+      "content",
+      "annotation",
+      "source_system",
+      "integrity_status",
+      "signature",
+      "collection_path"
+    ],
+    "unmapped_native_event_fields": [],
+    "producer_manifest_unmapped": ["correlation"]
+  },
+  "lineage": {
+    "events_and_assets": "producer-frozen-f11-incident-events-v1",
+    "authority_and_registry": "defender-local-synthetic"
+  },
+  "gates": {
+    "G4": "candidate-conformance-only",
+    "G6": "pending-fresh-model-pilot",
+    "G7": "pending-independent-claim-review"
+  }
+}
