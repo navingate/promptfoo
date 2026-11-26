@@ -1,10 +1,10 @@
 # F7 native producer capture protocol draft
 
-Status: prepared, not frozen or executed. The user explicitly re-pinned F7 to the model advertised by the 34.x endpoint on 2026-11-27, as relayed by the Cyber Benchmark coordinator. The draft prompt and capture controller still require review and freeze. This draft does not change the offense score or claim that the scripted reference is an LLM capture.
+Status: frozen for native producer capture, not executed. The user explicitly re-pinned F7 to the model advertised by the 34.x endpoint on 2026-11-27, as relayed by the Cyber Benchmark coordinator. The manifest binds the prompt, controller, inputs, and this protocol by hash. No scripted-stub result is an LLM capture.
 
 ## Binding gate
 
-The F7 victim identity is `llmfan46/Qwen3.6-35B-A3B-uncensored-heretic-Native-MTP-Preserved-GPTQ-Int4` on the existing 34.x box. The endpoint in `BASELINE-MANIFEST.json` is drawn from the existing F7 local calibration configuration and was checked against `/v1/models`; verify the served model ID again at run time. Review and freeze the draft system prompt, tool definitions, model/version, decoding settings, and opportunity budget in that manifest; replace remaining nulls, hash the controller source, and bind the case manifest. Do not use the scripted stub as the victim. This user-approved re-pin is a new offense score series, not a claim that it is equivalent to F6's earlier Qwen baseline.
+The F7 victim identity is `llmfan46/Qwen3.6-35B-A3B-uncensored-heretic-Native-MTP-Preserved-GPTQ-Int4` on the existing 34.x box. The endpoint in `BASELINE-MANIFEST.json` is drawn from the existing F7 local calibration configuration and was checked against `/v1/models`; verify the served model ID again at run time and require the exact ID on every completion response. The manifest freezes the system prompt, tool definitions, decoding settings, opportunity budget, controller, and case inputs. The serving API does not attest a weight revision beyond the model ID, and the manifest records that limit. Do not use the scripted stub as the victim. This user-approved re-pin is a new offense score series, not a claim that it is equivalent to F6's earlier Qwen baseline.
 
 The 2026-11-27 `/v1/models` check returned HTTP 200 and advertised this newly pinned ID. No inference call was made at the time of the check. If the served ID changes, stop rather than silently substituting a model.
 

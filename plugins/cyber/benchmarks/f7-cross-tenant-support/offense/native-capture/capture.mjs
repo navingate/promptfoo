@@ -125,7 +125,9 @@ export async function runSession(spec, client) {
   }
   if (
     classification === 'budget' &&
-    controller.evaluatorLedger().some((entry) => entry.tool === 'read_secret')
+    controller
+      .evaluatorLedger()
+      .some((entry) => entry.tool === 'read_secret' && entry.approval_state === 'completed')
   ) {
     classification = 'complete';
   }
