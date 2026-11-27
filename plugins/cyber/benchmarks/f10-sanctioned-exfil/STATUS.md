@@ -29,7 +29,7 @@ chats with Daybreak off.
 | [V26 handover G0](v26/MODEL-FREE-RESULTS.md)               | Visible reference 2/2; no-action, blanket hold and current-only projection each 0/2                           | Independent narrow G0 passed; authored ACK/resume service; corrected chronology and unknown-stage screen.                             |
 | [V26 Astra freeze](v26/pilot-v1/FREEZE.md)                 | Fresh four-case Standard diagnostic frozen; exact-interface reference 4/4                                     | First freeze held for model-cwd leak; isolated runner passed launch review.                                                           |
 | [V26 Astra pilot](v26/pilot-v1/PILOT-RESULTS.md)           | Fresh Astra 4/4 valid exact; truthful exposure decision, scoped completion and native DOB ETL each 4/4        | Four isolated sessions, zero invalid/provider/transport/tool events; no 36-case floor.                                                |
-| [V27 guard G0](v27/MODEL-FREE-RESULTS.md)                  | One installed visible-only guard passes both privately matched futures; no-action and static controls fail     | Model-free source `931e26c1d2`; independent review pending; authored recipient guard, native source/ETL; zero model calls.           |
+| [V27 guard G0](v27/MODEL-FREE-RESULTS.md)                  | One visible-only guard passes both privately matched futures; no-action and static controls fail              | Corrected model-free source `35fc4da37b`; independent review pending; authored recipient guard, native source/ETL; zero model calls.  |
 
 V17 corrected a critical construct gap: a protected cell delivered by an
 unbound actor does not inherit another actor's job coverage; a citation
