@@ -1,0 +1,274 @@
+{
+  "contract_id": "f8-protected-copy-authored-v1",
+  "native": {
+    "fixture_id": "f8cap-b96aa2ae54e6",
+    "point": {
+      "id": "rp-9648d81774d6",
+      "immutability_state": "locked",
+      "created_time": 140,
+      "requires": [
+        "dep-bd114f2b2747",
+        "dep-5f389f12bd9f"
+      ],
+      "destroyed": false
+    },
+    "recovery_graph": {
+      "recovery_points": [
+        {
+          "id": "rp-7172835afe7d",
+          "immutability_state": "locked",
+          "created_time": 100,
+          "requires": [
+            "dep-bd114f2b2747",
+            "dep-5f389f12bd9f"
+          ],
+          "destroyed": false
+        },
+        {
+          "id": "rp-acc5447efdf9",
+          "immutability_state": "locked",
+          "created_time": 110,
+          "requires": [
+            "dep-bd114f2b2747",
+            "dep-5f389f12bd9f"
+          ],
+          "destroyed": false
+        },
+        {
+          "id": "rp-00f5dde569aa",
+          "immutability_state": "locked",
+          "created_time": 120,
+          "requires": [
+            "dep-bd114f2b2747",
+            "dep-5f389f12bd9f"
+          ],
+          "destroyed": false
+        },
+        {
+          "id": "rp-4010fc0e06e1",
+          "immutability_state": "locked",
+          "created_time": 130,
+          "requires": [
+            "dep-bd114f2b2747",
+            "dep-5f389f12bd9f"
+          ],
+          "destroyed": false
+        },
+        {
+          "id": "rp-9648d81774d6",
+          "immutability_state": "locked",
+          "created_time": 140,
+          "requires": [
+            "dep-bd114f2b2747",
+            "dep-5f389f12bd9f"
+          ],
+          "destroyed": false
+        },
+        {
+          "id": "rp-abfdae9fcee6",
+          "immutability_state": "locked",
+          "created_time": 150,
+          "requires": [
+            "dep-bd114f2b2747",
+            "dep-5f389f12bd9f"
+          ],
+          "destroyed": false
+        }
+      ],
+      "dependencies": [
+        {
+          "id": "dep-bd114f2b2747",
+          "type": "snapshot-chain",
+          "control_mode": "compliance",
+          "status": "intact"
+        },
+        {
+          "id": "dep-5f389f12bd9f",
+          "type": "governance-control",
+          "control_mode": "operator",
+          "status": "intact"
+        },
+        {
+          "id": "dep-97590272dbaf",
+          "type": "kms-key",
+          "control_mode": "operator",
+          "status": "broken"
+        },
+        {
+          "id": "dep-3b6d01542309",
+          "type": "restore-catalog",
+          "control_mode": "operator",
+          "status": "intact"
+        }
+      ]
+    }
+  },
+  "datasets": [
+    {
+      "dataset_id": "customer-objects",
+      "resource_type": "S3",
+      "encryption_scope": "independent-vault",
+      "plaintext_sha256": "655c3b30a768d8c90b6917c1f23cf8c81ef6d4b7b8ee2423abba73b9f06c2ec1",
+      "required": true
+    },
+    {
+      "dataset_id": "customer-ledger",
+      "resource_type": "RDS",
+      "encryption_scope": "resource-inherited",
+      "plaintext_sha256": "23079db26b42eea9402b148780fadc3dcd7826429e1e08b23951bb67a5b77442",
+      "required": true
+    }
+  ],
+  "operator_grant": {
+    "receipt_id": "operator-grant-v22",
+    "operator_id": "recovery-operator-17",
+    "source_account": "source-account",
+    "destination_id": "recovery-account-vault",
+    "allowed_dataset_ids": [
+      "customer-objects",
+      "customer-ledger"
+    ],
+    "allowed_actions": [
+      "copy",
+      "same-account-rewrap",
+      "restore-rehearsal"
+    ],
+    "status": "approved",
+    "signature_b64": "tfnjOam4UdDQQLYX4LMPGXWJwgSuw5/QlCD/me2h/e/KUjoq0rr1o1JqvowQ4c6wW26KkuqsNll+6roaT+5HCg=="
+  },
+  "copy_policy": {
+    "source_account": "source-account",
+    "lost_domain": "source-account",
+    "approved_destination_id": "recovery-account-vault",
+    "destination_key_ref": "cmk-recovery-vault",
+    "approved_same_account_rewrap_key_ref": "cmk-source-rewrap",
+    "source_rewrap_requires_live_source": true,
+    "destination_copy_requires_shareable_source_key_for_resource_inherited_backup": true,
+    "restore_requires_destination_copy_after_source_loss": true
+  },
+  "unrelated_restore": {
+    "job_id": "approved-reporting-restore",
+    "destination_id": "recovery-account-vault",
+    "status": "approved-and-restored",
+    "plaintext_sha256": "36a8c6abd025cd0b4c0ffbe63ab71535b4c15cbefc44822ff2e26989771bb5e8",
+    "envelope": {
+      "algorithm": "aes-256-gcm",
+      "key_ref": "cmk-recovery-vault",
+      "iv_b64": "KgdnntIXaUOFculS",
+      "ciphertext_b64": "Ja5eLSh1Q91TF7bnRloYOnV8lOz3gGfYLncQ7SYvTD9FKdkd+gQY2FspAss=",
+      "tag_b64": "LF0M+088mdOvDiZOsRCNBA=="
+    }
+  },
+  "cases": [
+    {
+      "case_id": "v22-shareable-rds",
+      "source_points": [
+        {
+          "point_id": "source-point-customer-objects",
+          "dataset_id": "customer-objects",
+          "immutable": true,
+          "plaintext_sha256": "655c3b30a768d8c90b6917c1f23cf8c81ef6d4b7b8ee2423abba73b9f06c2ec1",
+          "key": {
+            "ref": "aws-backup-vault-source",
+            "kind": "backup-vault-managed",
+            "owner": "source-account",
+            "destination_grant": true
+          },
+          "envelope": {
+            "algorithm": "aes-256-gcm",
+            "key_ref": "aws-backup-vault-source",
+            "iv_b64": "3gTkjYvEEoF23uKF",
+            "ciphertext_b64": "fbTbTSi/CdFXUdqGGWj9x/a2kIxCUm8D2jFn6Pjg3E8KMDHG0wgQQKAXKaBia/fgEdRPBZH63v/CrPsF1xw8ACuuSFmVQJnT9LscuN1T",
+            "tag_b64": "L7DXFIg3rdmQX/jcCw1eUQ=="
+          }
+        },
+        {
+          "point_id": "source-point-customer-ledger",
+          "dataset_id": "customer-ledger",
+          "immutable": true,
+          "plaintext_sha256": "23079db26b42eea9402b148780fadc3dcd7826429e1e08b23951bb67a5b77442",
+          "key": {
+            "ref": "cmk-source-ledger",
+            "kind": "customer-managed",
+            "owner": "source-account",
+            "destination_grant": true
+          },
+          "envelope": {
+            "algorithm": "aes-256-gcm",
+            "key_ref": "cmk-source-ledger",
+            "iv_b64": "wLsndgv8QYE9rI2e",
+            "ciphertext_b64": "7emBy6IpIhTpD96IzPHIZKHGeADQKJZci5LL2Nfuya5yhmD6kO23VV7joRSeJom1rZHtWO3JcSyOfGgUgbpFvGvvgiRwS9xOa0IJg6nm",
+            "tag_b64": "LM79vAcJVlXEt9OAe6rFKg=="
+          }
+        }
+      ]
+    },
+    {
+      "case_id": "v22-managed-rds",
+      "source_points": [
+        {
+          "point_id": "source-point-customer-objects",
+          "dataset_id": "customer-objects",
+          "immutable": true,
+          "plaintext_sha256": "655c3b30a768d8c90b6917c1f23cf8c81ef6d4b7b8ee2423abba73b9f06c2ec1",
+          "key": {
+            "ref": "aws-backup-vault-source",
+            "kind": "backup-vault-managed",
+            "owner": "source-account",
+            "destination_grant": true
+          },
+          "envelope": {
+            "algorithm": "aes-256-gcm",
+            "key_ref": "aws-backup-vault-source",
+            "iv_b64": "3gTkjYvEEoF23uKF",
+            "ciphertext_b64": "fbTbTSi/CdFXUdqGGWj9x/a2kIxCUm8D2jFn6Pjg3E8KMDHG0wgQQKAXKaBia/fgEdRPBZH63v/CrPsF1xw8ACuuSFmVQJnT9LscuN1T",
+            "tag_b64": "L7DXFIg3rdmQX/jcCw1eUQ=="
+          }
+        },
+        {
+          "point_id": "source-point-customer-ledger",
+          "dataset_id": "customer-ledger",
+          "immutable": true,
+          "plaintext_sha256": "23079db26b42eea9402b148780fadc3dcd7826429e1e08b23951bb67a5b77442",
+          "key": {
+            "ref": "aws-rds-source",
+            "kind": "source-default-managed",
+            "owner": "source-account",
+            "destination_grant": false
+          },
+          "envelope": {
+            "algorithm": "aes-256-gcm",
+            "key_ref": "aws-rds-source",
+            "iv_b64": "D7qtRY93LeDQaQAs",
+            "ciphertext_b64": "R9vKOOUPNMtQBtanmdhvJ/4cGllMeKEQMbYvS44/BOfsdDjz9NK1Q4Wo3WsqpOH/bJBR6weL7Awg1o5TGOKH3nmLukSogCUY84+Ti8bc",
+            "tag_b64": "Jqy+E9ovq0SkZi/Tet3pWQ=="
+          }
+        }
+      ]
+    }
+  ],
+  "lineage": {
+    "native_capture_sha256": "abfd526673916ac3ffaceafbdcabe55d3c7c7d17ba415f00a5dfd3a51931248c",
+    "native_fields": [
+      "fixture_id",
+      "recovery_graph.recovery_points",
+      "recovery_graph.dependencies"
+    ],
+    "authored_inputs": [
+      "datasets and plaintext bytes",
+      "source-point ciphertext and key ownership",
+      "operator grant and approved destination",
+      "unrelated restore control",
+      "source-domain outage rehearsal"
+    ],
+    "simulator_outputs": [
+      "copy receipts",
+      "destination ciphertext",
+      "restored bytes and readback"
+    ],
+    "mechanism_sources": [
+      "https://docs.aws.amazon.com/aws-backup/latest/devguide/encryption.html",
+      "https://docs.aws.amazon.com/AmazonRDS/latest/UserGuide/share-encrypted-snapshot.html"
+    ]
+  }
+}

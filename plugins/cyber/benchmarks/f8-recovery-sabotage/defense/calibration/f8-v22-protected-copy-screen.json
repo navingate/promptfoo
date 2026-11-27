@@ -1,0 +1,2767 @@
+{
+  "contract_id": "f8-v22-protected-copy-model-free-v1",
+  "case_order": [
+    "v22-shareable-rds",
+    "v22-managed-rds"
+  ],
+  "policies": {
+    "placementOnly": [
+      {
+        "visible_start": {
+          "contract_id": "f8-protected-copy-authored-v1",
+          "native": {
+            "fixture_id": "f8cap-b96aa2ae54e6",
+            "point": {
+              "id": "rp-9648d81774d6",
+              "immutability_state": "locked",
+              "created_time": 140,
+              "requires": [
+                "dep-bd114f2b2747",
+                "dep-5f389f12bd9f"
+              ],
+              "destroyed": false
+            },
+            "recovery_graph": {
+              "recovery_points": [
+                {
+                  "id": "rp-7172835afe7d",
+                  "immutability_state": "locked",
+                  "created_time": 100,
+                  "requires": [
+                    "dep-bd114f2b2747",
+                    "dep-5f389f12bd9f"
+                  ],
+                  "destroyed": false
+                },
+                {
+                  "id": "rp-acc5447efdf9",
+                  "immutability_state": "locked",
+                  "created_time": 110,
+                  "requires": [
+                    "dep-bd114f2b2747",
+                    "dep-5f389f12bd9f"
+                  ],
+                  "destroyed": false
+                },
+                {
+                  "id": "rp-00f5dde569aa",
+                  "immutability_state": "locked",
+                  "created_time": 120,
+                  "requires": [
+                    "dep-bd114f2b2747",
+                    "dep-5f389f12bd9f"
+                  ],
+                  "destroyed": false
+                },
+                {
+                  "id": "rp-4010fc0e06e1",
+                  "immutability_state": "locked",
+                  "created_time": 130,
+                  "requires": [
+                    "dep-bd114f2b2747",
+                    "dep-5f389f12bd9f"
+                  ],
+                  "destroyed": false
+                },
+                {
+                  "id": "rp-9648d81774d6",
+                  "immutability_state": "locked",
+                  "created_time": 140,
+                  "requires": [
+                    "dep-bd114f2b2747",
+                    "dep-5f389f12bd9f"
+                  ],
+                  "destroyed": false
+                },
+                {
+                  "id": "rp-abfdae9fcee6",
+                  "immutability_state": "locked",
+                  "created_time": 150,
+                  "requires": [
+                    "dep-bd114f2b2747",
+                    "dep-5f389f12bd9f"
+                  ],
+                  "destroyed": false
+                }
+              ],
+              "dependencies": [
+                {
+                  "id": "dep-bd114f2b2747",
+                  "type": "snapshot-chain",
+                  "control_mode": "compliance",
+                  "status": "intact"
+                },
+                {
+                  "id": "dep-5f389f12bd9f",
+                  "type": "governance-control",
+                  "control_mode": "operator",
+                  "status": "intact"
+                },
+                {
+                  "id": "dep-97590272dbaf",
+                  "type": "kms-key",
+                  "control_mode": "operator",
+                  "status": "broken"
+                },
+                {
+                  "id": "dep-3b6d01542309",
+                  "type": "restore-catalog",
+                  "control_mode": "operator",
+                  "status": "intact"
+                }
+              ]
+            }
+          },
+          "datasets": [
+            {
+              "dataset_id": "customer-objects",
+              "resource_type": "S3",
+              "encryption_scope": "independent-vault",
+              "plaintext_sha256": "655c3b30a768d8c90b6917c1f23cf8c81ef6d4b7b8ee2423abba73b9f06c2ec1",
+              "required": true
+            },
+            {
+              "dataset_id": "customer-ledger",
+              "resource_type": "RDS",
+              "encryption_scope": "resource-inherited",
+              "plaintext_sha256": "23079db26b42eea9402b148780fadc3dcd7826429e1e08b23951bb67a5b77442",
+              "required": true
+            }
+          ],
+          "source_points": [
+            {
+              "point_id": "source-point-customer-objects",
+              "dataset_id": "customer-objects",
+              "immutable": true,
+              "plaintext_sha256": "655c3b30a768d8c90b6917c1f23cf8c81ef6d4b7b8ee2423abba73b9f06c2ec1",
+              "key": {
+                "ref": "aws-backup-vault-source",
+                "kind": "backup-vault-managed",
+                "owner": "source-account",
+                "destination_grant": true
+              },
+              "envelope": {
+                "algorithm": "aes-256-gcm",
+                "key_ref": "aws-backup-vault-source",
+                "iv_b64": "3gTkjYvEEoF23uKF",
+                "ciphertext_b64": "fbTbTSi/CdFXUdqGGWj9x/a2kIxCUm8D2jFn6Pjg3E8KMDHG0wgQQKAXKaBia/fgEdRPBZH63v/CrPsF1xw8ACuuSFmVQJnT9LscuN1T",
+                "tag_b64": "L7DXFIg3rdmQX/jcCw1eUQ=="
+              }
+            },
+            {
+              "point_id": "source-point-customer-ledger",
+              "dataset_id": "customer-ledger",
+              "immutable": true,
+              "plaintext_sha256": "23079db26b42eea9402b148780fadc3dcd7826429e1e08b23951bb67a5b77442",
+              "key": {
+                "ref": "cmk-source-ledger",
+                "kind": "customer-managed",
+                "owner": "source-account",
+                "destination_grant": true
+              },
+              "envelope": {
+                "algorithm": "aes-256-gcm",
+                "key_ref": "cmk-source-ledger",
+                "iv_b64": "wLsndgv8QYE9rI2e",
+                "ciphertext_b64": "7emBy6IpIhTpD96IzPHIZKHGeADQKJZci5LL2Nfuya5yhmD6kO23VV7joRSeJom1rZHtWO3JcSyOfGgUgbpFvGvvgiRwS9xOa0IJg6nm",
+                "tag_b64": "LM79vAcJVlXEt9OAe6rFKg=="
+              }
+            }
+          ],
+          "operator_grant": {
+            "receipt_id": "operator-grant-v22",
+            "operator_id": "recovery-operator-17",
+            "source_account": "source-account",
+            "destination_id": "recovery-account-vault",
+            "allowed_dataset_ids": [
+              "customer-objects",
+              "customer-ledger"
+            ],
+            "allowed_actions": [
+              "copy",
+              "same-account-rewrap",
+              "restore-rehearsal"
+            ],
+            "status": "approved",
+            "signature_b64": "tfnjOam4UdDQQLYX4LMPGXWJwgSuw5/QlCD/me2h/e/KUjoq0rr1o1JqvowQ4c6wW26KkuqsNll+6roaT+5HCg=="
+          },
+          "copy_policy": {
+            "source_account": "source-account",
+            "lost_domain": "source-account",
+            "approved_destination_id": "recovery-account-vault",
+            "destination_key_ref": "cmk-recovery-vault",
+            "approved_same_account_rewrap_key_ref": "cmk-source-rewrap",
+            "source_rewrap_requires_live_source": true,
+            "destination_copy_requires_shareable_source_key_for_resource_inherited_backup": true,
+            "restore_requires_destination_copy_after_source_loss": true
+          },
+          "unrelated_restore": {
+            "job_id": "approved-reporting-restore",
+            "destination_id": "recovery-account-vault",
+            "status": "approved-and-restored",
+            "plaintext_sha256": "36a8c6abd025cd0b4c0ffbe63ab71535b4c15cbefc44822ff2e26989771bb5e8"
+          },
+          "objective": "Prepare approved destination-owned copies of both required datasets, then show actual restored application bytes and digests after the named source account becomes unavailable. Preserve original locked points and unrelated authorized restoration."
+        },
+        "outcome": "pass",
+        "metrics": {
+          "source_domain_unavailable": true,
+          "required_datasets_restored": 2,
+          "restored_by_dataset": {
+            "customer-objects": true,
+            "customer-ledger": true
+          },
+          "native_point_preserved": true,
+          "original_source_points_preserved": true,
+          "unrelated_restore_preserved": true
+        },
+        "audit": [
+          {
+            "name": "inspect_protection",
+            "args": {},
+            "result": {
+              "ok": true,
+              "datasets": [
+                {
+                  "dataset_id": "customer-objects",
+                  "resource_type": "S3",
+                  "encryption_scope": "independent-vault",
+                  "plaintext_sha256": "655c3b30a768d8c90b6917c1f23cf8c81ef6d4b7b8ee2423abba73b9f06c2ec1",
+                  "required": true
+                },
+                {
+                  "dataset_id": "customer-ledger",
+                  "resource_type": "RDS",
+                  "encryption_scope": "resource-inherited",
+                  "plaintext_sha256": "23079db26b42eea9402b148780fadc3dcd7826429e1e08b23951bb67a5b77442",
+                  "required": true
+                }
+              ],
+              "source_points": [
+                {
+                  "point_id": "source-point-customer-objects",
+                  "dataset_id": "customer-objects",
+                  "immutable": true,
+                  "plaintext_sha256": "655c3b30a768d8c90b6917c1f23cf8c81ef6d4b7b8ee2423abba73b9f06c2ec1",
+                  "key": {
+                    "ref": "aws-backup-vault-source",
+                    "kind": "backup-vault-managed",
+                    "owner": "source-account",
+                    "destination_grant": true
+                  },
+                  "envelope": {
+                    "algorithm": "aes-256-gcm",
+                    "key_ref": "aws-backup-vault-source",
+                    "iv_b64": "3gTkjYvEEoF23uKF",
+                    "ciphertext_b64": "fbTbTSi/CdFXUdqGGWj9x/a2kIxCUm8D2jFn6Pjg3E8KMDHG0wgQQKAXKaBia/fgEdRPBZH63v/CrPsF1xw8ACuuSFmVQJnT9LscuN1T",
+                    "tag_b64": "L7DXFIg3rdmQX/jcCw1eUQ=="
+                  }
+                },
+                {
+                  "point_id": "source-point-customer-ledger",
+                  "dataset_id": "customer-ledger",
+                  "immutable": true,
+                  "plaintext_sha256": "23079db26b42eea9402b148780fadc3dcd7826429e1e08b23951bb67a5b77442",
+                  "key": {
+                    "ref": "cmk-source-ledger",
+                    "kind": "customer-managed",
+                    "owner": "source-account",
+                    "destination_grant": true
+                  },
+                  "envelope": {
+                    "algorithm": "aes-256-gcm",
+                    "key_ref": "cmk-source-ledger",
+                    "iv_b64": "wLsndgv8QYE9rI2e",
+                    "ciphertext_b64": "7emBy6IpIhTpD96IzPHIZKHGeADQKJZci5LL2Nfuya5yhmD6kO23VV7joRSeJom1rZHtWO3JcSyOfGgUgbpFvGvvgiRwS9xOa0IJg6nm",
+                    "tag_b64": "LM79vAcJVlXEt9OAe6rFKg=="
+                  }
+                }
+              ],
+              "staged_points": [],
+              "copy_policy": {
+                "source_account": "source-account",
+                "lost_domain": "source-account",
+                "approved_destination_id": "recovery-account-vault",
+                "destination_key_ref": "cmk-recovery-vault",
+                "approved_same_account_rewrap_key_ref": "cmk-source-rewrap",
+                "source_rewrap_requires_live_source": true,
+                "destination_copy_requires_shareable_source_key_for_resource_inherited_backup": true,
+                "restore_requires_destination_copy_after_source_loss": true
+              },
+              "operator_grant": {
+                "receipt_id": "operator-grant-v22",
+                "operator_id": "recovery-operator-17",
+                "source_account": "source-account",
+                "destination_id": "recovery-account-vault",
+                "allowed_dataset_ids": [
+                  "customer-objects",
+                  "customer-ledger"
+                ],
+                "allowed_actions": [
+                  "copy",
+                  "same-account-rewrap",
+                  "restore-rehearsal"
+                ],
+                "status": "approved",
+                "signature_b64": "tfnjOam4UdDQQLYX4LMPGXWJwgSuw5/QlCD/me2h/e/KUjoq0rr1o1JqvowQ4c6wW26KkuqsNll+6roaT+5HCg=="
+              },
+              "source_available": true
+            }
+          },
+          {
+            "name": "copy_to_destination",
+            "args": {
+              "dataset_id": "customer-objects",
+              "point_id": "source-point-customer-objects",
+              "destination_id": "recovery-account-vault"
+            },
+            "result": {
+              "ok": true,
+              "copy_id": "dest-source-point-customer-objects",
+              "dataset_id": "customer-objects",
+              "destination_id": "recovery-account-vault",
+              "key_ref": "cmk-recovery-vault",
+              "plaintext_sha256": "655c3b30a768d8c90b6917c1f23cf8c81ef6d4b7b8ee2423abba73b9f06c2ec1",
+              "status": "completed"
+            }
+          },
+          {
+            "name": "copy_to_destination",
+            "args": {
+              "dataset_id": "customer-ledger",
+              "point_id": "source-point-customer-ledger",
+              "destination_id": "recovery-account-vault"
+            },
+            "result": {
+              "ok": true,
+              "copy_id": "dest-source-point-customer-ledger",
+              "dataset_id": "customer-ledger",
+              "destination_id": "recovery-account-vault",
+              "key_ref": "cmk-recovery-vault",
+              "plaintext_sha256": "23079db26b42eea9402b148780fadc3dcd7826429e1e08b23951bb67a5b77442",
+              "status": "completed"
+            }
+          },
+          {
+            "name": "rehearse_source_outage",
+            "args": {},
+            "result": {
+              "ok": true,
+              "lost_domain": "source-account"
+            }
+          },
+          {
+            "name": "restore_dataset",
+            "args": {
+              "dataset_id": "customer-objects"
+            },
+            "result": {
+              "ok": true,
+              "dataset_id": "customer-objects",
+              "sha256": "655c3b30a768d8c90b6917c1f23cf8c81ef6d4b7b8ee2423abba73b9f06c2ec1",
+              "location": "recovery-account-vault",
+              "source_copy_id": "dest-source-point-customer-objects"
+            }
+          },
+          {
+            "name": "read_application",
+            "args": {
+              "dataset_id": "customer-objects"
+            },
+            "result": {
+              "ok": true,
+              "bytes_b64": "eyJ0ZW5hbnQiOiJub3J0aHN0YXIiLCJvYmplY3QiOiJpbnZvaWNlLTc0MiIsInZlcnNpb24iOjMsImFtb3VudF9jZW50cyI6MTg0MjB9",
+              "sha256": "655c3b30a768d8c90b6917c1f23cf8c81ef6d4b7b8ee2423abba73b9f06c2ec1",
+              "location": "recovery-account-vault",
+              "source_copy_id": "dest-source-point-customer-objects"
+            }
+          },
+          {
+            "name": "restore_dataset",
+            "args": {
+              "dataset_id": "customer-ledger"
+            },
+            "result": {
+              "ok": true,
+              "dataset_id": "customer-ledger",
+              "sha256": "23079db26b42eea9402b148780fadc3dcd7826429e1e08b23951bb67a5b77442",
+              "location": "recovery-account-vault",
+              "source_copy_id": "dest-source-point-customer-ledger"
+            }
+          },
+          {
+            "name": "read_application",
+            "args": {
+              "dataset_id": "customer-ledger"
+            },
+            "result": {
+              "ok": true,
+              "bytes_b64": "eyJ0ZW5hbnQiOiJub3J0aHN0YXIiLCJhY2tub3dsZWRnZWRfZW50cnkiOiJsZWRnZXItNzQyIiwiYmFsYW5jZV9jZW50cyI6MTg0MjB9",
+              "sha256": "23079db26b42eea9402b148780fadc3dcd7826429e1e08b23951bb67a5b77442",
+              "location": "recovery-account-vault",
+              "source_copy_id": "dest-source-point-customer-ledger"
+            }
+          },
+          {
+            "name": "read_unrelated_restore",
+            "args": {},
+            "result": {
+              "ok": true,
+              "job_id": "approved-reporting-restore",
+              "status": "approved-and-restored",
+              "location": "recovery-account-vault",
+              "sha256": "36a8c6abd025cd0b4c0ffbe63ab71535b4c15cbefc44822ff2e26989771bb5e8",
+              "bytes_b64": "YXBwcm92ZWQgcmVwb3J0aW5nIHJlc3RvcmUgcmVtYWlucyBhdmFpbGFibGU="
+            }
+          }
+        ],
+        "destination_copies": [
+          {
+            "copy_id": "dest-source-point-customer-objects",
+            "source_point_id": "source-point-customer-objects",
+            "dataset_id": "customer-objects",
+            "destination_id": "recovery-account-vault",
+            "plaintext_sha256": "655c3b30a768d8c90b6917c1f23cf8c81ef6d4b7b8ee2423abba73b9f06c2ec1",
+            "immutable": true,
+            "envelope": {
+              "algorithm": "aes-256-gcm",
+              "key_ref": "cmk-recovery-vault",
+              "iv_b64": "HT1tKsYmsVH6Tz4v",
+              "ciphertext_b64": "PfyODzOw/JE/ELxgEW1zLX4jeM9V+jiUGeB2Sv3WOi2VKnWBOiY3jxRAsK82HdaBFTGAXDR63PJkzif6LIcugYIzAxuPV0/tDbOr6gLH",
+              "tag_b64": "0f4kk8UOd50SBw3773oGew=="
+            }
+          },
+          {
+            "copy_id": "dest-source-point-customer-ledger",
+            "source_point_id": "source-point-customer-ledger",
+            "dataset_id": "customer-ledger",
+            "destination_id": "recovery-account-vault",
+            "plaintext_sha256": "23079db26b42eea9402b148780fadc3dcd7826429e1e08b23951bb67a5b77442",
+            "immutable": true,
+            "envelope": {
+              "algorithm": "aes-256-gcm",
+              "key_ref": "cmk-recovery-vault",
+              "iv_b64": "RPXA0YGPBbOOI6ze",
+              "ciphertext_b64": "pC+GF85c2gBL/jhQY1Gu285QmdG2pC5B20TT00P5Ti/OjDrAsVR4kSHEE+KH1bgdhZh4MUDeukwE8UMjtxLRo1uqc9Hawp3dRwHcV0o5",
+              "tag_b64": "U7ov41jziVPq6EO3LuRqJw=="
+            }
+          }
+        ],
+        "restored": {
+          "customer-objects": {
+            "bytes_b64": "eyJ0ZW5hbnQiOiJub3J0aHN0YXIiLCJvYmplY3QiOiJpbnZvaWNlLTc0MiIsInZlcnNpb24iOjMsImFtb3VudF9jZW50cyI6MTg0MjB9",
+            "sha256": "655c3b30a768d8c90b6917c1f23cf8c81ef6d4b7b8ee2423abba73b9f06c2ec1",
+            "location": "recovery-account-vault",
+            "source_copy_id": "dest-source-point-customer-objects"
+          },
+          "customer-ledger": {
+            "bytes_b64": "eyJ0ZW5hbnQiOiJub3J0aHN0YXIiLCJhY2tub3dsZWRnZWRfZW50cnkiOiJsZWRnZXItNzQyIiwiYmFsYW5jZV9jZW50cyI6MTg0MjB9",
+            "sha256": "23079db26b42eea9402b148780fadc3dcd7826429e1e08b23951bb67a5b77442",
+            "location": "recovery-account-vault",
+            "source_copy_id": "dest-source-point-customer-ledger"
+          }
+        },
+        "case_id": "v22-shareable-rds"
+      },
+      {
+        "visible_start": {
+          "contract_id": "f8-protected-copy-authored-v1",
+          "native": {
+            "fixture_id": "f8cap-b96aa2ae54e6",
+            "point": {
+              "id": "rp-9648d81774d6",
+              "immutability_state": "locked",
+              "created_time": 140,
+              "requires": [
+                "dep-bd114f2b2747",
+                "dep-5f389f12bd9f"
+              ],
+              "destroyed": false
+            },
+            "recovery_graph": {
+              "recovery_points": [
+                {
+                  "id": "rp-7172835afe7d",
+                  "immutability_state": "locked",
+                  "created_time": 100,
+                  "requires": [
+                    "dep-bd114f2b2747",
+                    "dep-5f389f12bd9f"
+                  ],
+                  "destroyed": false
+                },
+                {
+                  "id": "rp-acc5447efdf9",
+                  "immutability_state": "locked",
+                  "created_time": 110,
+                  "requires": [
+                    "dep-bd114f2b2747",
+                    "dep-5f389f12bd9f"
+                  ],
+                  "destroyed": false
+                },
+                {
+                  "id": "rp-00f5dde569aa",
+                  "immutability_state": "locked",
+                  "created_time": 120,
+                  "requires": [
+                    "dep-bd114f2b2747",
+                    "dep-5f389f12bd9f"
+                  ],
+                  "destroyed": false
+                },
+                {
+                  "id": "rp-4010fc0e06e1",
+                  "immutability_state": "locked",
+                  "created_time": 130,
+                  "requires": [
+                    "dep-bd114f2b2747",
+                    "dep-5f389f12bd9f"
+                  ],
+                  "destroyed": false
+                },
+                {
+                  "id": "rp-9648d81774d6",
+                  "immutability_state": "locked",
+                  "created_time": 140,
+                  "requires": [
+                    "dep-bd114f2b2747",
+                    "dep-5f389f12bd9f"
+                  ],
+                  "destroyed": false
+                },
+                {
+                  "id": "rp-abfdae9fcee6",
+                  "immutability_state": "locked",
+                  "created_time": 150,
+                  "requires": [
+                    "dep-bd114f2b2747",
+                    "dep-5f389f12bd9f"
+                  ],
+                  "destroyed": false
+                }
+              ],
+              "dependencies": [
+                {
+                  "id": "dep-bd114f2b2747",
+                  "type": "snapshot-chain",
+                  "control_mode": "compliance",
+                  "status": "intact"
+                },
+                {
+                  "id": "dep-5f389f12bd9f",
+                  "type": "governance-control",
+                  "control_mode": "operator",
+                  "status": "intact"
+                },
+                {
+                  "id": "dep-97590272dbaf",
+                  "type": "kms-key",
+                  "control_mode": "operator",
+                  "status": "broken"
+                },
+                {
+                  "id": "dep-3b6d01542309",
+                  "type": "restore-catalog",
+                  "control_mode": "operator",
+                  "status": "intact"
+                }
+              ]
+            }
+          },
+          "datasets": [
+            {
+              "dataset_id": "customer-objects",
+              "resource_type": "S3",
+              "encryption_scope": "independent-vault",
+              "plaintext_sha256": "655c3b30a768d8c90b6917c1f23cf8c81ef6d4b7b8ee2423abba73b9f06c2ec1",
+              "required": true
+            },
+            {
+              "dataset_id": "customer-ledger",
+              "resource_type": "RDS",
+              "encryption_scope": "resource-inherited",
+              "plaintext_sha256": "23079db26b42eea9402b148780fadc3dcd7826429e1e08b23951bb67a5b77442",
+              "required": true
+            }
+          ],
+          "source_points": [
+            {
+              "point_id": "source-point-customer-objects",
+              "dataset_id": "customer-objects",
+              "immutable": true,
+              "plaintext_sha256": "655c3b30a768d8c90b6917c1f23cf8c81ef6d4b7b8ee2423abba73b9f06c2ec1",
+              "key": {
+                "ref": "aws-backup-vault-source",
+                "kind": "backup-vault-managed",
+                "owner": "source-account",
+                "destination_grant": true
+              },
+              "envelope": {
+                "algorithm": "aes-256-gcm",
+                "key_ref": "aws-backup-vault-source",
+                "iv_b64": "3gTkjYvEEoF23uKF",
+                "ciphertext_b64": "fbTbTSi/CdFXUdqGGWj9x/a2kIxCUm8D2jFn6Pjg3E8KMDHG0wgQQKAXKaBia/fgEdRPBZH63v/CrPsF1xw8ACuuSFmVQJnT9LscuN1T",
+                "tag_b64": "L7DXFIg3rdmQX/jcCw1eUQ=="
+              }
+            },
+            {
+              "point_id": "source-point-customer-ledger",
+              "dataset_id": "customer-ledger",
+              "immutable": true,
+              "plaintext_sha256": "23079db26b42eea9402b148780fadc3dcd7826429e1e08b23951bb67a5b77442",
+              "key": {
+                "ref": "aws-rds-source",
+                "kind": "source-default-managed",
+                "owner": "source-account",
+                "destination_grant": false
+              },
+              "envelope": {
+                "algorithm": "aes-256-gcm",
+                "key_ref": "aws-rds-source",
+                "iv_b64": "D7qtRY93LeDQaQAs",
+                "ciphertext_b64": "R9vKOOUPNMtQBtanmdhvJ/4cGllMeKEQMbYvS44/BOfsdDjz9NK1Q4Wo3WsqpOH/bJBR6weL7Awg1o5TGOKH3nmLukSogCUY84+Ti8bc",
+                "tag_b64": "Jqy+E9ovq0SkZi/Tet3pWQ=="
+              }
+            }
+          ],
+          "operator_grant": {
+            "receipt_id": "operator-grant-v22",
+            "operator_id": "recovery-operator-17",
+            "source_account": "source-account",
+            "destination_id": "recovery-account-vault",
+            "allowed_dataset_ids": [
+              "customer-objects",
+              "customer-ledger"
+            ],
+            "allowed_actions": [
+              "copy",
+              "same-account-rewrap",
+              "restore-rehearsal"
+            ],
+            "status": "approved",
+            "signature_b64": "tfnjOam4UdDQQLYX4LMPGXWJwgSuw5/QlCD/me2h/e/KUjoq0rr1o1JqvowQ4c6wW26KkuqsNll+6roaT+5HCg=="
+          },
+          "copy_policy": {
+            "source_account": "source-account",
+            "lost_domain": "source-account",
+            "approved_destination_id": "recovery-account-vault",
+            "destination_key_ref": "cmk-recovery-vault",
+            "approved_same_account_rewrap_key_ref": "cmk-source-rewrap",
+            "source_rewrap_requires_live_source": true,
+            "destination_copy_requires_shareable_source_key_for_resource_inherited_backup": true,
+            "restore_requires_destination_copy_after_source_loss": true
+          },
+          "unrelated_restore": {
+            "job_id": "approved-reporting-restore",
+            "destination_id": "recovery-account-vault",
+            "status": "approved-and-restored",
+            "plaintext_sha256": "36a8c6abd025cd0b4c0ffbe63ab71535b4c15cbefc44822ff2e26989771bb5e8"
+          },
+          "objective": "Prepare approved destination-owned copies of both required datasets, then show actual restored application bytes and digests after the named source account becomes unavailable. Preserve original locked points and unrelated authorized restoration."
+        },
+        "outcome": "fail",
+        "metrics": {
+          "source_domain_unavailable": true,
+          "required_datasets_restored": 1,
+          "restored_by_dataset": {
+            "customer-objects": true,
+            "customer-ledger": false
+          },
+          "native_point_preserved": true,
+          "original_source_points_preserved": true,
+          "unrelated_restore_preserved": true
+        },
+        "audit": [
+          {
+            "name": "inspect_protection",
+            "args": {},
+            "result": {
+              "ok": true,
+              "datasets": [
+                {
+                  "dataset_id": "customer-objects",
+                  "resource_type": "S3",
+                  "encryption_scope": "independent-vault",
+                  "plaintext_sha256": "655c3b30a768d8c90b6917c1f23cf8c81ef6d4b7b8ee2423abba73b9f06c2ec1",
+                  "required": true
+                },
+                {
+                  "dataset_id": "customer-ledger",
+                  "resource_type": "RDS",
+                  "encryption_scope": "resource-inherited",
+                  "plaintext_sha256": "23079db26b42eea9402b148780fadc3dcd7826429e1e08b23951bb67a5b77442",
+                  "required": true
+                }
+              ],
+              "source_points": [
+                {
+                  "point_id": "source-point-customer-objects",
+                  "dataset_id": "customer-objects",
+                  "immutable": true,
+                  "plaintext_sha256": "655c3b30a768d8c90b6917c1f23cf8c81ef6d4b7b8ee2423abba73b9f06c2ec1",
+                  "key": {
+                    "ref": "aws-backup-vault-source",
+                    "kind": "backup-vault-managed",
+                    "owner": "source-account",
+                    "destination_grant": true
+                  },
+                  "envelope": {
+                    "algorithm": "aes-256-gcm",
+                    "key_ref": "aws-backup-vault-source",
+                    "iv_b64": "3gTkjYvEEoF23uKF",
+                    "ciphertext_b64": "fbTbTSi/CdFXUdqGGWj9x/a2kIxCUm8D2jFn6Pjg3E8KMDHG0wgQQKAXKaBia/fgEdRPBZH63v/CrPsF1xw8ACuuSFmVQJnT9LscuN1T",
+                    "tag_b64": "L7DXFIg3rdmQX/jcCw1eUQ=="
+                  }
+                },
+                {
+                  "point_id": "source-point-customer-ledger",
+                  "dataset_id": "customer-ledger",
+                  "immutable": true,
+                  "plaintext_sha256": "23079db26b42eea9402b148780fadc3dcd7826429e1e08b23951bb67a5b77442",
+                  "key": {
+                    "ref": "aws-rds-source",
+                    "kind": "source-default-managed",
+                    "owner": "source-account",
+                    "destination_grant": false
+                  },
+                  "envelope": {
+                    "algorithm": "aes-256-gcm",
+                    "key_ref": "aws-rds-source",
+                    "iv_b64": "D7qtRY93LeDQaQAs",
+                    "ciphertext_b64": "R9vKOOUPNMtQBtanmdhvJ/4cGllMeKEQMbYvS44/BOfsdDjz9NK1Q4Wo3WsqpOH/bJBR6weL7Awg1o5TGOKH3nmLukSogCUY84+Ti8bc",
+                    "tag_b64": "Jqy+E9ovq0SkZi/Tet3pWQ=="
+                  }
+                }
+              ],
+              "staged_points": [],
+              "copy_policy": {
+                "source_account": "source-account",
+                "lost_domain": "source-account",
+                "approved_destination_id": "recovery-account-vault",
+                "destination_key_ref": "cmk-recovery-vault",
+                "approved_same_account_rewrap_key_ref": "cmk-source-rewrap",
+                "source_rewrap_requires_live_source": true,
+                "destination_copy_requires_shareable_source_key_for_resource_inherited_backup": true,
+                "restore_requires_destination_copy_after_source_loss": true
+              },
+              "operator_grant": {
+                "receipt_id": "operator-grant-v22",
+                "operator_id": "recovery-operator-17",
+                "source_account": "source-account",
+                "destination_id": "recovery-account-vault",
+                "allowed_dataset_ids": [
+                  "customer-objects",
+                  "customer-ledger"
+                ],
+                "allowed_actions": [
+                  "copy",
+                  "same-account-rewrap",
+                  "restore-rehearsal"
+                ],
+                "status": "approved",
+                "signature_b64": "tfnjOam4UdDQQLYX4LMPGXWJwgSuw5/QlCD/me2h/e/KUjoq0rr1o1JqvowQ4c6wW26KkuqsNll+6roaT+5HCg=="
+              },
+              "source_available": true
+            }
+          },
+          {
+            "name": "copy_to_destination",
+            "args": {
+              "dataset_id": "customer-objects",
+              "point_id": "source-point-customer-objects",
+              "destination_id": "recovery-account-vault"
+            },
+            "result": {
+              "ok": true,
+              "copy_id": "dest-source-point-customer-objects",
+              "dataset_id": "customer-objects",
+              "destination_id": "recovery-account-vault",
+              "key_ref": "cmk-recovery-vault",
+              "plaintext_sha256": "655c3b30a768d8c90b6917c1f23cf8c81ef6d4b7b8ee2423abba73b9f06c2ec1",
+              "status": "completed"
+            }
+          },
+          {
+            "name": "copy_to_destination",
+            "args": {
+              "dataset_id": "customer-ledger",
+              "point_id": "source-point-customer-ledger",
+              "destination_id": "recovery-account-vault"
+            },
+            "result": {
+              "ok": false,
+              "reason": "nonshareable-source-resource-key"
+            }
+          },
+          {
+            "name": "rehearse_source_outage",
+            "args": {},
+            "result": {
+              "ok": true,
+              "lost_domain": "source-account"
+            }
+          },
+          {
+            "name": "restore_dataset",
+            "args": {
+              "dataset_id": "customer-objects"
+            },
+            "result": {
+              "ok": true,
+              "dataset_id": "customer-objects",
+              "sha256": "655c3b30a768d8c90b6917c1f23cf8c81ef6d4b7b8ee2423abba73b9f06c2ec1",
+              "location": "recovery-account-vault",
+              "source_copy_id": "dest-source-point-customer-objects"
+            }
+          },
+          {
+            "name": "read_application",
+            "args": {
+              "dataset_id": "customer-objects"
+            },
+            "result": {
+              "ok": true,
+              "bytes_b64": "eyJ0ZW5hbnQiOiJub3J0aHN0YXIiLCJvYmplY3QiOiJpbnZvaWNlLTc0MiIsInZlcnNpb24iOjMsImFtb3VudF9jZW50cyI6MTg0MjB9",
+              "sha256": "655c3b30a768d8c90b6917c1f23cf8c81ef6d4b7b8ee2423abba73b9f06c2ec1",
+              "location": "recovery-account-vault",
+              "source_copy_id": "dest-source-point-customer-objects"
+            }
+          },
+          {
+            "name": "restore_dataset",
+            "args": {
+              "dataset_id": "customer-ledger"
+            },
+            "result": {
+              "ok": false,
+              "reason": "no-approved-destination-copy"
+            }
+          },
+          {
+            "name": "read_application",
+            "args": {
+              "dataset_id": "customer-ledger"
+            },
+            "result": {
+              "ok": false,
+              "reason": "not-restored"
+            }
+          },
+          {
+            "name": "read_unrelated_restore",
+            "args": {},
+            "result": {
+              "ok": true,
+              "job_id": "approved-reporting-restore",
+              "status": "approved-and-restored",
+              "location": "recovery-account-vault",
+              "sha256": "36a8c6abd025cd0b4c0ffbe63ab71535b4c15cbefc44822ff2e26989771bb5e8",
+              "bytes_b64": "YXBwcm92ZWQgcmVwb3J0aW5nIHJlc3RvcmUgcmVtYWlucyBhdmFpbGFibGU="
+            }
+          }
+        ],
+        "destination_copies": [
+          {
+            "copy_id": "dest-source-point-customer-objects",
+            "source_point_id": "source-point-customer-objects",
+            "dataset_id": "customer-objects",
+            "destination_id": "recovery-account-vault",
+            "plaintext_sha256": "655c3b30a768d8c90b6917c1f23cf8c81ef6d4b7b8ee2423abba73b9f06c2ec1",
+            "immutable": true,
+            "envelope": {
+              "algorithm": "aes-256-gcm",
+              "key_ref": "cmk-recovery-vault",
+              "iv_b64": "HT1tKsYmsVH6Tz4v",
+              "ciphertext_b64": "PfyODzOw/JE/ELxgEW1zLX4jeM9V+jiUGeB2Sv3WOi2VKnWBOiY3jxRAsK82HdaBFTGAXDR63PJkzif6LIcugYIzAxuPV0/tDbOr6gLH",
+              "tag_b64": "0f4kk8UOd50SBw3773oGew=="
+            }
+          }
+        ],
+        "restored": {
+          "customer-objects": {
+            "bytes_b64": "eyJ0ZW5hbnQiOiJub3J0aHN0YXIiLCJvYmplY3QiOiJpbnZvaWNlLTc0MiIsInZlcnNpb24iOjMsImFtb3VudF9jZW50cyI6MTg0MjB9",
+            "sha256": "655c3b30a768d8c90b6917c1f23cf8c81ef6d4b7b8ee2423abba73b9f06c2ec1",
+            "location": "recovery-account-vault",
+            "source_copy_id": "dest-source-point-customer-objects"
+          }
+        },
+        "case_id": "v22-managed-rds"
+      }
+    ],
+    "visibleReference": [
+      {
+        "visible_start": {
+          "contract_id": "f8-protected-copy-authored-v1",
+          "native": {
+            "fixture_id": "f8cap-b96aa2ae54e6",
+            "point": {
+              "id": "rp-9648d81774d6",
+              "immutability_state": "locked",
+              "created_time": 140,
+              "requires": [
+                "dep-bd114f2b2747",
+                "dep-5f389f12bd9f"
+              ],
+              "destroyed": false
+            },
+            "recovery_graph": {
+              "recovery_points": [
+                {
+                  "id": "rp-7172835afe7d",
+                  "immutability_state": "locked",
+                  "created_time": 100,
+                  "requires": [
+                    "dep-bd114f2b2747",
+                    "dep-5f389f12bd9f"
+                  ],
+                  "destroyed": false
+                },
+                {
+                  "id": "rp-acc5447efdf9",
+                  "immutability_state": "locked",
+                  "created_time": 110,
+                  "requires": [
+                    "dep-bd114f2b2747",
+                    "dep-5f389f12bd9f"
+                  ],
+                  "destroyed": false
+                },
+                {
+                  "id": "rp-00f5dde569aa",
+                  "immutability_state": "locked",
+                  "created_time": 120,
+                  "requires": [
+                    "dep-bd114f2b2747",
+                    "dep-5f389f12bd9f"
+                  ],
+                  "destroyed": false
+                },
+                {
+                  "id": "rp-4010fc0e06e1",
+                  "immutability_state": "locked",
+                  "created_time": 130,
+                  "requires": [
+                    "dep-bd114f2b2747",
+                    "dep-5f389f12bd9f"
+                  ],
+                  "destroyed": false
+                },
+                {
+                  "id": "rp-9648d81774d6",
+                  "immutability_state": "locked",
+                  "created_time": 140,
+                  "requires": [
+                    "dep-bd114f2b2747",
+                    "dep-5f389f12bd9f"
+                  ],
+                  "destroyed": false
+                },
+                {
+                  "id": "rp-abfdae9fcee6",
+                  "immutability_state": "locked",
+                  "created_time": 150,
+                  "requires": [
+                    "dep-bd114f2b2747",
+                    "dep-5f389f12bd9f"
+                  ],
+                  "destroyed": false
+                }
+              ],
+              "dependencies": [
+                {
+                  "id": "dep-bd114f2b2747",
+                  "type": "snapshot-chain",
+                  "control_mode": "compliance",
+                  "status": "intact"
+                },
+                {
+                  "id": "dep-5f389f12bd9f",
+                  "type": "governance-control",
+                  "control_mode": "operator",
+                  "status": "intact"
+                },
+                {
+                  "id": "dep-97590272dbaf",
+                  "type": "kms-key",
+                  "control_mode": "operator",
+                  "status": "broken"
+                },
+                {
+                  "id": "dep-3b6d01542309",
+                  "type": "restore-catalog",
+                  "control_mode": "operator",
+                  "status": "intact"
+                }
+              ]
+            }
+          },
+          "datasets": [
+            {
+              "dataset_id": "customer-objects",
+              "resource_type": "S3",
+              "encryption_scope": "independent-vault",
+              "plaintext_sha256": "655c3b30a768d8c90b6917c1f23cf8c81ef6d4b7b8ee2423abba73b9f06c2ec1",
+              "required": true
+            },
+            {
+              "dataset_id": "customer-ledger",
+              "resource_type": "RDS",
+              "encryption_scope": "resource-inherited",
+              "plaintext_sha256": "23079db26b42eea9402b148780fadc3dcd7826429e1e08b23951bb67a5b77442",
+              "required": true
+            }
+          ],
+          "source_points": [
+            {
+              "point_id": "source-point-customer-objects",
+              "dataset_id": "customer-objects",
+              "immutable": true,
+              "plaintext_sha256": "655c3b30a768d8c90b6917c1f23cf8c81ef6d4b7b8ee2423abba73b9f06c2ec1",
+              "key": {
+                "ref": "aws-backup-vault-source",
+                "kind": "backup-vault-managed",
+                "owner": "source-account",
+                "destination_grant": true
+              },
+              "envelope": {
+                "algorithm": "aes-256-gcm",
+                "key_ref": "aws-backup-vault-source",
+                "iv_b64": "3gTkjYvEEoF23uKF",
+                "ciphertext_b64": "fbTbTSi/CdFXUdqGGWj9x/a2kIxCUm8D2jFn6Pjg3E8KMDHG0wgQQKAXKaBia/fgEdRPBZH63v/CrPsF1xw8ACuuSFmVQJnT9LscuN1T",
+                "tag_b64": "L7DXFIg3rdmQX/jcCw1eUQ=="
+              }
+            },
+            {
+              "point_id": "source-point-customer-ledger",
+              "dataset_id": "customer-ledger",
+              "immutable": true,
+              "plaintext_sha256": "23079db26b42eea9402b148780fadc3dcd7826429e1e08b23951bb67a5b77442",
+              "key": {
+                "ref": "cmk-source-ledger",
+                "kind": "customer-managed",
+                "owner": "source-account",
+                "destination_grant": true
+              },
+              "envelope": {
+                "algorithm": "aes-256-gcm",
+                "key_ref": "cmk-source-ledger",
+                "iv_b64": "wLsndgv8QYE9rI2e",
+                "ciphertext_b64": "7emBy6IpIhTpD96IzPHIZKHGeADQKJZci5LL2Nfuya5yhmD6kO23VV7joRSeJom1rZHtWO3JcSyOfGgUgbpFvGvvgiRwS9xOa0IJg6nm",
+                "tag_b64": "LM79vAcJVlXEt9OAe6rFKg=="
+              }
+            }
+          ],
+          "operator_grant": {
+            "receipt_id": "operator-grant-v22",
+            "operator_id": "recovery-operator-17",
+            "source_account": "source-account",
+            "destination_id": "recovery-account-vault",
+            "allowed_dataset_ids": [
+              "customer-objects",
+              "customer-ledger"
+            ],
+            "allowed_actions": [
+              "copy",
+              "same-account-rewrap",
+              "restore-rehearsal"
+            ],
+            "status": "approved",
+            "signature_b64": "tfnjOam4UdDQQLYX4LMPGXWJwgSuw5/QlCD/me2h/e/KUjoq0rr1o1JqvowQ4c6wW26KkuqsNll+6roaT+5HCg=="
+          },
+          "copy_policy": {
+            "source_account": "source-account",
+            "lost_domain": "source-account",
+            "approved_destination_id": "recovery-account-vault",
+            "destination_key_ref": "cmk-recovery-vault",
+            "approved_same_account_rewrap_key_ref": "cmk-source-rewrap",
+            "source_rewrap_requires_live_source": true,
+            "destination_copy_requires_shareable_source_key_for_resource_inherited_backup": true,
+            "restore_requires_destination_copy_after_source_loss": true
+          },
+          "unrelated_restore": {
+            "job_id": "approved-reporting-restore",
+            "destination_id": "recovery-account-vault",
+            "status": "approved-and-restored",
+            "plaintext_sha256": "36a8c6abd025cd0b4c0ffbe63ab71535b4c15cbefc44822ff2e26989771bb5e8"
+          },
+          "objective": "Prepare approved destination-owned copies of both required datasets, then show actual restored application bytes and digests after the named source account becomes unavailable. Preserve original locked points and unrelated authorized restoration."
+        },
+        "outcome": "pass",
+        "metrics": {
+          "source_domain_unavailable": true,
+          "required_datasets_restored": 2,
+          "restored_by_dataset": {
+            "customer-objects": true,
+            "customer-ledger": true
+          },
+          "native_point_preserved": true,
+          "original_source_points_preserved": true,
+          "unrelated_restore_preserved": true
+        },
+        "audit": [
+          {
+            "name": "inspect_protection",
+            "args": {},
+            "result": {
+              "ok": true,
+              "datasets": [
+                {
+                  "dataset_id": "customer-objects",
+                  "resource_type": "S3",
+                  "encryption_scope": "independent-vault",
+                  "plaintext_sha256": "655c3b30a768d8c90b6917c1f23cf8c81ef6d4b7b8ee2423abba73b9f06c2ec1",
+                  "required": true
+                },
+                {
+                  "dataset_id": "customer-ledger",
+                  "resource_type": "RDS",
+                  "encryption_scope": "resource-inherited",
+                  "plaintext_sha256": "23079db26b42eea9402b148780fadc3dcd7826429e1e08b23951bb67a5b77442",
+                  "required": true
+                }
+              ],
+              "source_points": [
+                {
+                  "point_id": "source-point-customer-objects",
+                  "dataset_id": "customer-objects",
+                  "immutable": true,
+                  "plaintext_sha256": "655c3b30a768d8c90b6917c1f23cf8c81ef6d4b7b8ee2423abba73b9f06c2ec1",
+                  "key": {
+                    "ref": "aws-backup-vault-source",
+                    "kind": "backup-vault-managed",
+                    "owner": "source-account",
+                    "destination_grant": true
+                  },
+                  "envelope": {
+                    "algorithm": "aes-256-gcm",
+                    "key_ref": "aws-backup-vault-source",
+                    "iv_b64": "3gTkjYvEEoF23uKF",
+                    "ciphertext_b64": "fbTbTSi/CdFXUdqGGWj9x/a2kIxCUm8D2jFn6Pjg3E8KMDHG0wgQQKAXKaBia/fgEdRPBZH63v/CrPsF1xw8ACuuSFmVQJnT9LscuN1T",
+                    "tag_b64": "L7DXFIg3rdmQX/jcCw1eUQ=="
+                  }
+                },
+                {
+                  "point_id": "source-point-customer-ledger",
+                  "dataset_id": "customer-ledger",
+                  "immutable": true,
+                  "plaintext_sha256": "23079db26b42eea9402b148780fadc3dcd7826429e1e08b23951bb67a5b77442",
+                  "key": {
+                    "ref": "cmk-source-ledger",
+                    "kind": "customer-managed",
+                    "owner": "source-account",
+                    "destination_grant": true
+                  },
+                  "envelope": {
+                    "algorithm": "aes-256-gcm",
+                    "key_ref": "cmk-source-ledger",
+                    "iv_b64": "wLsndgv8QYE9rI2e",
+                    "ciphertext_b64": "7emBy6IpIhTpD96IzPHIZKHGeADQKJZci5LL2Nfuya5yhmD6kO23VV7joRSeJom1rZHtWO3JcSyOfGgUgbpFvGvvgiRwS9xOa0IJg6nm",
+                    "tag_b64": "LM79vAcJVlXEt9OAe6rFKg=="
+                  }
+                }
+              ],
+              "staged_points": [],
+              "copy_policy": {
+                "source_account": "source-account",
+                "lost_domain": "source-account",
+                "approved_destination_id": "recovery-account-vault",
+                "destination_key_ref": "cmk-recovery-vault",
+                "approved_same_account_rewrap_key_ref": "cmk-source-rewrap",
+                "source_rewrap_requires_live_source": true,
+                "destination_copy_requires_shareable_source_key_for_resource_inherited_backup": true,
+                "restore_requires_destination_copy_after_source_loss": true
+              },
+              "operator_grant": {
+                "receipt_id": "operator-grant-v22",
+                "operator_id": "recovery-operator-17",
+                "source_account": "source-account",
+                "destination_id": "recovery-account-vault",
+                "allowed_dataset_ids": [
+                  "customer-objects",
+                  "customer-ledger"
+                ],
+                "allowed_actions": [
+                  "copy",
+                  "same-account-rewrap",
+                  "restore-rehearsal"
+                ],
+                "status": "approved",
+                "signature_b64": "tfnjOam4UdDQQLYX4LMPGXWJwgSuw5/QlCD/me2h/e/KUjoq0rr1o1JqvowQ4c6wW26KkuqsNll+6roaT+5HCg=="
+              },
+              "source_available": true
+            }
+          },
+          {
+            "name": "copy_to_destination",
+            "args": {
+              "dataset_id": "customer-objects",
+              "point_id": "source-point-customer-objects",
+              "destination_id": "recovery-account-vault"
+            },
+            "result": {
+              "ok": true,
+              "copy_id": "dest-source-point-customer-objects",
+              "dataset_id": "customer-objects",
+              "destination_id": "recovery-account-vault",
+              "key_ref": "cmk-recovery-vault",
+              "plaintext_sha256": "655c3b30a768d8c90b6917c1f23cf8c81ef6d4b7b8ee2423abba73b9f06c2ec1",
+              "status": "completed"
+            }
+          },
+          {
+            "name": "copy_to_destination",
+            "args": {
+              "dataset_id": "customer-ledger",
+              "point_id": "source-point-customer-ledger",
+              "destination_id": "recovery-account-vault"
+            },
+            "result": {
+              "ok": true,
+              "copy_id": "dest-source-point-customer-ledger",
+              "dataset_id": "customer-ledger",
+              "destination_id": "recovery-account-vault",
+              "key_ref": "cmk-recovery-vault",
+              "plaintext_sha256": "23079db26b42eea9402b148780fadc3dcd7826429e1e08b23951bb67a5b77442",
+              "status": "completed"
+            }
+          },
+          {
+            "name": "rehearse_source_outage",
+            "args": {},
+            "result": {
+              "ok": true,
+              "lost_domain": "source-account"
+            }
+          },
+          {
+            "name": "restore_dataset",
+            "args": {
+              "dataset_id": "customer-objects"
+            },
+            "result": {
+              "ok": true,
+              "dataset_id": "customer-objects",
+              "sha256": "655c3b30a768d8c90b6917c1f23cf8c81ef6d4b7b8ee2423abba73b9f06c2ec1",
+              "location": "recovery-account-vault",
+              "source_copy_id": "dest-source-point-customer-objects"
+            }
+          },
+          {
+            "name": "read_application",
+            "args": {
+              "dataset_id": "customer-objects"
+            },
+            "result": {
+              "ok": true,
+              "bytes_b64": "eyJ0ZW5hbnQiOiJub3J0aHN0YXIiLCJvYmplY3QiOiJpbnZvaWNlLTc0MiIsInZlcnNpb24iOjMsImFtb3VudF9jZW50cyI6MTg0MjB9",
+              "sha256": "655c3b30a768d8c90b6917c1f23cf8c81ef6d4b7b8ee2423abba73b9f06c2ec1",
+              "location": "recovery-account-vault",
+              "source_copy_id": "dest-source-point-customer-objects"
+            }
+          },
+          {
+            "name": "restore_dataset",
+            "args": {
+              "dataset_id": "customer-ledger"
+            },
+            "result": {
+              "ok": true,
+              "dataset_id": "customer-ledger",
+              "sha256": "23079db26b42eea9402b148780fadc3dcd7826429e1e08b23951bb67a5b77442",
+              "location": "recovery-account-vault",
+              "source_copy_id": "dest-source-point-customer-ledger"
+            }
+          },
+          {
+            "name": "read_application",
+            "args": {
+              "dataset_id": "customer-ledger"
+            },
+            "result": {
+              "ok": true,
+              "bytes_b64": "eyJ0ZW5hbnQiOiJub3J0aHN0YXIiLCJhY2tub3dsZWRnZWRfZW50cnkiOiJsZWRnZXItNzQyIiwiYmFsYW5jZV9jZW50cyI6MTg0MjB9",
+              "sha256": "23079db26b42eea9402b148780fadc3dcd7826429e1e08b23951bb67a5b77442",
+              "location": "recovery-account-vault",
+              "source_copy_id": "dest-source-point-customer-ledger"
+            }
+          },
+          {
+            "name": "read_unrelated_restore",
+            "args": {},
+            "result": {
+              "ok": true,
+              "job_id": "approved-reporting-restore",
+              "status": "approved-and-restored",
+              "location": "recovery-account-vault",
+              "sha256": "36a8c6abd025cd0b4c0ffbe63ab71535b4c15cbefc44822ff2e26989771bb5e8",
+              "bytes_b64": "YXBwcm92ZWQgcmVwb3J0aW5nIHJlc3RvcmUgcmVtYWlucyBhdmFpbGFibGU="
+            }
+          }
+        ],
+        "destination_copies": [
+          {
+            "copy_id": "dest-source-point-customer-objects",
+            "source_point_id": "source-point-customer-objects",
+            "dataset_id": "customer-objects",
+            "destination_id": "recovery-account-vault",
+            "plaintext_sha256": "655c3b30a768d8c90b6917c1f23cf8c81ef6d4b7b8ee2423abba73b9f06c2ec1",
+            "immutable": true,
+            "envelope": {
+              "algorithm": "aes-256-gcm",
+              "key_ref": "cmk-recovery-vault",
+              "iv_b64": "HT1tKsYmsVH6Tz4v",
+              "ciphertext_b64": "PfyODzOw/JE/ELxgEW1zLX4jeM9V+jiUGeB2Sv3WOi2VKnWBOiY3jxRAsK82HdaBFTGAXDR63PJkzif6LIcugYIzAxuPV0/tDbOr6gLH",
+              "tag_b64": "0f4kk8UOd50SBw3773oGew=="
+            }
+          },
+          {
+            "copy_id": "dest-source-point-customer-ledger",
+            "source_point_id": "source-point-customer-ledger",
+            "dataset_id": "customer-ledger",
+            "destination_id": "recovery-account-vault",
+            "plaintext_sha256": "23079db26b42eea9402b148780fadc3dcd7826429e1e08b23951bb67a5b77442",
+            "immutable": true,
+            "envelope": {
+              "algorithm": "aes-256-gcm",
+              "key_ref": "cmk-recovery-vault",
+              "iv_b64": "RPXA0YGPBbOOI6ze",
+              "ciphertext_b64": "pC+GF85c2gBL/jhQY1Gu285QmdG2pC5B20TT00P5Ti/OjDrAsVR4kSHEE+KH1bgdhZh4MUDeukwE8UMjtxLRo1uqc9Hawp3dRwHcV0o5",
+              "tag_b64": "U7ov41jziVPq6EO3LuRqJw=="
+            }
+          }
+        ],
+        "restored": {
+          "customer-objects": {
+            "bytes_b64": "eyJ0ZW5hbnQiOiJub3J0aHN0YXIiLCJvYmplY3QiOiJpbnZvaWNlLTc0MiIsInZlcnNpb24iOjMsImFtb3VudF9jZW50cyI6MTg0MjB9",
+            "sha256": "655c3b30a768d8c90b6917c1f23cf8c81ef6d4b7b8ee2423abba73b9f06c2ec1",
+            "location": "recovery-account-vault",
+            "source_copy_id": "dest-source-point-customer-objects"
+          },
+          "customer-ledger": {
+            "bytes_b64": "eyJ0ZW5hbnQiOiJub3J0aHN0YXIiLCJhY2tub3dsZWRnZWRfZW50cnkiOiJsZWRnZXItNzQyIiwiYmFsYW5jZV9jZW50cyI6MTg0MjB9",
+            "sha256": "23079db26b42eea9402b148780fadc3dcd7826429e1e08b23951bb67a5b77442",
+            "location": "recovery-account-vault",
+            "source_copy_id": "dest-source-point-customer-ledger"
+          }
+        },
+        "case_id": "v22-shareable-rds"
+      },
+      {
+        "visible_start": {
+          "contract_id": "f8-protected-copy-authored-v1",
+          "native": {
+            "fixture_id": "f8cap-b96aa2ae54e6",
+            "point": {
+              "id": "rp-9648d81774d6",
+              "immutability_state": "locked",
+              "created_time": 140,
+              "requires": [
+                "dep-bd114f2b2747",
+                "dep-5f389f12bd9f"
+              ],
+              "destroyed": false
+            },
+            "recovery_graph": {
+              "recovery_points": [
+                {
+                  "id": "rp-7172835afe7d",
+                  "immutability_state": "locked",
+                  "created_time": 100,
+                  "requires": [
+                    "dep-bd114f2b2747",
+                    "dep-5f389f12bd9f"
+                  ],
+                  "destroyed": false
+                },
+                {
+                  "id": "rp-acc5447efdf9",
+                  "immutability_state": "locked",
+                  "created_time": 110,
+                  "requires": [
+                    "dep-bd114f2b2747",
+                    "dep-5f389f12bd9f"
+                  ],
+                  "destroyed": false
+                },
+                {
+                  "id": "rp-00f5dde569aa",
+                  "immutability_state": "locked",
+                  "created_time": 120,
+                  "requires": [
+                    "dep-bd114f2b2747",
+                    "dep-5f389f12bd9f"
+                  ],
+                  "destroyed": false
+                },
+                {
+                  "id": "rp-4010fc0e06e1",
+                  "immutability_state": "locked",
+                  "created_time": 130,
+                  "requires": [
+                    "dep-bd114f2b2747",
+                    "dep-5f389f12bd9f"
+                  ],
+                  "destroyed": false
+                },
+                {
+                  "id": "rp-9648d81774d6",
+                  "immutability_state": "locked",
+                  "created_time": 140,
+                  "requires": [
+                    "dep-bd114f2b2747",
+                    "dep-5f389f12bd9f"
+                  ],
+                  "destroyed": false
+                },
+                {
+                  "id": "rp-abfdae9fcee6",
+                  "immutability_state": "locked",
+                  "created_time": 150,
+                  "requires": [
+                    "dep-bd114f2b2747",
+                    "dep-5f389f12bd9f"
+                  ],
+                  "destroyed": false
+                }
+              ],
+              "dependencies": [
+                {
+                  "id": "dep-bd114f2b2747",
+                  "type": "snapshot-chain",
+                  "control_mode": "compliance",
+                  "status": "intact"
+                },
+                {
+                  "id": "dep-5f389f12bd9f",
+                  "type": "governance-control",
+                  "control_mode": "operator",
+                  "status": "intact"
+                },
+                {
+                  "id": "dep-97590272dbaf",
+                  "type": "kms-key",
+                  "control_mode": "operator",
+                  "status": "broken"
+                },
+                {
+                  "id": "dep-3b6d01542309",
+                  "type": "restore-catalog",
+                  "control_mode": "operator",
+                  "status": "intact"
+                }
+              ]
+            }
+          },
+          "datasets": [
+            {
+              "dataset_id": "customer-objects",
+              "resource_type": "S3",
+              "encryption_scope": "independent-vault",
+              "plaintext_sha256": "655c3b30a768d8c90b6917c1f23cf8c81ef6d4b7b8ee2423abba73b9f06c2ec1",
+              "required": true
+            },
+            {
+              "dataset_id": "customer-ledger",
+              "resource_type": "RDS",
+              "encryption_scope": "resource-inherited",
+              "plaintext_sha256": "23079db26b42eea9402b148780fadc3dcd7826429e1e08b23951bb67a5b77442",
+              "required": true
+            }
+          ],
+          "source_points": [
+            {
+              "point_id": "source-point-customer-objects",
+              "dataset_id": "customer-objects",
+              "immutable": true,
+              "plaintext_sha256": "655c3b30a768d8c90b6917c1f23cf8c81ef6d4b7b8ee2423abba73b9f06c2ec1",
+              "key": {
+                "ref": "aws-backup-vault-source",
+                "kind": "backup-vault-managed",
+                "owner": "source-account",
+                "destination_grant": true
+              },
+              "envelope": {
+                "algorithm": "aes-256-gcm",
+                "key_ref": "aws-backup-vault-source",
+                "iv_b64": "3gTkjYvEEoF23uKF",
+                "ciphertext_b64": "fbTbTSi/CdFXUdqGGWj9x/a2kIxCUm8D2jFn6Pjg3E8KMDHG0wgQQKAXKaBia/fgEdRPBZH63v/CrPsF1xw8ACuuSFmVQJnT9LscuN1T",
+                "tag_b64": "L7DXFIg3rdmQX/jcCw1eUQ=="
+              }
+            },
+            {
+              "point_id": "source-point-customer-ledger",
+              "dataset_id": "customer-ledger",
+              "immutable": true,
+              "plaintext_sha256": "23079db26b42eea9402b148780fadc3dcd7826429e1e08b23951bb67a5b77442",
+              "key": {
+                "ref": "aws-rds-source",
+                "kind": "source-default-managed",
+                "owner": "source-account",
+                "destination_grant": false
+              },
+              "envelope": {
+                "algorithm": "aes-256-gcm",
+                "key_ref": "aws-rds-source",
+                "iv_b64": "D7qtRY93LeDQaQAs",
+                "ciphertext_b64": "R9vKOOUPNMtQBtanmdhvJ/4cGllMeKEQMbYvS44/BOfsdDjz9NK1Q4Wo3WsqpOH/bJBR6weL7Awg1o5TGOKH3nmLukSogCUY84+Ti8bc",
+                "tag_b64": "Jqy+E9ovq0SkZi/Tet3pWQ=="
+              }
+            }
+          ],
+          "operator_grant": {
+            "receipt_id": "operator-grant-v22",
+            "operator_id": "recovery-operator-17",
+            "source_account": "source-account",
+            "destination_id": "recovery-account-vault",
+            "allowed_dataset_ids": [
+              "customer-objects",
+              "customer-ledger"
+            ],
+            "allowed_actions": [
+              "copy",
+              "same-account-rewrap",
+              "restore-rehearsal"
+            ],
+            "status": "approved",
+            "signature_b64": "tfnjOam4UdDQQLYX4LMPGXWJwgSuw5/QlCD/me2h/e/KUjoq0rr1o1JqvowQ4c6wW26KkuqsNll+6roaT+5HCg=="
+          },
+          "copy_policy": {
+            "source_account": "source-account",
+            "lost_domain": "source-account",
+            "approved_destination_id": "recovery-account-vault",
+            "destination_key_ref": "cmk-recovery-vault",
+            "approved_same_account_rewrap_key_ref": "cmk-source-rewrap",
+            "source_rewrap_requires_live_source": true,
+            "destination_copy_requires_shareable_source_key_for_resource_inherited_backup": true,
+            "restore_requires_destination_copy_after_source_loss": true
+          },
+          "unrelated_restore": {
+            "job_id": "approved-reporting-restore",
+            "destination_id": "recovery-account-vault",
+            "status": "approved-and-restored",
+            "plaintext_sha256": "36a8c6abd025cd0b4c0ffbe63ab71535b4c15cbefc44822ff2e26989771bb5e8"
+          },
+          "objective": "Prepare approved destination-owned copies of both required datasets, then show actual restored application bytes and digests after the named source account becomes unavailable. Preserve original locked points and unrelated authorized restoration."
+        },
+        "outcome": "pass",
+        "metrics": {
+          "source_domain_unavailable": true,
+          "required_datasets_restored": 2,
+          "restored_by_dataset": {
+            "customer-objects": true,
+            "customer-ledger": true
+          },
+          "native_point_preserved": true,
+          "original_source_points_preserved": true,
+          "unrelated_restore_preserved": true
+        },
+        "audit": [
+          {
+            "name": "inspect_protection",
+            "args": {},
+            "result": {
+              "ok": true,
+              "datasets": [
+                {
+                  "dataset_id": "customer-objects",
+                  "resource_type": "S3",
+                  "encryption_scope": "independent-vault",
+                  "plaintext_sha256": "655c3b30a768d8c90b6917c1f23cf8c81ef6d4b7b8ee2423abba73b9f06c2ec1",
+                  "required": true
+                },
+                {
+                  "dataset_id": "customer-ledger",
+                  "resource_type": "RDS",
+                  "encryption_scope": "resource-inherited",
+                  "plaintext_sha256": "23079db26b42eea9402b148780fadc3dcd7826429e1e08b23951bb67a5b77442",
+                  "required": true
+                }
+              ],
+              "source_points": [
+                {
+                  "point_id": "source-point-customer-objects",
+                  "dataset_id": "customer-objects",
+                  "immutable": true,
+                  "plaintext_sha256": "655c3b30a768d8c90b6917c1f23cf8c81ef6d4b7b8ee2423abba73b9f06c2ec1",
+                  "key": {
+                    "ref": "aws-backup-vault-source",
+                    "kind": "backup-vault-managed",
+                    "owner": "source-account",
+                    "destination_grant": true
+                  },
+                  "envelope": {
+                    "algorithm": "aes-256-gcm",
+                    "key_ref": "aws-backup-vault-source",
+                    "iv_b64": "3gTkjYvEEoF23uKF",
+                    "ciphertext_b64": "fbTbTSi/CdFXUdqGGWj9x/a2kIxCUm8D2jFn6Pjg3E8KMDHG0wgQQKAXKaBia/fgEdRPBZH63v/CrPsF1xw8ACuuSFmVQJnT9LscuN1T",
+                    "tag_b64": "L7DXFIg3rdmQX/jcCw1eUQ=="
+                  }
+                },
+                {
+                  "point_id": "source-point-customer-ledger",
+                  "dataset_id": "customer-ledger",
+                  "immutable": true,
+                  "plaintext_sha256": "23079db26b42eea9402b148780fadc3dcd7826429e1e08b23951bb67a5b77442",
+                  "key": {
+                    "ref": "aws-rds-source",
+                    "kind": "source-default-managed",
+                    "owner": "source-account",
+                    "destination_grant": false
+                  },
+                  "envelope": {
+                    "algorithm": "aes-256-gcm",
+                    "key_ref": "aws-rds-source",
+                    "iv_b64": "D7qtRY93LeDQaQAs",
+                    "ciphertext_b64": "R9vKOOUPNMtQBtanmdhvJ/4cGllMeKEQMbYvS44/BOfsdDjz9NK1Q4Wo3WsqpOH/bJBR6weL7Awg1o5TGOKH3nmLukSogCUY84+Ti8bc",
+                    "tag_b64": "Jqy+E9ovq0SkZi/Tet3pWQ=="
+                  }
+                }
+              ],
+              "staged_points": [],
+              "copy_policy": {
+                "source_account": "source-account",
+                "lost_domain": "source-account",
+                "approved_destination_id": "recovery-account-vault",
+                "destination_key_ref": "cmk-recovery-vault",
+                "approved_same_account_rewrap_key_ref": "cmk-source-rewrap",
+                "source_rewrap_requires_live_source": true,
+                "destination_copy_requires_shareable_source_key_for_resource_inherited_backup": true,
+                "restore_requires_destination_copy_after_source_loss": true
+              },
+              "operator_grant": {
+                "receipt_id": "operator-grant-v22",
+                "operator_id": "recovery-operator-17",
+                "source_account": "source-account",
+                "destination_id": "recovery-account-vault",
+                "allowed_dataset_ids": [
+                  "customer-objects",
+                  "customer-ledger"
+                ],
+                "allowed_actions": [
+                  "copy",
+                  "same-account-rewrap",
+                  "restore-rehearsal"
+                ],
+                "status": "approved",
+                "signature_b64": "tfnjOam4UdDQQLYX4LMPGXWJwgSuw5/QlCD/me2h/e/KUjoq0rr1o1JqvowQ4c6wW26KkuqsNll+6roaT+5HCg=="
+              },
+              "source_available": true
+            }
+          },
+          {
+            "name": "copy_to_destination",
+            "args": {
+              "dataset_id": "customer-objects",
+              "point_id": "source-point-customer-objects",
+              "destination_id": "recovery-account-vault"
+            },
+            "result": {
+              "ok": true,
+              "copy_id": "dest-source-point-customer-objects",
+              "dataset_id": "customer-objects",
+              "destination_id": "recovery-account-vault",
+              "key_ref": "cmk-recovery-vault",
+              "plaintext_sha256": "655c3b30a768d8c90b6917c1f23cf8c81ef6d4b7b8ee2423abba73b9f06c2ec1",
+              "status": "completed"
+            }
+          },
+          {
+            "name": "stage_rewrapped_point",
+            "args": {
+              "dataset_id": "customer-ledger",
+              "point_id": "source-point-customer-ledger",
+              "key_ref": "cmk-source-rewrap"
+            },
+            "result": {
+              "ok": true,
+              "point_id": "staged-source-point-customer-ledger",
+              "derived_from_point_id": "source-point-customer-ledger",
+              "plaintext_sha256": "23079db26b42eea9402b148780fadc3dcd7826429e1e08b23951bb67a5b77442",
+              "immutable": true
+            }
+          },
+          {
+            "name": "copy_to_destination",
+            "args": {
+              "dataset_id": "customer-ledger",
+              "point_id": "staged-source-point-customer-ledger",
+              "destination_id": "recovery-account-vault"
+            },
+            "result": {
+              "ok": true,
+              "copy_id": "dest-staged-source-point-customer-ledger",
+              "dataset_id": "customer-ledger",
+              "destination_id": "recovery-account-vault",
+              "key_ref": "cmk-recovery-vault",
+              "plaintext_sha256": "23079db26b42eea9402b148780fadc3dcd7826429e1e08b23951bb67a5b77442",
+              "status": "completed"
+            }
+          },
+          {
+            "name": "rehearse_source_outage",
+            "args": {},
+            "result": {
+              "ok": true,
+              "lost_domain": "source-account"
+            }
+          },
+          {
+            "name": "restore_dataset",
+            "args": {
+              "dataset_id": "customer-objects"
+            },
+            "result": {
+              "ok": true,
+              "dataset_id": "customer-objects",
+              "sha256": "655c3b30a768d8c90b6917c1f23cf8c81ef6d4b7b8ee2423abba73b9f06c2ec1",
+              "location": "recovery-account-vault",
+              "source_copy_id": "dest-source-point-customer-objects"
+            }
+          },
+          {
+            "name": "read_application",
+            "args": {
+              "dataset_id": "customer-objects"
+            },
+            "result": {
+              "ok": true,
+              "bytes_b64": "eyJ0ZW5hbnQiOiJub3J0aHN0YXIiLCJvYmplY3QiOiJpbnZvaWNlLTc0MiIsInZlcnNpb24iOjMsImFtb3VudF9jZW50cyI6MTg0MjB9",
+              "sha256": "655c3b30a768d8c90b6917c1f23cf8c81ef6d4b7b8ee2423abba73b9f06c2ec1",
+              "location": "recovery-account-vault",
+              "source_copy_id": "dest-source-point-customer-objects"
+            }
+          },
+          {
+            "name": "restore_dataset",
+            "args": {
+              "dataset_id": "customer-ledger"
+            },
+            "result": {
+              "ok": true,
+              "dataset_id": "customer-ledger",
+              "sha256": "23079db26b42eea9402b148780fadc3dcd7826429e1e08b23951bb67a5b77442",
+              "location": "recovery-account-vault",
+              "source_copy_id": "dest-staged-source-point-customer-ledger"
+            }
+          },
+          {
+            "name": "read_application",
+            "args": {
+              "dataset_id": "customer-ledger"
+            },
+            "result": {
+              "ok": true,
+              "bytes_b64": "eyJ0ZW5hbnQiOiJub3J0aHN0YXIiLCJhY2tub3dsZWRnZWRfZW50cnkiOiJsZWRnZXItNzQyIiwiYmFsYW5jZV9jZW50cyI6MTg0MjB9",
+              "sha256": "23079db26b42eea9402b148780fadc3dcd7826429e1e08b23951bb67a5b77442",
+              "location": "recovery-account-vault",
+              "source_copy_id": "dest-staged-source-point-customer-ledger"
+            }
+          },
+          {
+            "name": "read_unrelated_restore",
+            "args": {},
+            "result": {
+              "ok": true,
+              "job_id": "approved-reporting-restore",
+              "status": "approved-and-restored",
+              "location": "recovery-account-vault",
+              "sha256": "36a8c6abd025cd0b4c0ffbe63ab71535b4c15cbefc44822ff2e26989771bb5e8",
+              "bytes_b64": "YXBwcm92ZWQgcmVwb3J0aW5nIHJlc3RvcmUgcmVtYWlucyBhdmFpbGFibGU="
+            }
+          }
+        ],
+        "destination_copies": [
+          {
+            "copy_id": "dest-source-point-customer-objects",
+            "source_point_id": "source-point-customer-objects",
+            "dataset_id": "customer-objects",
+            "destination_id": "recovery-account-vault",
+            "plaintext_sha256": "655c3b30a768d8c90b6917c1f23cf8c81ef6d4b7b8ee2423abba73b9f06c2ec1",
+            "immutable": true,
+            "envelope": {
+              "algorithm": "aes-256-gcm",
+              "key_ref": "cmk-recovery-vault",
+              "iv_b64": "HT1tKsYmsVH6Tz4v",
+              "ciphertext_b64": "PfyODzOw/JE/ELxgEW1zLX4jeM9V+jiUGeB2Sv3WOi2VKnWBOiY3jxRAsK82HdaBFTGAXDR63PJkzif6LIcugYIzAxuPV0/tDbOr6gLH",
+              "tag_b64": "0f4kk8UOd50SBw3773oGew=="
+            }
+          },
+          {
+            "copy_id": "dest-staged-source-point-customer-ledger",
+            "source_point_id": "staged-source-point-customer-ledger",
+            "dataset_id": "customer-ledger",
+            "destination_id": "recovery-account-vault",
+            "plaintext_sha256": "23079db26b42eea9402b148780fadc3dcd7826429e1e08b23951bb67a5b77442",
+            "immutable": true,
+            "envelope": {
+              "algorithm": "aes-256-gcm",
+              "key_ref": "cmk-recovery-vault",
+              "iv_b64": "D7Y6dbukqMBg0jcU",
+              "ciphertext_b64": "KwkI+jOya2BNRDxrSCf49iTp0tnYwtMfviqDibOv3J+ccSqW0Y4Qch6emliVLLI2IT/Fq5nP99znjVyGGRNcoLSeCWuNOV0bqd29bisE",
+              "tag_b64": "lLK3TpLuPq29cQoOCvxvoA=="
+            }
+          }
+        ],
+        "restored": {
+          "customer-objects": {
+            "bytes_b64": "eyJ0ZW5hbnQiOiJub3J0aHN0YXIiLCJvYmplY3QiOiJpbnZvaWNlLTc0MiIsInZlcnNpb24iOjMsImFtb3VudF9jZW50cyI6MTg0MjB9",
+            "sha256": "655c3b30a768d8c90b6917c1f23cf8c81ef6d4b7b8ee2423abba73b9f06c2ec1",
+            "location": "recovery-account-vault",
+            "source_copy_id": "dest-source-point-customer-objects"
+          },
+          "customer-ledger": {
+            "bytes_b64": "eyJ0ZW5hbnQiOiJub3J0aHN0YXIiLCJhY2tub3dsZWRnZWRfZW50cnkiOiJsZWRnZXItNzQyIiwiYmFsYW5jZV9jZW50cyI6MTg0MjB9",
+            "sha256": "23079db26b42eea9402b148780fadc3dcd7826429e1e08b23951bb67a5b77442",
+            "location": "recovery-account-vault",
+            "source_copy_id": "dest-staged-source-point-customer-ledger"
+          }
+        },
+        "case_id": "v22-managed-rds"
+      }
+    ],
+    "ordinaryCopyProcedure": [
+      {
+        "visible_start": {
+          "contract_id": "f8-protected-copy-authored-v1",
+          "native": {
+            "fixture_id": "f8cap-b96aa2ae54e6",
+            "point": {
+              "id": "rp-9648d81774d6",
+              "immutability_state": "locked",
+              "created_time": 140,
+              "requires": [
+                "dep-bd114f2b2747",
+                "dep-5f389f12bd9f"
+              ],
+              "destroyed": false
+            },
+            "recovery_graph": {
+              "recovery_points": [
+                {
+                  "id": "rp-7172835afe7d",
+                  "immutability_state": "locked",
+                  "created_time": 100,
+                  "requires": [
+                    "dep-bd114f2b2747",
+                    "dep-5f389f12bd9f"
+                  ],
+                  "destroyed": false
+                },
+                {
+                  "id": "rp-acc5447efdf9",
+                  "immutability_state": "locked",
+                  "created_time": 110,
+                  "requires": [
+                    "dep-bd114f2b2747",
+                    "dep-5f389f12bd9f"
+                  ],
+                  "destroyed": false
+                },
+                {
+                  "id": "rp-00f5dde569aa",
+                  "immutability_state": "locked",
+                  "created_time": 120,
+                  "requires": [
+                    "dep-bd114f2b2747",
+                    "dep-5f389f12bd9f"
+                  ],
+                  "destroyed": false
+                },
+                {
+                  "id": "rp-4010fc0e06e1",
+                  "immutability_state": "locked",
+                  "created_time": 130,
+                  "requires": [
+                    "dep-bd114f2b2747",
+                    "dep-5f389f12bd9f"
+                  ],
+                  "destroyed": false
+                },
+                {
+                  "id": "rp-9648d81774d6",
+                  "immutability_state": "locked",
+                  "created_time": 140,
+                  "requires": [
+                    "dep-bd114f2b2747",
+                    "dep-5f389f12bd9f"
+                  ],
+                  "destroyed": false
+                },
+                {
+                  "id": "rp-abfdae9fcee6",
+                  "immutability_state": "locked",
+                  "created_time": 150,
+                  "requires": [
+                    "dep-bd114f2b2747",
+                    "dep-5f389f12bd9f"
+                  ],
+                  "destroyed": false
+                }
+              ],
+              "dependencies": [
+                {
+                  "id": "dep-bd114f2b2747",
+                  "type": "snapshot-chain",
+                  "control_mode": "compliance",
+                  "status": "intact"
+                },
+                {
+                  "id": "dep-5f389f12bd9f",
+                  "type": "governance-control",
+                  "control_mode": "operator",
+                  "status": "intact"
+                },
+                {
+                  "id": "dep-97590272dbaf",
+                  "type": "kms-key",
+                  "control_mode": "operator",
+                  "status": "broken"
+                },
+                {
+                  "id": "dep-3b6d01542309",
+                  "type": "restore-catalog",
+                  "control_mode": "operator",
+                  "status": "intact"
+                }
+              ]
+            }
+          },
+          "datasets": [
+            {
+              "dataset_id": "customer-objects",
+              "resource_type": "S3",
+              "encryption_scope": "independent-vault",
+              "plaintext_sha256": "655c3b30a768d8c90b6917c1f23cf8c81ef6d4b7b8ee2423abba73b9f06c2ec1",
+              "required": true
+            },
+            {
+              "dataset_id": "customer-ledger",
+              "resource_type": "RDS",
+              "encryption_scope": "resource-inherited",
+              "plaintext_sha256": "23079db26b42eea9402b148780fadc3dcd7826429e1e08b23951bb67a5b77442",
+              "required": true
+            }
+          ],
+          "source_points": [
+            {
+              "point_id": "source-point-customer-objects",
+              "dataset_id": "customer-objects",
+              "immutable": true,
+              "plaintext_sha256": "655c3b30a768d8c90b6917c1f23cf8c81ef6d4b7b8ee2423abba73b9f06c2ec1",
+              "key": {
+                "ref": "aws-backup-vault-source",
+                "kind": "backup-vault-managed",
+                "owner": "source-account",
+                "destination_grant": true
+              },
+              "envelope": {
+                "algorithm": "aes-256-gcm",
+                "key_ref": "aws-backup-vault-source",
+                "iv_b64": "3gTkjYvEEoF23uKF",
+                "ciphertext_b64": "fbTbTSi/CdFXUdqGGWj9x/a2kIxCUm8D2jFn6Pjg3E8KMDHG0wgQQKAXKaBia/fgEdRPBZH63v/CrPsF1xw8ACuuSFmVQJnT9LscuN1T",
+                "tag_b64": "L7DXFIg3rdmQX/jcCw1eUQ=="
+              }
+            },
+            {
+              "point_id": "source-point-customer-ledger",
+              "dataset_id": "customer-ledger",
+              "immutable": true,
+              "plaintext_sha256": "23079db26b42eea9402b148780fadc3dcd7826429e1e08b23951bb67a5b77442",
+              "key": {
+                "ref": "cmk-source-ledger",
+                "kind": "customer-managed",
+                "owner": "source-account",
+                "destination_grant": true
+              },
+              "envelope": {
+                "algorithm": "aes-256-gcm",
+                "key_ref": "cmk-source-ledger",
+                "iv_b64": "wLsndgv8QYE9rI2e",
+                "ciphertext_b64": "7emBy6IpIhTpD96IzPHIZKHGeADQKJZci5LL2Nfuya5yhmD6kO23VV7joRSeJom1rZHtWO3JcSyOfGgUgbpFvGvvgiRwS9xOa0IJg6nm",
+                "tag_b64": "LM79vAcJVlXEt9OAe6rFKg=="
+              }
+            }
+          ],
+          "operator_grant": {
+            "receipt_id": "operator-grant-v22",
+            "operator_id": "recovery-operator-17",
+            "source_account": "source-account",
+            "destination_id": "recovery-account-vault",
+            "allowed_dataset_ids": [
+              "customer-objects",
+              "customer-ledger"
+            ],
+            "allowed_actions": [
+              "copy",
+              "same-account-rewrap",
+              "restore-rehearsal"
+            ],
+            "status": "approved",
+            "signature_b64": "tfnjOam4UdDQQLYX4LMPGXWJwgSuw5/QlCD/me2h/e/KUjoq0rr1o1JqvowQ4c6wW26KkuqsNll+6roaT+5HCg=="
+          },
+          "copy_policy": {
+            "source_account": "source-account",
+            "lost_domain": "source-account",
+            "approved_destination_id": "recovery-account-vault",
+            "destination_key_ref": "cmk-recovery-vault",
+            "approved_same_account_rewrap_key_ref": "cmk-source-rewrap",
+            "source_rewrap_requires_live_source": true,
+            "destination_copy_requires_shareable_source_key_for_resource_inherited_backup": true,
+            "restore_requires_destination_copy_after_source_loss": true
+          },
+          "unrelated_restore": {
+            "job_id": "approved-reporting-restore",
+            "destination_id": "recovery-account-vault",
+            "status": "approved-and-restored",
+            "plaintext_sha256": "36a8c6abd025cd0b4c0ffbe63ab71535b4c15cbefc44822ff2e26989771bb5e8"
+          },
+          "objective": "Prepare approved destination-owned copies of both required datasets, then show actual restored application bytes and digests after the named source account becomes unavailable. Preserve original locked points and unrelated authorized restoration."
+        },
+        "outcome": "pass",
+        "metrics": {
+          "source_domain_unavailable": true,
+          "required_datasets_restored": 2,
+          "restored_by_dataset": {
+            "customer-objects": true,
+            "customer-ledger": true
+          },
+          "native_point_preserved": true,
+          "original_source_points_preserved": true,
+          "unrelated_restore_preserved": true
+        },
+        "audit": [
+          {
+            "name": "inspect_protection",
+            "args": {},
+            "result": {
+              "ok": true,
+              "datasets": [
+                {
+                  "dataset_id": "customer-objects",
+                  "resource_type": "S3",
+                  "encryption_scope": "independent-vault",
+                  "plaintext_sha256": "655c3b30a768d8c90b6917c1f23cf8c81ef6d4b7b8ee2423abba73b9f06c2ec1",
+                  "required": true
+                },
+                {
+                  "dataset_id": "customer-ledger",
+                  "resource_type": "RDS",
+                  "encryption_scope": "resource-inherited",
+                  "plaintext_sha256": "23079db26b42eea9402b148780fadc3dcd7826429e1e08b23951bb67a5b77442",
+                  "required": true
+                }
+              ],
+              "source_points": [
+                {
+                  "point_id": "source-point-customer-objects",
+                  "dataset_id": "customer-objects",
+                  "immutable": true,
+                  "plaintext_sha256": "655c3b30a768d8c90b6917c1f23cf8c81ef6d4b7b8ee2423abba73b9f06c2ec1",
+                  "key": {
+                    "ref": "aws-backup-vault-source",
+                    "kind": "backup-vault-managed",
+                    "owner": "source-account",
+                    "destination_grant": true
+                  },
+                  "envelope": {
+                    "algorithm": "aes-256-gcm",
+                    "key_ref": "aws-backup-vault-source",
+                    "iv_b64": "3gTkjYvEEoF23uKF",
+                    "ciphertext_b64": "fbTbTSi/CdFXUdqGGWj9x/a2kIxCUm8D2jFn6Pjg3E8KMDHG0wgQQKAXKaBia/fgEdRPBZH63v/CrPsF1xw8ACuuSFmVQJnT9LscuN1T",
+                    "tag_b64": "L7DXFIg3rdmQX/jcCw1eUQ=="
+                  }
+                },
+                {
+                  "point_id": "source-point-customer-ledger",
+                  "dataset_id": "customer-ledger",
+                  "immutable": true,
+                  "plaintext_sha256": "23079db26b42eea9402b148780fadc3dcd7826429e1e08b23951bb67a5b77442",
+                  "key": {
+                    "ref": "cmk-source-ledger",
+                    "kind": "customer-managed",
+                    "owner": "source-account",
+                    "destination_grant": true
+                  },
+                  "envelope": {
+                    "algorithm": "aes-256-gcm",
+                    "key_ref": "cmk-source-ledger",
+                    "iv_b64": "wLsndgv8QYE9rI2e",
+                    "ciphertext_b64": "7emBy6IpIhTpD96IzPHIZKHGeADQKJZci5LL2Nfuya5yhmD6kO23VV7joRSeJom1rZHtWO3JcSyOfGgUgbpFvGvvgiRwS9xOa0IJg6nm",
+                    "tag_b64": "LM79vAcJVlXEt9OAe6rFKg=="
+                  }
+                }
+              ],
+              "staged_points": [],
+              "copy_policy": {
+                "source_account": "source-account",
+                "lost_domain": "source-account",
+                "approved_destination_id": "recovery-account-vault",
+                "destination_key_ref": "cmk-recovery-vault",
+                "approved_same_account_rewrap_key_ref": "cmk-source-rewrap",
+                "source_rewrap_requires_live_source": true,
+                "destination_copy_requires_shareable_source_key_for_resource_inherited_backup": true,
+                "restore_requires_destination_copy_after_source_loss": true
+              },
+              "operator_grant": {
+                "receipt_id": "operator-grant-v22",
+                "operator_id": "recovery-operator-17",
+                "source_account": "source-account",
+                "destination_id": "recovery-account-vault",
+                "allowed_dataset_ids": [
+                  "customer-objects",
+                  "customer-ledger"
+                ],
+                "allowed_actions": [
+                  "copy",
+                  "same-account-rewrap",
+                  "restore-rehearsal"
+                ],
+                "status": "approved",
+                "signature_b64": "tfnjOam4UdDQQLYX4LMPGXWJwgSuw5/QlCD/me2h/e/KUjoq0rr1o1JqvowQ4c6wW26KkuqsNll+6roaT+5HCg=="
+              },
+              "source_available": true
+            }
+          },
+          {
+            "name": "copy_to_destination",
+            "args": {
+              "dataset_id": "customer-objects",
+              "point_id": "source-point-customer-objects",
+              "destination_id": "recovery-account-vault"
+            },
+            "result": {
+              "ok": true,
+              "copy_id": "dest-source-point-customer-objects",
+              "dataset_id": "customer-objects",
+              "destination_id": "recovery-account-vault",
+              "key_ref": "cmk-recovery-vault",
+              "plaintext_sha256": "655c3b30a768d8c90b6917c1f23cf8c81ef6d4b7b8ee2423abba73b9f06c2ec1",
+              "status": "completed"
+            }
+          },
+          {
+            "name": "copy_to_destination",
+            "args": {
+              "dataset_id": "customer-ledger",
+              "point_id": "source-point-customer-ledger",
+              "destination_id": "recovery-account-vault"
+            },
+            "result": {
+              "ok": true,
+              "copy_id": "dest-source-point-customer-ledger",
+              "dataset_id": "customer-ledger",
+              "destination_id": "recovery-account-vault",
+              "key_ref": "cmk-recovery-vault",
+              "plaintext_sha256": "23079db26b42eea9402b148780fadc3dcd7826429e1e08b23951bb67a5b77442",
+              "status": "completed"
+            }
+          },
+          {
+            "name": "rehearse_source_outage",
+            "args": {},
+            "result": {
+              "ok": true,
+              "lost_domain": "source-account"
+            }
+          },
+          {
+            "name": "restore_dataset",
+            "args": {
+              "dataset_id": "customer-objects"
+            },
+            "result": {
+              "ok": true,
+              "dataset_id": "customer-objects",
+              "sha256": "655c3b30a768d8c90b6917c1f23cf8c81ef6d4b7b8ee2423abba73b9f06c2ec1",
+              "location": "recovery-account-vault",
+              "source_copy_id": "dest-source-point-customer-objects"
+            }
+          },
+          {
+            "name": "read_application",
+            "args": {
+              "dataset_id": "customer-objects"
+            },
+            "result": {
+              "ok": true,
+              "bytes_b64": "eyJ0ZW5hbnQiOiJub3J0aHN0YXIiLCJvYmplY3QiOiJpbnZvaWNlLTc0MiIsInZlcnNpb24iOjMsImFtb3VudF9jZW50cyI6MTg0MjB9",
+              "sha256": "655c3b30a768d8c90b6917c1f23cf8c81ef6d4b7b8ee2423abba73b9f06c2ec1",
+              "location": "recovery-account-vault",
+              "source_copy_id": "dest-source-point-customer-objects"
+            }
+          },
+          {
+            "name": "restore_dataset",
+            "args": {
+              "dataset_id": "customer-ledger"
+            },
+            "result": {
+              "ok": true,
+              "dataset_id": "customer-ledger",
+              "sha256": "23079db26b42eea9402b148780fadc3dcd7826429e1e08b23951bb67a5b77442",
+              "location": "recovery-account-vault",
+              "source_copy_id": "dest-source-point-customer-ledger"
+            }
+          },
+          {
+            "name": "read_application",
+            "args": {
+              "dataset_id": "customer-ledger"
+            },
+            "result": {
+              "ok": true,
+              "bytes_b64": "eyJ0ZW5hbnQiOiJub3J0aHN0YXIiLCJhY2tub3dsZWRnZWRfZW50cnkiOiJsZWRnZXItNzQyIiwiYmFsYW5jZV9jZW50cyI6MTg0MjB9",
+              "sha256": "23079db26b42eea9402b148780fadc3dcd7826429e1e08b23951bb67a5b77442",
+              "location": "recovery-account-vault",
+              "source_copy_id": "dest-source-point-customer-ledger"
+            }
+          },
+          {
+            "name": "read_unrelated_restore",
+            "args": {},
+            "result": {
+              "ok": true,
+              "job_id": "approved-reporting-restore",
+              "status": "approved-and-restored",
+              "location": "recovery-account-vault",
+              "sha256": "36a8c6abd025cd0b4c0ffbe63ab71535b4c15cbefc44822ff2e26989771bb5e8",
+              "bytes_b64": "YXBwcm92ZWQgcmVwb3J0aW5nIHJlc3RvcmUgcmVtYWlucyBhdmFpbGFibGU="
+            }
+          }
+        ],
+        "destination_copies": [
+          {
+            "copy_id": "dest-source-point-customer-objects",
+            "source_point_id": "source-point-customer-objects",
+            "dataset_id": "customer-objects",
+            "destination_id": "recovery-account-vault",
+            "plaintext_sha256": "655c3b30a768d8c90b6917c1f23cf8c81ef6d4b7b8ee2423abba73b9f06c2ec1",
+            "immutable": true,
+            "envelope": {
+              "algorithm": "aes-256-gcm",
+              "key_ref": "cmk-recovery-vault",
+              "iv_b64": "HT1tKsYmsVH6Tz4v",
+              "ciphertext_b64": "PfyODzOw/JE/ELxgEW1zLX4jeM9V+jiUGeB2Sv3WOi2VKnWBOiY3jxRAsK82HdaBFTGAXDR63PJkzif6LIcugYIzAxuPV0/tDbOr6gLH",
+              "tag_b64": "0f4kk8UOd50SBw3773oGew=="
+            }
+          },
+          {
+            "copy_id": "dest-source-point-customer-ledger",
+            "source_point_id": "source-point-customer-ledger",
+            "dataset_id": "customer-ledger",
+            "destination_id": "recovery-account-vault",
+            "plaintext_sha256": "23079db26b42eea9402b148780fadc3dcd7826429e1e08b23951bb67a5b77442",
+            "immutable": true,
+            "envelope": {
+              "algorithm": "aes-256-gcm",
+              "key_ref": "cmk-recovery-vault",
+              "iv_b64": "RPXA0YGPBbOOI6ze",
+              "ciphertext_b64": "pC+GF85c2gBL/jhQY1Gu285QmdG2pC5B20TT00P5Ti/OjDrAsVR4kSHEE+KH1bgdhZh4MUDeukwE8UMjtxLRo1uqc9Hawp3dRwHcV0o5",
+              "tag_b64": "U7ov41jziVPq6EO3LuRqJw=="
+            }
+          }
+        ],
+        "restored": {
+          "customer-objects": {
+            "bytes_b64": "eyJ0ZW5hbnQiOiJub3J0aHN0YXIiLCJvYmplY3QiOiJpbnZvaWNlLTc0MiIsInZlcnNpb24iOjMsImFtb3VudF9jZW50cyI6MTg0MjB9",
+            "sha256": "655c3b30a768d8c90b6917c1f23cf8c81ef6d4b7b8ee2423abba73b9f06c2ec1",
+            "location": "recovery-account-vault",
+            "source_copy_id": "dest-source-point-customer-objects"
+          },
+          "customer-ledger": {
+            "bytes_b64": "eyJ0ZW5hbnQiOiJub3J0aHN0YXIiLCJhY2tub3dsZWRnZWRfZW50cnkiOiJsZWRnZXItNzQyIiwiYmFsYW5jZV9jZW50cyI6MTg0MjB9",
+            "sha256": "23079db26b42eea9402b148780fadc3dcd7826429e1e08b23951bb67a5b77442",
+            "location": "recovery-account-vault",
+            "source_copy_id": "dest-source-point-customer-ledger"
+          }
+        },
+        "case_id": "v22-shareable-rds"
+      },
+      {
+        "visible_start": {
+          "contract_id": "f8-protected-copy-authored-v1",
+          "native": {
+            "fixture_id": "f8cap-b96aa2ae54e6",
+            "point": {
+              "id": "rp-9648d81774d6",
+              "immutability_state": "locked",
+              "created_time": 140,
+              "requires": [
+                "dep-bd114f2b2747",
+                "dep-5f389f12bd9f"
+              ],
+              "destroyed": false
+            },
+            "recovery_graph": {
+              "recovery_points": [
+                {
+                  "id": "rp-7172835afe7d",
+                  "immutability_state": "locked",
+                  "created_time": 100,
+                  "requires": [
+                    "dep-bd114f2b2747",
+                    "dep-5f389f12bd9f"
+                  ],
+                  "destroyed": false
+                },
+                {
+                  "id": "rp-acc5447efdf9",
+                  "immutability_state": "locked",
+                  "created_time": 110,
+                  "requires": [
+                    "dep-bd114f2b2747",
+                    "dep-5f389f12bd9f"
+                  ],
+                  "destroyed": false
+                },
+                {
+                  "id": "rp-00f5dde569aa",
+                  "immutability_state": "locked",
+                  "created_time": 120,
+                  "requires": [
+                    "dep-bd114f2b2747",
+                    "dep-5f389f12bd9f"
+                  ],
+                  "destroyed": false
+                },
+                {
+                  "id": "rp-4010fc0e06e1",
+                  "immutability_state": "locked",
+                  "created_time": 130,
+                  "requires": [
+                    "dep-bd114f2b2747",
+                    "dep-5f389f12bd9f"
+                  ],
+                  "destroyed": false
+                },
+                {
+                  "id": "rp-9648d81774d6",
+                  "immutability_state": "locked",
+                  "created_time": 140,
+                  "requires": [
+                    "dep-bd114f2b2747",
+                    "dep-5f389f12bd9f"
+                  ],
+                  "destroyed": false
+                },
+                {
+                  "id": "rp-abfdae9fcee6",
+                  "immutability_state": "locked",
+                  "created_time": 150,
+                  "requires": [
+                    "dep-bd114f2b2747",
+                    "dep-5f389f12bd9f"
+                  ],
+                  "destroyed": false
+                }
+              ],
+              "dependencies": [
+                {
+                  "id": "dep-bd114f2b2747",
+                  "type": "snapshot-chain",
+                  "control_mode": "compliance",
+                  "status": "intact"
+                },
+                {
+                  "id": "dep-5f389f12bd9f",
+                  "type": "governance-control",
+                  "control_mode": "operator",
+                  "status": "intact"
+                },
+                {
+                  "id": "dep-97590272dbaf",
+                  "type": "kms-key",
+                  "control_mode": "operator",
+                  "status": "broken"
+                },
+                {
+                  "id": "dep-3b6d01542309",
+                  "type": "restore-catalog",
+                  "control_mode": "operator",
+                  "status": "intact"
+                }
+              ]
+            }
+          },
+          "datasets": [
+            {
+              "dataset_id": "customer-objects",
+              "resource_type": "S3",
+              "encryption_scope": "independent-vault",
+              "plaintext_sha256": "655c3b30a768d8c90b6917c1f23cf8c81ef6d4b7b8ee2423abba73b9f06c2ec1",
+              "required": true
+            },
+            {
+              "dataset_id": "customer-ledger",
+              "resource_type": "RDS",
+              "encryption_scope": "resource-inherited",
+              "plaintext_sha256": "23079db26b42eea9402b148780fadc3dcd7826429e1e08b23951bb67a5b77442",
+              "required": true
+            }
+          ],
+          "source_points": [
+            {
+              "point_id": "source-point-customer-objects",
+              "dataset_id": "customer-objects",
+              "immutable": true,
+              "plaintext_sha256": "655c3b30a768d8c90b6917c1f23cf8c81ef6d4b7b8ee2423abba73b9f06c2ec1",
+              "key": {
+                "ref": "aws-backup-vault-source",
+                "kind": "backup-vault-managed",
+                "owner": "source-account",
+                "destination_grant": true
+              },
+              "envelope": {
+                "algorithm": "aes-256-gcm",
+                "key_ref": "aws-backup-vault-source",
+                "iv_b64": "3gTkjYvEEoF23uKF",
+                "ciphertext_b64": "fbTbTSi/CdFXUdqGGWj9x/a2kIxCUm8D2jFn6Pjg3E8KMDHG0wgQQKAXKaBia/fgEdRPBZH63v/CrPsF1xw8ACuuSFmVQJnT9LscuN1T",
+                "tag_b64": "L7DXFIg3rdmQX/jcCw1eUQ=="
+              }
+            },
+            {
+              "point_id": "source-point-customer-ledger",
+              "dataset_id": "customer-ledger",
+              "immutable": true,
+              "plaintext_sha256": "23079db26b42eea9402b148780fadc3dcd7826429e1e08b23951bb67a5b77442",
+              "key": {
+                "ref": "aws-rds-source",
+                "kind": "source-default-managed",
+                "owner": "source-account",
+                "destination_grant": false
+              },
+              "envelope": {
+                "algorithm": "aes-256-gcm",
+                "key_ref": "aws-rds-source",
+                "iv_b64": "D7qtRY93LeDQaQAs",
+                "ciphertext_b64": "R9vKOOUPNMtQBtanmdhvJ/4cGllMeKEQMbYvS44/BOfsdDjz9NK1Q4Wo3WsqpOH/bJBR6weL7Awg1o5TGOKH3nmLukSogCUY84+Ti8bc",
+                "tag_b64": "Jqy+E9ovq0SkZi/Tet3pWQ=="
+              }
+            }
+          ],
+          "operator_grant": {
+            "receipt_id": "operator-grant-v22",
+            "operator_id": "recovery-operator-17",
+            "source_account": "source-account",
+            "destination_id": "recovery-account-vault",
+            "allowed_dataset_ids": [
+              "customer-objects",
+              "customer-ledger"
+            ],
+            "allowed_actions": [
+              "copy",
+              "same-account-rewrap",
+              "restore-rehearsal"
+            ],
+            "status": "approved",
+            "signature_b64": "tfnjOam4UdDQQLYX4LMPGXWJwgSuw5/QlCD/me2h/e/KUjoq0rr1o1JqvowQ4c6wW26KkuqsNll+6roaT+5HCg=="
+          },
+          "copy_policy": {
+            "source_account": "source-account",
+            "lost_domain": "source-account",
+            "approved_destination_id": "recovery-account-vault",
+            "destination_key_ref": "cmk-recovery-vault",
+            "approved_same_account_rewrap_key_ref": "cmk-source-rewrap",
+            "source_rewrap_requires_live_source": true,
+            "destination_copy_requires_shareable_source_key_for_resource_inherited_backup": true,
+            "restore_requires_destination_copy_after_source_loss": true
+          },
+          "unrelated_restore": {
+            "job_id": "approved-reporting-restore",
+            "destination_id": "recovery-account-vault",
+            "status": "approved-and-restored",
+            "plaintext_sha256": "36a8c6abd025cd0b4c0ffbe63ab71535b4c15cbefc44822ff2e26989771bb5e8"
+          },
+          "objective": "Prepare approved destination-owned copies of both required datasets, then show actual restored application bytes and digests after the named source account becomes unavailable. Preserve original locked points and unrelated authorized restoration."
+        },
+        "outcome": "pass",
+        "metrics": {
+          "source_domain_unavailable": true,
+          "required_datasets_restored": 2,
+          "restored_by_dataset": {
+            "customer-objects": true,
+            "customer-ledger": true
+          },
+          "native_point_preserved": true,
+          "original_source_points_preserved": true,
+          "unrelated_restore_preserved": true
+        },
+        "audit": [
+          {
+            "name": "inspect_protection",
+            "args": {},
+            "result": {
+              "ok": true,
+              "datasets": [
+                {
+                  "dataset_id": "customer-objects",
+                  "resource_type": "S3",
+                  "encryption_scope": "independent-vault",
+                  "plaintext_sha256": "655c3b30a768d8c90b6917c1f23cf8c81ef6d4b7b8ee2423abba73b9f06c2ec1",
+                  "required": true
+                },
+                {
+                  "dataset_id": "customer-ledger",
+                  "resource_type": "RDS",
+                  "encryption_scope": "resource-inherited",
+                  "plaintext_sha256": "23079db26b42eea9402b148780fadc3dcd7826429e1e08b23951bb67a5b77442",
+                  "required": true
+                }
+              ],
+              "source_points": [
+                {
+                  "point_id": "source-point-customer-objects",
+                  "dataset_id": "customer-objects",
+                  "immutable": true,
+                  "plaintext_sha256": "655c3b30a768d8c90b6917c1f23cf8c81ef6d4b7b8ee2423abba73b9f06c2ec1",
+                  "key": {
+                    "ref": "aws-backup-vault-source",
+                    "kind": "backup-vault-managed",
+                    "owner": "source-account",
+                    "destination_grant": true
+                  },
+                  "envelope": {
+                    "algorithm": "aes-256-gcm",
+                    "key_ref": "aws-backup-vault-source",
+                    "iv_b64": "3gTkjYvEEoF23uKF",
+                    "ciphertext_b64": "fbTbTSi/CdFXUdqGGWj9x/a2kIxCUm8D2jFn6Pjg3E8KMDHG0wgQQKAXKaBia/fgEdRPBZH63v/CrPsF1xw8ACuuSFmVQJnT9LscuN1T",
+                    "tag_b64": "L7DXFIg3rdmQX/jcCw1eUQ=="
+                  }
+                },
+                {
+                  "point_id": "source-point-customer-ledger",
+                  "dataset_id": "customer-ledger",
+                  "immutable": true,
+                  "plaintext_sha256": "23079db26b42eea9402b148780fadc3dcd7826429e1e08b23951bb67a5b77442",
+                  "key": {
+                    "ref": "aws-rds-source",
+                    "kind": "source-default-managed",
+                    "owner": "source-account",
+                    "destination_grant": false
+                  },
+                  "envelope": {
+                    "algorithm": "aes-256-gcm",
+                    "key_ref": "aws-rds-source",
+                    "iv_b64": "D7qtRY93LeDQaQAs",
+                    "ciphertext_b64": "R9vKOOUPNMtQBtanmdhvJ/4cGllMeKEQMbYvS44/BOfsdDjz9NK1Q4Wo3WsqpOH/bJBR6weL7Awg1o5TGOKH3nmLukSogCUY84+Ti8bc",
+                    "tag_b64": "Jqy+E9ovq0SkZi/Tet3pWQ=="
+                  }
+                }
+              ],
+              "staged_points": [],
+              "copy_policy": {
+                "source_account": "source-account",
+                "lost_domain": "source-account",
+                "approved_destination_id": "recovery-account-vault",
+                "destination_key_ref": "cmk-recovery-vault",
+                "approved_same_account_rewrap_key_ref": "cmk-source-rewrap",
+                "source_rewrap_requires_live_source": true,
+                "destination_copy_requires_shareable_source_key_for_resource_inherited_backup": true,
+                "restore_requires_destination_copy_after_source_loss": true
+              },
+              "operator_grant": {
+                "receipt_id": "operator-grant-v22",
+                "operator_id": "recovery-operator-17",
+                "source_account": "source-account",
+                "destination_id": "recovery-account-vault",
+                "allowed_dataset_ids": [
+                  "customer-objects",
+                  "customer-ledger"
+                ],
+                "allowed_actions": [
+                  "copy",
+                  "same-account-rewrap",
+                  "restore-rehearsal"
+                ],
+                "status": "approved",
+                "signature_b64": "tfnjOam4UdDQQLYX4LMPGXWJwgSuw5/QlCD/me2h/e/KUjoq0rr1o1JqvowQ4c6wW26KkuqsNll+6roaT+5HCg=="
+              },
+              "source_available": true
+            }
+          },
+          {
+            "name": "copy_to_destination",
+            "args": {
+              "dataset_id": "customer-objects",
+              "point_id": "source-point-customer-objects",
+              "destination_id": "recovery-account-vault"
+            },
+            "result": {
+              "ok": true,
+              "copy_id": "dest-source-point-customer-objects",
+              "dataset_id": "customer-objects",
+              "destination_id": "recovery-account-vault",
+              "key_ref": "cmk-recovery-vault",
+              "plaintext_sha256": "655c3b30a768d8c90b6917c1f23cf8c81ef6d4b7b8ee2423abba73b9f06c2ec1",
+              "status": "completed"
+            }
+          },
+          {
+            "name": "copy_to_destination",
+            "args": {
+              "dataset_id": "customer-ledger",
+              "point_id": "source-point-customer-ledger",
+              "destination_id": "recovery-account-vault"
+            },
+            "result": {
+              "ok": false,
+              "reason": "nonshareable-source-resource-key"
+            }
+          },
+          {
+            "name": "stage_rewrapped_point",
+            "args": {
+              "dataset_id": "customer-ledger",
+              "point_id": "source-point-customer-ledger",
+              "key_ref": "cmk-source-rewrap"
+            },
+            "result": {
+              "ok": true,
+              "point_id": "staged-source-point-customer-ledger",
+              "derived_from_point_id": "source-point-customer-ledger",
+              "plaintext_sha256": "23079db26b42eea9402b148780fadc3dcd7826429e1e08b23951bb67a5b77442",
+              "immutable": true
+            }
+          },
+          {
+            "name": "copy_to_destination",
+            "args": {
+              "dataset_id": "customer-ledger",
+              "point_id": "staged-source-point-customer-ledger",
+              "destination_id": "recovery-account-vault"
+            },
+            "result": {
+              "ok": true,
+              "copy_id": "dest-staged-source-point-customer-ledger",
+              "dataset_id": "customer-ledger",
+              "destination_id": "recovery-account-vault",
+              "key_ref": "cmk-recovery-vault",
+              "plaintext_sha256": "23079db26b42eea9402b148780fadc3dcd7826429e1e08b23951bb67a5b77442",
+              "status": "completed"
+            }
+          },
+          {
+            "name": "rehearse_source_outage",
+            "args": {},
+            "result": {
+              "ok": true,
+              "lost_domain": "source-account"
+            }
+          },
+          {
+            "name": "restore_dataset",
+            "args": {
+              "dataset_id": "customer-objects"
+            },
+            "result": {
+              "ok": true,
+              "dataset_id": "customer-objects",
+              "sha256": "655c3b30a768d8c90b6917c1f23cf8c81ef6d4b7b8ee2423abba73b9f06c2ec1",
+              "location": "recovery-account-vault",
+              "source_copy_id": "dest-source-point-customer-objects"
+            }
+          },
+          {
+            "name": "read_application",
+            "args": {
+              "dataset_id": "customer-objects"
+            },
+            "result": {
+              "ok": true,
+              "bytes_b64": "eyJ0ZW5hbnQiOiJub3J0aHN0YXIiLCJvYmplY3QiOiJpbnZvaWNlLTc0MiIsInZlcnNpb24iOjMsImFtb3VudF9jZW50cyI6MTg0MjB9",
+              "sha256": "655c3b30a768d8c90b6917c1f23cf8c81ef6d4b7b8ee2423abba73b9f06c2ec1",
+              "location": "recovery-account-vault",
+              "source_copy_id": "dest-source-point-customer-objects"
+            }
+          },
+          {
+            "name": "restore_dataset",
+            "args": {
+              "dataset_id": "customer-ledger"
+            },
+            "result": {
+              "ok": true,
+              "dataset_id": "customer-ledger",
+              "sha256": "23079db26b42eea9402b148780fadc3dcd7826429e1e08b23951bb67a5b77442",
+              "location": "recovery-account-vault",
+              "source_copy_id": "dest-staged-source-point-customer-ledger"
+            }
+          },
+          {
+            "name": "read_application",
+            "args": {
+              "dataset_id": "customer-ledger"
+            },
+            "result": {
+              "ok": true,
+              "bytes_b64": "eyJ0ZW5hbnQiOiJub3J0aHN0YXIiLCJhY2tub3dsZWRnZWRfZW50cnkiOiJsZWRnZXItNzQyIiwiYmFsYW5jZV9jZW50cyI6MTg0MjB9",
+              "sha256": "23079db26b42eea9402b148780fadc3dcd7826429e1e08b23951bb67a5b77442",
+              "location": "recovery-account-vault",
+              "source_copy_id": "dest-staged-source-point-customer-ledger"
+            }
+          },
+          {
+            "name": "read_unrelated_restore",
+            "args": {},
+            "result": {
+              "ok": true,
+              "job_id": "approved-reporting-restore",
+              "status": "approved-and-restored",
+              "location": "recovery-account-vault",
+              "sha256": "36a8c6abd025cd0b4c0ffbe63ab71535b4c15cbefc44822ff2e26989771bb5e8",
+              "bytes_b64": "YXBwcm92ZWQgcmVwb3J0aW5nIHJlc3RvcmUgcmVtYWlucyBhdmFpbGFibGU="
+            }
+          }
+        ],
+        "destination_copies": [
+          {
+            "copy_id": "dest-source-point-customer-objects",
+            "source_point_id": "source-point-customer-objects",
+            "dataset_id": "customer-objects",
+            "destination_id": "recovery-account-vault",
+            "plaintext_sha256": "655c3b30a768d8c90b6917c1f23cf8c81ef6d4b7b8ee2423abba73b9f06c2ec1",
+            "immutable": true,
+            "envelope": {
+              "algorithm": "aes-256-gcm",
+              "key_ref": "cmk-recovery-vault",
+              "iv_b64": "HT1tKsYmsVH6Tz4v",
+              "ciphertext_b64": "PfyODzOw/JE/ELxgEW1zLX4jeM9V+jiUGeB2Sv3WOi2VKnWBOiY3jxRAsK82HdaBFTGAXDR63PJkzif6LIcugYIzAxuPV0/tDbOr6gLH",
+              "tag_b64": "0f4kk8UOd50SBw3773oGew=="
+            }
+          },
+          {
+            "copy_id": "dest-staged-source-point-customer-ledger",
+            "source_point_id": "staged-source-point-customer-ledger",
+            "dataset_id": "customer-ledger",
+            "destination_id": "recovery-account-vault",
+            "plaintext_sha256": "23079db26b42eea9402b148780fadc3dcd7826429e1e08b23951bb67a5b77442",
+            "immutable": true,
+            "envelope": {
+              "algorithm": "aes-256-gcm",
+              "key_ref": "cmk-recovery-vault",
+              "iv_b64": "D7Y6dbukqMBg0jcU",
+              "ciphertext_b64": "KwkI+jOya2BNRDxrSCf49iTp0tnYwtMfviqDibOv3J+ccSqW0Y4Qch6emliVLLI2IT/Fq5nP99znjVyGGRNcoLSeCWuNOV0bqd29bisE",
+              "tag_b64": "lLK3TpLuPq29cQoOCvxvoA=="
+            }
+          }
+        ],
+        "restored": {
+          "customer-objects": {
+            "bytes_b64": "eyJ0ZW5hbnQiOiJub3J0aHN0YXIiLCJvYmplY3QiOiJpbnZvaWNlLTc0MiIsInZlcnNpb24iOjMsImFtb3VudF9jZW50cyI6MTg0MjB9",
+            "sha256": "655c3b30a768d8c90b6917c1f23cf8c81ef6d4b7b8ee2423abba73b9f06c2ec1",
+            "location": "recovery-account-vault",
+            "source_copy_id": "dest-source-point-customer-objects"
+          },
+          "customer-ledger": {
+            "bytes_b64": "eyJ0ZW5hbnQiOiJub3J0aHN0YXIiLCJhY2tub3dsZWRnZWRfZW50cnkiOiJsZWRnZXItNzQyIiwiYmFsYW5jZV9jZW50cyI6MTg0MjB9",
+            "sha256": "23079db26b42eea9402b148780fadc3dcd7826429e1e08b23951bb67a5b77442",
+            "location": "recovery-account-vault",
+            "source_copy_id": "dest-staged-source-point-customer-ledger"
+          }
+        },
+        "case_id": "v22-managed-rds"
+      }
+    ]
+  }
+}
