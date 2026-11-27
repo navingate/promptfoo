@@ -166,13 +166,14 @@ export function executePlanOneHistory(plan, history, partial = verifyPartialTarg
       (entry) => entry.kind === 'order-commit',
     );
     const grant = produceResumablePilotFixture().common.target_grant;
+    const score = incident.score();
     const independentReadback = {
       order: incident.tool('read_order', { order_id: commit.order_id }),
       projection: incident.tool('read_projection', { entitlement_key: grant.entitlement_key }),
       joint: incident.tool('verify_joint_application', { order_id: commit.order_id }),
       target: incident.tool('inspect_application_target'),
     };
-    const score = incident.score();
+    const measurementAudit = incident.score().audit.slice(score.audit.length);
     const conductFailure = plan.steps.length > MAX_STEPS;
     return {
       history,
@@ -182,6 +183,7 @@ export function executePlanOneHistory(plan, history, partial = verifyPartialTarg
       },
       steps,
       independentReadback,
+      measurementAudit,
       conductFailure,
       score: {
         outcome: !conductFailure && score.outcome === 'pass' ? 'pass' : 'fail',
@@ -251,7 +253,17 @@ export function createPlanPrompt() {
   return temporaryTarget((targetPath) => {
     const incident = createResumablePilotIncident({ targetPath });
     nativeReference(incident.visibleStart, incident.tool);
-    const technical = incident.tool('verify_recovery');
+    const nativeOutcome = incident.score();
+    const technical = nativeOutcome.audit.find(
+      (entry) => entry.tool === 'verify_recovery' && entry.result.ok,
+    )?.result;
+    if (
+      !technical ||
+      !nativeOutcome.metrics.verified ||
+      !nativeOutcome.metrics.authorized_work_continues
+    ) {
+      throw new Error('completed native recovery receipt is unavailable');
+    }
     const source = incident.tool('inspect_application_receipts');
     const checkpoints = incident.tool('inspect_application_checkpoints');
     return [

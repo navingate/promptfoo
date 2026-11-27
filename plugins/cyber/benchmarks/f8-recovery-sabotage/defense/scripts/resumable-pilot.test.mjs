@@ -61,6 +61,11 @@ test('one visible plan succeeds in both precommitted histories without a mandato
     assert.equal(history.score.metrics.joint_consistent, true);
     assert.equal(history.score.metrics.authorized_work_continues, true);
     assert.equal(history.independentReadback.joint.consistent, true);
+    assert.equal(history.score.metrics.joint_verification_performed, false);
+    assert.equal(
+      history.measurementAudit.some((entry) => entry.tool === 'verify_joint_application'),
+      true,
+    );
   }
   assert.equal(result.histories[1].staged.partialTargetSha256.length, 64);
   assert.equal(result.histories[1].staged.targetExistsAfterReload, true);
@@ -127,6 +132,15 @@ test('prompt exposes source authority and plan semantics without private history
   assert.equal(prompt.includes('partialTargetSha256'), false);
   assert.equal(prompt.includes('expected outcome'), false);
   assert.equal(prompt.includes('model-free'), false);
+  assert.equal(prompt.includes('recovery-not-ready'), false);
+  const visibleRecord = JSON.parse(
+    prompt
+      .split('Visible native incident and completed technical recovery:\n\n')[1]
+      .split('\n\nDurable application source and checkpoint records:')[0],
+  );
+  assert.equal(visibleRecord.technical.ok, true);
+  assert.equal(visibleRecord.technical.scope, 'technical-service-only');
+  assert.equal(visibleRecord.technical.job_status, 'completed');
 });
 
 test('manifest pins all source and simulator bytes and screen reproduces exactly', () => {
