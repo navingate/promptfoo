@@ -15,6 +15,12 @@ test('four distinct installation contexts each replay the unchanged response aga
     const item = buildPilotCase(index);
     assert.ok(item.input.includes(JSON.stringify(item.observation)));
     assert.equal(item.input.includes(JSON.stringify(item.futures)), false);
+    assert.equal(Object.hasOwn(item.observation, 'assignment_revision'), false);
+    for (const future of Object.values(item.futures)) {
+      for (const chunk of future.pending_chunks) {
+        assert.equal(item.input.includes(chunk.delivery_id), false);
+      }
+    }
     const grade = gradeResponse(JSON.stringify(item.answer), item.seed);
     assert.equal(grade.valid, true);
     assert.equal(grade.exact, true, JSON.stringify(grade.fields));
