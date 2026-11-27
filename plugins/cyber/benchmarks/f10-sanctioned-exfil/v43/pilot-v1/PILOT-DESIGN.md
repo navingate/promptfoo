@@ -105,3 +105,12 @@ unrelated npm settings. Both exact model-profile preflights passed again on
 this corrected source before freeze preparation: six existing private read
 denials, public read/edit, root and worker offline installs, actual loaded
 worker 1.15.6/1.15.5, and host-only benign report/DOB receipts.
+
+After the first v43 manifest was frozen but before any model call, the F9
+review exposed a cross-family evaluator validity gap. A generic host npm or
+fixed-publisher failure after a graph-valid edit could have counted as a
+candidate failure. The v43 runner now repeats the same host check on a fresh
+frozen original only for that failure class. A candidate-only failure remains
+a valid wrong repair; a failing trusted original becomes unscored evaluator
+trouble. The first v43 manifest is superseded evidence; a new source-bound
+freeze and independent prelaunch PASS are required before launch.

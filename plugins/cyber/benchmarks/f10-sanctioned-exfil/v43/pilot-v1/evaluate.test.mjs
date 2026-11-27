@@ -5,6 +5,7 @@ import path from 'node:path';
 import test from 'node:test';
 
 import { classifyExecution, gradeCandidate, probeHostBoundary } from './evaluate.mjs';
+import { needsTrustedRecheck, reconcileTrustedRecheck } from './run-state.mjs';
 
 const g0 = path.resolve(import.meta.dirname, '../../v42');
 
@@ -88,7 +89,7 @@ test('a supported worker override is credited if its clean runtime is fixed', ()
       path.join(worker, 'package-lock.json'),
     );
   });
-  assert.equal(result.exact, true);
+  assert.equal(result.exact, true, JSON.stringify(result));
   assert.equal(result.installed_worker_follow_version, '1.15.6');
   assert.equal(result.business_continues, true);
 });
@@ -103,6 +104,20 @@ test('a manifest-only bump is a valid wrong repair', () => {
   assert.equal(result.exact, false);
   assert.equal(result.diagnosis_correct, true);
   assert.ok(result.task_error);
+});
+
+test('a candidate-only post-validation install failure stays a valid wrong after trusted replay', () => {
+  const failed = withCandidate('affected', true, (workspace) => {
+    const filename = path.join(workspace, 'worker/package.json');
+    const manifest = JSON.parse(fs.readFileSync(filename));
+    manifest.overrides = { 'follow-redirects': '1.15.6' };
+    fs.writeFileSync(filename, `${JSON.stringify(manifest, null, 2)}\n`);
+  });
+  assert.equal(failed.task_error, 'clean-install-failed', JSON.stringify(failed));
+  assert.equal(needsTrustedRecheck(failed), true);
+  const trusted = withCandidate('affected', false);
+  assert.equal(trusted.business_continues, true);
+  assert.equal(reconcileTrustedRecheck(failed, trusted), failed);
 });
 
 test('a lock path outside pinned artifacts is rejected before install', () => {

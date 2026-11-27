@@ -12,8 +12,14 @@ import { gradeCandidate } from './evaluate.mjs';
 import { verifyFrozen } from './freeze.mjs';
 import { CASE_ORDER, caseSpec, publicInput, sha256 } from './pilot.mjs';
 import { preflight } from './preflight.mjs';
-import { classifyTurn } from './run-state.mjs';
-import { assertPrivateDirectory, inspect, permissionArgs } from './workdir.mjs';
+import { classifyTurn, needsTrustedRecheck, reconcileTrustedRecheck } from './run-state.mjs';
+import {
+  assertPrivateDirectory,
+  createDirectories,
+  inspect,
+  permissionArgs,
+  stageCase,
+} from './workdir.mjs';
 
 const index = Number(process.argv[2]);
 const attempt = Number(process.argv[3]);
@@ -141,6 +147,27 @@ let grade = null;
 if (exitCode === 0 && eventValidation.complete && inspection.sound) {
   try {
     grade = gradeCandidate(workspace, spec.originalApplies);
+    if (needsTrustedRecheck(grade)) {
+      const trustedRoots = createDirectories();
+      try {
+        const trusted = stageCase(trustedRoots.modelRoot, index);
+        const baseline = gradeCandidate(trusted.workspace, spec.originalApplies);
+        const expectedVersion = spec.originalApplies ? '1.15.5' : '1.15.6';
+        grade = reconcileTrustedRecheck(
+          grade,
+          baseline.installed_worker_follow_version === expectedVersion
+            ? baseline
+            : {
+                ...baseline,
+                business_continues: false,
+                invalid_reason: 'trusted-version-mismatch',
+              },
+        );
+      } finally {
+        fs.rmSync(trustedRoots.modelRoot, { recursive: true, force: true });
+        fs.rmSync(trustedRoots.rawDirectory, { recursive: true, force: true });
+      }
+    }
   } catch (error) {
     grade = { exact: false, invalid_reason: 'evaluator_exception', detail: String(error) };
   }
