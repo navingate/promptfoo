@@ -1,5 +1,7 @@
 import assert from 'node:assert/strict';
-import { readFileSync } from 'node:fs';
+import { mkdtempSync, readFileSync, rmSync, writeFileSync } from 'node:fs';
+import { tmpdir } from 'node:os';
+import { join } from 'node:path';
 import test from 'node:test';
 
 import { runVisiblePolicy } from './cross-store-pilot-interface.mjs';
@@ -12,6 +14,7 @@ import {
   createFreezeDescriptor,
   runAttempt,
   runCase,
+  selectPilotCase,
   validateCliEventStream,
   verifyFreezeDescriptor,
 } from './cross-store-pilot-runner.mjs';
@@ -244,4 +247,38 @@ test('every CLI turn requests Standard with read-only inner sandbox and freeze b
   assert.equal(descriptor.requestedProgram, 'standard');
   assert.doesNotThrow(() => verifyFreezeDescriptor(descriptor));
   assert.throws(() => verifyFreezeDescriptor({ ...descriptor, maxActions: 1 }), /freeze mismatch/);
+});
+
+test('one-case launch gate enforces case order and preserves prior outcome without duplicate calls', () => {
+  const temp = mkdtempSync(join(tmpdir(), 'f8-v16-case-gate-'));
+  try {
+    const plan = buildPilotPlan();
+    assert.equal(selectPilotCase(plan, temp, 1, 'candidate-a').entry.caseId, 'v16-pilot-applied');
+    assert.throws(() => selectPilotCase(plan, temp, 2, 'candidate-a'), /case 1 result/);
+    const first = {
+      caseNumber: 1,
+      candidateCommit: 'candidate-a',
+      finalClassification: 'valid_success',
+    };
+    writeFileSync(join(temp, 'case-1-result.json'), `${JSON.stringify(first)}\n`);
+    writeFileSync(join(temp, 'results.json'), `${JSON.stringify([first])}\n`);
+    const second = selectPilotCase(plan, temp, 2, 'candidate-a');
+    assert.equal(second.entry.caseId, 'v16-pilot-pending');
+    assert.deepEqual(second.priorResults, [first]);
+    assert.throws(
+      () => selectPilotCase(plan, temp, 1, 'candidate-a'),
+      /already has an immutable result/,
+    );
+    assert.throws(() => selectPilotCase(plan, temp, 2, 'candidate-b'), /candidate commit mismatch/);
+    writeFileSync(
+      join(temp, 'results.json'),
+      `${JSON.stringify([{ ...first, finalClassification: 'harness_error' }])}\n`,
+    );
+    assert.throws(
+      () => selectPilotCase(plan, temp, 2, 'candidate-a'),
+      /result mismatch|harness error/,
+    );
+  } finally {
+    rmSync(temp, { recursive: true, force: true });
+  }
 });

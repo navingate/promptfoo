@@ -377,7 +377,48 @@ function modelInvoker(outDir, caseNumber) {
   };
 }
 
-async function runPilot(outDir) {
+export function selectPilotCase(plan, outDir, caseNumber, candidateCommit) {
+  const entry = plan.find((candidate) => candidate.caseNumber === caseNumber);
+  if (!entry || ![1, 2].includes(caseNumber)) {
+    throw new Error('run exactly one preregistered case: 1 or 2');
+  }
+  const resultPath = join(outDir, `case-${caseNumber}-result.json`);
+  if (existsSync(resultPath)) {
+    throw new Error(`case ${caseNumber} already has an immutable result`);
+  }
+  if (readdirSync(outDir).some((name) => name.startsWith(`case-${caseNumber}-attempt-`))) {
+    throw new Error(`case ${caseNumber} has an interrupted raw attempt to audit`);
+  }
+  const aggregatePath = join(outDir, 'results.json');
+  if (caseNumber === 1) {
+    if (existsSync(aggregatePath)) {
+      throw new Error('case 1 already has an aggregate result');
+    }
+    return { entry, priorResults: [] };
+  }
+  const firstPath = join(outDir, 'case-1-result.json');
+  if (!existsSync(firstPath) || !existsSync(aggregatePath)) {
+    throw new Error('case 1 result and aggregate are required before case 2');
+  }
+  const first = JSON.parse(readFileSync(firstPath, 'utf8'));
+  const priorResults = JSON.parse(readFileSync(aggregatePath, 'utf8'));
+  if (
+    !Array.isArray(priorResults) ||
+    priorResults.length !== 1 ||
+    JSON.stringify(priorResults[0]) !== JSON.stringify(first)
+  ) {
+    throw new Error('case 1 result mismatch');
+  }
+  if (first.candidateCommit !== candidateCommit) {
+    throw new Error('candidate commit mismatch between cases');
+  }
+  if (first.finalClassification === 'harness_error') {
+    throw new Error('case 1 harness error requires investigation before any more model calls');
+  }
+  return { entry, priorResults };
+}
+
+async function runPilot(outDir, caseNumber) {
   if (gitOutput(['status', '--porcelain'])) {
     throw new Error('pilot requires a clean committed branch before the first model call');
   }
@@ -390,39 +431,28 @@ async function runPilot(outDir) {
     ) {
       throw new Error(`prompt freeze mismatch for case ${entry.caseNumber}`);
     }
-    if (existsSync(join(outDir, `case-${entry.caseNumber}-result.json`))) {
-      throw new Error(`case ${entry.caseNumber} already has an immutable result`);
-    }
-    if (readdirSync(outDir).some((name) => name.startsWith(`case-${entry.caseNumber}-attempt-`))) {
-      throw new Error(`case ${entry.caseNumber} has an interrupted raw attempt to audit`);
-    }
   }
   const candidateCommit = gitOutput(['rev-parse', 'HEAD']);
+  const { entry, priorResults } = selectPilotCase(plan, outDir, caseNumber, candidateCommit);
   const cliVersion = codexVersion();
-  const results = [];
-  for (const entry of plan) {
-    verifyFreezeDescriptor(descriptor);
-    const result = await runCase(entry.caseId, modelInvoker(outDir, entry.caseNumber));
-    const record = {
-      caseNumber: entry.caseNumber,
-      candidateCommit,
-      promptSha256: entry.promptSha256,
-      model: descriptor.model,
-      requestedProgram: descriptor.requestedProgram,
-      cliVersion,
-      ...result,
-    };
-    writeFileSync(
-      join(outDir, `case-${entry.caseNumber}-result.json`),
-      `${JSON.stringify(record, null, 2)}\n`,
-    );
-    results.push(record);
-    console.log(`case ${entry.caseNumber}: ${record.finalClassification}`);
-    if (record.finalClassification === 'harness_error') {
-      break;
-    }
-  }
+  verifyFreezeDescriptor(descriptor);
+  const result = await runCase(entry.caseId, modelInvoker(outDir, entry.caseNumber));
+  const record = {
+    caseNumber: entry.caseNumber,
+    candidateCommit,
+    promptSha256: entry.promptSha256,
+    model: descriptor.model,
+    requestedProgram: descriptor.requestedProgram,
+    cliVersion,
+    ...result,
+  };
+  writeFileSync(
+    join(outDir, `case-${entry.caseNumber}-result.json`),
+    `${JSON.stringify(record, null, 2)}\n`,
+  );
+  const results = [...priorResults, record];
   writeFileSync(join(outDir, 'results.json'), `${JSON.stringify(results, null, 2)}\n`);
+  console.log(`case ${entry.caseNumber}: ${record.finalClassification}`);
 }
 
 if (process.argv[1] && fileURLToPath(import.meta.url) === process.argv[1]) {
@@ -433,9 +463,10 @@ if (process.argv[1] && fileURLToPath(import.meta.url) === process.argv[1]) {
   }
   if (process.argv.includes('--prepare')) {
     prepare(outDir);
-  } else if (process.argv.includes('--run')) {
-    await runPilot(outDir);
+  } else if (process.argv.includes('--run-case')) {
+    const caseIndex = process.argv.indexOf('--run-case');
+    await runPilot(outDir, Number(process.argv[caseIndex + 1]));
   } else {
-    throw new Error('use --prepare or --run');
+    throw new Error('use --prepare or --run-case 1|2');
   }
 }
