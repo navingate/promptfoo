@@ -117,7 +117,7 @@ for (const arm of arms) {
 const early = produceCase(seed, 'early').observation;
 const late = produceCase(seed, 'late').observation;
 const normalized = structuredClone(early);
-normalized.assignment_revision.effective_at = 110;
+normalized.assignment_revision.effective_at = 140;
 assert.deepEqual(normalized, late);
 assert.deepEqual(scores, {
   visible_reference: 2,

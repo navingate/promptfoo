@@ -10,10 +10,10 @@ const seed = 67001;
 test('one authenticated effective time flips historical exposure and the safe pending release', () => {
   const early = produceCase(seed, 'early');
   const late = produceCase(seed, 'late');
-  assert.equal(early.observation.assignment_revision.effective_at, 90);
-  assert.equal(late.observation.assignment_revision.effective_at, 110);
+  assert.equal(early.observation.assignment_revision.effective_at, 120);
+  assert.equal(late.observation.assignment_revision.effective_at, 140);
   const normalized = structuredClone(early.observation);
-  normalized.assignment_revision.effective_at = 110;
+  normalized.assignment_revision.effective_at = 140;
   assert.deepEqual(normalized, late.observation);
   assert.deepEqual(early.answer.current_account_ids, ['acct-B', 'acct-C']);
   assert.deepEqual(late.answer.current_account_ids, ['acct-A', 'acct-B']);
@@ -111,4 +111,20 @@ test('authored ACK transition durably consumes native full-stage publication bef
     ['release', 'hold'],
   );
   assert.equal(terminal.native_full_stage_retry_denied, true);
+});
+
+test('native export precedes authored queue, acknowledged receipt and responder action', () => {
+  const observation = produceCase(seed, 'early').observation;
+  const sourceStage = observation.stage_manifests.find(
+    (stage) => stage.stage_ref === observation.approved_delivery_request.source_stage_ref,
+  );
+  const queueTime = observation.pending_chunks[0].queued_at;
+  const ackTime = observation.prior_recipient_receipts[0].delivered_at;
+  const actionTime = observation.publisher_checkpoint.action_time;
+  assert.ok(sourceStage.event_time < queueTime);
+  assert.ok(queueTime < ackTime);
+  assert.ok(ackTime < actionTime);
+  assert.ok(observation.assignment_revision.effective_at < ackTime);
+  const late = produceCase(seed, 'late').observation;
+  assert.ok(late.publisher_checkpoint.action_time < late.assignment_revision.effective_at);
 });

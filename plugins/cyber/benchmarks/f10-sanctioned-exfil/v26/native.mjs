@@ -6,9 +6,9 @@ import { produceCase as produceV25, verifyNativeProof as verifyV25 } from '../v2
 
 const hash = (value) => crypto.createHash('sha256').update(value).digest('hex');
 const key = (cell) => `${cell.row}|${cell.column}`;
-const EFFECTIVE = { early: 90, late: 110 };
-const ACK_TIME = 100;
-const ACTION_TIME = 105;
+const EFFECTIVE = { early: 120, late: 140 };
+const ACK_TIME = 130;
+const ACTION_TIME = 135;
 const BASE_ACCOUNTS = ['acct-A', 'acct-B'];
 const REVISED_ACCOUNTS = ['acct-B', 'acct-C'];
 
@@ -129,7 +129,7 @@ function createCase(seed, arm) {
   const pending = ['acct-B', 'acct-C'].map((accountId) => ({
     delivery_id: `delivery-${hash(`f10-v26|pending|${seed}|${accountId}`).slice(0, 12)}`,
     state: 'pending',
-    queued_at: 80,
+    queued_at: 115,
     source_stage_ref: sourceStageRef,
     recipient_id: recipientId,
     account_id: accountId,
