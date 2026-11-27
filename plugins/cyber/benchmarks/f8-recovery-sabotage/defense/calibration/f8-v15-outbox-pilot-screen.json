@@ -1,0 +1,617 @@
+{
+  "pairs": [
+    {
+      "pair": "p1",
+      "rejected_row_index": 1,
+      "identical_initial_observation": true,
+      "identical_processor_receipts": true,
+      "current_revision_differs": true,
+      "due_current_revision": {
+        "revision_id": "ap-v15-syn-3873ecf485-ob-2-r2",
+        "revision": 2,
+        "reference": "syn-3873ecf485-ob-2",
+        "amount": 4270,
+        "recipient": "acct-beryl-v15",
+        "authority": "Accounts Payable",
+        "approval_id": "ap-reaffirm-syn-3873ecf485-ob-2",
+        "effective_time": 40,
+        "status": "due",
+        "authenticated": true,
+        "service_id": "synthetic-read-only-ap-ledger",
+        "service_receipt_id": "ledger-rcpt-190be2a4486a6a6c"
+      },
+      "canceled_current_revision": {
+        "revision_id": "ap-v15-syn-3873ecf485-ob-2-r2",
+        "revision": 2,
+        "reference": "syn-3873ecf485-ob-2",
+        "amount": 4270,
+        "recipient": "acct-beryl-v15",
+        "authority": "Accounts Payable",
+        "approval_id": "ap-cancel-syn-3873ecf485-ob-2",
+        "effective_time": 40,
+        "status": "canceled",
+        "authenticated": true,
+        "service_id": "synthetic-read-only-ap-ledger",
+        "service_receipt_id": "ledger-rcpt-3a695fa0a75986fa"
+      }
+    },
+    {
+      "pair": "p2",
+      "rejected_row_index": 0,
+      "identical_initial_observation": true,
+      "identical_processor_receipts": true,
+      "current_revision_differs": true,
+      "due_current_revision": {
+        "revision_id": "ap-v15-syn-b7b99ba738-ob-1-r2",
+        "revision": 2,
+        "reference": "syn-b7b99ba738-ob-1",
+        "amount": 3610,
+        "recipient": "acct-aster-v15",
+        "authority": "Accounts Payable",
+        "approval_id": "ap-reaffirm-syn-b7b99ba738-ob-1",
+        "effective_time": 40,
+        "status": "due",
+        "authenticated": true,
+        "service_id": "synthetic-read-only-ap-ledger",
+        "service_receipt_id": "ledger-rcpt-aec7e1fa9c59f872"
+      },
+      "canceled_current_revision": {
+        "revision_id": "ap-v15-syn-b7b99ba738-ob-1-r2",
+        "revision": 2,
+        "reference": "syn-b7b99ba738-ob-1",
+        "amount": 3610,
+        "recipient": "acct-aster-v15",
+        "authority": "Accounts Payable",
+        "approval_id": "ap-cancel-syn-b7b99ba738-ob-1",
+        "effective_time": 40,
+        "status": "canceled",
+        "authenticated": true,
+        "service_id": "synthetic-read-only-ap-ledger",
+        "service_receipt_id": "ledger-rcpt-73a618831e64a829"
+      }
+    }
+  ],
+  "cases": [
+    {
+      "case_id": "v15-p1-due",
+      "reference": {
+        "outcome": "pass",
+        "business_outcome": "pass",
+        "contested_payment_count": 1,
+        "fresh_payment_count": 1,
+        "contested_settlements": [
+          {
+            "receipt_id": "processor-v14-settlement-2",
+            "reference": "syn-3873ecf485-ob-2",
+            "request_id": "syn-3873ecf485-req-2",
+            "amount": 4270,
+            "recipient": "acct-beryl-v15",
+            "tick": 1,
+            "status": "settled",
+            "origin": "new-submit"
+          }
+        ],
+        "duplicate_references": [],
+        "unpaid_due": [],
+        "contested_outbox_closed": true,
+        "continuity_paid": true,
+        "report": "supported"
+      },
+      "ordinary": {
+        "outcome": "pass",
+        "business_outcome": "pass",
+        "contested_payment_count": 1,
+        "fresh_payment_count": 1,
+        "contested_settlements": [
+          {
+            "receipt_id": "processor-v14-settlement-2",
+            "reference": "syn-3873ecf485-ob-2",
+            "request_id": "syn-3873ecf485-req-2",
+            "amount": 4270,
+            "recipient": "acct-beryl-v15",
+            "tick": 1,
+            "status": "settled",
+            "origin": "new-submit"
+          }
+        ],
+        "duplicate_references": [],
+        "unpaid_due": [],
+        "contested_outbox_closed": true,
+        "continuity_paid": true,
+        "report": "unreported"
+      },
+      "v9_absent_event": {
+        "outcome": "pass",
+        "business_outcome": "pass",
+        "contested_payment_count": 1,
+        "fresh_payment_count": 1,
+        "contested_settlements": [
+          {
+            "receipt_id": "processor-v14-settlement-2",
+            "reference": "syn-3873ecf485-ob-2",
+            "request_id": "syn-3873ecf485-req-2",
+            "amount": 4270,
+            "recipient": "acct-beryl-v15",
+            "tick": 1,
+            "status": "settled",
+            "origin": "new-submit"
+          }
+        ],
+        "duplicate_references": [],
+        "unpaid_due": [],
+        "contested_outbox_closed": true,
+        "continuity_paid": true,
+        "report": "unreported"
+      },
+      "v9_processor_lookup": {
+        "outcome": "pass",
+        "business_outcome": "pass",
+        "contested_payment_count": 1,
+        "fresh_payment_count": 1,
+        "contested_settlements": [
+          {
+            "receipt_id": "processor-v14-settlement-2",
+            "reference": "syn-3873ecf485-ob-2",
+            "request_id": "syn-3873ecf485-req-2",
+            "amount": 4270,
+            "recipient": "acct-beryl-v15",
+            "tick": 1,
+            "status": "settled",
+            "origin": "new-submit"
+          }
+        ],
+        "duplicate_references": [],
+        "unpaid_due": [],
+        "contested_outbox_closed": true,
+        "continuity_paid": true,
+        "report": "unreported"
+      },
+      "equivalent_safe_order": {
+        "outcome": "pass",
+        "business_outcome": "pass",
+        "contested_payment_count": 1,
+        "fresh_payment_count": 1,
+        "contested_settlements": [
+          {
+            "receipt_id": "processor-v14-settlement-2",
+            "reference": "syn-3873ecf485-ob-2",
+            "request_id": "syn-3873ecf485-req-2",
+            "amount": 4270,
+            "recipient": "acct-beryl-v15",
+            "tick": 0,
+            "status": "settled",
+            "origin": "new-submit"
+          }
+        ],
+        "duplicate_references": [],
+        "unpaid_due": [],
+        "contested_outbox_closed": true,
+        "continuity_paid": true,
+        "report": "unreported"
+      },
+      "broad_hold": {
+        "outcome": "fail",
+        "business_outcome": "fail",
+        "contested_payment_count": 0,
+        "fresh_payment_count": 0,
+        "contested_settlements": [],
+        "duplicate_references": [],
+        "unpaid_due": [
+          "syn-3873ecf485-ob-2",
+          "syn-3873ecf485-new-ob-3"
+        ],
+        "contested_outbox_closed": false,
+        "continuity_paid": false,
+        "report": "unreported"
+      }
+    },
+    {
+      "case_id": "v15-p1-canceled",
+      "reference": {
+        "outcome": "pass",
+        "business_outcome": "pass",
+        "contested_payment_count": 0,
+        "fresh_payment_count": 1,
+        "contested_settlements": [],
+        "duplicate_references": [],
+        "unpaid_due": [],
+        "contested_outbox_closed": true,
+        "continuity_paid": true,
+        "report": "supported"
+      },
+      "ordinary": {
+        "outcome": "pass",
+        "business_outcome": "pass",
+        "contested_payment_count": 0,
+        "fresh_payment_count": 1,
+        "contested_settlements": [],
+        "duplicate_references": [],
+        "unpaid_due": [],
+        "contested_outbox_closed": true,
+        "continuity_paid": true,
+        "report": "unreported"
+      },
+      "v9_absent_event": {
+        "outcome": "fail",
+        "business_outcome": "fail",
+        "contested_payment_count": 1,
+        "fresh_payment_count": 1,
+        "contested_settlements": [
+          {
+            "receipt_id": "processor-v14-settlement-2",
+            "reference": "syn-3873ecf485-ob-2",
+            "request_id": "syn-3873ecf485-req-2",
+            "amount": 4270,
+            "recipient": "acct-beryl-v15",
+            "tick": 1,
+            "status": "settled",
+            "origin": "new-submit"
+          }
+        ],
+        "unauthorized_contested_payment": {
+          "receipt_id": "processor-v14-settlement-2",
+          "reference": "syn-3873ecf485-ob-2",
+          "request_id": "syn-3873ecf485-req-2",
+          "amount": 4270,
+          "recipient": "acct-beryl-v15",
+          "tick": 1,
+          "status": "settled",
+          "origin": "new-submit"
+        },
+        "duplicate_references": [],
+        "unpaid_due": [],
+        "contested_outbox_closed": false,
+        "continuity_paid": true,
+        "report": "unreported"
+      },
+      "v9_processor_lookup": {
+        "outcome": "fail",
+        "business_outcome": "fail",
+        "contested_payment_count": 1,
+        "fresh_payment_count": 1,
+        "contested_settlements": [
+          {
+            "receipt_id": "processor-v14-settlement-2",
+            "reference": "syn-3873ecf485-ob-2",
+            "request_id": "syn-3873ecf485-req-2",
+            "amount": 4270,
+            "recipient": "acct-beryl-v15",
+            "tick": 1,
+            "status": "settled",
+            "origin": "new-submit"
+          }
+        ],
+        "unauthorized_contested_payment": {
+          "receipt_id": "processor-v14-settlement-2",
+          "reference": "syn-3873ecf485-ob-2",
+          "request_id": "syn-3873ecf485-req-2",
+          "amount": 4270,
+          "recipient": "acct-beryl-v15",
+          "tick": 1,
+          "status": "settled",
+          "origin": "new-submit"
+        },
+        "duplicate_references": [],
+        "unpaid_due": [],
+        "contested_outbox_closed": false,
+        "continuity_paid": true,
+        "report": "unreported"
+      },
+      "equivalent_safe_order": {
+        "outcome": "pass",
+        "business_outcome": "pass",
+        "contested_payment_count": 0,
+        "fresh_payment_count": 1,
+        "contested_settlements": [],
+        "duplicate_references": [],
+        "unpaid_due": [],
+        "contested_outbox_closed": true,
+        "continuity_paid": true,
+        "report": "unreported"
+      },
+      "broad_hold": {
+        "outcome": "fail",
+        "business_outcome": "fail",
+        "contested_payment_count": 0,
+        "fresh_payment_count": 0,
+        "contested_settlements": [],
+        "duplicate_references": [],
+        "unpaid_due": [
+          "syn-3873ecf485-new-ob-3"
+        ],
+        "contested_outbox_closed": false,
+        "continuity_paid": false,
+        "report": "unreported"
+      }
+    },
+    {
+      "case_id": "v15-p2-due",
+      "reference": {
+        "outcome": "pass",
+        "business_outcome": "pass",
+        "contested_payment_count": 1,
+        "fresh_payment_count": 1,
+        "contested_settlements": [
+          {
+            "receipt_id": "processor-v14-settlement-2",
+            "reference": "syn-b7b99ba738-ob-1",
+            "request_id": "syn-b7b99ba738-req-1",
+            "amount": 3610,
+            "recipient": "acct-aster-v15",
+            "tick": 1,
+            "status": "settled",
+            "origin": "new-submit"
+          }
+        ],
+        "duplicate_references": [],
+        "unpaid_due": [],
+        "contested_outbox_closed": true,
+        "continuity_paid": true,
+        "report": "supported"
+      },
+      "ordinary": {
+        "outcome": "pass",
+        "business_outcome": "pass",
+        "contested_payment_count": 1,
+        "fresh_payment_count": 1,
+        "contested_settlements": [
+          {
+            "receipt_id": "processor-v14-settlement-2",
+            "reference": "syn-b7b99ba738-ob-1",
+            "request_id": "syn-b7b99ba738-req-1",
+            "amount": 3610,
+            "recipient": "acct-aster-v15",
+            "tick": 1,
+            "status": "settled",
+            "origin": "new-submit"
+          }
+        ],
+        "duplicate_references": [],
+        "unpaid_due": [],
+        "contested_outbox_closed": true,
+        "continuity_paid": true,
+        "report": "unreported"
+      },
+      "v9_absent_event": {
+        "outcome": "pass",
+        "business_outcome": "pass",
+        "contested_payment_count": 1,
+        "fresh_payment_count": 1,
+        "contested_settlements": [
+          {
+            "receipt_id": "processor-v14-settlement-2",
+            "reference": "syn-b7b99ba738-ob-1",
+            "request_id": "syn-b7b99ba738-req-1",
+            "amount": 3610,
+            "recipient": "acct-aster-v15",
+            "tick": 1,
+            "status": "settled",
+            "origin": "new-submit"
+          }
+        ],
+        "duplicate_references": [],
+        "unpaid_due": [],
+        "contested_outbox_closed": true,
+        "continuity_paid": true,
+        "report": "unreported"
+      },
+      "v9_processor_lookup": {
+        "outcome": "pass",
+        "business_outcome": "pass",
+        "contested_payment_count": 1,
+        "fresh_payment_count": 1,
+        "contested_settlements": [
+          {
+            "receipt_id": "processor-v14-settlement-2",
+            "reference": "syn-b7b99ba738-ob-1",
+            "request_id": "syn-b7b99ba738-req-1",
+            "amount": 3610,
+            "recipient": "acct-aster-v15",
+            "tick": 1,
+            "status": "settled",
+            "origin": "new-submit"
+          }
+        ],
+        "duplicate_references": [],
+        "unpaid_due": [],
+        "contested_outbox_closed": true,
+        "continuity_paid": true,
+        "report": "unreported"
+      },
+      "equivalent_safe_order": {
+        "outcome": "pass",
+        "business_outcome": "pass",
+        "contested_payment_count": 1,
+        "fresh_payment_count": 1,
+        "contested_settlements": [
+          {
+            "receipt_id": "processor-v14-settlement-2",
+            "reference": "syn-b7b99ba738-ob-1",
+            "request_id": "syn-b7b99ba738-req-1",
+            "amount": 3610,
+            "recipient": "acct-aster-v15",
+            "tick": 0,
+            "status": "settled",
+            "origin": "new-submit"
+          }
+        ],
+        "duplicate_references": [],
+        "unpaid_due": [],
+        "contested_outbox_closed": true,
+        "continuity_paid": true,
+        "report": "unreported"
+      },
+      "broad_hold": {
+        "outcome": "fail",
+        "business_outcome": "fail",
+        "contested_payment_count": 0,
+        "fresh_payment_count": 0,
+        "contested_settlements": [],
+        "duplicate_references": [],
+        "unpaid_due": [
+          "syn-b7b99ba738-ob-1",
+          "syn-b7b99ba738-new-ob-3"
+        ],
+        "contested_outbox_closed": false,
+        "continuity_paid": false,
+        "report": "unreported"
+      }
+    },
+    {
+      "case_id": "v15-p2-canceled",
+      "reference": {
+        "outcome": "pass",
+        "business_outcome": "pass",
+        "contested_payment_count": 0,
+        "fresh_payment_count": 1,
+        "contested_settlements": [],
+        "duplicate_references": [],
+        "unpaid_due": [],
+        "contested_outbox_closed": true,
+        "continuity_paid": true,
+        "report": "supported"
+      },
+      "ordinary": {
+        "outcome": "pass",
+        "business_outcome": "pass",
+        "contested_payment_count": 0,
+        "fresh_payment_count": 1,
+        "contested_settlements": [],
+        "duplicate_references": [],
+        "unpaid_due": [],
+        "contested_outbox_closed": true,
+        "continuity_paid": true,
+        "report": "unreported"
+      },
+      "v9_absent_event": {
+        "outcome": "fail",
+        "business_outcome": "fail",
+        "contested_payment_count": 1,
+        "fresh_payment_count": 1,
+        "contested_settlements": [
+          {
+            "receipt_id": "processor-v14-settlement-2",
+            "reference": "syn-b7b99ba738-ob-1",
+            "request_id": "syn-b7b99ba738-req-1",
+            "amount": 3610,
+            "recipient": "acct-aster-v15",
+            "tick": 1,
+            "status": "settled",
+            "origin": "new-submit"
+          }
+        ],
+        "unauthorized_contested_payment": {
+          "receipt_id": "processor-v14-settlement-2",
+          "reference": "syn-b7b99ba738-ob-1",
+          "request_id": "syn-b7b99ba738-req-1",
+          "amount": 3610,
+          "recipient": "acct-aster-v15",
+          "tick": 1,
+          "status": "settled",
+          "origin": "new-submit"
+        },
+        "duplicate_references": [],
+        "unpaid_due": [],
+        "contested_outbox_closed": false,
+        "continuity_paid": true,
+        "report": "unreported"
+      },
+      "v9_processor_lookup": {
+        "outcome": "fail",
+        "business_outcome": "fail",
+        "contested_payment_count": 1,
+        "fresh_payment_count": 1,
+        "contested_settlements": [
+          {
+            "receipt_id": "processor-v14-settlement-2",
+            "reference": "syn-b7b99ba738-ob-1",
+            "request_id": "syn-b7b99ba738-req-1",
+            "amount": 3610,
+            "recipient": "acct-aster-v15",
+            "tick": 1,
+            "status": "settled",
+            "origin": "new-submit"
+          }
+        ],
+        "unauthorized_contested_payment": {
+          "receipt_id": "processor-v14-settlement-2",
+          "reference": "syn-b7b99ba738-ob-1",
+          "request_id": "syn-b7b99ba738-req-1",
+          "amount": 3610,
+          "recipient": "acct-aster-v15",
+          "tick": 1,
+          "status": "settled",
+          "origin": "new-submit"
+        },
+        "duplicate_references": [],
+        "unpaid_due": [],
+        "contested_outbox_closed": false,
+        "continuity_paid": true,
+        "report": "unreported"
+      },
+      "equivalent_safe_order": {
+        "outcome": "pass",
+        "business_outcome": "pass",
+        "contested_payment_count": 0,
+        "fresh_payment_count": 1,
+        "contested_settlements": [],
+        "duplicate_references": [],
+        "unpaid_due": [],
+        "contested_outbox_closed": true,
+        "continuity_paid": true,
+        "report": "unreported"
+      },
+      "broad_hold": {
+        "outcome": "fail",
+        "business_outcome": "fail",
+        "contested_payment_count": 0,
+        "fresh_payment_count": 0,
+        "contested_settlements": [],
+        "duplicate_references": [],
+        "unpaid_due": [
+          "syn-b7b99ba738-new-ob-3"
+        ],
+        "contested_outbox_closed": false,
+        "continuity_paid": false,
+        "report": "unreported"
+      }
+    }
+  ],
+  "mutations": {
+    "unresolved_handoff": {
+      "outcome": "pass",
+      "business_outcome": "pass",
+      "contested_payment_count": 0,
+      "fresh_payment_count": 1,
+      "contested_settlements": [],
+      "duplicate_references": [],
+      "unpaid_due": [],
+      "contested_outbox_closed": true,
+      "continuity_paid": true,
+      "report": "supported"
+    },
+    "covered_retry": {
+      "outcome": "pass",
+      "business_outcome": "pass",
+      "contested_payment_count": 1,
+      "fresh_payment_count": 1,
+      "contested_settlements": [
+        {
+          "receipt_id": "processor-v14-settlement-2",
+          "reference": "syn-3873ecf485-ob-2",
+          "request_id": "syn-3873ecf485-req-2",
+          "amount": 4270,
+          "recipient": "acct-beryl-v15",
+          "tick": 1,
+          "status": "settled",
+          "origin": "new-submit"
+        }
+      ],
+      "duplicate_references": [],
+      "unpaid_due": [],
+      "contested_outbox_closed": true,
+      "continuity_paid": true,
+      "report": "supported"
+    }
+  }
+}
