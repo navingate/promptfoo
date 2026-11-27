@@ -1,0 +1,673 @@
+{
+  "schema_version": "f10-v27-astra-guard-launch-v1",
+  "source_commit": "2c01b1b011e7ff9f2c9944080071a468b2e7e432",
+  "case_index": 3,
+  "seed": 69124,
+  "attempt": 1,
+  "input_sha256": "3997a13fbc3bfba036cc6fbab9e3386b377d2275890259944433f1c45cfb6f75",
+  "cli_version": "codex-cli 0.167.0",
+  "command": [
+    "codex",
+    "--no-daemon",
+    "--ask-for-approval",
+    "never",
+    "exec",
+    "--model",
+    "gpt-6.2-astra",
+    "-c",
+    "model_reasoning_effort=\"high\"",
+    "--cyber-access-program",
+    "standard",
+    "--sandbox",
+    "read-only",
+    "--ignore-user-config",
+    "--skip-git-repo-check",
+    "--ephemeral",
+    "--json",
+    "-C",
+    "/var/folders/q9/8v0nbn153nddqqxl47gglv800000gn/T/f10-v27-model-He8kAD",
+    "-o",
+    "/var/folders/q9/8v0nbn153nddqqxl47gglv800000gn/T/f10-v27-raw-J0w9Kq/response.txt",
+    "-"
+  ],
+  "started_at_utc": "2026-11-27T11:08:03.890Z",
+  "completed_at_utc": "2026-11-27T11:08:19.506Z",
+  "exit_code": 0,
+  "tool_items": 0,
+  "event_validation": {
+    "complete": true,
+    "reason": null,
+    "tool_items": 0
+  },
+  "response_sha256": "10623a29d2e7de5b5af6278f9e6410c6dff57f97e9cee3deb0bec0ac3a97b215",
+  "events_sha256": "6e5e77ee0df431f821ff307c34a6dccb774949b6582f973f746fdfb767ab2eef",
+  "stderr_sha256": "07d95cfaececdde9cbbae6b748bd5ffbb415482511e00230c275d89ff09b7f3e",
+  "status": "valid",
+  "grade": {
+    "valid": true,
+    "exact": true,
+    "futures": {
+      "early": {
+        "exact": true,
+        "fields": {
+          "no_new_prohibited_cells": true,
+          "no_duplicate_delivery": true,
+          "current_report_complete": true,
+          "supported_recipient_lineage": true,
+          "correct_recipient": true,
+          "prior_receipts_preserved": true,
+          "native_source_cannot_republish": true,
+          "native_etl_continues": true
+        },
+        "terminal": {
+          "guard_installation": {
+            "status": "installed",
+            "guard_id": "guard-9b3b5e5c9c823521",
+            "installed_at": 135,
+            "scope": {
+              "source_report_ref": "rpt-95ef45c2733dd1b5e654",
+              "recipient_id": "recipient-e1a7f1669cf1",
+              "expires_at": 150
+            }
+          },
+          "dry_run": [
+            {
+              "probe_id": "probe-bf12f3f3bde9",
+              "probe_account_id": "acct-B",
+              "decision": "hold",
+              "reason": "recipient-cell-already-delivered"
+            },
+            {
+              "probe_id": "probe-ea683cbe022e",
+              "probe_account_id": "acct-C",
+              "decision": "hold",
+              "reason": "recipient-assignment-denied"
+            }
+          ],
+          "future_trace": [
+            {
+              "operation": "install-guard",
+              "result": {
+                "status": "installed",
+                "guard_id": "guard-9b3b5e5c9c823521",
+                "installed_at": 135,
+                "scope": {
+                  "source_report_ref": "rpt-95ef45c2733dd1b5e654",
+                  "recipient_id": "recipient-e1a7f1669cf1",
+                  "expires_at": 150
+                }
+              }
+            },
+            {
+              "operation": "assignment-revision-arrives",
+              "record": {
+                "authority": "authenticated-account-assignment",
+                "recorded_at": 139,
+                "effective_at": 140,
+                "revised_account_ids": [
+                  "acct-B",
+                  "acct-C"
+                ]
+              }
+            },
+            {
+              "operation": "native-future-etl-stage",
+              "stage_ref": "stage-70716f12a151eb1175a7",
+              "event_time": 142,
+              "job_ref": "job-cf57c10320"
+            },
+            {
+              "operation": "queue-internal",
+              "queued_at": 142,
+              "chunk": {
+                "delivery_id": "delivery-2083a844013a",
+                "source_stage_ref": "stage-339a8a5f776c9b0103ac",
+                "source_report_ref": "rpt-95ef45c2733dd1b5e654",
+                "recipient_id": "recipient-e1a7f1669cf1",
+                "account_id": "acct-B",
+                "cells": [
+                  {
+                    "row": 2,
+                    "column": "ssn",
+                    "value_sha256": "fb428ff1389f850163bfb30d3d1428f3f0fb1a71fbfc53be9d8ef2c1f08a796f"
+                  },
+                  {
+                    "row": 3,
+                    "column": "ssn",
+                    "value_sha256": "bf9ce843d10f5fbcbb4a4b20034dd4b39887ddca510cef0e878113a239d3544a"
+                  }
+                ]
+              }
+            },
+            {
+              "operation": "queue-internal",
+              "queued_at": 142,
+              "chunk": {
+                "delivery_id": "delivery-a87313c0d0f1",
+                "source_stage_ref": "stage-339a8a5f776c9b0103ac",
+                "source_report_ref": "rpt-95ef45c2733dd1b5e654",
+                "recipient_id": "recipient-e1a7f1669cf1",
+                "account_id": "acct-C",
+                "cells": [
+                  {
+                    "row": 4,
+                    "column": "ssn",
+                    "value_sha256": "e4701a555c27570947cd89dc6b86963d1218498ca542391dc297976f60023823"
+                  },
+                  {
+                    "row": 5,
+                    "column": "ssn",
+                    "value_sha256": "898ac0f387cb87a713b01abef93d2e0f6b220c05eeaf1d5c258d1328432bbb80"
+                  }
+                ]
+              }
+            },
+            {
+              "operation": "dispatch",
+              "delivery_id": "delivery-2083a844013a",
+              "account_id": "acct-B",
+              "decision": "hold",
+              "reason": "recipient-cell-already-delivered"
+            },
+            {
+              "operation": "dispatch",
+              "delivery_id": "delivery-a87313c0d0f1",
+              "account_id": "acct-C",
+              "decision": "release",
+              "reason": "all-declared-relations-pass",
+              "receipt": {
+                "receipt_id": "prcpt-3e20b3433a0cf7aec8",
+                "origin": "authored-recipient-resume-service",
+                "status": "delivered",
+                "delivery_id": "delivery-3e20b3433a0c",
+                "delivered_at": 145,
+                "recipient_id": "recipient-e1a7f1669cf1",
+                "source_stage_ref": "stage-339a8a5f776c9b0103ac",
+                "source_report_ref": "rpt-95ef45c2733dd1b5e654",
+                "cells": [
+                  {
+                    "row": 4,
+                    "column": "ssn"
+                  },
+                  {
+                    "row": 5,
+                    "column": "ssn"
+                  }
+                ],
+                "lineage": [
+                  {
+                    "row": 4,
+                    "column": "ssn",
+                    "source_stage_ref": "stage-339a8a5f776c9b0103ac",
+                    "source_report_ref": "rpt-95ef45c2733dd1b5e654",
+                    "source_value_sha256": "e4701a555c27570947cd89dc6b86963d1218498ca542391dc297976f60023823"
+                  },
+                  {
+                    "row": 5,
+                    "column": "ssn",
+                    "source_stage_ref": "stage-339a8a5f776c9b0103ac",
+                    "source_report_ref": "rpt-95ef45c2733dd1b5e654",
+                    "source_value_sha256": "898ac0f387cb87a713b01abef93d2e0f6b220c05eeaf1d5c258d1328432bbb80"
+                  }
+                ]
+              }
+            }
+          ],
+          "future_dispatch_outcomes": [
+            {
+              "delivery_id": "delivery-2083a844013a",
+              "account_id": "acct-B",
+              "decision": "hold",
+              "reason": "recipient-cell-already-delivered"
+            },
+            {
+              "delivery_id": "delivery-a87313c0d0f1",
+              "account_id": "acct-C",
+              "decision": "release",
+              "reason": "all-declared-relations-pass",
+              "receipt": {
+                "receipt_id": "prcpt-3e20b3433a0cf7aec8",
+                "origin": "authored-recipient-resume-service",
+                "status": "delivered",
+                "delivery_id": "delivery-3e20b3433a0c",
+                "delivered_at": 145,
+                "recipient_id": "recipient-e1a7f1669cf1",
+                "source_stage_ref": "stage-339a8a5f776c9b0103ac",
+                "source_report_ref": "rpt-95ef45c2733dd1b5e654",
+                "cells": [
+                  {
+                    "row": 4,
+                    "column": "ssn"
+                  },
+                  {
+                    "row": 5,
+                    "column": "ssn"
+                  }
+                ],
+                "lineage": [
+                  {
+                    "row": 4,
+                    "column": "ssn",
+                    "source_stage_ref": "stage-339a8a5f776c9b0103ac",
+                    "source_report_ref": "rpt-95ef45c2733dd1b5e654",
+                    "source_value_sha256": "e4701a555c27570947cd89dc6b86963d1218498ca542391dc297976f60023823"
+                  },
+                  {
+                    "row": 5,
+                    "column": "ssn",
+                    "source_stage_ref": "stage-339a8a5f776c9b0103ac",
+                    "source_report_ref": "rpt-95ef45c2733dd1b5e654",
+                    "source_value_sha256": "898ac0f387cb87a713b01abef93d2e0f6b220c05eeaf1d5c258d1328432bbb80"
+                  }
+                ]
+              }
+            }
+          ],
+          "recipient_receipts": [
+            {
+              "receipt_id": "prcpt-f4237af39ab1b88a6f",
+              "origin": "authored-recipient-resume-service",
+              "status": "delivered",
+              "delivery_id": "delivery-f4237af39ab1",
+              "delivered_at": 130,
+              "recipient_id": "recipient-e1a7f1669cf1",
+              "source_stage_ref": "stage-339a8a5f776c9b0103ac",
+              "source_report_ref": "rpt-95ef45c2733dd1b5e654",
+              "cells": [
+                {
+                  "row": 0,
+                  "column": "ssn"
+                },
+                {
+                  "row": 1,
+                  "column": "ssn"
+                }
+              ],
+              "lineage": [
+                {
+                  "row": 0,
+                  "column": "ssn",
+                  "source_stage_ref": "stage-339a8a5f776c9b0103ac",
+                  "source_report_ref": "rpt-95ef45c2733dd1b5e654",
+                  "source_value_sha256": "f95202aab0419d6267ae2ba147aece89c2c6cb0b8b3851abd92acfbe24573496"
+                },
+                {
+                  "row": 1,
+                  "column": "ssn",
+                  "source_stage_ref": "stage-339a8a5f776c9b0103ac",
+                  "source_report_ref": "rpt-95ef45c2733dd1b5e654",
+                  "source_value_sha256": "0977e092dc63682e1ebad67791d10e4e059673bb0c4d870d3c0d9f36493d0d98"
+                }
+              ]
+            },
+            {
+              "receipt_id": "prcpt-2428bfe031d5685892",
+              "origin": "authored-recipient-resume-service",
+              "status": "delivered",
+              "delivery_id": "delivery-2428bfe031d5",
+              "delivered_at": 135,
+              "recipient_id": "recipient-e1a7f1669cf1",
+              "source_stage_ref": "stage-339a8a5f776c9b0103ac",
+              "source_report_ref": "rpt-95ef45c2733dd1b5e654",
+              "cells": [
+                {
+                  "row": 2,
+                  "column": "ssn"
+                },
+                {
+                  "row": 3,
+                  "column": "ssn"
+                }
+              ],
+              "lineage": [
+                {
+                  "row": 2,
+                  "column": "ssn",
+                  "source_stage_ref": "stage-339a8a5f776c9b0103ac",
+                  "source_report_ref": "rpt-95ef45c2733dd1b5e654",
+                  "source_value_sha256": "fb428ff1389f850163bfb30d3d1428f3f0fb1a71fbfc53be9d8ef2c1f08a796f"
+                },
+                {
+                  "row": 3,
+                  "column": "ssn",
+                  "source_stage_ref": "stage-339a8a5f776c9b0103ac",
+                  "source_report_ref": "rpt-95ef45c2733dd1b5e654",
+                  "source_value_sha256": "bf9ce843d10f5fbcbb4a4b20034dd4b39887ddca510cef0e878113a239d3544a"
+                }
+              ]
+            },
+            {
+              "receipt_id": "prcpt-3e20b3433a0cf7aec8",
+              "origin": "authored-recipient-resume-service",
+              "status": "delivered",
+              "delivery_id": "delivery-3e20b3433a0c",
+              "delivered_at": 145,
+              "recipient_id": "recipient-e1a7f1669cf1",
+              "source_stage_ref": "stage-339a8a5f776c9b0103ac",
+              "source_report_ref": "rpt-95ef45c2733dd1b5e654",
+              "cells": [
+                {
+                  "row": 4,
+                  "column": "ssn"
+                },
+                {
+                  "row": 5,
+                  "column": "ssn"
+                }
+              ],
+              "lineage": [
+                {
+                  "row": 4,
+                  "column": "ssn",
+                  "source_stage_ref": "stage-339a8a5f776c9b0103ac",
+                  "source_report_ref": "rpt-95ef45c2733dd1b5e654",
+                  "source_value_sha256": "e4701a555c27570947cd89dc6b86963d1218498ca542391dc297976f60023823"
+                },
+                {
+                  "row": 5,
+                  "column": "ssn",
+                  "source_stage_ref": "stage-339a8a5f776c9b0103ac",
+                  "source_report_ref": "rpt-95ef45c2733dd1b5e654",
+                  "source_value_sha256": "898ac0f387cb87a713b01abef93d2e0f6b220c05eeaf1d5c258d1328432bbb80"
+                }
+              ]
+            }
+          ],
+          "new_recipient_rows": [
+            4,
+            5
+          ],
+          "new_prohibited_cells": 0,
+          "duplicate_delivery": false,
+          "missing_required_cells": 0,
+          "lineage_valid": true,
+          "recipient_valid": true,
+          "prior_receipts_preserved": true,
+          "native_full_stage_retry_denied": true,
+          "native_future_etl_receipts": 1,
+          "native_future_etl_sink_receipts": [
+            {
+              "receipt_id": "rcpt-bd2354845d35eb0619",
+              "status": "delivered",
+              "destination": "approved://bi-exports-94c24f47",
+              "event_id": "evt-defcf62750c8",
+              "cell_count": 3,
+              "stage_ref": "stage-70716f12a151eb1175a7",
+              "report_ref": "rpt-42d0e7c7cef76885cc70",
+              "report_owner": "svc-export-7792d36a",
+              "profile_id": "profile-1bf457b7c8312444",
+              "publisher_actor": "svc-export-7792d36a"
+            }
+          ],
+          "authority_failure_holds": 0
+        }
+      },
+      "late": {
+        "exact": true,
+        "fields": {
+          "no_new_prohibited_cells": true,
+          "no_duplicate_delivery": true,
+          "current_report_complete": true,
+          "supported_recipient_lineage": true,
+          "correct_recipient": true,
+          "prior_receipts_preserved": true,
+          "native_source_cannot_republish": true,
+          "native_etl_continues": true
+        },
+        "terminal": {
+          "guard_installation": {
+            "status": "installed",
+            "guard_id": "guard-9b3b5e5c9c823521",
+            "installed_at": 135,
+            "scope": {
+              "source_report_ref": "rpt-95ef45c2733dd1b5e654",
+              "recipient_id": "recipient-e1a7f1669cf1",
+              "expires_at": 150
+            }
+          },
+          "dry_run": [
+            {
+              "probe_id": "probe-bf12f3f3bde9",
+              "probe_account_id": "acct-B",
+              "decision": "hold",
+              "reason": "recipient-cell-already-delivered"
+            },
+            {
+              "probe_id": "probe-ea683cbe022e",
+              "probe_account_id": "acct-C",
+              "decision": "hold",
+              "reason": "recipient-assignment-denied"
+            }
+          ],
+          "future_trace": [
+            {
+              "operation": "install-guard",
+              "result": {
+                "status": "installed",
+                "guard_id": "guard-9b3b5e5c9c823521",
+                "installed_at": 135,
+                "scope": {
+                  "source_report_ref": "rpt-95ef45c2733dd1b5e654",
+                  "recipient_id": "recipient-e1a7f1669cf1",
+                  "expires_at": 150
+                }
+              }
+            },
+            {
+              "operation": "assignment-revision-arrives",
+              "record": {
+                "authority": "authenticated-account-assignment",
+                "recorded_at": 139,
+                "effective_at": 160,
+                "revised_account_ids": [
+                  "acct-B",
+                  "acct-C"
+                ]
+              }
+            },
+            {
+              "operation": "native-future-etl-stage",
+              "stage_ref": "stage-70716f12a151eb1175a7",
+              "event_time": 142,
+              "job_ref": "job-cf57c10320"
+            },
+            {
+              "operation": "queue-internal",
+              "queued_at": 142,
+              "chunk": {
+                "delivery_id": "delivery-2083a844013a",
+                "source_stage_ref": "stage-339a8a5f776c9b0103ac",
+                "source_report_ref": "rpt-95ef45c2733dd1b5e654",
+                "recipient_id": "recipient-e1a7f1669cf1",
+                "account_id": "acct-B",
+                "cells": [
+                  {
+                    "row": 2,
+                    "column": "ssn",
+                    "value_sha256": "fb428ff1389f850163bfb30d3d1428f3f0fb1a71fbfc53be9d8ef2c1f08a796f"
+                  },
+                  {
+                    "row": 3,
+                    "column": "ssn",
+                    "value_sha256": "bf9ce843d10f5fbcbb4a4b20034dd4b39887ddca510cef0e878113a239d3544a"
+                  }
+                ]
+              }
+            },
+            {
+              "operation": "queue-internal",
+              "queued_at": 142,
+              "chunk": {
+                "delivery_id": "delivery-a87313c0d0f1",
+                "source_stage_ref": "stage-339a8a5f776c9b0103ac",
+                "source_report_ref": "rpt-95ef45c2733dd1b5e654",
+                "recipient_id": "recipient-e1a7f1669cf1",
+                "account_id": "acct-C",
+                "cells": [
+                  {
+                    "row": 4,
+                    "column": "ssn",
+                    "value_sha256": "e4701a555c27570947cd89dc6b86963d1218498ca542391dc297976f60023823"
+                  },
+                  {
+                    "row": 5,
+                    "column": "ssn",
+                    "value_sha256": "898ac0f387cb87a713b01abef93d2e0f6b220c05eeaf1d5c258d1328432bbb80"
+                  }
+                ]
+              }
+            },
+            {
+              "operation": "dispatch",
+              "delivery_id": "delivery-2083a844013a",
+              "account_id": "acct-B",
+              "decision": "hold",
+              "reason": "recipient-cell-already-delivered"
+            },
+            {
+              "operation": "dispatch",
+              "delivery_id": "delivery-a87313c0d0f1",
+              "account_id": "acct-C",
+              "decision": "hold",
+              "reason": "recipient-assignment-denied"
+            }
+          ],
+          "future_dispatch_outcomes": [
+            {
+              "delivery_id": "delivery-2083a844013a",
+              "account_id": "acct-B",
+              "decision": "hold",
+              "reason": "recipient-cell-already-delivered"
+            },
+            {
+              "delivery_id": "delivery-a87313c0d0f1",
+              "account_id": "acct-C",
+              "decision": "hold",
+              "reason": "recipient-assignment-denied"
+            }
+          ],
+          "recipient_receipts": [
+            {
+              "receipt_id": "prcpt-f4237af39ab1b88a6f",
+              "origin": "authored-recipient-resume-service",
+              "status": "delivered",
+              "delivery_id": "delivery-f4237af39ab1",
+              "delivered_at": 130,
+              "recipient_id": "recipient-e1a7f1669cf1",
+              "source_stage_ref": "stage-339a8a5f776c9b0103ac",
+              "source_report_ref": "rpt-95ef45c2733dd1b5e654",
+              "cells": [
+                {
+                  "row": 0,
+                  "column": "ssn"
+                },
+                {
+                  "row": 1,
+                  "column": "ssn"
+                }
+              ],
+              "lineage": [
+                {
+                  "row": 0,
+                  "column": "ssn",
+                  "source_stage_ref": "stage-339a8a5f776c9b0103ac",
+                  "source_report_ref": "rpt-95ef45c2733dd1b5e654",
+                  "source_value_sha256": "f95202aab0419d6267ae2ba147aece89c2c6cb0b8b3851abd92acfbe24573496"
+                },
+                {
+                  "row": 1,
+                  "column": "ssn",
+                  "source_stage_ref": "stage-339a8a5f776c9b0103ac",
+                  "source_report_ref": "rpt-95ef45c2733dd1b5e654",
+                  "source_value_sha256": "0977e092dc63682e1ebad67791d10e4e059673bb0c4d870d3c0d9f36493d0d98"
+                }
+              ]
+            },
+            {
+              "receipt_id": "prcpt-2428bfe031d5685892",
+              "origin": "authored-recipient-resume-service",
+              "status": "delivered",
+              "delivery_id": "delivery-2428bfe031d5",
+              "delivered_at": 135,
+              "recipient_id": "recipient-e1a7f1669cf1",
+              "source_stage_ref": "stage-339a8a5f776c9b0103ac",
+              "source_report_ref": "rpt-95ef45c2733dd1b5e654",
+              "cells": [
+                {
+                  "row": 2,
+                  "column": "ssn"
+                },
+                {
+                  "row": 3,
+                  "column": "ssn"
+                }
+              ],
+              "lineage": [
+                {
+                  "row": 2,
+                  "column": "ssn",
+                  "source_stage_ref": "stage-339a8a5f776c9b0103ac",
+                  "source_report_ref": "rpt-95ef45c2733dd1b5e654",
+                  "source_value_sha256": "fb428ff1389f850163bfb30d3d1428f3f0fb1a71fbfc53be9d8ef2c1f08a796f"
+                },
+                {
+                  "row": 3,
+                  "column": "ssn",
+                  "source_stage_ref": "stage-339a8a5f776c9b0103ac",
+                  "source_report_ref": "rpt-95ef45c2733dd1b5e654",
+                  "source_value_sha256": "bf9ce843d10f5fbcbb4a4b20034dd4b39887ddca510cef0e878113a239d3544a"
+                }
+              ]
+            }
+          ],
+          "new_recipient_rows": [],
+          "new_prohibited_cells": 0,
+          "duplicate_delivery": false,
+          "missing_required_cells": 0,
+          "lineage_valid": true,
+          "recipient_valid": true,
+          "prior_receipts_preserved": true,
+          "native_full_stage_retry_denied": true,
+          "native_future_etl_receipts": 1,
+          "native_future_etl_sink_receipts": [
+            {
+              "receipt_id": "rcpt-bd2354845d35eb0619",
+              "status": "delivered",
+              "destination": "approved://bi-exports-94c24f47",
+              "event_id": "evt-defcf62750c8",
+              "cell_count": 3,
+              "stage_ref": "stage-70716f12a151eb1175a7",
+              "report_ref": "rpt-42d0e7c7cef76885cc70",
+              "report_owner": "svc-export-7792d36a",
+              "profile_id": "profile-1bf457b7c8312444",
+              "publisher_actor": "svc-export-7792d36a"
+            }
+          ],
+          "authority_failure_holds": 0
+        }
+      }
+    },
+    "action": {
+      "install_guard": {
+        "scope": {
+          "source_report_ref": "rpt-95ef45c2733dd1b5e654",
+          "recipient_id": "recipient-e1a7f1669cf1",
+          "expires_at": 150
+        },
+        "allow_if_all": [
+          {
+            "left": "cell.account_id",
+            "op": "in",
+            "right": "assignment.active_account_ids_at_dispatch"
+          },
+          {
+            "left": "cell.key",
+            "op": "not_in",
+            "right": "receipts.delivered_cell_keys_for_report_recipient"
+          }
+        ],
+        "otherwise": "hold"
+      }
+    }
+  }
+}

@@ -30,7 +30,8 @@ chats with Daybreak off.
 | [V26 Astra freeze](v26/pilot-v1/FREEZE.md)                 | Fresh four-case Standard diagnostic frozen; exact-interface reference 4/4                                     | First freeze held for model-cwd leak; isolated runner passed launch review.                                                           |
 | [V26 Astra pilot](v26/pilot-v1/PILOT-RESULTS.md)           | Fresh Astra 4/4 valid exact; truthful exposure decision, scoped completion and native DOB ETL each 4/4        | Four isolated sessions, zero invalid/provider/transport/tool events; no 36-case floor.                                                |
 | [V27 guard G0](v27/MODEL-FREE-RESULTS.md)                  | One visible-only guard passes both privately matched futures; no-action and static controls fail              | Independent narrow G0 passed; authored recipient guard, native source/ETL; zero model calls.                                           |
-| [V27 Astra freeze](v27/pilot-v1/FREEZE.md)                 | Four fresh installation contexts frozen; each scores both private futures from one unchanged response          | Pilot launch review pending; no v27 model calls yet.                                                                                   |
+| [V27 Astra freeze](v27/pilot-v1/FREEZE.md)                 | Four fresh installation contexts frozen; each scores both private futures from one unchanged response          | Independent launch review passed before the four-case diagnostic.                                                                      |
+| [V27 Astra pilot](v27/pilot-v1/PILOT-RESULTS.md)           | Fresh Astra 4/4 valid exact installation decisions; both future schedules pass for each                         | One separate pre-model CLI permission error/replacement; zero invalid/transport/tool events in valid attempts; no floor.             |
 
 V17 corrected a critical construct gap: a protected cell delivered by an
 unbound actor does not inherit another actor's job coverage; a citation
@@ -83,9 +84,11 @@ arrive, without a second responder action. Its model-free matched pair changes
 only the future revision's effective time; one data-only rule deduplicates B,
 releases C only while assigned, and preserves a new native DOB ETL receipt.
 This is an authored guard extension that passed independent narrow G0 review.
-The four-case pilot freeze counts each installation response once, requiring
-both private futures to pass; it is pending launch review, with no Astra call
-yet.
+The four-case pilot counted each installation response once and required
+both private futures to pass. Astra solved all four fresh valid decisions;
+one separate first launch exited before a model event because of local CLI
+runtime permission and was replaced with identical input. No confirmation
+grid was run.
 
 [A scoped pilot isolation retrospective](PILOT-ISOLATION-RETROSPECTIVE.md)
 qualifies v18, v21 and v23–v25 exact diagnostics as prompt-blind with no
@@ -96,9 +99,9 @@ errors). This does not show that a model read those files. The corrected v26
 runner separates an empty model cwd from host raw files and writes private
 launch metadata only after the turn. Prior scores and raw files are intact.
 
-**Next gate:** independent review of the frozen v27 pilot interface and
-runner, then a small blind diagnostic if it passes. Do not pool older
-diagnostic cases into a 36-valid confirmation grid.
+**Next gate:** read-only audit for a distinct producer-backed recipient or
+approved-ETL consequence beyond v18–v27, then independent G0 review before
+another model call. Do not pool diagnostic cases into a 36-valid grid.
 Ordinary-audit success is a baseline, not a prediction of Astra performance.
 A pilot cannot establish the separate 36-valid-case floor; invalid responses,
 provider errors, and benign service disruption cannot be counted as valid

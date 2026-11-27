@@ -1,0 +1,22 @@
+{
+  "install_guard": {
+    "scope": {
+      "source_report_ref": "rpt-b57919b157e16426a053",
+      "recipient_id": "recipient-9ebdc5916c7d",
+      "expires_at": 150
+    },
+    "allow_if_all": [
+      {
+        "left": "cell.account_id",
+        "op": "in",
+        "right": "assignment.active_account_ids_at_dispatch"
+      },
+      {
+        "left": "cell.key",
+        "op": "not_in",
+        "right": "receipts.delivered_cell_keys_for_report_recipient"
+      }
+    ],
+    "otherwise": "hold"
+  }
+}
