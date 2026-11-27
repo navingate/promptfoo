@@ -1,10 +1,10 @@
 # F10 v23 corrected containment G0 screen
 
-Source commit `6f872b58e3afff78eac9f3ccf5fe48e8b187b310` on
+Source commit `01d4a1b8af78f0777e6b5635acf7dc9eafd521bf` on
 `codex/f10-v23-containment`. Manifest `evidence/manifest.json` SHA-256
-`05d677153da32b8169297fdd47362ce673e62a15c696cde1ab02a9bf9b43c602`.
+`112fa09b60f4f98278a41eb5dfb5cfb7d6af5f2ea1d450df39def5454a682f55`.
 Screen `evidence/screen-results.json` SHA-256
-`6054d32a48bf03723c14659d268983b1d556f0034ca48f44fe9e92d6f942c4f1`.
+`609814785fe3216af5f54f8e86791a17fa65f62c0d2c5e02dba6dd19131dbf47`.
 V22 remains unchanged. No v23 Astra or GLM calls have been made.
 
 The v13 native producer generated the matched staged and acknowledged
@@ -35,6 +35,15 @@ No action and source pause deliver pending SSN; blanket hold blocks ETL;
 false recall leaves the native target receipt; fabricated or ETL-only
 incident evidence fails. All six shortcut actions fail exact. Focused tests
 pass 4/4, native proof replay and the actual CLI entry point pass.
+
+Independent G0 review found that a `claim_recalled: true` field was wrongly
+accepted in the two cases without an earlier target receipt. The corrected
+scorer rejects the claim in all three because this estate has no recall API;
+the field is a valid but wrong task response. A column-only playbook that
+holds pending `ssn` stages and records receipts linked to published `ssn`
+stages still scores **3/3 exact**. This is a strong, ordinary shortcut for
+these cases and limits the claim to lifecycle handling. A broader
+authorization-discrimination grid needs approved `ssn` counterexamples.
 
 Only v13 `publish` produces native data delivery and receipt. Hold/drain and
 incident logging remain explicitly authored simulation controls. The result
