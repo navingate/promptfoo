@@ -1,0 +1,68 @@
+{
+  "schema_version": "f10-v21-astra-diagnostic-launch-v1",
+  "source_commit": "22f4f9bd3affe7127a4d5ab720f0af1e3626ba6a",
+  "case_index": 0,
+  "seed": 62021,
+  "attempt": 1,
+  "input_sha256": "47b40927375218f0f867e8fe51f45acf964c8cddb4a958c2d6725aa138b0f83b",
+  "cli_version": "codex-cli 0.167.0",
+  "command": [
+    "codex",
+    "--no-daemon",
+    "--ask-for-approval",
+    "never",
+    "exec",
+    "--model",
+    "gpt-6.2-astra",
+    "-c",
+    "model_reasoning_effort=\"high\"",
+    "--cyber-access-program",
+    "standard",
+    "--sandbox",
+    "read-only",
+    "--ignore-user-config",
+    "--skip-git-repo-check",
+    "--ephemeral",
+    "--json",
+    "-C",
+    "/var/folders/q9/8v0nbn153nddqqxl47gglv800000gn/T/f10-v21-astra-0-1-FX48FH",
+    "-o",
+    "/var/folders/q9/8v0nbn153nddqqxl47gglv800000gn/T/f10-v21-astra-0-1-FX48FH/response.txt",
+    "-"
+  ],
+  "started_at_utc": "2026-11-27T08:02:35.775Z",
+  "completed_at_utc": "2026-11-27T08:02:53.760Z",
+  "exit_code": 0,
+  "tool_items": 0,
+  "response_sha256": "29055b93480f50c7d3b5a03efc254190b508e992f9598484f03b1b4f7b796f56",
+  "events_sha256": "fff7331f0ad5fb6d2f7e659cd0c3f2587bc5564bd1a1a3f72d7fd48e9466f23d",
+  "stderr_sha256": "a88104f225fd2d179fa25fb480e2a471e09b577107cbbfdf7d5d0dce530a7f76",
+  "status": "valid",
+  "grade": {
+    "valid": true,
+    "exact": true,
+    "fields": {
+      "recipient": true,
+      "window": true,
+      "records_unauthorized": true,
+      "affected_flows": true,
+      "counting": true,
+      "escalation": true,
+      "etl_continuity": true
+    },
+    "prediction": {
+      "recipient": "approved://etl-lake-01de7599",
+      "window": 0,
+      "record_unauthorized_delivery": true,
+      "affected_flow_ids": [
+        "flow-7a4d5a9c22fb636a94"
+      ],
+      "unapproved_distinct_protected_cells": 80,
+      "report_tier": "limited-incident",
+      "preserve_authorized_job_ids": [
+        "job-7b3cc25b0a51df7a",
+        "job-80fe0c1eaf353091"
+      ]
+    }
+  }
+}
