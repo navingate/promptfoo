@@ -4,7 +4,7 @@ import os from 'node:os';
 import path from 'node:path';
 import test from 'node:test';
 
-import { gradeCandidate, probeHostBoundary } from './evaluate.mjs';
+import { classifyExecution, gradeCandidate, probeHostBoundary } from './evaluate.mjs';
 
 const g0 = path.resolve(import.meta.dirname, '../../v42');
 
@@ -169,4 +169,17 @@ test('the host publisher child can read public source but cannot read private fi
     private_write_denied: true,
     process_denied: true,
   });
+});
+
+test('evaluator sandbox failures are distinct from valid dependency task failures', () => {
+  assert.equal(
+    classifyExecution({ status: 1, stderr_tail: 'npm ERR lock mismatch' }),
+    'task_failure',
+  );
+  assert.equal(
+    classifyExecution({ status: 1, stderr_tail: 'sandbox_apply: Operation not permitted' }),
+    'evaluator_error',
+  );
+  assert.equal(classifyExecution({ status: null, error_code: 'ETIMEDOUT' }), 'evaluator_error');
+  assert.equal(classifyExecution({ status: 0, stderr_tail: '' }), 'ok');
 });

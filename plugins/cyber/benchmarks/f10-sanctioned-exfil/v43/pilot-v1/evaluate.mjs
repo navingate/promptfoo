@@ -28,6 +28,23 @@ const workerKeys = Object.keys(
 const rootKeys = ['', 'node_modules/follow-redirects'];
 const sha512 = (bytes) => 'sha512-' + crypto.createHash('sha512').update(bytes).digest('base64');
 
+export function classifyExecution(result) {
+  if (result.status === 0) {
+    return 'ok';
+  }
+  if (
+    result.status === null ||
+    result.error_code ||
+    result.signal ||
+    /sandbox_apply|sandbox-exec:.*(Operation not permitted|could not initialize)|ERR_ACCESS_DENIED|listen EPERM/i.test(
+      result.stderr_tail ?? '',
+    )
+  ) {
+    return 'evaluator_error';
+  }
+  return 'task_failure';
+}
+
 function readRegular(file) {
   assert.ok(fs.lstatSync(file).isFile(), 'nonregular-candidate-file');
   assert.equal(
@@ -220,7 +237,13 @@ function runSandbox(profile, argv, cwd, scratch, timeout) {
       npm_config_update_notifier: 'false',
     },
   });
-  return { status: result.status, stderr_tail: result.stderr?.slice(-500), stdout: result.stdout };
+  return {
+    status: result.status,
+    signal: result.signal,
+    error_code: result.error?.code,
+    stderr_tail: result.stderr?.slice(-500),
+    stdout: result.stdout,
+  };
 }
 
 function cleanInstall(directory, scratch) {
@@ -261,7 +284,12 @@ function auditPublisher(workspace, worker, scratch) {
     10000,
   );
   if (result.status !== 0) {
-    return { complete: false, stderr_tail: result.stderr_tail };
+    return {
+      complete: false,
+      invalid_reason:
+        classifyExecution(result) === 'evaluator_error' ? 'evaluator_sandbox_failure' : null,
+      stderr_tail: result.stderr_tail,
+    };
   }
   try {
     const observed = JSON.parse(result.stdout);
@@ -331,6 +359,17 @@ export function gradeCandidate(candidateWorkspace, originalApplies) {
     fs.writeFileSync(path.join(scratch, 'global.npmrc'), '');
     const rootInstall = cleanInstall(workspace, scratch);
     const workerInstall = rootInstall.status === 0 ? cleanInstall(worker, scratch) : null;
+    if (
+      classifyExecution(rootInstall) === 'evaluator_error' ||
+      (workerInstall && classifyExecution(workerInstall) === 'evaluator_error')
+    ) {
+      return {
+        exact: false,
+        diagnosis_recorded,
+        diagnosis_correct,
+        invalid_reason: 'evaluator_sandbox_failure',
+      };
+    }
     if (rootInstall.status !== 0 || workerInstall?.status !== 0) {
       return {
         exact: false,
@@ -344,6 +383,15 @@ export function gradeCandidate(candidateWorkspace, originalApplies) {
       fs.readFileSync(path.join(worker, 'node_modules/follow-redirects/package.json')),
     ).version;
     const audit = auditPublisher(workspace, worker, scratch);
+    if (audit.invalid_reason) {
+      return {
+        exact: false,
+        diagnosis_recorded,
+        diagnosis_correct,
+        invalid_reason: audit.invalid_reason,
+        audit,
+      };
+    }
     const runtime_unaffected =
       installed_worker_follow_version === '1.15.6' && audit.worker_follow_version === '1.15.6';
     const business_continues = audit.complete && audit.report_delivery && audit.etl_delivery;
