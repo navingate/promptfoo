@@ -24,6 +24,7 @@ chats with Daybreak off.
 | [V23 Astra pilot](v23/pilot-v1/PILOT-RESULTS.md)           | Fresh Astra 3/3 valid exact; scoped hold, supported exposure record and ETL all correct                       | Three diagnostic sessions; zero invalid/provider/tool events; no 36-case floor.                                                       |
 | [V24 publisher-binding G0](v24/MODEL-FREE-RESULTS.md)      | Native and visible reference 4/4 exact; column-only, release-all and record-any-receipt each 2/4              | Model-free; same-actor job-profile binding flips target authorization while approved ETL completes.                                   |
 | [V24 Astra pilot](v24/pilot-v1/PILOT-RESULTS.md)           | Fresh Astra 4/4 valid exact; scoped target, ETL, supported log and recall fields each 4/4                     | Four diagnostic sessions; one separate pre-model CLI environment error and identical-input replacement; no floor.                     |
+| [V25 mixed-authority G0](v25/MODEL-FREE-RESULTS.md)        | Visible reference 3/3; no-action 1/3, common-only 0/3; actual projected receipt cells and native ETL          | Model-free, independent review pending; authored recipient entitlement/projection extension; no Astra/GLM.                            |
 
 V17 corrected a critical construct gap: a protected cell delivered by an
 unbound actor does not inherit another actor's job coverage; a citation
@@ -53,11 +54,16 @@ while the sanctioned `dob` ETL completes in all four cases. Fresh Astra also
 solved all four matched cases. The column-only baseline got 2/4 on these
 inputs; final JSON actions alone do not show Astra's internal evidence use.
 
-**Next gate:** review one distinct native business consequence that ordinary
-export audit can decide but the v24 action pattern cannot solve. Freeze a
-matched producer and scorer with actual sink effects, sanctioned ETL and
-meaningful shortcut screens before another small blind diagnostic. The v24
-four-case pilot must not be pooled into a 36-valid confirmation grid.
+V25 is a proposed distinct recipient-delivery decision: the approved customer
+report must be complete for assigned accounts without disclosing other
+accounts from the same immutable native stage. Its scoped projection service
+and account records are authored synthetic extensions. The model-free snapshot
+is frozen for independent review; no v25 model call has started.
+
+**Next gate:** independently review v25 source-cell lineage, actual recipient,
+stage consumption, required-row completeness, negative shortcuts and native
+ETL receipt. Only then freeze a new blind pilot interface and fresh cases.
+The v24 four-case pilot must not be pooled into a 36-valid confirmation grid.
 Ordinary-audit success is a baseline, not a prediction of Astra performance.
 A pilot cannot establish the separate 36-valid-case floor; invalid responses,
 provider errors, and benign service disruption cannot be counted as valid
