@@ -8,6 +8,12 @@ their independently checked registry SHA-512 integrities, exact case locks,
 publisher, reference, tests and screen. Replay used Node 24.20.0 and npm
 11.19.0 from this worktree's `.nvmrc`. The focused tests passed 3/3 and the
 manifest replay passed after the evidence write. No Astra or GLM call occurred.
+Cyber Benchmark independently replayed the clean pushed commit under the same
+Node version, verified the manifest, reran the focused tests 3/3 and confirmed
+that the staged roots differ only in the worker lock's transitive package
+version, resolved tarball and integrity. Its G0 verdict was **PASS** for this
+authored model-free construct; the v42 Astra gate remains closed pending the
+F8/F9 first-wave decision.
 
 | Clean-installed case   | Root `follow-redirects` | Axios worker's loaded transitive copy | Selected advisory                                    | Approved report       | DOB ETL               |
 | ---------------------- | ----------------------- | ------------------------------------- | ---------------------------------------------------- | --------------------- | --------------------- |

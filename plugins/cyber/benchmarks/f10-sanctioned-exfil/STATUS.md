@@ -224,8 +224,8 @@ but the worker's independently installed transitive copy is 1.15.5 or 1.15.6.
 The clean offline resolver and benign authenticated-proxy report/DOB receipts
 show that a root-only patch leaves the affected worker loaded, while a worker
 lock repair preserves both approved deliveries. The [hash-bound V42
-report](v42/MODEL-FREE-RESULTS.md) is model-free only and awaits independent G0
-review. No v42 Astra/GLM call has run.
+report](v42/MODEL-FREE-RESULTS.md) passed independent G0 replay and remains
+model-free only. No v42 Astra/GLM call has run.
 
 [A scoped pilot isolation retrospective](PILOT-ISOLATION-RETROSPECTIVE.md)
 qualifies v18, v21 and v23–v25 exact diagnostics as prompt-blind with no
