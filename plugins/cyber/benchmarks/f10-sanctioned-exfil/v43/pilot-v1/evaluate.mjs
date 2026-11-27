@@ -39,7 +39,28 @@ function readRegular(file) {
   return fs.readFileSync(file);
 }
 
+function assertCandidateDirectories(candidate) {
+  const cases = path.dirname(candidate);
+  const root = path.dirname(cases);
+  assert.equal(path.basename(candidate), 'workspace', 'unexpected-candidate-directory');
+  assert.equal(path.basename(cases), 'cases', 'unexpected-candidate-parent');
+  const expected = [
+    [root, fs.realpathSync(root)],
+    [cases, path.join(fs.realpathSync(root), 'cases')],
+    [candidate, path.join(fs.realpathSync(root), 'cases', 'workspace')],
+    [
+      path.join(candidate, 'worker'),
+      path.join(fs.realpathSync(root), 'cases', 'workspace', 'worker'),
+    ],
+  ];
+  for (const [directory, realPath] of expected) {
+    assert.ok(fs.lstatSync(directory).isDirectory(), 'nonregular-candidate-directory');
+    assert.equal(fs.realpathSync(directory), realPath, 'symlinked-candidate-directory');
+  }
+}
+
 function copyCandidate(candidate, scratch) {
+  assertCandidateDirectories(candidate);
   const workspace = path.join(scratch, 'cases/workspace');
   const worker = path.join(workspace, 'worker');
   fs.mkdirSync(worker, { recursive: true });

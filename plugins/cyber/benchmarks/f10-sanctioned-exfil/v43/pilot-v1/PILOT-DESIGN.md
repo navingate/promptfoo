@@ -67,3 +67,7 @@ affected root-only behavior, the fixed case, worker-lock repair, direct pinned
 worker repair, supported override, manifest-only failure, lock path escape,
 malformed dependency metadata, and private file/write/process denials. These
 checks do not establish prompt isolation, a launch protocol, or a blind score.
+The scorer pins the candidate root, `cases/workspace`, and `worker` directory
+realpaths before it reads submitted dependency files; symlinked workspace or
+worker directories are negative controls. This closes the prelaunch host
+file-read path raised in independent review without changing V42 G0 evidence.

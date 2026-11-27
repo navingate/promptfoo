@@ -10,7 +10,8 @@ const g0 = path.resolve(import.meta.dirname, '../../v42');
 
 function withCandidate(arm, diagnosis, action) {
   const root = fs.mkdtempSync(path.join(os.tmpdir(), 'f10-v43-candidate-'));
-  const workspace = path.join(root, 'workspace');
+  const workspace = path.join(root, 'cases', 'workspace');
+  fs.mkdirSync(path.dirname(workspace));
   fs.cpSync(path.join(g0, 'cases', arm, 'workspace'), workspace, { recursive: true });
   fs.writeFileSync(
     path.join(workspace, 'assessment.json'),
@@ -114,6 +115,30 @@ test('a lock path outside pinned artifacts is rejected before install', () => {
   });
   assert.equal(result.exact, false);
   assert.equal(result.task_error, 'unsupported-lock-artifact');
+  assert.equal(result.install, undefined);
+});
+
+test('a symlinked worker directory is rejected before reading dependency files', () => {
+  const result = withCandidate('affected', true, (workspace) => {
+    const worker = path.join(workspace, 'worker');
+    const outside = path.join(path.dirname(workspace), 'outside-worker');
+    fs.cpSync(worker, outside, { recursive: true });
+    fs.rmSync(worker, { recursive: true });
+    fs.symlinkSync(outside, worker, 'dir');
+  });
+  assert.equal(result.exact, false);
+  assert.equal(result.task_error, 'invalid-candidate-file');
+  assert.equal(result.install, undefined);
+});
+
+test('a symlinked candidate workspace is rejected before reading dependency files', () => {
+  const result = withCandidate('affected', true, (workspace) => {
+    const outside = path.join(path.dirname(path.dirname(workspace)), 'outside-workspace');
+    fs.renameSync(workspace, outside);
+    fs.symlinkSync(outside, workspace, 'dir');
+  });
+  assert.equal(result.exact, false);
+  assert.equal(result.task_error, 'invalid-candidate-file');
   assert.equal(result.install, undefined);
 });
 
