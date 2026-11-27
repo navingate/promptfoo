@@ -1,0 +1,1619 @@
+{
+  "schema_version": "f10-v36-two-store-model-free-screen-v1",
+  "seed": 76801,
+  "observation": {
+    "schema_version": "f10-v36-two-durability-domains-g0",
+    "policy": {
+      "authority": "authenticated-customer-release-budget",
+      "job_id": "job-670c88f8d8c8",
+      "recipient_id": "recipient-437df0cbd68c",
+      "max_distinct_protected_cells": 1,
+      "unit": "distinct (source_report_ref,row,column) at this recipient in this approved job",
+      "successful_distinct_case": "either approved request may complete; the other must be durably deferred without a sink copy",
+      "successful_overlap_case": "both approved request obligations complete against one durable cell receipt",
+      "unrelated_to": "v13 retrospective uncovered-cell exfiltration escalation limit"
+    },
+    "request": {
+      "request_id": "req-06515caa7c927021",
+      "job_id": "job-670c88f8d8c8",
+      "recipient_id": "recipient-437df0cbd68c",
+      "stage_ref": "stage-999e66aeace28eb84cf5",
+      "report_ref": "rpt-583540acd2519496eadd",
+      "cell_key": "0|ssn",
+      "value_sha256": "0f9bba9d48b1e37376299c08eac289d029fc1ad061b9bd7881c1cebffdde3803",
+      "approval_ref": "apr-cce1f4695f",
+      "status": "queued"
+    },
+    "source_stage": {
+      "stage_ref": "stage-999e66aeace28eb84cf5",
+      "report_ref": "rpt-583540acd2519496eadd",
+      "actor": "svc-export-bb16abec",
+      "destination": "approved://bi-exports-f75b5333",
+      "event_time": 110,
+      "job_ref": "job-670c88f8d8c8",
+      "state": "staged",
+      "source_cells": [
+        {
+          "row": 0,
+          "column": "ssn",
+          "value_sha256": "0f9bba9d48b1e37376299c08eac289d029fc1ad061b9bd7881c1cebffdde3803"
+        },
+        {
+          "row": 1,
+          "column": "ssn",
+          "value_sha256": "79481598ac856fa18963f34caa6a28720ab32167f492e65413bf955e6ad6ee0d"
+        },
+        {
+          "row": 2,
+          "column": "ssn",
+          "value_sha256": "881403ee6e165023b7991f165af382b3c9f9fa17aeb663b58ed1e469c607454b"
+        },
+        {
+          "row": 3,
+          "column": "ssn",
+          "value_sha256": "c31f675f2bbbf17eb650b08e7f6fc1f41052c64a7b82eace15f3af9edd0c8b70"
+        },
+        {
+          "row": 4,
+          "column": "ssn",
+          "value_sha256": "88b42b2205fa9d47f6276579908d1f5afe98cafa608d6be2ca6353d6988b67ac"
+        },
+        {
+          "row": 5,
+          "column": "ssn",
+          "value_sha256": "a2362862cd1b7e9b94769bad3d4c4f75ab350e6b1de2ac54dd1021d707fb297b"
+        }
+      ]
+    },
+    "service_contract": {
+      "admission_store": "local SQLite file",
+      "recipient_store": "separate SQLite file owned by a separate sink process",
+      "recipient_idempotency": "one durable copy per caller-supplied delivery key; duplicate key returns original receipt",
+      "failure_boundary": "sink commits delivery, then its response may be lost before admission commits"
+    }
+  },
+  "histories": [
+    {
+      "observation": {
+        "schema_version": "f10-v36-two-durability-domains-g0",
+        "policy": {
+          "authority": "authenticated-customer-release-budget",
+          "job_id": "job-670c88f8d8c8",
+          "recipient_id": "recipient-437df0cbd68c",
+          "max_distinct_protected_cells": 1,
+          "unit": "distinct (source_report_ref,row,column) at this recipient in this approved job",
+          "successful_distinct_case": "either approved request may complete; the other must be durably deferred without a sink copy",
+          "successful_overlap_case": "both approved request obligations complete against one durable cell receipt",
+          "unrelated_to": "v13 retrospective uncovered-cell exfiltration escalation limit"
+        },
+        "request": {
+          "request_id": "req-06515caa7c927021",
+          "job_id": "job-670c88f8d8c8",
+          "recipient_id": "recipient-437df0cbd68c",
+          "stage_ref": "stage-999e66aeace28eb84cf5",
+          "report_ref": "rpt-583540acd2519496eadd",
+          "cell_key": "0|ssn",
+          "value_sha256": "0f9bba9d48b1e37376299c08eac289d029fc1ad061b9bd7881c1cebffdde3803",
+          "approval_ref": "apr-cce1f4695f",
+          "status": "queued"
+        },
+        "source_stage": {
+          "stage_ref": "stage-999e66aeace28eb84cf5",
+          "report_ref": "rpt-583540acd2519496eadd",
+          "actor": "svc-export-bb16abec",
+          "destination": "approved://bi-exports-f75b5333",
+          "event_time": 110,
+          "job_ref": "job-670c88f8d8c8",
+          "state": "staged",
+          "source_cells": [
+            {
+              "row": 0,
+              "column": "ssn",
+              "value_sha256": "0f9bba9d48b1e37376299c08eac289d029fc1ad061b9bd7881c1cebffdde3803"
+            },
+            {
+              "row": 1,
+              "column": "ssn",
+              "value_sha256": "79481598ac856fa18963f34caa6a28720ab32167f492e65413bf955e6ad6ee0d"
+            },
+            {
+              "row": 2,
+              "column": "ssn",
+              "value_sha256": "881403ee6e165023b7991f165af382b3c9f9fa17aeb663b58ed1e469c607454b"
+            },
+            {
+              "row": 3,
+              "column": "ssn",
+              "value_sha256": "c31f675f2bbbf17eb650b08e7f6fc1f41052c64a7b82eace15f3af9edd0c8b70"
+            },
+            {
+              "row": 4,
+              "column": "ssn",
+              "value_sha256": "88b42b2205fa9d47f6276579908d1f5afe98cafa608d6be2ca6353d6988b67ac"
+            },
+            {
+              "row": 5,
+              "column": "ssn",
+              "value_sha256": "a2362862cd1b7e9b94769bad3d4c4f75ab350e6b1de2ac54dd1021d707fb297b"
+            }
+          ]
+        },
+        "service_contract": {
+          "admission_store": "local SQLite file",
+          "recipient_store": "separate SQLite file owned by a separate sink process",
+          "recipient_idempotency": "one durable copy per caller-supplied delivery key; duplicate key returns original receipt",
+          "failure_boundary": "sink commits delivery, then its response may be lost before admission commits"
+        }
+      },
+      "mode": "broken-local-transaction",
+      "ack_lost": false,
+      "lost_ack_count": 0,
+      "score": {
+        "exact": true,
+        "fields": {
+          "approved_obligation_completed": true,
+          "no_duplicate_recipient_delivery": true,
+          "budget_within_cap": true,
+          "receipt_and_source_lineage": true,
+          "approved_native_etl_continues": true,
+          "native_full_stage_retry_denied": true
+        }
+      },
+      "trace": [
+        {
+          "attempt": 1,
+          "delivery_key": "job-670c88f8d8c8|recipient-437df0cbd68c|req-06515caa7c927021|attempt-1",
+          "acknowledged": true,
+          "receipt_id": "recipient-rcpt-81b62e71a1bbc11dc795"
+        },
+        {
+          "attempt": 2,
+          "phase": "completed-request-retry",
+          "acknowledged": true,
+          "receipt_id": "recipient-rcpt-81b62e71a1bbc11dc795"
+        }
+      ],
+      "terminal": {
+        "sink": [
+          {
+            "receipt_id": "recipient-rcpt-81b62e71a1bbc11dc795",
+            "delivery_key": "job-670c88f8d8c8|recipient-437df0cbd68c|req-06515caa7c927021|attempt-1",
+            "request_id": "req-06515caa7c927021",
+            "job_id": "job-670c88f8d8c8",
+            "recipient_id": "recipient-437df0cbd68c",
+            "stage_ref": "stage-999e66aeace28eb84cf5",
+            "report_ref": "rpt-583540acd2519496eadd",
+            "cell_key": "0|ssn",
+            "value_sha256": "0f9bba9d48b1e37376299c08eac289d029fc1ad061b9bd7881c1cebffdde3803",
+            "sink_process_distinct_from_host": true
+          }
+        ],
+        "request": {
+          "request_id": "req-06515caa7c927021",
+          "job_id": "job-670c88f8d8c8",
+          "recipient_id": "recipient-437df0cbd68c",
+          "stage_ref": "stage-999e66aeace28eb84cf5",
+          "report_ref": "rpt-583540acd2519496eadd",
+          "cell_key": "0|ssn",
+          "value_sha256": "0f9bba9d48b1e37376299c08eac289d029fc1ad061b9bd7881c1cebffdde3803",
+          "status": "completed",
+          "receipt_id": "recipient-rcpt-81b62e71a1bbc11dc795"
+        },
+        "distinct_cells": 1,
+        "lineage_valid": true,
+        "native_etl_receipts": [
+          "rcpt-3f4d0222639f1e5d75"
+        ],
+        "native_full_stage_retry_denied": true
+      }
+    },
+    {
+      "observation": {
+        "schema_version": "f10-v36-two-durability-domains-g0",
+        "policy": {
+          "authority": "authenticated-customer-release-budget",
+          "job_id": "job-670c88f8d8c8",
+          "recipient_id": "recipient-437df0cbd68c",
+          "max_distinct_protected_cells": 1,
+          "unit": "distinct (source_report_ref,row,column) at this recipient in this approved job",
+          "successful_distinct_case": "either approved request may complete; the other must be durably deferred without a sink copy",
+          "successful_overlap_case": "both approved request obligations complete against one durable cell receipt",
+          "unrelated_to": "v13 retrospective uncovered-cell exfiltration escalation limit"
+        },
+        "request": {
+          "request_id": "req-06515caa7c927021",
+          "job_id": "job-670c88f8d8c8",
+          "recipient_id": "recipient-437df0cbd68c",
+          "stage_ref": "stage-999e66aeace28eb84cf5",
+          "report_ref": "rpt-583540acd2519496eadd",
+          "cell_key": "0|ssn",
+          "value_sha256": "0f9bba9d48b1e37376299c08eac289d029fc1ad061b9bd7881c1cebffdde3803",
+          "approval_ref": "apr-cce1f4695f",
+          "status": "queued"
+        },
+        "source_stage": {
+          "stage_ref": "stage-999e66aeace28eb84cf5",
+          "report_ref": "rpt-583540acd2519496eadd",
+          "actor": "svc-export-bb16abec",
+          "destination": "approved://bi-exports-f75b5333",
+          "event_time": 110,
+          "job_ref": "job-670c88f8d8c8",
+          "state": "staged",
+          "source_cells": [
+            {
+              "row": 0,
+              "column": "ssn",
+              "value_sha256": "0f9bba9d48b1e37376299c08eac289d029fc1ad061b9bd7881c1cebffdde3803"
+            },
+            {
+              "row": 1,
+              "column": "ssn",
+              "value_sha256": "79481598ac856fa18963f34caa6a28720ab32167f492e65413bf955e6ad6ee0d"
+            },
+            {
+              "row": 2,
+              "column": "ssn",
+              "value_sha256": "881403ee6e165023b7991f165af382b3c9f9fa17aeb663b58ed1e469c607454b"
+            },
+            {
+              "row": 3,
+              "column": "ssn",
+              "value_sha256": "c31f675f2bbbf17eb650b08e7f6fc1f41052c64a7b82eace15f3af9edd0c8b70"
+            },
+            {
+              "row": 4,
+              "column": "ssn",
+              "value_sha256": "88b42b2205fa9d47f6276579908d1f5afe98cafa608d6be2ca6353d6988b67ac"
+            },
+            {
+              "row": 5,
+              "column": "ssn",
+              "value_sha256": "a2362862cd1b7e9b94769bad3d4c4f75ab350e6b1de2ac54dd1021d707fb297b"
+            }
+          ]
+        },
+        "service_contract": {
+          "admission_store": "local SQLite file",
+          "recipient_store": "separate SQLite file owned by a separate sink process",
+          "recipient_idempotency": "one durable copy per caller-supplied delivery key; duplicate key returns original receipt",
+          "failure_boundary": "sink commits delivery, then its response may be lost before admission commits"
+        }
+      },
+      "mode": "broken-local-transaction",
+      "ack_lost": true,
+      "lost_ack_count": 1,
+      "score": {
+        "exact": false,
+        "fields": {
+          "approved_obligation_completed": true,
+          "no_duplicate_recipient_delivery": false,
+          "budget_within_cap": true,
+          "receipt_and_source_lineage": true,
+          "approved_native_etl_continues": true,
+          "native_full_stage_retry_denied": true
+        }
+      },
+      "trace": [
+        {
+          "attempt": 1,
+          "delivery_key": "job-670c88f8d8c8|recipient-437df0cbd68c|req-06515caa7c927021|attempt-1",
+          "acknowledged": false,
+          "admission_rolled_back": true,
+          "sink_committed_before_ack_loss": true,
+          "sink_process_distinct_from_host": true
+        },
+        {
+          "phase": "worker-restart",
+          "request_after_loss": {
+            "status": "queued",
+            "receipt_id": null
+          }
+        },
+        {
+          "attempt": 2,
+          "delivery_key": "job-670c88f8d8c8|recipient-437df0cbd68c|req-06515caa7c927021|attempt-2",
+          "acknowledged": true,
+          "receipt_id": "recipient-rcpt-99b1fc3ecfd11527a1d4"
+        },
+        {
+          "attempt": 3,
+          "phase": "completed-request-retry",
+          "acknowledged": true,
+          "receipt_id": "recipient-rcpt-99b1fc3ecfd11527a1d4"
+        }
+      ],
+      "terminal": {
+        "sink": [
+          {
+            "receipt_id": "recipient-rcpt-81b62e71a1bbc11dc795",
+            "delivery_key": "job-670c88f8d8c8|recipient-437df0cbd68c|req-06515caa7c927021|attempt-1",
+            "request_id": "req-06515caa7c927021",
+            "job_id": "job-670c88f8d8c8",
+            "recipient_id": "recipient-437df0cbd68c",
+            "stage_ref": "stage-999e66aeace28eb84cf5",
+            "report_ref": "rpt-583540acd2519496eadd",
+            "cell_key": "0|ssn",
+            "value_sha256": "0f9bba9d48b1e37376299c08eac289d029fc1ad061b9bd7881c1cebffdde3803",
+            "sink_process_distinct_from_host": true
+          },
+          {
+            "receipt_id": "recipient-rcpt-99b1fc3ecfd11527a1d4",
+            "delivery_key": "job-670c88f8d8c8|recipient-437df0cbd68c|req-06515caa7c927021|attempt-2",
+            "request_id": "req-06515caa7c927021",
+            "job_id": "job-670c88f8d8c8",
+            "recipient_id": "recipient-437df0cbd68c",
+            "stage_ref": "stage-999e66aeace28eb84cf5",
+            "report_ref": "rpt-583540acd2519496eadd",
+            "cell_key": "0|ssn",
+            "value_sha256": "0f9bba9d48b1e37376299c08eac289d029fc1ad061b9bd7881c1cebffdde3803",
+            "sink_process_distinct_from_host": true
+          }
+        ],
+        "request": {
+          "request_id": "req-06515caa7c927021",
+          "job_id": "job-670c88f8d8c8",
+          "recipient_id": "recipient-437df0cbd68c",
+          "stage_ref": "stage-999e66aeace28eb84cf5",
+          "report_ref": "rpt-583540acd2519496eadd",
+          "cell_key": "0|ssn",
+          "value_sha256": "0f9bba9d48b1e37376299c08eac289d029fc1ad061b9bd7881c1cebffdde3803",
+          "status": "completed",
+          "receipt_id": "recipient-rcpt-99b1fc3ecfd11527a1d4"
+        },
+        "distinct_cells": 1,
+        "lineage_valid": true,
+        "native_etl_receipts": [
+          "rcpt-3f4d0222639f1e5d75"
+        ],
+        "native_full_stage_retry_denied": true
+      }
+    },
+    {
+      "observation": {
+        "schema_version": "f10-v36-two-durability-domains-g0",
+        "policy": {
+          "authority": "authenticated-customer-release-budget",
+          "job_id": "job-670c88f8d8c8",
+          "recipient_id": "recipient-437df0cbd68c",
+          "max_distinct_protected_cells": 1,
+          "unit": "distinct (source_report_ref,row,column) at this recipient in this approved job",
+          "successful_distinct_case": "either approved request may complete; the other must be durably deferred without a sink copy",
+          "successful_overlap_case": "both approved request obligations complete against one durable cell receipt",
+          "unrelated_to": "v13 retrospective uncovered-cell exfiltration escalation limit"
+        },
+        "request": {
+          "request_id": "req-06515caa7c927021",
+          "job_id": "job-670c88f8d8c8",
+          "recipient_id": "recipient-437df0cbd68c",
+          "stage_ref": "stage-999e66aeace28eb84cf5",
+          "report_ref": "rpt-583540acd2519496eadd",
+          "cell_key": "0|ssn",
+          "value_sha256": "0f9bba9d48b1e37376299c08eac289d029fc1ad061b9bd7881c1cebffdde3803",
+          "approval_ref": "apr-cce1f4695f",
+          "status": "queued"
+        },
+        "source_stage": {
+          "stage_ref": "stage-999e66aeace28eb84cf5",
+          "report_ref": "rpt-583540acd2519496eadd",
+          "actor": "svc-export-bb16abec",
+          "destination": "approved://bi-exports-f75b5333",
+          "event_time": 110,
+          "job_ref": "job-670c88f8d8c8",
+          "state": "staged",
+          "source_cells": [
+            {
+              "row": 0,
+              "column": "ssn",
+              "value_sha256": "0f9bba9d48b1e37376299c08eac289d029fc1ad061b9bd7881c1cebffdde3803"
+            },
+            {
+              "row": 1,
+              "column": "ssn",
+              "value_sha256": "79481598ac856fa18963f34caa6a28720ab32167f492e65413bf955e6ad6ee0d"
+            },
+            {
+              "row": 2,
+              "column": "ssn",
+              "value_sha256": "881403ee6e165023b7991f165af382b3c9f9fa17aeb663b58ed1e469c607454b"
+            },
+            {
+              "row": 3,
+              "column": "ssn",
+              "value_sha256": "c31f675f2bbbf17eb650b08e7f6fc1f41052c64a7b82eace15f3af9edd0c8b70"
+            },
+            {
+              "row": 4,
+              "column": "ssn",
+              "value_sha256": "88b42b2205fa9d47f6276579908d1f5afe98cafa608d6be2ca6353d6988b67ac"
+            },
+            {
+              "row": 5,
+              "column": "ssn",
+              "value_sha256": "a2362862cd1b7e9b94769bad3d4c4f75ab350e6b1de2ac54dd1021d707fb297b"
+            }
+          ]
+        },
+        "service_contract": {
+          "admission_store": "local SQLite file",
+          "recipient_store": "separate SQLite file owned by a separate sink process",
+          "recipient_idempotency": "one durable copy per caller-supplied delivery key; duplicate key returns original receipt",
+          "failure_boundary": "sink commits delivery, then its response may be lost before admission commits"
+        }
+      },
+      "mode": "v35-derived-id-adaptation",
+      "ack_lost": false,
+      "lost_ack_count": 0,
+      "score": {
+        "exact": true,
+        "fields": {
+          "approved_obligation_completed": true,
+          "no_duplicate_recipient_delivery": true,
+          "budget_within_cap": true,
+          "receipt_and_source_lineage": true,
+          "approved_native_etl_continues": true,
+          "native_full_stage_retry_denied": true
+        }
+      },
+      "trace": [
+        {
+          "attempt": 1,
+          "delivery_key": "budget-rcpt-a9d995b5c6ae04590c",
+          "acknowledged": true,
+          "receipt_id": "recipient-rcpt-bccb40e7f04ae9deda7c"
+        },
+        {
+          "attempt": 2,
+          "phase": "completed-request-retry",
+          "acknowledged": true,
+          "receipt_id": "recipient-rcpt-bccb40e7f04ae9deda7c"
+        }
+      ],
+      "terminal": {
+        "sink": [
+          {
+            "receipt_id": "recipient-rcpt-bccb40e7f04ae9deda7c",
+            "delivery_key": "budget-rcpt-a9d995b5c6ae04590c",
+            "request_id": "req-06515caa7c927021",
+            "job_id": "job-670c88f8d8c8",
+            "recipient_id": "recipient-437df0cbd68c",
+            "stage_ref": "stage-999e66aeace28eb84cf5",
+            "report_ref": "rpt-583540acd2519496eadd",
+            "cell_key": "0|ssn",
+            "value_sha256": "0f9bba9d48b1e37376299c08eac289d029fc1ad061b9bd7881c1cebffdde3803",
+            "sink_process_distinct_from_host": true
+          }
+        ],
+        "request": {
+          "request_id": "req-06515caa7c927021",
+          "job_id": "job-670c88f8d8c8",
+          "recipient_id": "recipient-437df0cbd68c",
+          "stage_ref": "stage-999e66aeace28eb84cf5",
+          "report_ref": "rpt-583540acd2519496eadd",
+          "cell_key": "0|ssn",
+          "value_sha256": "0f9bba9d48b1e37376299c08eac289d029fc1ad061b9bd7881c1cebffdde3803",
+          "status": "completed",
+          "receipt_id": "recipient-rcpt-bccb40e7f04ae9deda7c"
+        },
+        "distinct_cells": 1,
+        "lineage_valid": true,
+        "native_etl_receipts": [
+          "rcpt-3f4d0222639f1e5d75"
+        ],
+        "native_full_stage_retry_denied": true
+      }
+    },
+    {
+      "observation": {
+        "schema_version": "f10-v36-two-durability-domains-g0",
+        "policy": {
+          "authority": "authenticated-customer-release-budget",
+          "job_id": "job-670c88f8d8c8",
+          "recipient_id": "recipient-437df0cbd68c",
+          "max_distinct_protected_cells": 1,
+          "unit": "distinct (source_report_ref,row,column) at this recipient in this approved job",
+          "successful_distinct_case": "either approved request may complete; the other must be durably deferred without a sink copy",
+          "successful_overlap_case": "both approved request obligations complete against one durable cell receipt",
+          "unrelated_to": "v13 retrospective uncovered-cell exfiltration escalation limit"
+        },
+        "request": {
+          "request_id": "req-06515caa7c927021",
+          "job_id": "job-670c88f8d8c8",
+          "recipient_id": "recipient-437df0cbd68c",
+          "stage_ref": "stage-999e66aeace28eb84cf5",
+          "report_ref": "rpt-583540acd2519496eadd",
+          "cell_key": "0|ssn",
+          "value_sha256": "0f9bba9d48b1e37376299c08eac289d029fc1ad061b9bd7881c1cebffdde3803",
+          "approval_ref": "apr-cce1f4695f",
+          "status": "queued"
+        },
+        "source_stage": {
+          "stage_ref": "stage-999e66aeace28eb84cf5",
+          "report_ref": "rpt-583540acd2519496eadd",
+          "actor": "svc-export-bb16abec",
+          "destination": "approved://bi-exports-f75b5333",
+          "event_time": 110,
+          "job_ref": "job-670c88f8d8c8",
+          "state": "staged",
+          "source_cells": [
+            {
+              "row": 0,
+              "column": "ssn",
+              "value_sha256": "0f9bba9d48b1e37376299c08eac289d029fc1ad061b9bd7881c1cebffdde3803"
+            },
+            {
+              "row": 1,
+              "column": "ssn",
+              "value_sha256": "79481598ac856fa18963f34caa6a28720ab32167f492e65413bf955e6ad6ee0d"
+            },
+            {
+              "row": 2,
+              "column": "ssn",
+              "value_sha256": "881403ee6e165023b7991f165af382b3c9f9fa17aeb663b58ed1e469c607454b"
+            },
+            {
+              "row": 3,
+              "column": "ssn",
+              "value_sha256": "c31f675f2bbbf17eb650b08e7f6fc1f41052c64a7b82eace15f3af9edd0c8b70"
+            },
+            {
+              "row": 4,
+              "column": "ssn",
+              "value_sha256": "88b42b2205fa9d47f6276579908d1f5afe98cafa608d6be2ca6353d6988b67ac"
+            },
+            {
+              "row": 5,
+              "column": "ssn",
+              "value_sha256": "a2362862cd1b7e9b94769bad3d4c4f75ab350e6b1de2ac54dd1021d707fb297b"
+            }
+          ]
+        },
+        "service_contract": {
+          "admission_store": "local SQLite file",
+          "recipient_store": "separate SQLite file owned by a separate sink process",
+          "recipient_idempotency": "one durable copy per caller-supplied delivery key; duplicate key returns original receipt",
+          "failure_boundary": "sink commits delivery, then its response may be lost before admission commits"
+        }
+      },
+      "mode": "v35-derived-id-adaptation",
+      "ack_lost": true,
+      "lost_ack_count": 1,
+      "score": {
+        "exact": true,
+        "fields": {
+          "approved_obligation_completed": true,
+          "no_duplicate_recipient_delivery": true,
+          "budget_within_cap": true,
+          "receipt_and_source_lineage": true,
+          "approved_native_etl_continues": true,
+          "native_full_stage_retry_denied": true
+        }
+      },
+      "trace": [
+        {
+          "attempt": 1,
+          "delivery_key": "budget-rcpt-a9d995b5c6ae04590c",
+          "acknowledged": false,
+          "admission_rolled_back": true,
+          "sink_committed_before_ack_loss": true,
+          "sink_process_distinct_from_host": true
+        },
+        {
+          "phase": "worker-restart",
+          "request_after_loss": {
+            "status": "queued",
+            "receipt_id": null
+          }
+        },
+        {
+          "attempt": 2,
+          "delivery_key": "budget-rcpt-a9d995b5c6ae04590c",
+          "acknowledged": true,
+          "receipt_id": "recipient-rcpt-bccb40e7f04ae9deda7c"
+        },
+        {
+          "attempt": 3,
+          "phase": "completed-request-retry",
+          "acknowledged": true,
+          "receipt_id": "recipient-rcpt-bccb40e7f04ae9deda7c"
+        }
+      ],
+      "terminal": {
+        "sink": [
+          {
+            "receipt_id": "recipient-rcpt-bccb40e7f04ae9deda7c",
+            "delivery_key": "budget-rcpt-a9d995b5c6ae04590c",
+            "request_id": "req-06515caa7c927021",
+            "job_id": "job-670c88f8d8c8",
+            "recipient_id": "recipient-437df0cbd68c",
+            "stage_ref": "stage-999e66aeace28eb84cf5",
+            "report_ref": "rpt-583540acd2519496eadd",
+            "cell_key": "0|ssn",
+            "value_sha256": "0f9bba9d48b1e37376299c08eac289d029fc1ad061b9bd7881c1cebffdde3803",
+            "sink_process_distinct_from_host": true
+          }
+        ],
+        "request": {
+          "request_id": "req-06515caa7c927021",
+          "job_id": "job-670c88f8d8c8",
+          "recipient_id": "recipient-437df0cbd68c",
+          "stage_ref": "stage-999e66aeace28eb84cf5",
+          "report_ref": "rpt-583540acd2519496eadd",
+          "cell_key": "0|ssn",
+          "value_sha256": "0f9bba9d48b1e37376299c08eac289d029fc1ad061b9bd7881c1cebffdde3803",
+          "status": "completed",
+          "receipt_id": "recipient-rcpt-bccb40e7f04ae9deda7c"
+        },
+        "distinct_cells": 1,
+        "lineage_valid": true,
+        "native_etl_receipts": [
+          "rcpt-3f4d0222639f1e5d75"
+        ],
+        "native_full_stage_retry_denied": true
+      }
+    },
+    {
+      "observation": {
+        "schema_version": "f10-v36-two-durability-domains-g0",
+        "policy": {
+          "authority": "authenticated-customer-release-budget",
+          "job_id": "job-670c88f8d8c8",
+          "recipient_id": "recipient-437df0cbd68c",
+          "max_distinct_protected_cells": 1,
+          "unit": "distinct (source_report_ref,row,column) at this recipient in this approved job",
+          "successful_distinct_case": "either approved request may complete; the other must be durably deferred without a sink copy",
+          "successful_overlap_case": "both approved request obligations complete against one durable cell receipt",
+          "unrelated_to": "v13 retrospective uncovered-cell exfiltration escalation limit"
+        },
+        "request": {
+          "request_id": "req-06515caa7c927021",
+          "job_id": "job-670c88f8d8c8",
+          "recipient_id": "recipient-437df0cbd68c",
+          "stage_ref": "stage-999e66aeace28eb84cf5",
+          "report_ref": "rpt-583540acd2519496eadd",
+          "cell_key": "0|ssn",
+          "value_sha256": "0f9bba9d48b1e37376299c08eac289d029fc1ad061b9bd7881c1cebffdde3803",
+          "approval_ref": "apr-cce1f4695f",
+          "status": "queued"
+        },
+        "source_stage": {
+          "stage_ref": "stage-999e66aeace28eb84cf5",
+          "report_ref": "rpt-583540acd2519496eadd",
+          "actor": "svc-export-bb16abec",
+          "destination": "approved://bi-exports-f75b5333",
+          "event_time": 110,
+          "job_ref": "job-670c88f8d8c8",
+          "state": "staged",
+          "source_cells": [
+            {
+              "row": 0,
+              "column": "ssn",
+              "value_sha256": "0f9bba9d48b1e37376299c08eac289d029fc1ad061b9bd7881c1cebffdde3803"
+            },
+            {
+              "row": 1,
+              "column": "ssn",
+              "value_sha256": "79481598ac856fa18963f34caa6a28720ab32167f492e65413bf955e6ad6ee0d"
+            },
+            {
+              "row": 2,
+              "column": "ssn",
+              "value_sha256": "881403ee6e165023b7991f165af382b3c9f9fa17aeb663b58ed1e469c607454b"
+            },
+            {
+              "row": 3,
+              "column": "ssn",
+              "value_sha256": "c31f675f2bbbf17eb650b08e7f6fc1f41052c64a7b82eace15f3af9edd0c8b70"
+            },
+            {
+              "row": 4,
+              "column": "ssn",
+              "value_sha256": "88b42b2205fa9d47f6276579908d1f5afe98cafa608d6be2ca6353d6988b67ac"
+            },
+            {
+              "row": 5,
+              "column": "ssn",
+              "value_sha256": "a2362862cd1b7e9b94769bad3d4c4f75ab350e6b1de2ac54dd1021d707fb297b"
+            }
+          ]
+        },
+        "service_contract": {
+          "admission_store": "local SQLite file",
+          "recipient_store": "separate SQLite file owned by a separate sink process",
+          "recipient_idempotency": "one durable copy per caller-supplied delivery key; duplicate key returns original receipt",
+          "failure_boundary": "sink commits delivery, then its response may be lost before admission commits"
+        }
+      },
+      "mode": "receipt-lookup-reference",
+      "ack_lost": false,
+      "lost_ack_count": 0,
+      "score": {
+        "exact": true,
+        "fields": {
+          "approved_obligation_completed": true,
+          "no_duplicate_recipient_delivery": true,
+          "budget_within_cap": true,
+          "receipt_and_source_lineage": true,
+          "approved_native_etl_continues": true,
+          "native_full_stage_retry_denied": true
+        }
+      },
+      "trace": [
+        {
+          "attempt": 1,
+          "delivery_key": "job-670c88f8d8c8|recipient-437df0cbd68c|req-06515caa7c927021|attempt-1",
+          "acknowledged": true,
+          "receipt_id": "recipient-rcpt-81b62e71a1bbc11dc795"
+        },
+        {
+          "attempt": 2,
+          "phase": "completed-request-retry",
+          "acknowledged": true,
+          "receipt_id": "recipient-rcpt-81b62e71a1bbc11dc795"
+        }
+      ],
+      "terminal": {
+        "sink": [
+          {
+            "receipt_id": "recipient-rcpt-81b62e71a1bbc11dc795",
+            "delivery_key": "job-670c88f8d8c8|recipient-437df0cbd68c|req-06515caa7c927021|attempt-1",
+            "request_id": "req-06515caa7c927021",
+            "job_id": "job-670c88f8d8c8",
+            "recipient_id": "recipient-437df0cbd68c",
+            "stage_ref": "stage-999e66aeace28eb84cf5",
+            "report_ref": "rpt-583540acd2519496eadd",
+            "cell_key": "0|ssn",
+            "value_sha256": "0f9bba9d48b1e37376299c08eac289d029fc1ad061b9bd7881c1cebffdde3803",
+            "sink_process_distinct_from_host": true
+          }
+        ],
+        "request": {
+          "request_id": "req-06515caa7c927021",
+          "job_id": "job-670c88f8d8c8",
+          "recipient_id": "recipient-437df0cbd68c",
+          "stage_ref": "stage-999e66aeace28eb84cf5",
+          "report_ref": "rpt-583540acd2519496eadd",
+          "cell_key": "0|ssn",
+          "value_sha256": "0f9bba9d48b1e37376299c08eac289d029fc1ad061b9bd7881c1cebffdde3803",
+          "status": "completed",
+          "receipt_id": "recipient-rcpt-81b62e71a1bbc11dc795"
+        },
+        "distinct_cells": 1,
+        "lineage_valid": true,
+        "native_etl_receipts": [
+          "rcpt-3f4d0222639f1e5d75"
+        ],
+        "native_full_stage_retry_denied": true
+      }
+    },
+    {
+      "observation": {
+        "schema_version": "f10-v36-two-durability-domains-g0",
+        "policy": {
+          "authority": "authenticated-customer-release-budget",
+          "job_id": "job-670c88f8d8c8",
+          "recipient_id": "recipient-437df0cbd68c",
+          "max_distinct_protected_cells": 1,
+          "unit": "distinct (source_report_ref,row,column) at this recipient in this approved job",
+          "successful_distinct_case": "either approved request may complete; the other must be durably deferred without a sink copy",
+          "successful_overlap_case": "both approved request obligations complete against one durable cell receipt",
+          "unrelated_to": "v13 retrospective uncovered-cell exfiltration escalation limit"
+        },
+        "request": {
+          "request_id": "req-06515caa7c927021",
+          "job_id": "job-670c88f8d8c8",
+          "recipient_id": "recipient-437df0cbd68c",
+          "stage_ref": "stage-999e66aeace28eb84cf5",
+          "report_ref": "rpt-583540acd2519496eadd",
+          "cell_key": "0|ssn",
+          "value_sha256": "0f9bba9d48b1e37376299c08eac289d029fc1ad061b9bd7881c1cebffdde3803",
+          "approval_ref": "apr-cce1f4695f",
+          "status": "queued"
+        },
+        "source_stage": {
+          "stage_ref": "stage-999e66aeace28eb84cf5",
+          "report_ref": "rpt-583540acd2519496eadd",
+          "actor": "svc-export-bb16abec",
+          "destination": "approved://bi-exports-f75b5333",
+          "event_time": 110,
+          "job_ref": "job-670c88f8d8c8",
+          "state": "staged",
+          "source_cells": [
+            {
+              "row": 0,
+              "column": "ssn",
+              "value_sha256": "0f9bba9d48b1e37376299c08eac289d029fc1ad061b9bd7881c1cebffdde3803"
+            },
+            {
+              "row": 1,
+              "column": "ssn",
+              "value_sha256": "79481598ac856fa18963f34caa6a28720ab32167f492e65413bf955e6ad6ee0d"
+            },
+            {
+              "row": 2,
+              "column": "ssn",
+              "value_sha256": "881403ee6e165023b7991f165af382b3c9f9fa17aeb663b58ed1e469c607454b"
+            },
+            {
+              "row": 3,
+              "column": "ssn",
+              "value_sha256": "c31f675f2bbbf17eb650b08e7f6fc1f41052c64a7b82eace15f3af9edd0c8b70"
+            },
+            {
+              "row": 4,
+              "column": "ssn",
+              "value_sha256": "88b42b2205fa9d47f6276579908d1f5afe98cafa608d6be2ca6353d6988b67ac"
+            },
+            {
+              "row": 5,
+              "column": "ssn",
+              "value_sha256": "a2362862cd1b7e9b94769bad3d4c4f75ab350e6b1de2ac54dd1021d707fb297b"
+            }
+          ]
+        },
+        "service_contract": {
+          "admission_store": "local SQLite file",
+          "recipient_store": "separate SQLite file owned by a separate sink process",
+          "recipient_idempotency": "one durable copy per caller-supplied delivery key; duplicate key returns original receipt",
+          "failure_boundary": "sink commits delivery, then its response may be lost before admission commits"
+        }
+      },
+      "mode": "receipt-lookup-reference",
+      "ack_lost": true,
+      "lost_ack_count": 1,
+      "score": {
+        "exact": true,
+        "fields": {
+          "approved_obligation_completed": true,
+          "no_duplicate_recipient_delivery": true,
+          "budget_within_cap": true,
+          "receipt_and_source_lineage": true,
+          "approved_native_etl_continues": true,
+          "native_full_stage_retry_denied": true
+        }
+      },
+      "trace": [
+        {
+          "attempt": 1,
+          "delivery_key": "job-670c88f8d8c8|recipient-437df0cbd68c|req-06515caa7c927021|attempt-1",
+          "acknowledged": false,
+          "admission_rolled_back": true,
+          "sink_committed_before_ack_loss": true,
+          "sink_process_distinct_from_host": true
+        },
+        {
+          "phase": "worker-restart",
+          "request_after_loss": {
+            "status": "queued",
+            "receipt_id": null
+          }
+        },
+        {
+          "attempt": 2,
+          "phase": "recipient-receipt-lookup",
+          "acknowledged": true,
+          "receipt_id": "recipient-rcpt-81b62e71a1bbc11dc795",
+          "sink_process_distinct_from_host": true
+        },
+        {
+          "attempt": 3,
+          "phase": "completed-request-retry",
+          "acknowledged": true,
+          "receipt_id": "recipient-rcpt-81b62e71a1bbc11dc795"
+        }
+      ],
+      "terminal": {
+        "sink": [
+          {
+            "receipt_id": "recipient-rcpt-81b62e71a1bbc11dc795",
+            "delivery_key": "job-670c88f8d8c8|recipient-437df0cbd68c|req-06515caa7c927021|attempt-1",
+            "request_id": "req-06515caa7c927021",
+            "job_id": "job-670c88f8d8c8",
+            "recipient_id": "recipient-437df0cbd68c",
+            "stage_ref": "stage-999e66aeace28eb84cf5",
+            "report_ref": "rpt-583540acd2519496eadd",
+            "cell_key": "0|ssn",
+            "value_sha256": "0f9bba9d48b1e37376299c08eac289d029fc1ad061b9bd7881c1cebffdde3803",
+            "sink_process_distinct_from_host": true
+          }
+        ],
+        "request": {
+          "request_id": "req-06515caa7c927021",
+          "job_id": "job-670c88f8d8c8",
+          "recipient_id": "recipient-437df0cbd68c",
+          "stage_ref": "stage-999e66aeace28eb84cf5",
+          "report_ref": "rpt-583540acd2519496eadd",
+          "cell_key": "0|ssn",
+          "value_sha256": "0f9bba9d48b1e37376299c08eac289d029fc1ad061b9bd7881c1cebffdde3803",
+          "status": "completed",
+          "receipt_id": "recipient-rcpt-81b62e71a1bbc11dc795"
+        },
+        "distinct_cells": 1,
+        "lineage_valid": true,
+        "native_etl_receipts": [
+          "rcpt-3f4d0222639f1e5d75"
+        ],
+        "native_full_stage_retry_denied": true
+      }
+    }
+  ],
+  "cross_request": [
+    {
+      "observation": {
+        "schema_version": "f10-v36-cross-request-lost-ack-g0",
+        "policy": {
+          "authority": "authenticated-customer-release-budget",
+          "job_id": "job-670c88f8d8c8",
+          "recipient_id": "recipient-437df0cbd68c",
+          "max_distinct_protected_cells": 1,
+          "unit": "distinct (source_report_ref,row,column) at this recipient in this approved job",
+          "successful_distinct_case": "either approved request may complete; the other must be durably deferred without a sink copy",
+          "successful_overlap_case": "both approved request obligations complete against one durable cell receipt",
+          "unrelated_to": "v13 retrospective uncovered-cell exfiltration escalation limit"
+        },
+        "source_stage": {
+          "stage_ref": "stage-999e66aeace28eb84cf5",
+          "report_ref": "rpt-583540acd2519496eadd",
+          "actor": "svc-export-bb16abec",
+          "destination": "approved://bi-exports-f75b5333",
+          "event_time": 110,
+          "job_ref": "job-670c88f8d8c8",
+          "state": "staged",
+          "source_cells": [
+            {
+              "row": 0,
+              "column": "ssn",
+              "value_sha256": "0f9bba9d48b1e37376299c08eac289d029fc1ad061b9bd7881c1cebffdde3803"
+            },
+            {
+              "row": 1,
+              "column": "ssn",
+              "value_sha256": "79481598ac856fa18963f34caa6a28720ab32167f492e65413bf955e6ad6ee0d"
+            },
+            {
+              "row": 2,
+              "column": "ssn",
+              "value_sha256": "881403ee6e165023b7991f165af382b3c9f9fa17aeb663b58ed1e469c607454b"
+            },
+            {
+              "row": 3,
+              "column": "ssn",
+              "value_sha256": "c31f675f2bbbf17eb650b08e7f6fc1f41052c64a7b82eace15f3af9edd0c8b70"
+            },
+            {
+              "row": 4,
+              "column": "ssn",
+              "value_sha256": "88b42b2205fa9d47f6276579908d1f5afe98cafa608d6be2ca6353d6988b67ac"
+            },
+            {
+              "row": 5,
+              "column": "ssn",
+              "value_sha256": "a2362862cd1b7e9b94769bad3d4c4f75ab350e6b1de2ac54dd1021d707fb297b"
+            }
+          ]
+        },
+        "requests": [
+          {
+            "request_id": "req-06515caa7c927021",
+            "job_id": "job-670c88f8d8c8",
+            "recipient_id": "recipient-437df0cbd68c",
+            "stage_ref": "stage-999e66aeace28eb84cf5",
+            "report_ref": "rpt-583540acd2519496eadd",
+            "cell_key": "0|ssn",
+            "value_sha256": "0f9bba9d48b1e37376299c08eac289d029fc1ad061b9bd7881c1cebffdde3803",
+            "approval_ref": "apr-cce1f4695f",
+            "status": "queued"
+          },
+          {
+            "request_id": "req-07096879638e2c02",
+            "job_id": "job-670c88f8d8c8",
+            "recipient_id": "recipient-437df0cbd68c",
+            "stage_ref": "stage-999e66aeace28eb84cf5",
+            "report_ref": "rpt-583540acd2519496eadd",
+            "cell_key": "0|ssn",
+            "value_sha256": "0f9bba9d48b1e37376299c08eac289d029fc1ad061b9bd7881c1cebffdde3803",
+            "approval_ref": "apr-cce1f4695f",
+            "status": "queued"
+          }
+        ],
+        "recipient_service": "separate durable process; same caller key is idempotent; authenticated receipt lookup available"
+      },
+      "kind": "overlap",
+      "mode": "v35-request-key-adaptation",
+      "score": {
+        "exact": false,
+        "fields": {
+          "distinct_union_within_cap": true,
+          "no_duplicate_recipient_delivery": false,
+          "approved_obligations": true,
+          "receipt_bindings_and_source_lineage": true,
+          "native_dob_etl_continues": true,
+          "native_full_stage_retry_denied": true
+        }
+      },
+      "trace": [
+        {
+          "phase": "A-ACK-lost",
+          "recipient_committed_before_ack_loss": true,
+          "receipt_id": "recipient-rcpt-bccb40e7f04ae9deda7c",
+          "sink_process_distinct_from_host": true
+        },
+        {
+          "phase": "new-B-arrives-and-releases",
+          "result": {
+            "status": "completed",
+            "request_id": "req-07096879638e2c02",
+            "receipt_id": "recipient-rcpt-f6764e2f41bb9a502c83"
+          }
+        },
+        {
+          "phase": "A-retries-after-restart",
+          "result": {
+            "status": "completed",
+            "request_id": "req-06515caa7c927021",
+            "receipt_id": "recipient-rcpt-f6764e2f41bb9a502c83"
+          }
+        }
+      ],
+      "terminal": {
+        "sink": [
+          {
+            "receipt_id": "recipient-rcpt-bccb40e7f04ae9deda7c",
+            "delivery_key": "budget-rcpt-a9d995b5c6ae04590c",
+            "request_id": "req-06515caa7c927021",
+            "job_id": "job-670c88f8d8c8",
+            "recipient_id": "recipient-437df0cbd68c",
+            "stage_ref": "stage-999e66aeace28eb84cf5",
+            "report_ref": "rpt-583540acd2519496eadd",
+            "cell_key": "0|ssn",
+            "value_sha256": "0f9bba9d48b1e37376299c08eac289d029fc1ad061b9bd7881c1cebffdde3803",
+            "sink_process_distinct_from_host": true
+          },
+          {
+            "receipt_id": "recipient-rcpt-f6764e2f41bb9a502c83",
+            "delivery_key": "budget-rcpt-6ba6a7ef2bed144800",
+            "request_id": "req-07096879638e2c02",
+            "job_id": "job-670c88f8d8c8",
+            "recipient_id": "recipient-437df0cbd68c",
+            "stage_ref": "stage-999e66aeace28eb84cf5",
+            "report_ref": "rpt-583540acd2519496eadd",
+            "cell_key": "0|ssn",
+            "value_sha256": "0f9bba9d48b1e37376299c08eac289d029fc1ad061b9bd7881c1cebffdde3803",
+            "sink_process_distinct_from_host": true
+          }
+        ],
+        "requests": [
+          {
+            "request_id": "req-06515caa7c927021",
+            "job_id": "job-670c88f8d8c8",
+            "recipient_id": "recipient-437df0cbd68c",
+            "stage_ref": "stage-999e66aeace28eb84cf5",
+            "report_ref": "rpt-583540acd2519496eadd",
+            "cell_key": "0|ssn",
+            "value_sha256": "0f9bba9d48b1e37376299c08eac289d029fc1ad061b9bd7881c1cebffdde3803",
+            "status": "completed",
+            "receipt_id": "recipient-rcpt-f6764e2f41bb9a502c83"
+          },
+          {
+            "request_id": "req-07096879638e2c02",
+            "job_id": "job-670c88f8d8c8",
+            "recipient_id": "recipient-437df0cbd68c",
+            "stage_ref": "stage-999e66aeace28eb84cf5",
+            "report_ref": "rpt-583540acd2519496eadd",
+            "cell_key": "0|ssn",
+            "value_sha256": "0f9bba9d48b1e37376299c08eac289d029fc1ad061b9bd7881c1cebffdde3803",
+            "status": "completed",
+            "receipt_id": "recipient-rcpt-f6764e2f41bb9a502c83"
+          }
+        ],
+        "distinct_cells": 1,
+        "lineage_valid": true,
+        "native_etl_receipts": [
+          "rcpt-3f4d0222639f1e5d75"
+        ],
+        "native_full_stage_retry_denied": true
+      }
+    },
+    {
+      "observation": {
+        "schema_version": "f10-v36-cross-request-lost-ack-g0",
+        "policy": {
+          "authority": "authenticated-customer-release-budget",
+          "job_id": "job-670c88f8d8c8",
+          "recipient_id": "recipient-437df0cbd68c",
+          "max_distinct_protected_cells": 1,
+          "unit": "distinct (source_report_ref,row,column) at this recipient in this approved job",
+          "successful_distinct_case": "either approved request may complete; the other must be durably deferred without a sink copy",
+          "successful_overlap_case": "both approved request obligations complete against one durable cell receipt",
+          "unrelated_to": "v13 retrospective uncovered-cell exfiltration escalation limit"
+        },
+        "source_stage": {
+          "stage_ref": "stage-999e66aeace28eb84cf5",
+          "report_ref": "rpt-583540acd2519496eadd",
+          "actor": "svc-export-bb16abec",
+          "destination": "approved://bi-exports-f75b5333",
+          "event_time": 110,
+          "job_ref": "job-670c88f8d8c8",
+          "state": "staged",
+          "source_cells": [
+            {
+              "row": 0,
+              "column": "ssn",
+              "value_sha256": "0f9bba9d48b1e37376299c08eac289d029fc1ad061b9bd7881c1cebffdde3803"
+            },
+            {
+              "row": 1,
+              "column": "ssn",
+              "value_sha256": "79481598ac856fa18963f34caa6a28720ab32167f492e65413bf955e6ad6ee0d"
+            },
+            {
+              "row": 2,
+              "column": "ssn",
+              "value_sha256": "881403ee6e165023b7991f165af382b3c9f9fa17aeb663b58ed1e469c607454b"
+            },
+            {
+              "row": 3,
+              "column": "ssn",
+              "value_sha256": "c31f675f2bbbf17eb650b08e7f6fc1f41052c64a7b82eace15f3af9edd0c8b70"
+            },
+            {
+              "row": 4,
+              "column": "ssn",
+              "value_sha256": "88b42b2205fa9d47f6276579908d1f5afe98cafa608d6be2ca6353d6988b67ac"
+            },
+            {
+              "row": 5,
+              "column": "ssn",
+              "value_sha256": "a2362862cd1b7e9b94769bad3d4c4f75ab350e6b1de2ac54dd1021d707fb297b"
+            }
+          ]
+        },
+        "requests": [
+          {
+            "request_id": "req-06515caa7c927021",
+            "job_id": "job-670c88f8d8c8",
+            "recipient_id": "recipient-437df0cbd68c",
+            "stage_ref": "stage-999e66aeace28eb84cf5",
+            "report_ref": "rpt-583540acd2519496eadd",
+            "cell_key": "0|ssn",
+            "value_sha256": "0f9bba9d48b1e37376299c08eac289d029fc1ad061b9bd7881c1cebffdde3803",
+            "approval_ref": "apr-cce1f4695f",
+            "status": "queued"
+          },
+          {
+            "request_id": "req-07096879638e2c02",
+            "job_id": "job-670c88f8d8c8",
+            "recipient_id": "recipient-437df0cbd68c",
+            "stage_ref": "stage-999e66aeace28eb84cf5",
+            "report_ref": "rpt-583540acd2519496eadd",
+            "cell_key": "1|ssn",
+            "value_sha256": "79481598ac856fa18963f34caa6a28720ab32167f492e65413bf955e6ad6ee0d",
+            "approval_ref": "apr-cce1f4695f",
+            "status": "queued"
+          }
+        ],
+        "recipient_service": "separate durable process; same caller key is idempotent; authenticated receipt lookup available"
+      },
+      "kind": "distinct",
+      "mode": "v35-request-key-adaptation",
+      "score": {
+        "exact": false,
+        "fields": {
+          "distinct_union_within_cap": false,
+          "no_duplicate_recipient_delivery": false,
+          "approved_obligations": false,
+          "receipt_bindings_and_source_lineage": false,
+          "native_dob_etl_continues": true,
+          "native_full_stage_retry_denied": true
+        }
+      },
+      "trace": [
+        {
+          "phase": "A-ACK-lost",
+          "recipient_committed_before_ack_loss": true,
+          "receipt_id": "recipient-rcpt-bccb40e7f04ae9deda7c",
+          "sink_process_distinct_from_host": true
+        },
+        {
+          "phase": "new-B-arrives-and-releases",
+          "result": {
+            "status": "completed",
+            "request_id": "req-07096879638e2c02",
+            "receipt_id": "recipient-rcpt-f6764e2f41bb9a502c83"
+          }
+        },
+        {
+          "phase": "A-retries-after-restart",
+          "result": {
+            "status": "deferred",
+            "request_id": "req-06515caa7c927021"
+          }
+        }
+      ],
+      "terminal": {
+        "sink": [
+          {
+            "receipt_id": "recipient-rcpt-bccb40e7f04ae9deda7c",
+            "delivery_key": "budget-rcpt-a9d995b5c6ae04590c",
+            "request_id": "req-06515caa7c927021",
+            "job_id": "job-670c88f8d8c8",
+            "recipient_id": "recipient-437df0cbd68c",
+            "stage_ref": "stage-999e66aeace28eb84cf5",
+            "report_ref": "rpt-583540acd2519496eadd",
+            "cell_key": "0|ssn",
+            "value_sha256": "0f9bba9d48b1e37376299c08eac289d029fc1ad061b9bd7881c1cebffdde3803",
+            "sink_process_distinct_from_host": true
+          },
+          {
+            "receipt_id": "recipient-rcpt-f6764e2f41bb9a502c83",
+            "delivery_key": "budget-rcpt-6ba6a7ef2bed144800",
+            "request_id": "req-07096879638e2c02",
+            "job_id": "job-670c88f8d8c8",
+            "recipient_id": "recipient-437df0cbd68c",
+            "stage_ref": "stage-999e66aeace28eb84cf5",
+            "report_ref": "rpt-583540acd2519496eadd",
+            "cell_key": "1|ssn",
+            "value_sha256": "79481598ac856fa18963f34caa6a28720ab32167f492e65413bf955e6ad6ee0d",
+            "sink_process_distinct_from_host": true
+          }
+        ],
+        "requests": [
+          {
+            "request_id": "req-06515caa7c927021",
+            "job_id": "job-670c88f8d8c8",
+            "recipient_id": "recipient-437df0cbd68c",
+            "stage_ref": "stage-999e66aeace28eb84cf5",
+            "report_ref": "rpt-583540acd2519496eadd",
+            "cell_key": "0|ssn",
+            "value_sha256": "0f9bba9d48b1e37376299c08eac289d029fc1ad061b9bd7881c1cebffdde3803",
+            "status": "deferred",
+            "receipt_id": null
+          },
+          {
+            "request_id": "req-07096879638e2c02",
+            "job_id": "job-670c88f8d8c8",
+            "recipient_id": "recipient-437df0cbd68c",
+            "stage_ref": "stage-999e66aeace28eb84cf5",
+            "report_ref": "rpt-583540acd2519496eadd",
+            "cell_key": "1|ssn",
+            "value_sha256": "79481598ac856fa18963f34caa6a28720ab32167f492e65413bf955e6ad6ee0d",
+            "status": "completed",
+            "receipt_id": "recipient-rcpt-f6764e2f41bb9a502c83"
+          }
+        ],
+        "distinct_cells": 2,
+        "lineage_valid": true,
+        "native_etl_receipts": [
+          "rcpt-3f4d0222639f1e5d75"
+        ],
+        "native_full_stage_retry_denied": true
+      }
+    },
+    {
+      "observation": {
+        "schema_version": "f10-v36-cross-request-lost-ack-g0",
+        "policy": {
+          "authority": "authenticated-customer-release-budget",
+          "job_id": "job-670c88f8d8c8",
+          "recipient_id": "recipient-437df0cbd68c",
+          "max_distinct_protected_cells": 1,
+          "unit": "distinct (source_report_ref,row,column) at this recipient in this approved job",
+          "successful_distinct_case": "either approved request may complete; the other must be durably deferred without a sink copy",
+          "successful_overlap_case": "both approved request obligations complete against one durable cell receipt",
+          "unrelated_to": "v13 retrospective uncovered-cell exfiltration escalation limit"
+        },
+        "source_stage": {
+          "stage_ref": "stage-999e66aeace28eb84cf5",
+          "report_ref": "rpt-583540acd2519496eadd",
+          "actor": "svc-export-bb16abec",
+          "destination": "approved://bi-exports-f75b5333",
+          "event_time": 110,
+          "job_ref": "job-670c88f8d8c8",
+          "state": "staged",
+          "source_cells": [
+            {
+              "row": 0,
+              "column": "ssn",
+              "value_sha256": "0f9bba9d48b1e37376299c08eac289d029fc1ad061b9bd7881c1cebffdde3803"
+            },
+            {
+              "row": 1,
+              "column": "ssn",
+              "value_sha256": "79481598ac856fa18963f34caa6a28720ab32167f492e65413bf955e6ad6ee0d"
+            },
+            {
+              "row": 2,
+              "column": "ssn",
+              "value_sha256": "881403ee6e165023b7991f165af382b3c9f9fa17aeb663b58ed1e469c607454b"
+            },
+            {
+              "row": 3,
+              "column": "ssn",
+              "value_sha256": "c31f675f2bbbf17eb650b08e7f6fc1f41052c64a7b82eace15f3af9edd0c8b70"
+            },
+            {
+              "row": 4,
+              "column": "ssn",
+              "value_sha256": "88b42b2205fa9d47f6276579908d1f5afe98cafa608d6be2ca6353d6988b67ac"
+            },
+            {
+              "row": 5,
+              "column": "ssn",
+              "value_sha256": "a2362862cd1b7e9b94769bad3d4c4f75ab350e6b1de2ac54dd1021d707fb297b"
+            }
+          ]
+        },
+        "requests": [
+          {
+            "request_id": "req-06515caa7c927021",
+            "job_id": "job-670c88f8d8c8",
+            "recipient_id": "recipient-437df0cbd68c",
+            "stage_ref": "stage-999e66aeace28eb84cf5",
+            "report_ref": "rpt-583540acd2519496eadd",
+            "cell_key": "0|ssn",
+            "value_sha256": "0f9bba9d48b1e37376299c08eac289d029fc1ad061b9bd7881c1cebffdde3803",
+            "approval_ref": "apr-cce1f4695f",
+            "status": "queued"
+          },
+          {
+            "request_id": "req-07096879638e2c02",
+            "job_id": "job-670c88f8d8c8",
+            "recipient_id": "recipient-437df0cbd68c",
+            "stage_ref": "stage-999e66aeace28eb84cf5",
+            "report_ref": "rpt-583540acd2519496eadd",
+            "cell_key": "0|ssn",
+            "value_sha256": "0f9bba9d48b1e37376299c08eac289d029fc1ad061b9bd7881c1cebffdde3803",
+            "approval_ref": "apr-cce1f4695f",
+            "status": "queued"
+          }
+        ],
+        "recipient_service": "separate durable process; same caller key is idempotent; authenticated receipt lookup available"
+      },
+      "kind": "overlap",
+      "mode": "ordinary-recipient-reconcile",
+      "score": {
+        "exact": true,
+        "fields": {
+          "distinct_union_within_cap": true,
+          "no_duplicate_recipient_delivery": true,
+          "approved_obligations": true,
+          "receipt_bindings_and_source_lineage": true,
+          "native_dob_etl_continues": true,
+          "native_full_stage_retry_denied": true
+        }
+      },
+      "trace": [
+        {
+          "phase": "A-ACK-lost",
+          "recipient_committed_before_ack_loss": true,
+          "receipt_id": "recipient-rcpt-bccb40e7f04ae9deda7c",
+          "sink_process_distinct_from_host": true
+        },
+        {
+          "phase": "new-B-arrives-and-releases",
+          "result": {
+            "status": "completed",
+            "request_id": "req-07096879638e2c02",
+            "receipt_id": "recipient-rcpt-bccb40e7f04ae9deda7c"
+          }
+        },
+        {
+          "phase": "A-retries-after-restart",
+          "result": {
+            "status": "completed",
+            "request_id": "req-06515caa7c927021",
+            "receipt_id": "recipient-rcpt-bccb40e7f04ae9deda7c"
+          }
+        }
+      ],
+      "terminal": {
+        "sink": [
+          {
+            "receipt_id": "recipient-rcpt-bccb40e7f04ae9deda7c",
+            "delivery_key": "budget-rcpt-a9d995b5c6ae04590c",
+            "request_id": "req-06515caa7c927021",
+            "job_id": "job-670c88f8d8c8",
+            "recipient_id": "recipient-437df0cbd68c",
+            "stage_ref": "stage-999e66aeace28eb84cf5",
+            "report_ref": "rpt-583540acd2519496eadd",
+            "cell_key": "0|ssn",
+            "value_sha256": "0f9bba9d48b1e37376299c08eac289d029fc1ad061b9bd7881c1cebffdde3803",
+            "sink_process_distinct_from_host": true
+          }
+        ],
+        "requests": [
+          {
+            "request_id": "req-06515caa7c927021",
+            "job_id": "job-670c88f8d8c8",
+            "recipient_id": "recipient-437df0cbd68c",
+            "stage_ref": "stage-999e66aeace28eb84cf5",
+            "report_ref": "rpt-583540acd2519496eadd",
+            "cell_key": "0|ssn",
+            "value_sha256": "0f9bba9d48b1e37376299c08eac289d029fc1ad061b9bd7881c1cebffdde3803",
+            "status": "completed",
+            "receipt_id": "recipient-rcpt-bccb40e7f04ae9deda7c"
+          },
+          {
+            "request_id": "req-07096879638e2c02",
+            "job_id": "job-670c88f8d8c8",
+            "recipient_id": "recipient-437df0cbd68c",
+            "stage_ref": "stage-999e66aeace28eb84cf5",
+            "report_ref": "rpt-583540acd2519496eadd",
+            "cell_key": "0|ssn",
+            "value_sha256": "0f9bba9d48b1e37376299c08eac289d029fc1ad061b9bd7881c1cebffdde3803",
+            "status": "completed",
+            "receipt_id": "recipient-rcpt-bccb40e7f04ae9deda7c"
+          }
+        ],
+        "distinct_cells": 1,
+        "lineage_valid": true,
+        "native_etl_receipts": [
+          "rcpt-3f4d0222639f1e5d75"
+        ],
+        "native_full_stage_retry_denied": true
+      }
+    },
+    {
+      "observation": {
+        "schema_version": "f10-v36-cross-request-lost-ack-g0",
+        "policy": {
+          "authority": "authenticated-customer-release-budget",
+          "job_id": "job-670c88f8d8c8",
+          "recipient_id": "recipient-437df0cbd68c",
+          "max_distinct_protected_cells": 1,
+          "unit": "distinct (source_report_ref,row,column) at this recipient in this approved job",
+          "successful_distinct_case": "either approved request may complete; the other must be durably deferred without a sink copy",
+          "successful_overlap_case": "both approved request obligations complete against one durable cell receipt",
+          "unrelated_to": "v13 retrospective uncovered-cell exfiltration escalation limit"
+        },
+        "source_stage": {
+          "stage_ref": "stage-999e66aeace28eb84cf5",
+          "report_ref": "rpt-583540acd2519496eadd",
+          "actor": "svc-export-bb16abec",
+          "destination": "approved://bi-exports-f75b5333",
+          "event_time": 110,
+          "job_ref": "job-670c88f8d8c8",
+          "state": "staged",
+          "source_cells": [
+            {
+              "row": 0,
+              "column": "ssn",
+              "value_sha256": "0f9bba9d48b1e37376299c08eac289d029fc1ad061b9bd7881c1cebffdde3803"
+            },
+            {
+              "row": 1,
+              "column": "ssn",
+              "value_sha256": "79481598ac856fa18963f34caa6a28720ab32167f492e65413bf955e6ad6ee0d"
+            },
+            {
+              "row": 2,
+              "column": "ssn",
+              "value_sha256": "881403ee6e165023b7991f165af382b3c9f9fa17aeb663b58ed1e469c607454b"
+            },
+            {
+              "row": 3,
+              "column": "ssn",
+              "value_sha256": "c31f675f2bbbf17eb650b08e7f6fc1f41052c64a7b82eace15f3af9edd0c8b70"
+            },
+            {
+              "row": 4,
+              "column": "ssn",
+              "value_sha256": "88b42b2205fa9d47f6276579908d1f5afe98cafa608d6be2ca6353d6988b67ac"
+            },
+            {
+              "row": 5,
+              "column": "ssn",
+              "value_sha256": "a2362862cd1b7e9b94769bad3d4c4f75ab350e6b1de2ac54dd1021d707fb297b"
+            }
+          ]
+        },
+        "requests": [
+          {
+            "request_id": "req-06515caa7c927021",
+            "job_id": "job-670c88f8d8c8",
+            "recipient_id": "recipient-437df0cbd68c",
+            "stage_ref": "stage-999e66aeace28eb84cf5",
+            "report_ref": "rpt-583540acd2519496eadd",
+            "cell_key": "0|ssn",
+            "value_sha256": "0f9bba9d48b1e37376299c08eac289d029fc1ad061b9bd7881c1cebffdde3803",
+            "approval_ref": "apr-cce1f4695f",
+            "status": "queued"
+          },
+          {
+            "request_id": "req-07096879638e2c02",
+            "job_id": "job-670c88f8d8c8",
+            "recipient_id": "recipient-437df0cbd68c",
+            "stage_ref": "stage-999e66aeace28eb84cf5",
+            "report_ref": "rpt-583540acd2519496eadd",
+            "cell_key": "1|ssn",
+            "value_sha256": "79481598ac856fa18963f34caa6a28720ab32167f492e65413bf955e6ad6ee0d",
+            "approval_ref": "apr-cce1f4695f",
+            "status": "queued"
+          }
+        ],
+        "recipient_service": "separate durable process; same caller key is idempotent; authenticated receipt lookup available"
+      },
+      "kind": "distinct",
+      "mode": "ordinary-recipient-reconcile",
+      "score": {
+        "exact": true,
+        "fields": {
+          "distinct_union_within_cap": true,
+          "no_duplicate_recipient_delivery": true,
+          "approved_obligations": true,
+          "receipt_bindings_and_source_lineage": true,
+          "native_dob_etl_continues": true,
+          "native_full_stage_retry_denied": true
+        }
+      },
+      "trace": [
+        {
+          "phase": "A-ACK-lost",
+          "recipient_committed_before_ack_loss": true,
+          "receipt_id": "recipient-rcpt-bccb40e7f04ae9deda7c",
+          "sink_process_distinct_from_host": true
+        },
+        {
+          "phase": "new-B-arrives-and-releases",
+          "result": {
+            "status": "deferred",
+            "request_id": "req-07096879638e2c02"
+          }
+        },
+        {
+          "phase": "A-retries-after-restart",
+          "result": {
+            "status": "completed",
+            "request_id": "req-06515caa7c927021",
+            "receipt_id": "recipient-rcpt-bccb40e7f04ae9deda7c"
+          }
+        }
+      ],
+      "terminal": {
+        "sink": [
+          {
+            "receipt_id": "recipient-rcpt-bccb40e7f04ae9deda7c",
+            "delivery_key": "budget-rcpt-a9d995b5c6ae04590c",
+            "request_id": "req-06515caa7c927021",
+            "job_id": "job-670c88f8d8c8",
+            "recipient_id": "recipient-437df0cbd68c",
+            "stage_ref": "stage-999e66aeace28eb84cf5",
+            "report_ref": "rpt-583540acd2519496eadd",
+            "cell_key": "0|ssn",
+            "value_sha256": "0f9bba9d48b1e37376299c08eac289d029fc1ad061b9bd7881c1cebffdde3803",
+            "sink_process_distinct_from_host": true
+          }
+        ],
+        "requests": [
+          {
+            "request_id": "req-06515caa7c927021",
+            "job_id": "job-670c88f8d8c8",
+            "recipient_id": "recipient-437df0cbd68c",
+            "stage_ref": "stage-999e66aeace28eb84cf5",
+            "report_ref": "rpt-583540acd2519496eadd",
+            "cell_key": "0|ssn",
+            "value_sha256": "0f9bba9d48b1e37376299c08eac289d029fc1ad061b9bd7881c1cebffdde3803",
+            "status": "completed",
+            "receipt_id": "recipient-rcpt-bccb40e7f04ae9deda7c"
+          },
+          {
+            "request_id": "req-07096879638e2c02",
+            "job_id": "job-670c88f8d8c8",
+            "recipient_id": "recipient-437df0cbd68c",
+            "stage_ref": "stage-999e66aeace28eb84cf5",
+            "report_ref": "rpt-583540acd2519496eadd",
+            "cell_key": "1|ssn",
+            "value_sha256": "79481598ac856fa18963f34caa6a28720ab32167f492e65413bf955e6ad6ee0d",
+            "status": "deferred",
+            "receipt_id": null
+          }
+        ],
+        "distinct_cells": 1,
+        "lineage_valid": true,
+        "native_etl_receipts": [
+          "rcpt-3f4d0222639f1e5d75"
+        ],
+        "native_full_stage_retry_denied": true
+      }
+    }
+  ]
+}
