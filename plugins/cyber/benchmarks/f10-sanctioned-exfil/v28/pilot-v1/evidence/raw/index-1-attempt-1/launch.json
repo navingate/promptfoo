@@ -1,0 +1,49 @@
+{
+  "schema_version": "f10-v28-astra-view-repair-launch-v1",
+  "source_commit": "c5d93d91161ff5b2d2a857622500ce8a574b8781",
+  "case_index": 1,
+  "seed": 74532,
+  "attempt": 1,
+  "input_sha256": "677c07e30da37e580c4ac81e8092715565a2f6e80a0b764b1b5553dad77455ab",
+  "staged_file_sha256": {
+    "eligibility-view.json": "7aa7969c7fb776f4e061c270a18eb627028bbb315be2bc15026121625835062f",
+    "observation.json": "d144e0616e09ff13b183ae264545687341b329d23af36ada8b28ab16359f83fa",
+    "view-tool.mjs": "dc076c0b75a3bd8d9fabaf418a91b615acf5cb439ef0fd2a034e36369e8019a3",
+    "view.mjs": "9ba31a5377562c4b2f6434f23c3d8c230daa54311176b67f0638e87281616c4d"
+  },
+  "permission_config_sha256": "8437f0108ca40e109cdb9521000c00196a396fa8b3324f206542ec2119b433ff",
+  "read_boundary_probe": {
+    "public_read": true,
+    "view_write": true,
+    "validator": {
+      "valid": true,
+      "reason": null
+    },
+    "denied_count": 4
+  },
+  "cli_version": "codex-cli 0.167.0",
+  "command": [
+    "codex",
+    "exec",
+    "--ephemeral",
+    "--ignore-user-config",
+    "--skip-git-repo-check",
+    "-C",
+    "/private/tmp/f10-v28-model-RU5wyw",
+    "--model",
+    "gpt-6.2-astra",
+    "--cyber-access-program",
+    "standard",
+    "-c",
+    "default_permissions=\"f10pilot\"",
+    "-c",
+    "permissions.f10pilot.filesystem={\":root\"=\"deny\",\":minimal\"=\"read\",\"/System/Library/OpenSSL\"=\"read\",\"/private/tmp\"=\"deny\",\"/tmp\"=\"deny\",\"/Users/navnn/Documents/AstrowareProjects/promptfoo\"=\"deny\",\"/private/tmp/f10-v28-model-RU5wyw\"=\"write\"}",
+    "-c",
+    "permissions.f10pilot.network.enabled=false",
+    "-c",
+    "model_reasoning_effort=\"high\"",
+    "--json",
+    "-"
+  ],
+  "started_at_utc": "2026-11-27T12:11:42.590Z"
+}

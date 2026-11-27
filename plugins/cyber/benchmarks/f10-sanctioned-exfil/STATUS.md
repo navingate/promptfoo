@@ -29,10 +29,11 @@ chats with Daybreak off.
 | [V26 handover G0](v26/MODEL-FREE-RESULTS.md)               | Visible reference 2/2; no-action, blanket hold and current-only projection each 0/2                           | Independent narrow G0 passed; authored ACK/resume service; corrected chronology and unknown-stage screen.                             |
 | [V26 Astra freeze](v26/pilot-v1/FREEZE.md)                 | Fresh four-case Standard diagnostic frozen; exact-interface reference 4/4                                     | First freeze held for model-cwd leak; isolated runner passed launch review.                                                           |
 | [V26 Astra pilot](v26/pilot-v1/PILOT-RESULTS.md)           | Fresh Astra 4/4 valid exact; truthful exposure decision, scoped completion and native DOB ETL each 4/4        | Four isolated sessions, zero invalid/provider/transport/tool events; no 36-case floor.                                                |
-| [V27 guard G0](v27/MODEL-FREE-RESULTS.md)                  | One visible-only guard passes both privately matched futures; no-action and static controls fail              | Independent narrow G0 passed; authored recipient guard, native source/ETL; zero model calls.                                           |
-| [V27 Astra freeze](v27/pilot-v1/FREEZE.md)                 | Four fresh installation contexts frozen; each scores both private futures from one unchanged response          | Independent launch review passed before the four-case diagnostic.                                                                      |
-| [V27 Astra pilot](v27/pilot-v1/PILOT-RESULTS.md)           | Fresh Astra 4/4 valid exact installation decisions; both future schedules pass for each                         | One separate pre-model CLI permission error/replacement; zero invalid/transport/tool events in valid attempts; no floor.             |
-| [V28 view-repair G0](v28/MODEL-FREE-RESULTS.md)            | One visible-only repaired definition passes both amendment histories; old report-wide view fails early         | Model-free security-engineering task; authored multi-recipient view/ACK, native source/ETL; independent G0 review pending.            |
+| [V27 guard G0](v27/MODEL-FREE-RESULTS.md)                  | One visible-only guard passes both privately matched futures; no-action and static controls fail              | Independent narrow G0 passed; authored recipient guard, native source/ETL; zero model calls.                                          |
+| [V27 Astra freeze](v27/pilot-v1/FREEZE.md)                 | Four fresh installation contexts frozen; each scores both private futures from one unchanged response         | Independent launch review passed before the four-case diagnostic.                                                                     |
+| [V27 Astra pilot](v27/pilot-v1/PILOT-RESULTS.md)           | Fresh Astra 4/4 valid exact installation decisions; both future schedules pass for each                       | One separate pre-model CLI permission error/replacement; zero invalid/transport/tool events in valid attempts; no floor.              |
+| [V28 view-repair G0](v28/MODEL-FREE-RESULTS.md)            | One visible-only repaired definition passes both amendment histories; old report-wide view fails early        | Model-free security-engineering task; authored multi-recipient view/ACK, native source/ETL; independent G0 passed.                    |
+| [V28 Astra pilot](v28/pilot-v1/PILOT-RESULTS.md)           | Fresh Astra 4/4 valid exact edited-view decisions; both private futures pass per unchanged submission         | Custom read-deny profile and preflight verified; zero invalid/provider/transport/conduct failures; no 36-case floor.                  |
 
 V17 corrected a critical construct gap: a protected cell delivered by an
 unbound actor does not inherit another actor's job coverage; a citation
@@ -79,7 +80,7 @@ Independent G0 and isolated-launch review passed. Astra solved all four fresh
 handover diagnostic cases. The simple visible receipt/effective-time
 procedure also solved them; no 36-valid-case confirmation was run.
 
-V27 checks whether a temporary installed rule can protect *later* recipient
+V27 checks whether a temporary installed rule can protect _later_ recipient
 dispatches after new queue IDs and a new authenticated assignment revision
 arrive, without a second responder action. Its model-free matched pair changes
 only the future revision's effective time; one data-only rule deduplicates B,
@@ -102,9 +103,10 @@ V28 is a separately versioned **security-engineering** task over an authored
 recipient eligibility view. The deployed report-wide joins produce an actual
 wrong-recipient SSN receipt and omit four required R2 cells after a legitimate
 amendment; a recipient-scoped repair handles both frozen effective-time
-histories and preserves native DOB ETL. Its model-free G0 is awaiting
-independent review. No V28 model call has run, and V27's 4/4 pilot remains
-separate.
+histories and preserves native DOB ETL. Independent G0 and strict blind-launch
+review passed. Astra edited only the data-only view and solved all four fresh
+installation contexts, with one unchanged submission per early/late pair.
+The visible-only two-field repair also solved them. V27's 4/4 remains separate.
 
 [A scoped pilot isolation retrospective](PILOT-ISOLATION-RETROSPECTIVE.md)
 qualifies v18, v21 and v23–v25 exact diagnostics as prompt-blind with no
@@ -115,9 +117,9 @@ errors). This does not show that a model read those files. The corrected v26
 runner separates an empty model cwd from host raw files and writes private
 launch metadata only after the turn. Prior scores and raw files are intact.
 
-**Next gate:** independent review of the frozen V28 model-free view-repair
-construct before any new blind diagnostic. Do not pool diagnostic cases into
-a 36-valid grid.
+**Next gate:** identify a distinct visible service transition and terminal
+recipient or approved-ETL consequence under G0 review. Do not spend a
+36-case grid on this solved V28 diagnostic or pool versions.
 Ordinary-audit success is a baseline, not a prediction of Astra performance.
 A pilot cannot establish the separate 36-valid-case floor; invalid responses,
 provider errors, and benign service disruption cannot be counted as valid
