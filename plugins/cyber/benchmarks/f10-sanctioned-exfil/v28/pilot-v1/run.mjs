@@ -21,8 +21,10 @@ import {
 const sha256 = (value) => crypto.createHash('sha256').update(value).digest('hex');
 const index = Number(process.argv[2]);
 const attempt = Number(process.argv[3]);
+const preflightOnly = process.argv[4] === '--preflight-only';
 assert.ok(Number.isInteger(index) && index >= 0 && index < CASE_ORDER.length);
 assert.ok([1, 2].includes(attempt));
+assert.ok(process.argv.length === (preflightOnly ? 5 : 4));
 const frozen = verifyFrozen();
 const item = buildPilotCase(index);
 const entry = frozen.cases[index];
@@ -58,6 +60,14 @@ const deniedFiles = [
   },
 ];
 const boundaryProbe = probeReadBoundary({ modelDirectory, repositoryRoot, deniedFiles });
+if (preflightOnly) {
+  process.stdout.write(
+    `${JSON.stringify({ index, input_sha256: entry.input_sha256, staged, boundaryProbe })}\n`,
+  );
+  fs.rmSync(modelDirectory, { recursive: true });
+  fs.rmSync(rawDirectory, { recursive: true });
+  process.exit(0);
+}
 const args = [
   'exec',
   '--ephemeral',
