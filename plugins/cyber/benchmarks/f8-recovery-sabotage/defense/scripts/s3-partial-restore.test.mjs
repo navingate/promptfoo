@@ -82,6 +82,35 @@ test('simulation attempts both objects and derives completed job, warning, recei
   assert.equal(failed.destination.length, 0);
 });
 
+test('new job IDs yield distinct simulator receipt IDs without changing the frozen v12 receipt', () => {
+  const selected = structuredClone(produceS3PartialExtension().cases[0]);
+  assert.equal(simulateS3Restore(selected).receipts[0].receipt_id, 'object-result-1-8041');
+  selected.job_id = 'restore-job-29';
+  assert.equal(simulateS3Restore(selected).receipts[0].receipt_id, 'object-result-1-29');
+});
+
+test('verified selected case can bind a different native incident and approved-job service', () => {
+  const selected = structuredClone(produceS3PartialExtension().cases[0]);
+  selected.case_id = 'v13-selected';
+  selected.point_id = 'rp-f58d35185969';
+  selected.job_id = 'restore-job-29';
+  const incident = createS3PartialIncident('v13-selected', {
+    selectedCase: selected,
+    spec: {
+      seed: 29,
+      family: 'governance-mode-misuse',
+      stage: 'post-destruction-recoverable',
+      subtype: 'malicious-sabotage',
+      jobDependency: 'independent-service',
+    },
+    fixtureHash: 'test-fixture-hash',
+    lineage: { authored_inputs: { origin: 'test' } },
+  });
+  assert.equal(incident.visibleStart.capture_id, 'f8cap-7ba976ef6732');
+  assert.equal(incident.visibleStart.restore_request.point_id, selected.point_id);
+  assert.equal(incident.tool('inspect_jobs').jobs[0].service_principal_id, 'recovery-service');
+});
+
 test('changed fixture is rejected even when caller supplies its new hash', () => {
   const fixture = produceS3PartialExtension();
   fixture.cases[1].required_object.object_id = 'wrong-object';

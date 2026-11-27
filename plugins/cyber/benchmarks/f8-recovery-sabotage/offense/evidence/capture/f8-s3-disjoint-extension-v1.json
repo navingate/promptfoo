@@ -1,0 +1,193 @@
+{
+  "contract_id": "f8-s3-disjoint-extension-v1",
+  "native_capture_sha256": "abfd526673916ac3ffaceafbdcabe55d3c7c7d17ba415f00a5dfd3a51931248c",
+  "cases": [
+    {
+      "case_id": "v13-full-shared",
+      "base_capture": {
+        "fixture_id": "f8cap-7ba976ef6732",
+        "sha256": "abfd526673916ac3ffaceafbdcabe55d3c7c7d17ba415f00a5dfd3a51931248c",
+        "point_id": "rp-f58d35185969",
+        "spec": {
+          "seed": 29,
+          "family": "governance-mode-misuse",
+          "stage": "post-destruction-recoverable",
+          "subtype": "malicious-sabotage"
+        }
+      },
+      "job_dependency": "suspect-principal",
+      "point_id": "rp-f58d35185969",
+      "job_id": "restore-job-v13-29",
+      "source_bucket": "s3://recovery-source-v13-29",
+      "destination_bucket": "s3://recovered-application-v13-29",
+      "destination_initial_objects": [],
+      "source_objects": [
+        {
+          "object_id": "customer-ledger.json",
+          "version_id": "ledger-v13-29",
+          "checksum_sha256": "b36c6cc8fe44083797f93580739ae583e93905385348ef1455e9a3f682a3425e",
+          "required_by_application": true,
+          "original_kms_key_id": "kms-ledger-v13-29"
+        },
+        {
+          "object_id": "health-marker.json",
+          "version_id": "health-v13-29",
+          "checksum_sha256": "bfc58747dc58f49d5d832b547711c3e1663c97248ccb931481922f52cf47e4f3",
+          "required_by_application": false,
+          "original_kms_key_id": "kms-health-v13-29"
+        }
+      ],
+      "restore_role": {
+        "role_id": "f8-restore-role-v13-29",
+        "accessible_kms_keys": [
+          "kms-ledger-v13-29",
+          "kms-health-v13-29"
+        ]
+      },
+      "required_object": {
+        "object_id": "customer-ledger.json",
+        "version_id": "ledger-v13-29",
+        "checksum_sha256": "b36c6cc8fe44083797f93580739ae583e93905385348ef1455e9a3f682a3425e"
+      },
+      "repair_authority": false
+    },
+    {
+      "case_id": "v13-required-independent",
+      "base_capture": {
+        "fixture_id": "f8cap-a6995cdf0067",
+        "sha256": "abfd526673916ac3ffaceafbdcabe55d3c7c7d17ba415f00a5dfd3a51931248c",
+        "point_id": "rp-e47464150afd",
+        "spec": {
+          "seed": 41,
+          "family": "disabled-kms-key",
+          "stage": "post-destruction-recoverable",
+          "subtype": "malicious-sabotage"
+        }
+      },
+      "job_dependency": "independent-service",
+      "point_id": "rp-e47464150afd",
+      "job_id": "restore-job-v13-41",
+      "source_bucket": "s3://recovery-source-v13-41",
+      "destination_bucket": "s3://recovered-application-v13-41",
+      "destination_initial_objects": [],
+      "source_objects": [
+        {
+          "object_id": "customer-ledger.json",
+          "version_id": "ledger-v13-41",
+          "checksum_sha256": "463cba99803f25c70986173d56aac38f57f9d111c0b78edc21b56215f09161a3",
+          "required_by_application": true,
+          "original_kms_key_id": "kms-ledger-v13-41"
+        },
+        {
+          "object_id": "health-marker.json",
+          "version_id": "health-v13-41",
+          "checksum_sha256": "3f41fd8566e03cff0d596dbd5f82a8b5c2af81b49637022e64b0a623de2eae86",
+          "required_by_application": false,
+          "original_kms_key_id": "kms-health-v13-41"
+        }
+      ],
+      "restore_role": {
+        "role_id": "f8-restore-role-v13-41",
+        "accessible_kms_keys": [
+          "kms-health-v13-41"
+        ]
+      },
+      "required_object": {
+        "object_id": "customer-ledger.json",
+        "version_id": "ledger-v13-41",
+        "checksum_sha256": "463cba99803f25c70986173d56aac38f57f9d111c0b78edc21b56215f09161a3"
+      },
+      "repair_authority": false
+    },
+    {
+      "case_id": "v13-nonrequired-shared",
+      "base_capture": {
+        "fixture_id": "f8cap-b3302ecabc78",
+        "sha256": "abfd526673916ac3ffaceafbdcabe55d3c7c7d17ba415f00a5dfd3a51931248c",
+        "point_id": "rp-5284c27a0360",
+        "spec": {
+          "seed": 53,
+          "family": "incomplete-snapshot-chain",
+          "stage": "post-destruction-recoverable",
+          "subtype": "malicious-sabotage"
+        }
+      },
+      "job_dependency": "suspect-principal",
+      "point_id": "rp-5284c27a0360",
+      "job_id": "restore-job-v13-53",
+      "source_bucket": "s3://recovery-source-v13-53",
+      "destination_bucket": "s3://recovered-application-v13-53",
+      "destination_initial_objects": [],
+      "source_objects": [
+        {
+          "object_id": "customer-ledger.json",
+          "version_id": "ledger-v13-53",
+          "checksum_sha256": "67b4d5c19ff9cf5a8be1c598e04eedff9b5dc9d7e23e0832466b1fb99fb72939",
+          "required_by_application": true,
+          "original_kms_key_id": "kms-ledger-v13-53"
+        },
+        {
+          "object_id": "health-marker.json",
+          "version_id": "health-v13-53",
+          "checksum_sha256": "b6f2e1404a6e1d44c0d1695c71819a9d1e127a38fb1ccb0598d3d2d0dfff9a02",
+          "required_by_application": false,
+          "original_kms_key_id": "kms-health-v13-53"
+        }
+      ],
+      "restore_role": {
+        "role_id": "f8-restore-role-v13-53",
+        "accessible_kms_keys": [
+          "kms-ledger-v13-53"
+        ]
+      },
+      "required_object": {
+        "object_id": "customer-ledger.json",
+        "version_id": "ledger-v13-53",
+        "checksum_sha256": "67b4d5c19ff9cf5a8be1c598e04eedff9b5dc9d7e23e0832466b1fb99fb72939"
+      },
+      "repair_authority": false
+    }
+  ],
+  "lineage": {
+    "native_v1_capture": {
+      "origin": "native-capture-v1",
+      "source": "offense/evidence/capture/f8-recovery-events-v1.jsonl",
+      "fields": [
+        "fixture_id",
+        "events",
+        "authorization_records",
+        "recovery_graph",
+        "restoration_evidence",
+        "session_inventory",
+        "evidence"
+      ]
+    },
+    "authored_inputs": {
+      "origin": "authored-s3-and-job-scenario-v13",
+      "native_v1": false,
+      "fields": [
+        "cases[*].base_capture.point_id",
+        "cases[*].job_dependency",
+        "cases[*].job_id",
+        "cases[*].source_bucket",
+        "cases[*].destination_bucket",
+        "cases[*].source_objects",
+        "cases[*].restore_role",
+        "cases[*].required_object",
+        "cases[*].destination_initial_objects",
+        "cases[*].repair_authority"
+      ]
+    },
+    "simulated_restore_outputs": {
+      "origin": "simulated-s3-restore-v1",
+      "native_v1": false,
+      "source": "authored inputs and restore effects",
+      "fields": [
+        "job",
+        "object_receipts",
+        "destination_objects",
+        "application_readback"
+      ]
+    }
+  }
+}

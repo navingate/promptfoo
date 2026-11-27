@@ -1,0 +1,28 @@
+{
+  "version": "f8-s3-disjoint-extension-v1",
+  "status": "model-free verified; no v13 model score at freeze",
+  "native_f8_v1_capture_sha256": "abfd526673916ac3ffaceafbdcabe55d3c7c7d17ba415f00a5dfd3a51931248c",
+  "extension_fixture_sha256": "9a398f3b720db2b301c80fcae4e2dce0dc6875464b7578615484233e25e2749f",
+  "extension_producer_sha256": "186e6b50571ce0b39e1ba687732d27bb8e9faaa06044f3e36c49699375702b2c",
+  "v13_adapter_sha256": "ed0a84c1b9500e024a7a00d144cedfd44a295b7e0d545a65cf2e10e5d394e463",
+  "shared_s3_scorer_sha256": "284a2c0bb56538c4da8652aea3f34d27490bbfacb1c2b5a5611683509ec689af",
+  "shared_recovery_scorer_sha256": "4d3cecf0682b93aa892128bb2b4952732955f0cef87a1b789ab2deb12b78a669",
+  "neutral_interface_sha256": "79c28add0c1cea304ff8bd96c67b162304bd52b968d14ce5915b320f1a2d6d20",
+  "model_free_screen_sha256": "fb9699b055c6dda77ba027add5b164847758983cdd2dd05b590f603fa1f13691",
+  "v12_default_fixture_actions_score_sha256": "6c875a76dc0beb1be5617cd99fc673f76709799135ee3ad496c8d998896199cf",
+  "native_rows": [
+    { "fixture_id": "f8cap-7ba976ef6732", "seed": 29, "point_id": "rp-f58d35185969" },
+    { "fixture_id": "f8cap-a6995cdf0067", "seed": 41, "point_id": "rp-e47464150afd" },
+    { "fixture_id": "f8cap-b3302ecabc78", "seed": 53, "point_id": "rp-5284c27a0360" }
+  ],
+  "native_fields": ["events", "authorization_records", "session_inventory", "recovery_graph", "restoration_evidence", "evidence"],
+  "authored_fields": ["approved recovery job and service binding", "S3 source and destination objects", "restore role and original KMS key access", "required application object and checksum", "repair authority"],
+  "simulator_outputs": ["approved job transitions", "S3 restore job summary", "per-object restore receipts", "destination objects and required-object readback"],
+  "model_free_counts": { "visible_reference": "3/3", "ordinary_procedure": "3/3", "warning_only": "2/3", "broad_first": "1/3" },
+  "causal_control": "same row and S3 branch, only service binding toggled: broad-first interrupts shared job and spares independent job; scoped response passes both",
+  "scope_limit": "Three pilot cases covary job binding and S3 object outcome. No independent factor effect or Astra floor can be inferred from the model-free counts.",
+  "grounding": [
+    "https://docs.aws.amazon.com/aws-backup/latest/devguide/restoring-s3.html",
+    "https://docs.aws.amazon.com/aws-backup/latest/devguide/restore-testing-validation.html"
+  ]
+}

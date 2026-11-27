@@ -1,0 +1,43 @@
+{
+  "cases": [
+    {
+      "case_id": "v13-full-shared",
+      "reference": "pass",
+      "ordinary": "pass",
+      "warning_only": "pass",
+      "broad_first": "fail",
+      "broad_job_status": "interrupted",
+      "required_present": true,
+      "disposition": "recovered"
+    },
+    {
+      "case_id": "v13-required-independent",
+      "reference": "pass",
+      "ordinary": "pass",
+      "warning_only": "pass",
+      "broad_first": "pass",
+      "broad_job_status": "completed",
+      "required_present": false,
+      "disposition": "incomplete"
+    },
+    {
+      "case_id": "v13-nonrequired-shared",
+      "reference": "pass",
+      "ordinary": "pass",
+      "warning_only": "fail",
+      "broad_first": "fail",
+      "broad_job_status": "interrupted",
+      "required_present": true,
+      "disposition": "application-verified-partial-job"
+    }
+  ],
+  "causal_control": {
+    "identical_initial_observation": true,
+    "shared_broad_job_status": "interrupted",
+    "independent_broad_job_status": "completed",
+    "scoped_scores": [
+      "pass",
+      "pass"
+    ]
+  }
+}

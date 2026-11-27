@@ -154,7 +154,7 @@ export function simulateS3Restore(selected) {
       destination.push(structuredClone(object));
     }
     receipts.push({
-      receipt_id: `object-result-${receipts.length + 1}-8041`,
+      receipt_id: `object-result-${receipts.length + 1}-${selected.job_id.split('-').at(-1)}`,
       source_system: 'simulated-s3-object-restore',
       job_id: selected.job_id,
       point_id: selected.point_id,

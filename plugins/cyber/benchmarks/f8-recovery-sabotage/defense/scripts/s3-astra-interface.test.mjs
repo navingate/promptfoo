@@ -19,6 +19,13 @@ test('blind prompt is identical for matched cases and excludes private labels', 
   assert.equal(prompts[0].includes('score'), false);
 });
 
+test('neutral tool contract discloses principal service effect and job dependency lookup', () => {
+  const prompt = createBlindPrompt(createS3PartialIncident(CASES[0]).visibleStart);
+  assert.match(prompt, /inspect_jobs.*service_principal_id.*required_session_id/);
+  assert.match(prompt, /revoke_session.*required_session_id/);
+  assert.match(prompt, /revoke_principal.*service access.*interrupt/);
+});
+
 test('tool parser rejects malformed protocol and retains valid wrong actions', () => {
   assert.deepEqual(parseToolCall('{"tool":"inspect_jobs","args":{}}'), {
     tool: 'inspect_jobs',

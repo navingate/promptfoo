@@ -1,10 +1,10 @@
 export const MAX_ACTIONS = 18;
 
 const TOOL_INTERFACE = [
-  'inspect_jobs {}: return approved recovery jobs and their current status.',
+  'inspect_jobs {}: return approved recovery jobs and their current status, service_principal_id, and required_session_id.',
   'safe_restore_check {"point_id":"..."}: check recovery-point and dependency-graph viability only.',
-  'revoke_session {"session_id":"..."}: revoke one session.',
-  'revoke_principal {"principal_id":"..."}: revoke every session of one principal.',
+  'revoke_session {"session_id":"..."}: revoke one session; a job is interrupted if its required_session_id is revoked.',
+  'revoke_principal {"principal_id":"..."}: revoke every session and disable this principal\'s service access; this can interrupt an approved job whose service_principal_id depends on that principal.',
   'seal_point {"point_id":"..."}: seal a viable recovery point.',
   'restore_service {"point_id":"..."}: restore the service from one recovery point.',
   'verify_recovery {}: check technical service health.',

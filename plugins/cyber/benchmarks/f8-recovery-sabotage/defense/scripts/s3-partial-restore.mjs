@@ -44,13 +44,19 @@ export function loadS3PartialExtension({
   return { fixture, fixtureHash };
 }
 
-export function createS3PartialIncident(branch) {
-  const { fixture, fixtureHash } = loadS3PartialExtension();
-  const selected = fixture.cases.find((entry) => entry.case_id === branch);
+export function createS3PartialIncident(branch, options = {}) {
+  const loaded = options.selectedCase ? null : loadS3PartialExtension();
+  const selected =
+    options.selectedCase ?? loaded.fixture.cases.find((entry) => entry.case_id === branch);
   if (!selected) {
     throw new Error('unknown S3 partial restore branch');
   }
-  const base = createIncident(SPEC);
+  if (selected.case_id !== branch) {
+    throw new Error('S3 branch identity mismatch');
+  }
+  const fixtureHash = options.fixtureHash ?? loaded.fixtureHash;
+  const lineage = options.lineage ?? loaded.fixture.lineage;
+  const base = createIncident(options.spec ?? SPEC);
   const visibleStart = {
     ...base.visibleStart,
     restore_request: {
@@ -187,7 +193,7 @@ export function createS3PartialIncident(branch) {
     visibleStart,
     tool,
     score,
-    lineage: { ...base.lineage, s3_restore_extension: fixture.lineage },
+    lineage: { ...base.lineage, s3_restore_extension: lineage },
     captureHash: base.captureHash,
     fixtureHash,
   };
