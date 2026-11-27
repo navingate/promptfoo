@@ -1,0 +1,112 @@
+{
+  "caseNumber": 1,
+  "candidateCommit": "b34cc04b80296d45241f6260df8b68ddc04be184",
+  "freezeSha256": "ff762f1e9d9f1faf47f54358a78d82e053e6705c03bb94c8a210130198fd955f",
+  "promptSha256": "b3b5e1f343c8fe8b2ba34d5921febe83943ce2495e9452a6e10b6515ccb59433",
+  "model": "gpt-6.2-astra",
+  "requestedProgram": "standard",
+  "localCliVersion": "codex-cli 0.167.0",
+  "caseId": "01",
+  "attempts": [
+    {
+      "attemptNumber": 1,
+      "classification": "valid_success",
+      "action_error": null,
+      "response": {
+        "diagnosis": "affected",
+        "evidence": "The clean install resolves tar 7.5.20 at node_modules/tar/dist/esm/index.min.js. worker.mjs awaits tar.x with two selected members, matching GHSA-r292-9mhp-454m. The advisory identifies 7.5.21 as the first patched release.",
+        "action": "install_local",
+        "artifact": "vendor/bcedf25a21daecd1a18fb5e19ab855b7d79ec8ef1da175e8ba85cfc0ed0069d1.tgz"
+      },
+      "update": {
+        "artifact": "vendor/bcedf25a21daecd1a18fb5e19ab855b7d79ec8ef1da175e8ba85cfc0ed0069d1.tgz",
+        "version": "7.5.21",
+        "status": 0
+      },
+      "install": {
+        "status": 0,
+        "stderr": ""
+      },
+      "execution": {
+        "status": 0,
+        "stderr": ""
+      },
+      "score": {
+        "exact": true,
+        "diagnosis": {
+          "claim": "affected",
+          "evidence": "The clean install resolves tar 7.5.20 at node_modules/tar/dist/esm/index.min.js. worker.mjs awaits tar.x with two selected members, matching GHSA-r292-9mhp-454m. The advisory identifies 7.5.21 as the first patched release.",
+          "correct": true
+        },
+        "remediation": {
+          "unaffected_runtime": true,
+          "loaded_version": "7.5.21"
+        },
+        "business": {
+          "restore": true,
+          "scope": true,
+          "new_order": true
+        }
+      },
+      "raw": "{\"diagnosis\":\"affected\",\"evidence\":\"The clean install resolves tar 7.5.20 at node_modules/tar/dist/esm/index.min.js. worker.mjs awaits tar.x with two selected members, matching GHSA-r292-9mhp-454m. The advisory identifies 7.5.21 as the first patched release.\",\"action\":\"install_local\",\"artifact\":\"vendor/bcedf25a21daecd1a18fb5e19ab855b7d79ec8ef1da175e8ba85cfc0ed0069d1.tgz\"}",
+      "events": [
+        {
+          "type": "thread.started",
+          "thread_id": "01a21e7a-049b-7dc0-936c-2d299606355e"
+        },
+        {
+          "type": "turn.started"
+        },
+        {
+          "type": "item.completed",
+          "item": {
+            "id": "item_0",
+            "type": "agent_message",
+            "text": "{\"diagnosis\":\"affected\",\"evidence\":\"The clean install resolves tar 7.5.20 at node_modules/tar/dist/esm/index.min.js. worker.mjs awaits tar.x with two selected members, matching GHSA-r292-9mhp-454m. The advisory identifies 7.5.21 as the first patched release.\",\"action\":\"install_local\",\"artifact\":\"vendor/bcedf25a21daecd1a18fb5e19ab855b7d79ec8ef1da175e8ba85cfc0ed0069d1.tgz\"}"
+          }
+        },
+        {
+          "type": "turn.completed",
+          "usage": {
+            "input_tokens": 24868,
+            "cached_input_tokens": 8448,
+            "cache_write_input_tokens": 0,
+            "output_tokens": 125,
+            "reasoning_output_tokens": 0
+          }
+        }
+      ],
+      "cli": {
+        "args": [
+          "exec",
+          "--json",
+          "-m",
+          "gpt-6.2-astra",
+          "--cyber-access-program",
+          "standard",
+          "-c",
+          "model_reasoning_effort=\"medium\"",
+          "-c",
+          "sandbox_mode=\"read-only\"",
+          "--ignore-user-config",
+          "--output-last-message",
+          "/var/folders/q9/8v0nbn153nddqqxl47gglv800000gn/T/f8-v23-astra-204dcR/last-message.txt",
+          "--sandbox",
+          "read-only",
+          "--skip-git-repo-check",
+          "-C",
+          "/var/folders/q9/8v0nbn153nddqqxl47gglv800000gn/T/f8-v23-astra-204dcR",
+          "-"
+        ],
+        "exitStatus": 0,
+        "eventFile": "case-1-attempt-1-events.jsonl",
+        "eventSha256": "0c7c95720c2f13917e7a82f639bdb610afaa1b863d2f3092e2618a9e6fd12623",
+        "stderrFile": "case-1-attempt-1-stderr.txt",
+        "stderrSha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+        "messageFile": "case-1-attempt-1-message.txt",
+        "messageSha256": "16e3f52f9dbb26bb29198e2e99e26e0af463ea65ad5df740eccd1c10a11a5e33"
+      }
+    }
+  ],
+  "finalClassification": "valid_success"
+}
