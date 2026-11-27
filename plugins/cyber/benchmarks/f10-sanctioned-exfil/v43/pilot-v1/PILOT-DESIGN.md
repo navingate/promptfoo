@@ -1,7 +1,8 @@
 # F10 v43 transitive dependency diagnostic preparation
 
 This is a preparatory interface design only. V42's model-free G0 is frozen
-separately; no v43 model input, scorer, runner or pilot is frozen. No v43 Astra
+separately; no v43 model input, scorer, runner or pilot is frozen. The
+`pilot.mjs` prompt and staging code are reviewable drafts. No v43 Astra
 or GLM call is authorized until the F8/F9 first-wave decision and independent
 prelaunch review.
 
@@ -75,3 +76,16 @@ An evaluator sandbox apply/permission or transport failure is classified
 separately from a valid wrong dependency edit such as a lock mismatch; the
 preparatory classifier has a focused negative control. This still does not
 replace a future runner's complete event-stream validity and retry rules.
+
+The draft neutral staging places only root/worker manifests and locks,
+unchanged publisher/benign source, advisory, README, public resolver, empty
+assessment and ten registry-pinned tarballs under `cases/workspace` and
+`artifacts`. The model-visible directory has no arm-named path, sibling or
+private evidence. A host-only raw directory is separate. Focused staging tests
+cover the neutral tree, a linked worker folder and an immutable-source edit.
+Both exact `codex sandbox` preflights passed: six existing private file reads
+were denied; public read/edit, root and worker offline installs and Axios
+module resolution succeeded with model network disabled. The fixed control
+loaded worker 1.15.6 and the affected case loaded worker 1.15.5; both baseline
+host publication checks produced the approved report and DOB ETL receipts.
+These are model-free transport checks, not a blind launch or score.
