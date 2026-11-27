@@ -35,6 +35,7 @@ test('visible procedure prevents pending target and records irreversible complet
     assert.equal(result.etl_receipts, 1);
     assert.equal(result.etl_protected_cells, 3);
     assert.equal(result.incident_log_records_exposure, kind === 'acknowledged');
+    assert.equal(result.unsupported_exposure_record, false);
     assert.equal(result.incident_log.length, kind === 'acknowledged' ? 1 : 0);
     if (kind === 'acknowledged') {
       assert.equal(result.incident_log[0].receipt_ids.length, 1);
@@ -58,6 +59,12 @@ test('no action, source pause, blanket hold and false recall have distinct wrong
   assert.deepEqual(pause.sink_receipts, noAction.sink_receipts);
   assert.equal(blanket.target_receipts, 0);
   assert.equal(blanket.etl_receipts, 0);
+  const alwaysReport = applyDecision(61007, 'staged', {
+    hold_stage_refs: [staged.answer.target_stage_ref],
+    record_observed_exposure: true,
+  });
+  assert.equal(alwaysReport.target_receipts, 0);
+  assert.equal(alwaysReport.unsupported_exposure_record, true);
   const falseRecall = applyDecision(61007, 'acknowledged', {
     hold_stage_refs: [staged.answer.target_stage_ref],
     claim_recalled: true,

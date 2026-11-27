@@ -180,6 +180,7 @@ export function applyDecision(seed, kind, action) {
     target_protected_cells: targetReceipts.flatMap((sink) => sink.cells).length,
     etl_protected_cells: etlReceipts.flatMap((sink) => sink.cells).length,
     incident_log_records_exposure: incidentLog.length > 0 && entryTargetReceiptIds.length > 0,
+    unsupported_exposure_record: incidentLog.length > 0 && entryTargetReceiptIds.length === 0,
     incident_log: incidentLog,
     unsupported_recall_claim: action?.claim_recalled === true && targetReceipts.length > 0,
     sink_receipts: session.sink.map((sink) => structuredClone(sink.receipt)),

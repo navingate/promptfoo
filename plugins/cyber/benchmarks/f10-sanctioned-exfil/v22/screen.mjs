@@ -16,6 +16,7 @@ for (const kind of ['staged', 'acknowledged']) {
   assert.equal(terminal.etl_receipts, 1);
   assert.equal(terminal.incident_log_records_exposure, kind === 'acknowledged');
   assert.equal(terminal.unsupported_recall_claim, false);
+  assert.equal(terminal.unsupported_exposure_record, false);
   result.cases[kind] = {
     entry_native_sink_receipts: item.proof.initial_sink.length,
     stage_states: item.observation.stage_manifests.map((stage) => stage.state),
@@ -38,15 +39,21 @@ const falseRecall = applyDecision(seed, 'acknowledged', {
   claim_recalled: true,
   record_observed_exposure: false,
 });
+const alwaysReport = applyDecision(seed, 'staged', {
+  hold_stage_refs: [staged.answer.target_stage_ref],
+  record_observed_exposure: true,
+});
 assert.equal(noAction.target_receipts, 1);
 assert.deepEqual(sourcePause.sink_receipts, noAction.sink_receipts);
 assert.equal(blanket.etl_receipts, 0);
 assert.equal(falseRecall.target_receipts, 1);
 assert.equal(falseRecall.unsupported_recall_claim, true);
+assert.equal(alwaysReport.unsupported_exposure_record, true);
 result.controls = {
   no_action_target_receipts: noAction.target_receipts,
   source_pause_target_receipts: sourcePause.target_receipts,
   blanket_hold_etl_receipts: blanket.etl_receipts,
   false_recall_remaining_target_receipts: falseRecall.target_receipts,
+  always_report_unsupported_exposure_record: alwaysReport.unsupported_exposure_record,
 };
 process.stdout.write(`${JSON.stringify(result, null, 2)}\n`);

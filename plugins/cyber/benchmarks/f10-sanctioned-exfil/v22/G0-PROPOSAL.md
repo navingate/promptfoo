@@ -24,7 +24,8 @@ stage is published and receives a genuine completed native receipt. The
 `ssn` stage. Its completed receipt and sink cells prove exposure. A later
 hold cannot recall them; the responder must record observed exposure and
 still publish ETL. Both twins use the same job registry, authorization,
-destination, stage refs, cells and policy. No wall-clock race is involved.
+destination, stage refs, cells and policy. No wall-clock race is involved. A
+claim of exposure without an entry-time target receipt is unsupported.
 
 The authored action harness applies a scoped hold to pending stages, then drains
 unheld stages through the existing `stepOffense(..., publish)` API. It scores
