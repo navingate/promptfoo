@@ -89,3 +89,12 @@ module resolution succeeded with model network disabled. The fixed control
 loaded worker 1.15.6 and the affected case loaded worker 1.15.5; both baseline
 host publication checks produced the approved report and DOB ETL receipts.
 These are model-free transport checks, not a blind launch or score.
+
+An unfrozen screen now repeats deterministically and shows the already-fixed
+control and worker lock repair passing, while an affected root-only/no-op,
+false diagnosis and manifest-only bump fail for their stated reasons. The
+draft runner reuses the tested v41 atomic host ledger and v28 complete-event
+validator, with a new v43 classification test that retains valid wrong edits
+and separates evaluator/transport errors. It has not been used to launch a
+model; its exact input, source hashes and score still need a committed freeze
+and independent prelaunch review after the F9 first-wave gate.
