@@ -99,6 +99,12 @@ test('no action, source pause, blanket hold and unsupported record fail for dist
   });
   assert.equal(falseRecall.target_receipts, 1);
   assert.equal(falseRecall.unsupported_recall_claim, true);
+  for (const kind of ['staged', 'acknowledged', 'etl-acknowledged']) {
+    const item = produceCase(seed, kind);
+    const action = { ...respond(item.observation), claim_recalled: true };
+    assert.equal(scoreAction(seed, kind, action).exact, false);
+    assert.equal(applyDecision(seed, kind, action).unsupported_recall_claim, true);
+  }
   assert.equal(
     scoreAction(seed, 'acknowledged', {
       hold_stage_refs: [acknowledged.answer.target_stage_ref],

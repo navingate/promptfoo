@@ -45,6 +45,8 @@ receipt as evidence of target exposure. The harness never supplies a private
 target or receipt ID on the defender's behalf. This is not a v13 logging
 feature. Equivalent scoped outcomes, including a harmless hold on an
 already published stage, receive full credit.
+There is no recall API: `claim_recalled: true` is an unsupported assertion in
+every case, including those without a prior target receipt.
 
 ## Evidence and gates
 

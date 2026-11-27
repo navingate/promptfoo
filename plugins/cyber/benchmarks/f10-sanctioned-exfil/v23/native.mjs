@@ -191,7 +191,7 @@ export function applyDecision(seed, kind, action) {
       (id) => !entryTargetReceiptIds.includes(id),
     ),
     incident_log: incidentLog,
-    unsupported_recall_claim: action?.claim_recalled === true && targetReceipts.length > 0,
+    unsupported_recall_claim: action?.claim_recalled === true,
     sink_receipts: session.sink.map((sink) => structuredClone(sink.receipt)),
   };
 }

@@ -7,6 +7,7 @@ import { scoreAction } from './scorer.mjs';
 
 const seed = 61007;
 const result = { seed, cases: {}, controls: {} };
+let columnOnlyExact = 0;
 for (const kind of ['staged', 'acknowledged', 'etl-acknowledged']) {
   const item = produceCase(seed, kind);
   assert.equal(verifyNativeProof(item.proof), true);
@@ -18,6 +19,21 @@ for (const kind of ['staged', 'acknowledged', 'etl-acknowledged']) {
   assert.equal(terminal.incident_log_records_exposure, kind === 'acknowledged');
   assert.equal(terminal.unsupported_exposure_record, false);
   assert.equal(terminal.unsupported_recall_claim, false);
+  const ssnStages = item.observation.stage_manifests.filter((stage) =>
+    stage.columns.includes('ssn'),
+  );
+  const columnOnlyAction = {
+    hold_stage_refs: ssnStages
+      .filter((stage) => stage.state === 'staged')
+      .map((stage) => stage.stage_ref),
+    record_receipt_ids: item.observation.sink_receipts
+      .filter((receipt) => ssnStages.some((stage) => stage.stage_ref === receipt.stage_ref))
+      .map((receipt) => receipt.receipt_id),
+  };
+  if (scoreAction(seed, kind, columnOnlyAction).exact) {
+    columnOnlyExact++;
+  }
+  assert.equal(scoreAction(seed, kind, { ...action, claim_recalled: true }).exact, false);
   result.cases[kind] = {
     entry_native_sink_receipts: item.proof.initial_sink.length,
     stage_states: item.observation.stage_manifests.map((stage) => stage.state),
@@ -31,6 +47,7 @@ for (const kind of ['staged', 'acknowledged', 'etl-acknowledged']) {
   };
 }
 const staged = produceCase(seed, 'staged');
+assert.equal(columnOnlyExact, 3);
 const acknowledged = produceCase(seed, 'acknowledged');
 const etlAcknowledged = produceCase(seed, 'etl-acknowledged');
 const noAction = applyDecision(seed, 'staged', {});
@@ -86,6 +103,7 @@ assert.equal(fabricatedRecord.unsupported_exposure_record, true);
 assert.equal(anyReceipt.unsupported_exposure_record, true);
 assert.equal(anyReceipt.target_receipts, 1);
 result.controls = {
+  column_only_exact: columnOnlyExact,
   shortcut_fields: Object.fromEntries(
     Object.entries(shortcuts).map(([name, value]) => [name, value.fields]),
   ),
