@@ -1,0 +1,818 @@
+{
+  "schema_version": "f10-v28-eligibility-repair-g0-screen-v1",
+  "seed": 71001,
+  "matched_change": "authenticated-amendment.effective_at:145-versus-165",
+  "same_time_135_observation_and_native_proof": true,
+  "reference_definition": {
+    "source_report_ref": "rpt-7060a8f9bc449b37d7bb",
+    "assignment_partition": [
+      "source_report_ref",
+      "recipient_id"
+    ],
+    "receipt_partition": [
+      "source_report_ref",
+      "recipient_id"
+    ],
+    "as_of": "dispatch_time",
+    "otherwise": "hold"
+  },
+  "entry_preview": {
+    "deployed": {
+      "valid": true,
+      "reason": null,
+      "outcomes": [
+        {
+          "delivery_id": "delivery-55eef1a0ba08",
+          "recipient_id": "recipient-a07d718fc165",
+          "decision": "release",
+          "reason": "all-view-relations-pass"
+        },
+        {
+          "delivery_id": "delivery-99b57a37854a",
+          "recipient_id": "recipient-a07d718fc165",
+          "decision": "hold",
+          "reason": "recipient-assignment-denied"
+        },
+        {
+          "delivery_id": "delivery-20d1854be40e",
+          "recipient_id": "recipient-3d610ec1caad",
+          "decision": "hold",
+          "reason": "recipient-cell-already-delivered"
+        },
+        {
+          "delivery_id": "delivery-4a127fd531e4",
+          "recipient_id": "recipient-3d610ec1caad",
+          "decision": "hold",
+          "reason": "recipient-assignment-denied"
+        }
+      ]
+    },
+    "repaired": {
+      "valid": true,
+      "reason": null,
+      "outcomes": [
+        {
+          "delivery_id": "delivery-55eef1a0ba08",
+          "recipient_id": "recipient-a07d718fc165",
+          "decision": "release",
+          "reason": "all-view-relations-pass"
+        },
+        {
+          "delivery_id": "delivery-99b57a37854a",
+          "recipient_id": "recipient-a07d718fc165",
+          "decision": "hold",
+          "reason": "recipient-assignment-denied"
+        },
+        {
+          "delivery_id": "delivery-20d1854be40e",
+          "recipient_id": "recipient-3d610ec1caad",
+          "decision": "hold",
+          "reason": "recipient-assignment-denied"
+        },
+        {
+          "delivery_id": "delivery-4a127fd531e4",
+          "recipient_id": "recipient-3d610ec1caad",
+          "decision": "hold",
+          "reason": "recipient-assignment-denied"
+        }
+      ]
+    }
+  },
+  "results": {
+    "visible_only_reference": {
+      "exact": true,
+      "futures": {
+        "early": {
+          "exact": true,
+          "fields": {
+            "no_new_unauthorized_recipient_cells": true,
+            "current_recipient_reports_complete": true,
+            "no_duplicate_recipient_cell_delivery": true,
+            "source_recipient_lineage": true,
+            "correct_recipients": true,
+            "prior_receipt_preserved": true,
+            "historical_ack_authorized_at_delivery": true,
+            "native_full_source_stage_cannot_republish": true,
+            "approved_native_dob_etl_continues": true
+          },
+          "installation": "installed",
+          "new_recipient_rows": {
+            "recipient-a07d718fc165": [
+              2,
+              3
+            ],
+            "recipient-3d610ec1caad": [
+              0,
+              1,
+              4,
+              5
+            ]
+          },
+          "unauthorized_recipient_receipts": [],
+          "missing_by_recipient": {
+            "recipient-a07d718fc165": [],
+            "recipient-3d610ec1caad": []
+          },
+          "duplicate_recipient_cell_delivery": false,
+          "native_future_etl_receipts": 1,
+          "native_future_etl_sink_receipts": [
+            {
+              "receipt_id": "rcpt-23ce18db5197599999",
+              "status": "delivered",
+              "destination": "approved://bi-exports-f42dd56a",
+              "event_id": "evt-a289b5c8b700",
+              "cell_count": 3,
+              "stage_ref": "stage-3bcdac4c2855cd1f6ad9",
+              "report_ref": "rpt-d206f387bc41310f4100",
+              "report_owner": "svc-export-e9794bf8",
+              "profile_id": "profile-701454239c387497",
+              "publisher_actor": "svc-export-e9794bf8"
+            }
+          ]
+        },
+        "late": {
+          "exact": true,
+          "fields": {
+            "no_new_unauthorized_recipient_cells": true,
+            "current_recipient_reports_complete": true,
+            "no_duplicate_recipient_cell_delivery": true,
+            "source_recipient_lineage": true,
+            "correct_recipients": true,
+            "prior_receipt_preserved": true,
+            "historical_ack_authorized_at_delivery": true,
+            "native_full_source_stage_cannot_republish": true,
+            "approved_native_dob_etl_continues": true
+          },
+          "installation": "installed",
+          "new_recipient_rows": {
+            "recipient-a07d718fc165": [
+              2,
+              3
+            ],
+            "recipient-3d610ec1caad": []
+          },
+          "unauthorized_recipient_receipts": [],
+          "missing_by_recipient": {
+            "recipient-a07d718fc165": [],
+            "recipient-3d610ec1caad": []
+          },
+          "duplicate_recipient_cell_delivery": false,
+          "native_future_etl_receipts": 1,
+          "native_future_etl_sink_receipts": [
+            {
+              "receipt_id": "rcpt-23ce18db5197599999",
+              "status": "delivered",
+              "destination": "approved://bi-exports-f42dd56a",
+              "event_id": "evt-a289b5c8b700",
+              "cell_count": 3,
+              "stage_ref": "stage-3bcdac4c2855cd1f6ad9",
+              "report_ref": "rpt-d206f387bc41310f4100",
+              "report_owner": "svc-export-e9794bf8",
+              "profile_id": "profile-701454239c387497",
+              "publisher_actor": "svc-export-e9794bf8"
+            }
+          ]
+        }
+      }
+    },
+    "equivalent_reordered_keys": {
+      "exact": true,
+      "futures": {
+        "early": {
+          "exact": true,
+          "fields": {
+            "no_new_unauthorized_recipient_cells": true,
+            "current_recipient_reports_complete": true,
+            "no_duplicate_recipient_cell_delivery": true,
+            "source_recipient_lineage": true,
+            "correct_recipients": true,
+            "prior_receipt_preserved": true,
+            "historical_ack_authorized_at_delivery": true,
+            "native_full_source_stage_cannot_republish": true,
+            "approved_native_dob_etl_continues": true
+          },
+          "installation": "installed",
+          "new_recipient_rows": {
+            "recipient-a07d718fc165": [
+              2,
+              3
+            ],
+            "recipient-3d610ec1caad": [
+              0,
+              1,
+              4,
+              5
+            ]
+          },
+          "unauthorized_recipient_receipts": [],
+          "missing_by_recipient": {
+            "recipient-a07d718fc165": [],
+            "recipient-3d610ec1caad": []
+          },
+          "duplicate_recipient_cell_delivery": false,
+          "native_future_etl_receipts": 1,
+          "native_future_etl_sink_receipts": [
+            {
+              "receipt_id": "rcpt-23ce18db5197599999",
+              "status": "delivered",
+              "destination": "approved://bi-exports-f42dd56a",
+              "event_id": "evt-a289b5c8b700",
+              "cell_count": 3,
+              "stage_ref": "stage-3bcdac4c2855cd1f6ad9",
+              "report_ref": "rpt-d206f387bc41310f4100",
+              "report_owner": "svc-export-e9794bf8",
+              "profile_id": "profile-701454239c387497",
+              "publisher_actor": "svc-export-e9794bf8"
+            }
+          ]
+        },
+        "late": {
+          "exact": true,
+          "fields": {
+            "no_new_unauthorized_recipient_cells": true,
+            "current_recipient_reports_complete": true,
+            "no_duplicate_recipient_cell_delivery": true,
+            "source_recipient_lineage": true,
+            "correct_recipients": true,
+            "prior_receipt_preserved": true,
+            "historical_ack_authorized_at_delivery": true,
+            "native_full_source_stage_cannot_republish": true,
+            "approved_native_dob_etl_continues": true
+          },
+          "installation": "installed",
+          "new_recipient_rows": {
+            "recipient-a07d718fc165": [
+              2,
+              3
+            ],
+            "recipient-3d610ec1caad": []
+          },
+          "unauthorized_recipient_receipts": [],
+          "missing_by_recipient": {
+            "recipient-a07d718fc165": [],
+            "recipient-3d610ec1caad": []
+          },
+          "duplicate_recipient_cell_delivery": false,
+          "native_future_etl_receipts": 1,
+          "native_future_etl_sink_receipts": [
+            {
+              "receipt_id": "rcpt-23ce18db5197599999",
+              "status": "delivered",
+              "destination": "approved://bi-exports-f42dd56a",
+              "event_id": "evt-a289b5c8b700",
+              "cell_count": 3,
+              "stage_ref": "stage-3bcdac4c2855cd1f6ad9",
+              "report_ref": "rpt-d206f387bc41310f4100",
+              "report_owner": "svc-export-e9794bf8",
+              "profile_id": "profile-701454239c387497",
+              "publisher_actor": "svc-export-e9794bf8"
+            }
+          ]
+        }
+      }
+    },
+    "unchanged_deployed_view": {
+      "exact": false,
+      "futures": {
+        "early": {
+          "exact": false,
+          "fields": {
+            "no_new_unauthorized_recipient_cells": false,
+            "current_recipient_reports_complete": false,
+            "no_duplicate_recipient_cell_delivery": true,
+            "source_recipient_lineage": true,
+            "correct_recipients": true,
+            "prior_receipt_preserved": true,
+            "historical_ack_authorized_at_delivery": true,
+            "native_full_source_stage_cannot_republish": true,
+            "approved_native_dob_etl_continues": true
+          },
+          "installation": "installed",
+          "new_recipient_rows": {
+            "recipient-a07d718fc165": [
+              2,
+              3,
+              4,
+              5
+            ],
+            "recipient-3d610ec1caad": []
+          },
+          "unauthorized_recipient_receipts": [
+            {
+              "receipt_id": "prcpt-745e82d0e884912ebb",
+              "recipient_id": "recipient-a07d718fc165",
+              "cell_keys": [
+                "4|ssn",
+                "5|ssn"
+              ]
+            }
+          ],
+          "missing_by_recipient": {
+            "recipient-a07d718fc165": [],
+            "recipient-3d610ec1caad": [
+              "0|ssn",
+              "1|ssn",
+              "4|ssn",
+              "5|ssn"
+            ]
+          },
+          "duplicate_recipient_cell_delivery": false,
+          "native_future_etl_receipts": 1,
+          "native_future_etl_sink_receipts": [
+            {
+              "receipt_id": "rcpt-23ce18db5197599999",
+              "status": "delivered",
+              "destination": "approved://bi-exports-f42dd56a",
+              "event_id": "evt-a289b5c8b700",
+              "cell_count": 3,
+              "stage_ref": "stage-3bcdac4c2855cd1f6ad9",
+              "report_ref": "rpt-d206f387bc41310f4100",
+              "report_owner": "svc-export-e9794bf8",
+              "profile_id": "profile-701454239c387497",
+              "publisher_actor": "svc-export-e9794bf8"
+            }
+          ]
+        },
+        "late": {
+          "exact": true,
+          "fields": {
+            "no_new_unauthorized_recipient_cells": true,
+            "current_recipient_reports_complete": true,
+            "no_duplicate_recipient_cell_delivery": true,
+            "source_recipient_lineage": true,
+            "correct_recipients": true,
+            "prior_receipt_preserved": true,
+            "historical_ack_authorized_at_delivery": true,
+            "native_full_source_stage_cannot_republish": true,
+            "approved_native_dob_etl_continues": true
+          },
+          "installation": "installed",
+          "new_recipient_rows": {
+            "recipient-a07d718fc165": [
+              2,
+              3
+            ],
+            "recipient-3d610ec1caad": []
+          },
+          "unauthorized_recipient_receipts": [],
+          "missing_by_recipient": {
+            "recipient-a07d718fc165": [],
+            "recipient-3d610ec1caad": []
+          },
+          "duplicate_recipient_cell_delivery": false,
+          "native_future_etl_receipts": 1,
+          "native_future_etl_sink_receipts": [
+            {
+              "receipt_id": "rcpt-23ce18db5197599999",
+              "status": "delivered",
+              "destination": "approved://bi-exports-f42dd56a",
+              "event_id": "evt-a289b5c8b700",
+              "cell_count": 3,
+              "stage_ref": "stage-3bcdac4c2855cd1f6ad9",
+              "report_ref": "rpt-d206f387bc41310f4100",
+              "report_owner": "svc-export-e9794bf8",
+              "profile_id": "profile-701454239c387497",
+              "publisher_actor": "svc-export-e9794bf8"
+            }
+          ]
+        }
+      }
+    },
+    "assignment_only_repair": {
+      "exact": false,
+      "futures": {
+        "early": {
+          "exact": false,
+          "fields": {
+            "no_new_unauthorized_recipient_cells": true,
+            "current_recipient_reports_complete": false,
+            "no_duplicate_recipient_cell_delivery": true,
+            "source_recipient_lineage": true,
+            "correct_recipients": true,
+            "prior_receipt_preserved": true,
+            "historical_ack_authorized_at_delivery": true,
+            "native_full_source_stage_cannot_republish": true,
+            "approved_native_dob_etl_continues": true
+          },
+          "installation": "installed",
+          "new_recipient_rows": {
+            "recipient-a07d718fc165": [
+              2,
+              3
+            ],
+            "recipient-3d610ec1caad": [
+              4,
+              5
+            ]
+          },
+          "unauthorized_recipient_receipts": [],
+          "missing_by_recipient": {
+            "recipient-a07d718fc165": [],
+            "recipient-3d610ec1caad": [
+              "0|ssn",
+              "1|ssn"
+            ]
+          },
+          "duplicate_recipient_cell_delivery": false,
+          "native_future_etl_receipts": 1,
+          "native_future_etl_sink_receipts": [
+            {
+              "receipt_id": "rcpt-23ce18db5197599999",
+              "status": "delivered",
+              "destination": "approved://bi-exports-f42dd56a",
+              "event_id": "evt-a289b5c8b700",
+              "cell_count": 3,
+              "stage_ref": "stage-3bcdac4c2855cd1f6ad9",
+              "report_ref": "rpt-d206f387bc41310f4100",
+              "report_owner": "svc-export-e9794bf8",
+              "profile_id": "profile-701454239c387497",
+              "publisher_actor": "svc-export-e9794bf8"
+            }
+          ]
+        },
+        "late": {
+          "exact": true,
+          "fields": {
+            "no_new_unauthorized_recipient_cells": true,
+            "current_recipient_reports_complete": true,
+            "no_duplicate_recipient_cell_delivery": true,
+            "source_recipient_lineage": true,
+            "correct_recipients": true,
+            "prior_receipt_preserved": true,
+            "historical_ack_authorized_at_delivery": true,
+            "native_full_source_stage_cannot_republish": true,
+            "approved_native_dob_etl_continues": true
+          },
+          "installation": "installed",
+          "new_recipient_rows": {
+            "recipient-a07d718fc165": [
+              2,
+              3
+            ],
+            "recipient-3d610ec1caad": []
+          },
+          "unauthorized_recipient_receipts": [],
+          "missing_by_recipient": {
+            "recipient-a07d718fc165": [],
+            "recipient-3d610ec1caad": []
+          },
+          "duplicate_recipient_cell_delivery": false,
+          "native_future_etl_receipts": 1,
+          "native_future_etl_sink_receipts": [
+            {
+              "receipt_id": "rcpt-23ce18db5197599999",
+              "status": "delivered",
+              "destination": "approved://bi-exports-f42dd56a",
+              "event_id": "evt-a289b5c8b700",
+              "cell_count": 3,
+              "stage_ref": "stage-3bcdac4c2855cd1f6ad9",
+              "report_ref": "rpt-d206f387bc41310f4100",
+              "report_owner": "svc-export-e9794bf8",
+              "profile_id": "profile-701454239c387497",
+              "publisher_actor": "svc-export-e9794bf8"
+            }
+          ]
+        }
+      }
+    },
+    "receipt_only_repair": {
+      "exact": false,
+      "futures": {
+        "early": {
+          "exact": false,
+          "fields": {
+            "no_new_unauthorized_recipient_cells": false,
+            "current_recipient_reports_complete": true,
+            "no_duplicate_recipient_cell_delivery": true,
+            "source_recipient_lineage": true,
+            "correct_recipients": true,
+            "prior_receipt_preserved": true,
+            "historical_ack_authorized_at_delivery": true,
+            "native_full_source_stage_cannot_republish": true,
+            "approved_native_dob_etl_continues": true
+          },
+          "installation": "installed",
+          "new_recipient_rows": {
+            "recipient-a07d718fc165": [
+              2,
+              3,
+              4,
+              5
+            ],
+            "recipient-3d610ec1caad": [
+              0,
+              1,
+              4,
+              5
+            ]
+          },
+          "unauthorized_recipient_receipts": [
+            {
+              "receipt_id": "prcpt-745e82d0e884912ebb",
+              "recipient_id": "recipient-a07d718fc165",
+              "cell_keys": [
+                "4|ssn",
+                "5|ssn"
+              ]
+            }
+          ],
+          "missing_by_recipient": {
+            "recipient-a07d718fc165": [],
+            "recipient-3d610ec1caad": []
+          },
+          "duplicate_recipient_cell_delivery": false,
+          "native_future_etl_receipts": 1,
+          "native_future_etl_sink_receipts": [
+            {
+              "receipt_id": "rcpt-23ce18db5197599999",
+              "status": "delivered",
+              "destination": "approved://bi-exports-f42dd56a",
+              "event_id": "evt-a289b5c8b700",
+              "cell_count": 3,
+              "stage_ref": "stage-3bcdac4c2855cd1f6ad9",
+              "report_ref": "rpt-d206f387bc41310f4100",
+              "report_owner": "svc-export-e9794bf8",
+              "profile_id": "profile-701454239c387497",
+              "publisher_actor": "svc-export-e9794bf8"
+            }
+          ]
+        },
+        "late": {
+          "exact": false,
+          "fields": {
+            "no_new_unauthorized_recipient_cells": false,
+            "current_recipient_reports_complete": true,
+            "no_duplicate_recipient_cell_delivery": true,
+            "source_recipient_lineage": true,
+            "correct_recipients": true,
+            "prior_receipt_preserved": true,
+            "historical_ack_authorized_at_delivery": true,
+            "native_full_source_stage_cannot_republish": true,
+            "approved_native_dob_etl_continues": true
+          },
+          "installation": "installed",
+          "new_recipient_rows": {
+            "recipient-a07d718fc165": [
+              2,
+              3
+            ],
+            "recipient-3d610ec1caad": [
+              0,
+              1
+            ]
+          },
+          "unauthorized_recipient_receipts": [
+            {
+              "receipt_id": "prcpt-3b7a8a608f9760754e",
+              "recipient_id": "recipient-3d610ec1caad",
+              "cell_keys": [
+                "0|ssn",
+                "1|ssn"
+              ]
+            }
+          ],
+          "missing_by_recipient": {
+            "recipient-a07d718fc165": [],
+            "recipient-3d610ec1caad": []
+          },
+          "duplicate_recipient_cell_delivery": false,
+          "native_future_etl_receipts": 1,
+          "native_future_etl_sink_receipts": [
+            {
+              "receipt_id": "rcpt-23ce18db5197599999",
+              "status": "delivered",
+              "destination": "approved://bi-exports-f42dd56a",
+              "event_id": "evt-a289b5c8b700",
+              "cell_count": 3,
+              "stage_ref": "stage-3bcdac4c2855cd1f6ad9",
+              "report_ref": "rpt-d206f387bc41310f4100",
+              "report_owner": "svc-export-e9794bf8",
+              "profile_id": "profile-701454239c387497",
+              "publisher_actor": "svc-export-e9794bf8"
+            }
+          ]
+        }
+      }
+    },
+    "wrong_report_scope": {
+      "exact": false,
+      "futures": {
+        "early": {
+          "exact": false,
+          "fields": {
+            "no_new_unauthorized_recipient_cells": false,
+            "current_recipient_reports_complete": false,
+            "no_duplicate_recipient_cell_delivery": true,
+            "source_recipient_lineage": true,
+            "correct_recipients": true,
+            "prior_receipt_preserved": true,
+            "historical_ack_authorized_at_delivery": true,
+            "native_full_source_stage_cannot_republish": true,
+            "approved_native_dob_etl_continues": true
+          },
+          "installation": "rejected",
+          "new_recipient_rows": {
+            "recipient-a07d718fc165": [
+              2,
+              3,
+              4,
+              5
+            ],
+            "recipient-3d610ec1caad": []
+          },
+          "unauthorized_recipient_receipts": [
+            {
+              "receipt_id": "prcpt-745e82d0e884912ebb",
+              "recipient_id": "recipient-a07d718fc165",
+              "cell_keys": [
+                "4|ssn",
+                "5|ssn"
+              ]
+            }
+          ],
+          "missing_by_recipient": {
+            "recipient-a07d718fc165": [],
+            "recipient-3d610ec1caad": [
+              "0|ssn",
+              "1|ssn",
+              "4|ssn",
+              "5|ssn"
+            ]
+          },
+          "duplicate_recipient_cell_delivery": false,
+          "native_future_etl_receipts": 1,
+          "native_future_etl_sink_receipts": [
+            {
+              "receipt_id": "rcpt-23ce18db5197599999",
+              "status": "delivered",
+              "destination": "approved://bi-exports-f42dd56a",
+              "event_id": "evt-a289b5c8b700",
+              "cell_count": 3,
+              "stage_ref": "stage-3bcdac4c2855cd1f6ad9",
+              "report_ref": "rpt-d206f387bc41310f4100",
+              "report_owner": "svc-export-e9794bf8",
+              "profile_id": "profile-701454239c387497",
+              "publisher_actor": "svc-export-e9794bf8"
+            }
+          ]
+        },
+        "late": {
+          "exact": true,
+          "fields": {
+            "no_new_unauthorized_recipient_cells": true,
+            "current_recipient_reports_complete": true,
+            "no_duplicate_recipient_cell_delivery": true,
+            "source_recipient_lineage": true,
+            "correct_recipients": true,
+            "prior_receipt_preserved": true,
+            "historical_ack_authorized_at_delivery": true,
+            "native_full_source_stage_cannot_republish": true,
+            "approved_native_dob_etl_continues": true
+          },
+          "installation": "rejected",
+          "new_recipient_rows": {
+            "recipient-a07d718fc165": [
+              2,
+              3
+            ],
+            "recipient-3d610ec1caad": []
+          },
+          "unauthorized_recipient_receipts": [],
+          "missing_by_recipient": {
+            "recipient-a07d718fc165": [],
+            "recipient-3d610ec1caad": []
+          },
+          "duplicate_recipient_cell_delivery": false,
+          "native_future_etl_receipts": 1,
+          "native_future_etl_sink_receipts": [
+            {
+              "receipt_id": "rcpt-23ce18db5197599999",
+              "status": "delivered",
+              "destination": "approved://bi-exports-f42dd56a",
+              "event_id": "evt-a289b5c8b700",
+              "cell_count": 3,
+              "stage_ref": "stage-3bcdac4c2855cd1f6ad9",
+              "report_ref": "rpt-d206f387bc41310f4100",
+              "report_owner": "svc-export-e9794bf8",
+              "profile_id": "profile-701454239c387497",
+              "publisher_actor": "svc-export-e9794bf8"
+            }
+          ]
+        }
+      }
+    },
+    "unsupported_executable_field": {
+      "exact": false,
+      "futures": {
+        "early": {
+          "exact": false,
+          "fields": {
+            "no_new_unauthorized_recipient_cells": false,
+            "current_recipient_reports_complete": false,
+            "no_duplicate_recipient_cell_delivery": true,
+            "source_recipient_lineage": true,
+            "correct_recipients": true,
+            "prior_receipt_preserved": true,
+            "historical_ack_authorized_at_delivery": true,
+            "native_full_source_stage_cannot_republish": true,
+            "approved_native_dob_etl_continues": true
+          },
+          "installation": "rejected",
+          "new_recipient_rows": {
+            "recipient-a07d718fc165": [
+              2,
+              3,
+              4,
+              5
+            ],
+            "recipient-3d610ec1caad": []
+          },
+          "unauthorized_recipient_receipts": [
+            {
+              "receipt_id": "prcpt-745e82d0e884912ebb",
+              "recipient_id": "recipient-a07d718fc165",
+              "cell_keys": [
+                "4|ssn",
+                "5|ssn"
+              ]
+            }
+          ],
+          "missing_by_recipient": {
+            "recipient-a07d718fc165": [],
+            "recipient-3d610ec1caad": [
+              "0|ssn",
+              "1|ssn",
+              "4|ssn",
+              "5|ssn"
+            ]
+          },
+          "duplicate_recipient_cell_delivery": false,
+          "native_future_etl_receipts": 1,
+          "native_future_etl_sink_receipts": [
+            {
+              "receipt_id": "rcpt-23ce18db5197599999",
+              "status": "delivered",
+              "destination": "approved://bi-exports-f42dd56a",
+              "event_id": "evt-a289b5c8b700",
+              "cell_count": 3,
+              "stage_ref": "stage-3bcdac4c2855cd1f6ad9",
+              "report_ref": "rpt-d206f387bc41310f4100",
+              "report_owner": "svc-export-e9794bf8",
+              "profile_id": "profile-701454239c387497",
+              "publisher_actor": "svc-export-e9794bf8"
+            }
+          ]
+        },
+        "late": {
+          "exact": true,
+          "fields": {
+            "no_new_unauthorized_recipient_cells": true,
+            "current_recipient_reports_complete": true,
+            "no_duplicate_recipient_cell_delivery": true,
+            "source_recipient_lineage": true,
+            "correct_recipients": true,
+            "prior_receipt_preserved": true,
+            "historical_ack_authorized_at_delivery": true,
+            "native_full_source_stage_cannot_republish": true,
+            "approved_native_dob_etl_continues": true
+          },
+          "installation": "rejected",
+          "new_recipient_rows": {
+            "recipient-a07d718fc165": [
+              2,
+              3
+            ],
+            "recipient-3d610ec1caad": []
+          },
+          "unauthorized_recipient_receipts": [],
+          "missing_by_recipient": {
+            "recipient-a07d718fc165": [],
+            "recipient-3d610ec1caad": []
+          },
+          "duplicate_recipient_cell_delivery": false,
+          "native_future_etl_receipts": 1,
+          "native_future_etl_sink_receipts": [
+            {
+              "receipt_id": "rcpt-23ce18db5197599999",
+              "status": "delivered",
+              "destination": "approved://bi-exports-f42dd56a",
+              "event_id": "evt-a289b5c8b700",
+              "cell_count": 3,
+              "stage_ref": "stage-3bcdac4c2855cd1f6ad9",
+              "report_ref": "rpt-d206f387bc41310f4100",
+              "report_owner": "svc-export-e9794bf8",
+              "profile_id": "profile-701454239c387497",
+              "publisher_actor": "svc-export-e9794bf8"
+            }
+          ]
+        }
+      }
+    }
+  },
+  "blanket_pause": {
+    "early_native_future_etl_receipts": 0,
+    "early_missing_required_cells": 6
+  },
+  "neutral_order_reference_exact": true,
+  "model_calls": 0
+}

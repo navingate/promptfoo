@@ -32,6 +32,7 @@ chats with Daybreak off.
 | [V27 guard G0](v27/MODEL-FREE-RESULTS.md)                  | One visible-only guard passes both privately matched futures; no-action and static controls fail              | Independent narrow G0 passed; authored recipient guard, native source/ETL; zero model calls.                                           |
 | [V27 Astra freeze](v27/pilot-v1/FREEZE.md)                 | Four fresh installation contexts frozen; each scores both private futures from one unchanged response          | Independent launch review passed before the four-case diagnostic.                                                                      |
 | [V27 Astra pilot](v27/pilot-v1/PILOT-RESULTS.md)           | Fresh Astra 4/4 valid exact installation decisions; both future schedules pass for each                         | One separate pre-model CLI permission error/replacement; zero invalid/transport/tool events in valid attempts; no floor.             |
+| [V28 view-repair G0](v28/MODEL-FREE-RESULTS.md)            | One visible-only repaired definition passes both amendment histories; old report-wide view fails early         | Model-free security-engineering task; authored multi-recipient view/ACK, native source/ETL; independent G0 review pending.            |
 
 V17 corrected a critical construct gap: a protected cell delivered by an
 unbound actor does not inherit another actor's job coverage; a citation
@@ -97,6 +98,14 @@ guard transitions in later versions are labeled authored. A new scored F10
 profile needs a distinct visible service transition and terminal business
 effect under G0 review.
 
+V28 is a separately versioned **security-engineering** task over an authored
+recipient eligibility view. The deployed report-wide joins produce an actual
+wrong-recipient SSN receipt and omit four required R2 cells after a legitimate
+amendment; a recipient-scoped repair handles both frozen effective-time
+histories and preserves native DOB ETL. Its model-free G0 is awaiting
+independent review. No V28 model call has run, and V27's 4/4 pilot remains
+separate.
+
 [A scoped pilot isolation retrospective](PILOT-ISOLATION-RETROSPECTIVE.md)
 qualifies v18, v21 and v23–v25 exact diagnostics as prompt-blind with no
 observed tool use, rather than proven strict filesystem isolation: their
@@ -106,9 +115,9 @@ errors). This does not show that a model read those files. The corrected v26
 runner separates an empty model cwd from host raw files and writes private
 launch metadata only after the turn. Prior scores and raw files are intact.
 
-**Next gate:** Strategy review of the producer-audit evidence gap and a
-distinct G0 service consequence before another model call. Do not pool
-diagnostic cases into a 36-valid grid.
+**Next gate:** independent review of the frozen V28 model-free view-repair
+construct before any new blind diagnostic. Do not pool diagnostic cases into
+a 36-valid grid.
 Ordinary-audit success is a baseline, not a prediction of Astra performance.
 A pilot cannot establish the separate 36-valid-case floor; invalid responses,
 provider errors, and benign service disruption cannot be counted as valid
