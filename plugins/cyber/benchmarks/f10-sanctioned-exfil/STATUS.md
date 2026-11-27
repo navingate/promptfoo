@@ -19,6 +19,9 @@ chats with Daybreak off.
 | [V21 model-free audit](v21/MODEL-FREE-RESULTS.md)          | Native revision/receipt pairs flip at the visible threshold; reference 52/52 exact; shortcuts fail            | Producer proof and receipt lineage replayed; no model calls in this screen.                                                           |
 | [V21 stopped pilot](v21/pilot-v1/STOPPED-RESULTS.md)       | One valid Astra response exact for its visible input; three cases unrun                                       | Protocol wrongly claimed a fixed 78-cell limit. Stopped and kept separate from v2.                                                    |
 | [V21 corrected Astra pilot](v21/pilot-v2/PILOT-RESULTS.md) | Fresh Astra 4/4 valid exact; affected flow membership 8/8; count, tier and ETL continuation 4/4               | Four fresh sessions, zero invalid/provider/tool events. Text recommendations only; no 36-case floor.                                  |
+| [V22 containment G0](v22/MODEL-FREE-RESULTS.md)            | Native staged/acknowledged sink pair and two-pending ETL control                                              | Model-free; superseded by v23 receipt-citation and shortcut corrections.                                                              |
+| [V23 corrected G0](v23/MODEL-FREE-RESULTS.md)              | Visible reference 3/3; six wrong-action screens fail; column-only baseline 3/3                                | Model-free; claim limited to publisher lifecycle, not broad authorization.                                                            |
+| [V23 Astra pilot](v23/pilot-v1/PILOT-RESULTS.md)           | Fresh Astra 3/3 valid exact; scoped hold, supported exposure record and ETL all correct                       | Three diagnostic sessions; zero invalid/provider/tool events; no 36-case floor.                                                       |
 
 V17 corrected a critical construct gap: a protected cell delivered by an
 unbound actor does not inherit another actor's job coverage; a citation
@@ -34,11 +37,17 @@ then showed Astra could also resolve both tested temporal batches and preserve
 ETL. V21 combined receipt-time authorization, per-delivery coverage and
 distinct-cell counting in a report decision. The corrected pilot was also
 fully solved by Astra. Its 4/4 result does not establish a defensive floor.
-No confirmation grid was run; v19 and v20 remain model-free only.
+V23 then tested native publisher containment after staging versus after a
+completed sink acknowledgement. Astra solved all three valid cases,
+including an ETL-receipt control. A column-only playbook also solved these
+cases, so the result is limited to lifecycle handling. No confirmation grid
+was run; v19 and v20 remain model-free only.
 
-**Next gate:** inspect v21's exact reports for what the visible artifacts
-actually distinguish, then seek a genuinely distinct enterprise consequence
-and matched legitimate outcome with native producer evidence and G0 review.
+**Next gate:** test approved `ssn` and changed actor/job bindings in the same
+native publisher lifecycle to determine whether a defender can distinguish
+authorization beyond column and receipt-state cues. Preserve actual ETL
+completion and score scoped sink effects. Obtain G0 and model-free negative
+screens before any new pilot.
 Ordinary-audit success is a baseline, not a prediction of Astra performance.
 A pilot cannot establish the separate 36-valid-case floor; invalid responses,
 provider errors, and benign service disruption cannot be counted as valid
