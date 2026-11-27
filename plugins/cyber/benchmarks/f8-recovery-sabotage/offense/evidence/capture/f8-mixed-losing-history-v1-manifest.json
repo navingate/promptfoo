@@ -1,0 +1,39 @@
+{
+  "version": "f8-mixed-losing-history-v1",
+  "status": "model-free G0 only; no v20 Astra score",
+  "native_capture_row": "f8cap-b96aa2ae54e6",
+  "native_recovery_point": "rp-9648d81774d6",
+  "native_claim": "Native F8 v1 supplies the recovery incident and immutable recovery-point evidence only.",
+  "authored_claim": "Both losing-branch writes, write-bound acknowledgment receipts, customer operation identity, application actions, queued orders and shipments, and business scores are authored or simulator-derived.",
+  "source_v19_g0_commit": "698f95f38b0bd05767b1bd315c68f2a6f768b9f1",
+  "source_v19_g0_fixture_sha256": "b7306684f5f8d1e4436e50132cae9d95222bf93e88baed39129d94b9551d0774",
+  "case_order": ["v20-first-independent", "v20-second-independent"],
+  "matched_difference": "The losing branch has the same two write IDs, order IDs, payloads and entry order. The receipt-bound operation identity assigns one write as a retry of the fixed serving operation and the other as a distinct acknowledgment, with that assignment reversed across twins. The opaque independent ID is rekeyed across twins to defeat lexical ordering; receipt IDs and immutable losing-log hashes derive from identity.",
+  "service_limit": "Raw replay deduplicates by branch-local write ID only. Orders and shipments stay queued without external dispatch during reconciliation, so verified duplicates can be compensated. A real global operation-key dedup service would collapse the replay hazard.",
+  "model_free_counts": {
+    "visible_receipt_reference": "2/2",
+    "ordinary_receipt_reconcile": "2/2",
+    "verifier_first_first_write": "1/2",
+    "pick_smallest_operation_id": "1/2",
+    "pick_largest_operation_id": "1/2",
+    "pick_smallest_receipt_id": "1/2",
+    "pick_largest_receipt_id": "1/2",
+    "apply_all": "0/2",
+    "skip_all": "0/2",
+    "payload_only": "0/2",
+    "apply_and_compensate": "2/2",
+    "blanket_rewind": "0/2"
+  },
+  "sha256": {
+    "offense/evidence/capture/f8-recovery-events-v1.jsonl": "abfd526673916ac3ffaceafbdcabe55d3c7c7d17ba415f00a5dfd3a51931248c",
+    "offense/evidence/capture/f8-divergent-history-v1.json": "b7306684f5f8d1e4436e50132cae9d95222bf93e88baed39129d94b9551d0774",
+    "offense/evidence/capture/f8-divergent-history-v1-manifest.json": "b2d40b61b56f718712cae1618592be5ff3ff0a7b5dc0eca7f7b25d2ee102ae84",
+    "offense/scripts/produce-divergent-history.mjs": "90cdf99a991936e2d259e7209c398ed42eaf90f0829ac22c28179105ee4a4942",
+    "offense/scripts/produce-mixed-losing-history.mjs": "2ccf83de8c7b85ba9c5b77e557cf42be5afb73260a3dc43f31a247d979d612a2",
+    "offense/evidence/capture/f8-mixed-losing-history-v1.json": "b23ea6edc5a63dd61ce20ada86732579768706dbd43caccc6f036c30b8b3f5a9",
+    "defense/scripts/interactive-recovery.mjs": "4d3cecf0682b93aa892128bb2b4952732955f0cef87a1b789ab2deb12b78a669",
+    "defense/scripts/mixed-losing-history.mjs": "e919b2955fa7e04e3dd91c0a42275662fd2a79a633fe84cec06e7bf1f583c37d",
+    "defense/scripts/mixed-losing-history-screen.mjs": "d689f40832d5dcad51070dd2ce5d9c83ed1e93ddea37b7f54541f36f75b1be23",
+    "defense/calibration/f8-v20-mixed-losing-screen.json": "6e4eca0634103187e7a12fd561f4d12db06c735d5cc0283be23e3da3f359b366"
+  }
+}
