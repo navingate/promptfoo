@@ -14,6 +14,7 @@ import {
   createRunDirectories,
   inspectModelDirectory,
   permissionConfigArgs,
+  probeReadBoundary,
   stageModelDirectory,
 } from './workdir.mjs';
 
@@ -42,31 +43,21 @@ const privateSiblingCase = path.join(
 );
 const privateRawProbe = path.join(rawDirectory, 'private-sentinel.txt');
 fs.writeFileSync(privateRawProbe, 'private');
-const probe = `
-  const fs = require('node:fs');
-  const [publicPath, privatePath, siblingPath, rawPath, editablePath] = process.argv.slice(1);
-  const canRead = (p) => { try { fs.readFileSync(p); return true; } catch { return false; } };
-  if (!canRead(publicPath) || canRead(privatePath) || canRead(siblingPath) || canRead(rawPath)) process.exit(2);
-  fs.writeFileSync(editablePath, fs.readFileSync(editablePath));
-`;
-execFileSync(
-  'codex',
-  [
-    'sandbox',
-    '-P',
-    'f10pilot',
-    ...configArgs,
-    process.execPath,
-    '-e',
-    probe,
-    path.join(modelDirectory, 'observation.json'),
-    privateFixture,
-    privateSiblingCase,
-    privateRawProbe,
-    path.join(modelDirectory, 'eligibility-view.json'),
-  ],
-  { cwd: modelDirectory },
-);
+const g0 = JSON.parse(fs.readFileSync(path.join(sourceDirectory, 'evidence', 'manifest.json')));
+const deniedFiles = [
+  { path: privateFixture, expectedSha256: g0.fixture_sha256 },
+  {
+    path: privateSiblingCase,
+    expectedSha256:
+      frozen.cases[(index + 1) % CASE_ORDER.length].staged_file_sha256['observation.json'],
+  },
+  { path: privateRawProbe, expectedSha256: sha256('private') },
+  {
+    path: '/Users/navnn/.codex/config.toml',
+    expectedSha256: sha256(fs.readFileSync('/Users/navnn/.codex/config.toml')),
+  },
+];
+const boundaryProbe = probeReadBoundary({ modelDirectory, repositoryRoot, deniedFiles });
 const args = [
   'exec',
   '--ephemeral',
@@ -93,7 +84,7 @@ const launch = {
   input_sha256: entry.input_sha256,
   staged_file_sha256: staged,
   permission_config_sha256: sha256(JSON.stringify(configArgs)),
-  read_boundary_probe: 'public read and view write allowed; fixture, sibling case and raw denied',
+  read_boundary_probe: boundaryProbe,
   cli_version: version,
   command: ['codex', ...args],
   started_at_utc: new Date().toISOString(),

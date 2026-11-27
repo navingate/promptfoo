@@ -1,4 +1,5 @@
 import assert from 'node:assert/strict';
+import { execFileSync } from 'node:child_process';
 import crypto from 'node:crypto';
 import fs from 'node:fs';
 import path from 'node:path';
@@ -40,6 +41,68 @@ export function permissionConfigArgs(modelDirectory, repositoryRoot) {
     '-c',
     'permissions.f10pilot.network.enabled=false',
   ];
+}
+
+export function probeReadBoundary({ modelDirectory, repositoryRoot, deniedFiles }) {
+  assert.equal(deniedFiles.length, 4);
+  for (const { path: file, expectedSha256 } of deniedFiles) {
+    assert.equal(fs.lstatSync(file).isFile(), true, `probe-target-not-regular:${file}`);
+    assert.equal(sha256(fs.readFileSync(file)), expectedSha256, `probe-target-hash:${file}`);
+  }
+  const publicPath = path.join(modelDirectory, 'observation.json');
+  const editablePath = path.join(modelDirectory, 'eligibility-view.json');
+  const publicSha256 = sha256(fs.readFileSync(publicPath));
+  const editableSha256 = sha256(fs.readFileSync(editablePath));
+  const probe = `
+    const fs = require('node:fs');
+    const [publicPath, editablePath, ...denied] = process.argv.slice(1);
+    const canRead = (p) => { try { fs.readFileSync(p); return true; } catch { return false; } };
+    if (!canRead(publicPath) || denied.some(canRead)) process.exit(2);
+    fs.writeFileSync(editablePath, fs.readFileSync(editablePath));
+  `;
+  const configArgs = permissionConfigArgs(modelDirectory, repositoryRoot);
+  execFileSync(
+    'codex',
+    [
+      'sandbox',
+      '-P',
+      'f10pilot',
+      ...configArgs,
+      process.execPath,
+      '-e',
+      probe,
+      publicPath,
+      editablePath,
+      ...deniedFiles.map(({ path: file }) => file),
+    ],
+    { cwd: modelDirectory },
+  );
+  const validated = JSON.parse(
+    execFileSync(
+      'codex',
+      [
+        'sandbox',
+        '-P',
+        'f10pilot',
+        ...configArgs,
+        process.execPath,
+        'view-tool.mjs',
+        'validate',
+        'observation.json',
+        'eligibility-view.json',
+      ],
+      { cwd: modelDirectory, encoding: 'utf8' },
+    ),
+  );
+  assert.equal(validated.valid, true);
+  assert.equal(sha256(fs.readFileSync(publicPath)), publicSha256);
+  assert.equal(sha256(fs.readFileSync(editablePath)), editableSha256);
+  return {
+    public_read: true,
+    view_write: true,
+    validator: validated,
+    denied: deniedFiles.map(({ expectedSha256 }) => expectedSha256),
+  };
 }
 
 export function stageModelDirectory(modelDirectory, item, sourceDirectory) {

@@ -1,5 +1,5 @@
 import assert from 'node:assert/strict';
-import { execFileSync } from 'node:child_process';
+import crypto from 'node:crypto';
 import fs from 'node:fs';
 import path from 'node:path';
 import test from 'node:test';
@@ -8,7 +8,7 @@ import { buildPilotCase } from './pilot.mjs';
 import {
   createRunDirectories,
   inspectModelDirectory,
-  permissionConfigArgs,
+  probeReadBoundary,
   stageModelDirectory,
 } from './workdir.mjs';
 
@@ -17,52 +17,32 @@ const sourceDirectory = path.resolve(import.meta.dirname, '..');
 
 test('staged view is editable while public evidence and private truth are OS-separated', () => {
   const { modelDirectory, rawDirectory } = createRunDirectories();
+  const siblingDirectory = fs.mkdtempSync('/private/tmp/f10-v28-sibling-');
   const item = buildPilotCase(0);
   const staged = stageModelDirectory(modelDirectory, item, sourceDirectory);
-  fs.writeFileSync(path.join(rawDirectory, 'private-sentinel.txt'), 'secret');
-  const configArgs = permissionConfigArgs(modelDirectory, repositoryRoot);
-  const probe = `
-    const fs = require('node:fs');
-    const [publicPath, privatePath, rawPath, siblingPath, editablePath] = process.argv.slice(1);
-    const canRead = (p) => { try { fs.readFileSync(p); return true; } catch { return false; } };
-    if (!canRead(publicPath) || canRead(privatePath) || canRead(rawPath) || canRead(siblingPath)) process.exit(2);
-    fs.writeFileSync(editablePath, fs.readFileSync(editablePath));
-  `;
-  const paths = [
-    path.join(modelDirectory, 'observation.json'),
+  const rawPath = path.join(rawDirectory, 'private-sentinel.txt');
+  const siblingPath = path.join(siblingDirectory, 'sibling.json');
+  fs.writeFileSync(rawPath, 'secret');
+  fs.writeFileSync(siblingPath, '{"sibling":true}');
+  const privatePaths = [
     path.join(sourceDirectory, 'evidence', 'fixture.json'),
-    path.join(rawDirectory, 'private-sentinel.txt'),
-    path.join(sourceDirectory, 'evidence', 'screen-results.json'),
-    path.join(modelDirectory, 'eligibility-view.json'),
+    rawPath,
+    siblingPath,
+    '/Users/navnn/.codex/config.toml',
   ];
-  execFileSync(
-    'codex',
-    ['sandbox', '-P', 'f10pilot', ...configArgs, process.execPath, '-e', probe, ...paths],
-    {
-      cwd: modelDirectory,
-    },
-  );
-  const validation = JSON.parse(
-    execFileSync(
-      'codex',
-      [
-        'sandbox',
-        '-P',
-        'f10pilot',
-        ...configArgs,
-        process.execPath,
-        'view-tool.mjs',
-        'validate',
-        'observation.json',
-        'eligibility-view.json',
-      ],
-      { cwd: modelDirectory, encoding: 'utf8' },
-    ),
-  );
-  assert.equal(validation.valid, true);
+  const result = probeReadBoundary({
+    modelDirectory,
+    repositoryRoot,
+    deniedFiles: privatePaths.map((file) => ({
+      path: file,
+      expectedSha256: crypto.createHash('sha256').update(fs.readFileSync(file)).digest('hex'),
+    })),
+  });
+  assert.equal(result.validator.valid, true);
   assert.equal(inspectModelDirectory(modelDirectory, staged).sound, true);
   fs.rmSync(modelDirectory, { recursive: true });
   fs.rmSync(rawDirectory, { recursive: true });
+  fs.rmSync(siblingDirectory, { recursive: true });
 });
 
 test('post-run audit rejects changed public tool and extra files', () => {
