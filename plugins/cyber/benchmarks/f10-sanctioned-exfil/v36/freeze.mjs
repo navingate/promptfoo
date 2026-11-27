@@ -16,6 +16,8 @@ const sources = [
   'DESIGN.md',
   'sink-process.mjs',
   'lookup-process.mjs',
+  'cross-request.mjs',
+  'cross-request.test.mjs',
   'two-store.mjs',
   'two-store.test.mjs',
   'screen.mjs',

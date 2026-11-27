@@ -3,7 +3,25 @@ import fs from 'node:fs';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 
+import { replayCrossRequest } from './cross-request.mjs';
 import { replayHistory } from './two-store.mjs';
+
+function normalize({ trace, terminal, ...rest }) {
+  return {
+    ...rest,
+    trace: trace.map(({ sink_pid, ...step }) => ({
+      ...step,
+      ...(sink_pid ? { sink_process_distinct_from_host: sink_pid !== process.pid } : {}),
+    })),
+    terminal: {
+      ...terminal,
+      sink: terminal.sink.map(({ writer_pid, ...receipt }) => ({
+        ...receipt,
+        sink_process_distinct_from_host: writer_pid !== process.pid,
+      })),
+    },
+  };
+}
 
 export function screen() {
   const histories = [
@@ -14,26 +32,18 @@ export function screen() {
     replayHistory({ seed: 76801, ackLost: false, mode: 'receipt-lookup-reference' }),
     replayHistory({ seed: 76801, ackLost: true, mode: 'receipt-lookup-reference' }),
   ];
+  const crossRequest = [
+    replayCrossRequest({ seed: 76801, kind: 'overlap', mode: 'v35-request-key-adaptation' }),
+    replayCrossRequest({ seed: 76801, kind: 'distinct', mode: 'v35-request-key-adaptation' }),
+    replayCrossRequest({ seed: 76801, kind: 'overlap', mode: 'ordinary-recipient-reconcile' }),
+    replayCrossRequest({ seed: 76801, kind: 'distinct', mode: 'ordinary-recipient-reconcile' }),
+  ];
   return {
     schema_version: 'f10-v36-two-store-model-free-screen-v1',
     seed: 76801,
     observation: histories[0].observation,
-    histories: histories.map(({ mode, ack_lost, trace, terminal, score }) => ({
-      mode,
-      ack_lost,
-      trace: trace.map(({ sink_pid, ...step }) => ({
-        ...step,
-        ...(sink_pid ? { sink_process_distinct_from_host: sink_pid !== process.pid } : {}),
-      })),
-      terminal: {
-        ...terminal,
-        sink: terminal.sink.map(({ writer_pid, ...receipt }) => ({
-          ...receipt,
-          sink_process_distinct_from_host: writer_pid !== process.pid,
-        })),
-      },
-      score,
-    })),
+    histories: histories.map(normalize),
+    cross_request: crossRequest.map(normalize),
   };
 }
 
@@ -46,8 +56,8 @@ if (process.argv[1] === fileURLToPath(import.meta.url)) {
     `${JSON.stringify(result, null, 2)}\n`,
   );
   process.stdout.write(
-    `${JSON.stringify(
-      result.histories.map(({ mode, ack_lost, terminal, score }) => ({
+    `${JSON.stringify({
+      one_request: result.histories.map(({ mode, ack_lost, terminal, score }) => ({
         mode,
         ack_lost,
         recipient_receipts: terminal.sink.length,
@@ -55,6 +65,14 @@ if (process.argv[1] === fileURLToPath(import.meta.url)) {
         native_dob_etl_receipts: terminal.native_etl_receipts.length,
         exact: score.exact,
       })),
-    )}\n`,
+      cross_request: result.cross_request.map(({ mode, kind, terminal, score }) => ({
+        mode,
+        kind,
+        recipient_receipts: terminal.sink.length,
+        request_statuses: terminal.requests.map((request) => request.status),
+        distinct_cells: terminal.distinct_cells,
+        exact: score.exact,
+      })),
+    })}\n`,
   );
 }

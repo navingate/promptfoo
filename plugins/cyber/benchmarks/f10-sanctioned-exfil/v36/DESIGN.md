@@ -36,3 +36,27 @@ ordinary solution. This G0 tests whether a local transaction **alone** can
 cover the new durable boundary; it does not show that the unchanged v35 repair
 would make a new attempt key if correctly adapted to the external API. The
 ordinary stable-key solution is a baseline, not evidence of Astra difficulty.
+
+## Cross-request continuation
+
+The same separate sink is then tested after A's approved `0|ssn` cell is
+durably accepted and its ACK lost. Before A is reconciled, a distinct approved
+request B arrives and is processed first. The matched B cases differ only in
+its source cell and value hash: B asks for A's same cell, or for `1|ssn` under
+the one-distinct-cell cap. A then retries after worker restart. This is a legal
+service order, not a wall-clock race or deadline. The previously accepted A
+copy remains a recipient receipt even while the local request still says
+queued.
+
+Both actual v35 submitted workers use a stable **per-request** receipt ID.
+The baseline external adapter sends that ID to the remote sink but checks
+only the local receipt shadow. B's different request ID therefore creates a
+second recipient copy in the overlap arm; in the distinct arm it releases B,
+exceeds the cap and later defers the already-delivered A obligation. The
+ordinary alternative queries the authenticated recipient ledger before B
+admission and after restart: it binds overlapping B to A's existing receipt,
+or defers distinct B, then reconciles A. The normal lookup is already in the
+service interface and needs no new authority or hidden truth flag. This
+reference solves the bounded pair. A general concurrent deployment would
+also need serialization or reservation around the lookup/send gap; that
+additional schedule is not scored here.
