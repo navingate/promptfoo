@@ -30,6 +30,9 @@ const responsePath = path.join(sessionDirectory, 'response.txt');
 const eventPath = path.join(sessionDirectory, 'events.jsonl');
 const stderrPath = path.join(sessionDirectory, 'stderr.txt');
 const args = [
+  '--no-daemon',
+  '--ask-for-approval',
+  'never',
   'exec',
   '--model',
   frozen.model,
@@ -39,12 +42,9 @@ const args = [
   frozen.requested_cyber_access_program,
   '--sandbox',
   'read-only',
-  '--ask-for-approval',
-  'never',
   '--ignore-user-config',
   '--skip-git-repo-check',
   '--ephemeral',
-  '--no-daemon',
   '--json',
   '-C',
   sessionDirectory,
