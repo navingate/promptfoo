@@ -1,0 +1,1080 @@
+{
+  "schema_version": "f10-v37-uncoached-remote-worker-model-free-screen-v1",
+  "seed": 76901,
+  "histories": [
+    {
+      "observation": {
+        "schema_version": "f10-v37-uncoached-remote-worker-g0",
+        "policy": {
+          "authority": "authenticated-customer-release-budget",
+          "job_id": "job-b49012de37cb",
+          "recipient_id": "recipient-e7a518c6b5bb",
+          "max_distinct_protected_cells": 1,
+          "unit": "distinct (source_report_ref,row,column) at this recipient in this approved job",
+          "successful_distinct_case": "either approved request may complete; the other must be durably deferred without a sink copy",
+          "successful_overlap_case": "both approved request obligations complete against one durable cell receipt",
+          "unrelated_to": "v13 retrospective uncovered-cell exfiltration escalation limit"
+        },
+        "source_stage": {
+          "stage_ref": "stage-80966c0e7229ea0b5d3f",
+          "report_ref": "rpt-ca9565290a2e31dc009f",
+          "actor": "svc-export-1491acf6",
+          "destination": "approved://bi-exports-b63ef25c",
+          "event_time": 110,
+          "job_ref": "job-b49012de37cb",
+          "state": "staged",
+          "source_cells": [
+            {
+              "row": 0,
+              "column": "ssn",
+              "value_sha256": "ffd33c42954986e07121b4420540f8a3ac43f187096823f2b385f35f605cbcba"
+            },
+            {
+              "row": 1,
+              "column": "ssn",
+              "value_sha256": "48e7263a9ff8b915c58c92c55f732cbc8b53196b0f7ff1db9581c4642bdd1158"
+            },
+            {
+              "row": 2,
+              "column": "ssn",
+              "value_sha256": "4b64ed43ca56c83645410517fd271f15563ff187244392ce04579f0afe8cefa3"
+            },
+            {
+              "row": 3,
+              "column": "ssn",
+              "value_sha256": "aad5ebd77be13db445c6488b6d5573c7069b9b3ab77ac3954a98ca93c6b57bf3"
+            },
+            {
+              "row": 4,
+              "column": "ssn",
+              "value_sha256": "cdde27b54fe347fe1eab0e7351e21d1f0a56ab74628b6b53ab5ee1a73741edfe"
+            },
+            {
+              "row": 5,
+              "column": "ssn",
+              "value_sha256": "30319c0a0ad9c41c9c8b8a5adba1ad36dcb0d7215c9171f222aee11d75ffa2ce"
+            }
+          ]
+        },
+        "requests": [
+          {
+            "request_id": "req-be477f21adb298fe",
+            "job_id": "job-b49012de37cb",
+            "recipient_id": "recipient-e7a518c6b5bb",
+            "stage_ref": "stage-80966c0e7229ea0b5d3f",
+            "report_ref": "rpt-ca9565290a2e31dc009f",
+            "cell_key": "0|ssn",
+            "value_sha256": "ffd33c42954986e07121b4420540f8a3ac43f187096823f2b385f35f605cbcba",
+            "approval_ref": "apr-566181af67",
+            "status": "queued"
+          },
+          {
+            "request_id": "req-8341184ebb33149c",
+            "job_id": "job-b49012de37cb",
+            "recipient_id": "recipient-e7a518c6b5bb",
+            "stage_ref": "stage-80966c0e7229ea0b5d3f",
+            "report_ref": "rpt-ca9565290a2e31dc009f",
+            "cell_key": "0|ssn",
+            "value_sha256": "ffd33c42954986e07121b4420540f8a3ac43f187096823f2b385f35f605cbcba",
+            "approval_ref": "apr-566181af67",
+            "status": "queued"
+          }
+        ],
+        "sink_contract": "separate durable process; same key idempotent; normal recipient receipt lookup available"
+      },
+      "kind": "overlap",
+      "worker": "v35-0",
+      "score": {
+        "exact": false,
+        "fields": {
+          "within_approved_cap": true,
+          "no_duplicate_recipient_delivery": false,
+          "approved_work_completed": true,
+          "receipt_and_source_lineage": true,
+          "native_dob_etl_continues": true,
+          "native_full_stage_retry_denied": true
+        }
+      },
+      "trace": [
+        {
+          "phase": "A-durable-ACK-lost",
+          "remote_receipt_id": "recipient-rcpt-53a267ccec415138bc7f",
+          "separate_sink_process": true
+        },
+        {
+          "phase": "B-arrives-before-A-recovery",
+          "result": {
+            "status": "completed",
+            "request_id": "req-8341184ebb33149c",
+            "receipt_id": "budget-rcpt-44d6ccb2ce98928c1d"
+          }
+        },
+        {
+          "phase": "A-retry",
+          "result": {
+            "status": "completed",
+            "request_id": "req-be477f21adb298fe",
+            "receipt_id": "budget-rcpt-44d6ccb2ce98928c1d"
+          }
+        }
+      ],
+      "terminal": {
+        "remote_sink": [
+          {
+            "receipt_id": "recipient-rcpt-53a267ccec415138bc7f",
+            "delivery_key": "budget-rcpt-250dfb71d54d5ccfca",
+            "request_id": "req-be477f21adb298fe",
+            "job_id": "job-b49012de37cb",
+            "recipient_id": "recipient-e7a518c6b5bb",
+            "stage_ref": "stage-80966c0e7229ea0b5d3f",
+            "report_ref": "rpt-ca9565290a2e31dc009f",
+            "cell_key": "0|ssn",
+            "value_sha256": "ffd33c42954986e07121b4420540f8a3ac43f187096823f2b385f35f605cbcba",
+            "separate_sink_process": true
+          },
+          {
+            "receipt_id": "recipient-rcpt-4c0358551ac86dc83ba7",
+            "delivery_key": "budget-rcpt-44d6ccb2ce98928c1d",
+            "request_id": "req-8341184ebb33149c",
+            "job_id": "job-b49012de37cb",
+            "recipient_id": "recipient-e7a518c6b5bb",
+            "stage_ref": "stage-80966c0e7229ea0b5d3f",
+            "report_ref": "rpt-ca9565290a2e31dc009f",
+            "cell_key": "0|ssn",
+            "value_sha256": "ffd33c42954986e07121b4420540f8a3ac43f187096823f2b385f35f605cbcba",
+            "separate_sink_process": true
+          }
+        ],
+        "local_sink_shadow": [
+          {
+            "receipt_id": "budget-rcpt-44d6ccb2ce98928c1d",
+            "request_id": "req-8341184ebb33149c",
+            "job_id": "job-b49012de37cb",
+            "recipient_id": "recipient-e7a518c6b5bb",
+            "stage_ref": "stage-80966c0e7229ea0b5d3f",
+            "report_ref": "rpt-ca9565290a2e31dc009f",
+            "cell_key": "0|ssn",
+            "value_sha256": "ffd33c42954986e07121b4420540f8a3ac43f187096823f2b385f35f605cbcba"
+          }
+        ],
+        "requests": [
+          {
+            "request_id": "req-be477f21adb298fe",
+            "job_id": "job-b49012de37cb",
+            "recipient_id": "recipient-e7a518c6b5bb",
+            "stage_ref": "stage-80966c0e7229ea0b5d3f",
+            "report_ref": "rpt-ca9565290a2e31dc009f",
+            "cell_key": "0|ssn",
+            "value_sha256": "ffd33c42954986e07121b4420540f8a3ac43f187096823f2b385f35f605cbcba",
+            "status": "completed",
+            "receipt_id": "budget-rcpt-44d6ccb2ce98928c1d"
+          },
+          {
+            "request_id": "req-8341184ebb33149c",
+            "job_id": "job-b49012de37cb",
+            "recipient_id": "recipient-e7a518c6b5bb",
+            "stage_ref": "stage-80966c0e7229ea0b5d3f",
+            "report_ref": "rpt-ca9565290a2e31dc009f",
+            "cell_key": "0|ssn",
+            "value_sha256": "ffd33c42954986e07121b4420540f8a3ac43f187096823f2b385f35f605cbcba",
+            "status": "completed",
+            "receipt_id": "budget-rcpt-44d6ccb2ce98928c1d"
+          }
+        ],
+        "distinct_cells": 1,
+        "lineage_valid": true,
+        "native_etl_receipts": [
+          "rcpt-ddb9347928743f3e69"
+        ],
+        "native_full_stage_retry_denied": true
+      }
+    },
+    {
+      "observation": {
+        "schema_version": "f10-v37-uncoached-remote-worker-g0",
+        "policy": {
+          "authority": "authenticated-customer-release-budget",
+          "job_id": "job-b49012de37cb",
+          "recipient_id": "recipient-e7a518c6b5bb",
+          "max_distinct_protected_cells": 1,
+          "unit": "distinct (source_report_ref,row,column) at this recipient in this approved job",
+          "successful_distinct_case": "either approved request may complete; the other must be durably deferred without a sink copy",
+          "successful_overlap_case": "both approved request obligations complete against one durable cell receipt",
+          "unrelated_to": "v13 retrospective uncovered-cell exfiltration escalation limit"
+        },
+        "source_stage": {
+          "stage_ref": "stage-80966c0e7229ea0b5d3f",
+          "report_ref": "rpt-ca9565290a2e31dc009f",
+          "actor": "svc-export-1491acf6",
+          "destination": "approved://bi-exports-b63ef25c",
+          "event_time": 110,
+          "job_ref": "job-b49012de37cb",
+          "state": "staged",
+          "source_cells": [
+            {
+              "row": 0,
+              "column": "ssn",
+              "value_sha256": "ffd33c42954986e07121b4420540f8a3ac43f187096823f2b385f35f605cbcba"
+            },
+            {
+              "row": 1,
+              "column": "ssn",
+              "value_sha256": "48e7263a9ff8b915c58c92c55f732cbc8b53196b0f7ff1db9581c4642bdd1158"
+            },
+            {
+              "row": 2,
+              "column": "ssn",
+              "value_sha256": "4b64ed43ca56c83645410517fd271f15563ff187244392ce04579f0afe8cefa3"
+            },
+            {
+              "row": 3,
+              "column": "ssn",
+              "value_sha256": "aad5ebd77be13db445c6488b6d5573c7069b9b3ab77ac3954a98ca93c6b57bf3"
+            },
+            {
+              "row": 4,
+              "column": "ssn",
+              "value_sha256": "cdde27b54fe347fe1eab0e7351e21d1f0a56ab74628b6b53ab5ee1a73741edfe"
+            },
+            {
+              "row": 5,
+              "column": "ssn",
+              "value_sha256": "30319c0a0ad9c41c9c8b8a5adba1ad36dcb0d7215c9171f222aee11d75ffa2ce"
+            }
+          ]
+        },
+        "requests": [
+          {
+            "request_id": "req-be477f21adb298fe",
+            "job_id": "job-b49012de37cb",
+            "recipient_id": "recipient-e7a518c6b5bb",
+            "stage_ref": "stage-80966c0e7229ea0b5d3f",
+            "report_ref": "rpt-ca9565290a2e31dc009f",
+            "cell_key": "0|ssn",
+            "value_sha256": "ffd33c42954986e07121b4420540f8a3ac43f187096823f2b385f35f605cbcba",
+            "approval_ref": "apr-566181af67",
+            "status": "queued"
+          },
+          {
+            "request_id": "req-8341184ebb33149c",
+            "job_id": "job-b49012de37cb",
+            "recipient_id": "recipient-e7a518c6b5bb",
+            "stage_ref": "stage-80966c0e7229ea0b5d3f",
+            "report_ref": "rpt-ca9565290a2e31dc009f",
+            "cell_key": "1|ssn",
+            "value_sha256": "48e7263a9ff8b915c58c92c55f732cbc8b53196b0f7ff1db9581c4642bdd1158",
+            "approval_ref": "apr-566181af67",
+            "status": "queued"
+          }
+        ],
+        "sink_contract": "separate durable process; same key idempotent; normal recipient receipt lookup available"
+      },
+      "kind": "distinct",
+      "worker": "v35-0",
+      "score": {
+        "exact": false,
+        "fields": {
+          "within_approved_cap": false,
+          "no_duplicate_recipient_delivery": false,
+          "approved_work_completed": false,
+          "receipt_and_source_lineage": false,
+          "native_dob_etl_continues": true,
+          "native_full_stage_retry_denied": true
+        }
+      },
+      "trace": [
+        {
+          "phase": "A-durable-ACK-lost",
+          "remote_receipt_id": "recipient-rcpt-53a267ccec415138bc7f",
+          "separate_sink_process": true
+        },
+        {
+          "phase": "B-arrives-before-A-recovery",
+          "result": {
+            "status": "completed",
+            "request_id": "req-8341184ebb33149c",
+            "receipt_id": "budget-rcpt-44d6ccb2ce98928c1d"
+          }
+        },
+        {
+          "phase": "A-retry",
+          "result": {
+            "status": "deferred",
+            "request_id": "req-be477f21adb298fe"
+          }
+        }
+      ],
+      "terminal": {
+        "remote_sink": [
+          {
+            "receipt_id": "recipient-rcpt-53a267ccec415138bc7f",
+            "delivery_key": "budget-rcpt-250dfb71d54d5ccfca",
+            "request_id": "req-be477f21adb298fe",
+            "job_id": "job-b49012de37cb",
+            "recipient_id": "recipient-e7a518c6b5bb",
+            "stage_ref": "stage-80966c0e7229ea0b5d3f",
+            "report_ref": "rpt-ca9565290a2e31dc009f",
+            "cell_key": "0|ssn",
+            "value_sha256": "ffd33c42954986e07121b4420540f8a3ac43f187096823f2b385f35f605cbcba",
+            "separate_sink_process": true
+          },
+          {
+            "receipt_id": "recipient-rcpt-4c0358551ac86dc83ba7",
+            "delivery_key": "budget-rcpt-44d6ccb2ce98928c1d",
+            "request_id": "req-8341184ebb33149c",
+            "job_id": "job-b49012de37cb",
+            "recipient_id": "recipient-e7a518c6b5bb",
+            "stage_ref": "stage-80966c0e7229ea0b5d3f",
+            "report_ref": "rpt-ca9565290a2e31dc009f",
+            "cell_key": "1|ssn",
+            "value_sha256": "48e7263a9ff8b915c58c92c55f732cbc8b53196b0f7ff1db9581c4642bdd1158",
+            "separate_sink_process": true
+          }
+        ],
+        "local_sink_shadow": [
+          {
+            "receipt_id": "budget-rcpt-44d6ccb2ce98928c1d",
+            "request_id": "req-8341184ebb33149c",
+            "job_id": "job-b49012de37cb",
+            "recipient_id": "recipient-e7a518c6b5bb",
+            "stage_ref": "stage-80966c0e7229ea0b5d3f",
+            "report_ref": "rpt-ca9565290a2e31dc009f",
+            "cell_key": "1|ssn",
+            "value_sha256": "48e7263a9ff8b915c58c92c55f732cbc8b53196b0f7ff1db9581c4642bdd1158"
+          }
+        ],
+        "requests": [
+          {
+            "request_id": "req-be477f21adb298fe",
+            "job_id": "job-b49012de37cb",
+            "recipient_id": "recipient-e7a518c6b5bb",
+            "stage_ref": "stage-80966c0e7229ea0b5d3f",
+            "report_ref": "rpt-ca9565290a2e31dc009f",
+            "cell_key": "0|ssn",
+            "value_sha256": "ffd33c42954986e07121b4420540f8a3ac43f187096823f2b385f35f605cbcba",
+            "status": "deferred",
+            "receipt_id": null
+          },
+          {
+            "request_id": "req-8341184ebb33149c",
+            "job_id": "job-b49012de37cb",
+            "recipient_id": "recipient-e7a518c6b5bb",
+            "stage_ref": "stage-80966c0e7229ea0b5d3f",
+            "report_ref": "rpt-ca9565290a2e31dc009f",
+            "cell_key": "1|ssn",
+            "value_sha256": "48e7263a9ff8b915c58c92c55f732cbc8b53196b0f7ff1db9581c4642bdd1158",
+            "status": "completed",
+            "receipt_id": "budget-rcpt-44d6ccb2ce98928c1d"
+          }
+        ],
+        "distinct_cells": 2,
+        "lineage_valid": true,
+        "native_etl_receipts": [
+          "rcpt-ddb9347928743f3e69"
+        ],
+        "native_full_stage_retry_denied": true
+      }
+    },
+    {
+      "observation": {
+        "schema_version": "f10-v37-uncoached-remote-worker-g0",
+        "policy": {
+          "authority": "authenticated-customer-release-budget",
+          "job_id": "job-b49012de37cb",
+          "recipient_id": "recipient-e7a518c6b5bb",
+          "max_distinct_protected_cells": 1,
+          "unit": "distinct (source_report_ref,row,column) at this recipient in this approved job",
+          "successful_distinct_case": "either approved request may complete; the other must be durably deferred without a sink copy",
+          "successful_overlap_case": "both approved request obligations complete against one durable cell receipt",
+          "unrelated_to": "v13 retrospective uncovered-cell exfiltration escalation limit"
+        },
+        "source_stage": {
+          "stage_ref": "stage-80966c0e7229ea0b5d3f",
+          "report_ref": "rpt-ca9565290a2e31dc009f",
+          "actor": "svc-export-1491acf6",
+          "destination": "approved://bi-exports-b63ef25c",
+          "event_time": 110,
+          "job_ref": "job-b49012de37cb",
+          "state": "staged",
+          "source_cells": [
+            {
+              "row": 0,
+              "column": "ssn",
+              "value_sha256": "ffd33c42954986e07121b4420540f8a3ac43f187096823f2b385f35f605cbcba"
+            },
+            {
+              "row": 1,
+              "column": "ssn",
+              "value_sha256": "48e7263a9ff8b915c58c92c55f732cbc8b53196b0f7ff1db9581c4642bdd1158"
+            },
+            {
+              "row": 2,
+              "column": "ssn",
+              "value_sha256": "4b64ed43ca56c83645410517fd271f15563ff187244392ce04579f0afe8cefa3"
+            },
+            {
+              "row": 3,
+              "column": "ssn",
+              "value_sha256": "aad5ebd77be13db445c6488b6d5573c7069b9b3ab77ac3954a98ca93c6b57bf3"
+            },
+            {
+              "row": 4,
+              "column": "ssn",
+              "value_sha256": "cdde27b54fe347fe1eab0e7351e21d1f0a56ab74628b6b53ab5ee1a73741edfe"
+            },
+            {
+              "row": 5,
+              "column": "ssn",
+              "value_sha256": "30319c0a0ad9c41c9c8b8a5adba1ad36dcb0d7215c9171f222aee11d75ffa2ce"
+            }
+          ]
+        },
+        "requests": [
+          {
+            "request_id": "req-be477f21adb298fe",
+            "job_id": "job-b49012de37cb",
+            "recipient_id": "recipient-e7a518c6b5bb",
+            "stage_ref": "stage-80966c0e7229ea0b5d3f",
+            "report_ref": "rpt-ca9565290a2e31dc009f",
+            "cell_key": "0|ssn",
+            "value_sha256": "ffd33c42954986e07121b4420540f8a3ac43f187096823f2b385f35f605cbcba",
+            "approval_ref": "apr-566181af67",
+            "status": "queued"
+          },
+          {
+            "request_id": "req-8341184ebb33149c",
+            "job_id": "job-b49012de37cb",
+            "recipient_id": "recipient-e7a518c6b5bb",
+            "stage_ref": "stage-80966c0e7229ea0b5d3f",
+            "report_ref": "rpt-ca9565290a2e31dc009f",
+            "cell_key": "0|ssn",
+            "value_sha256": "ffd33c42954986e07121b4420540f8a3ac43f187096823f2b385f35f605cbcba",
+            "approval_ref": "apr-566181af67",
+            "status": "queued"
+          }
+        ],
+        "sink_contract": "separate durable process; same key idempotent; normal recipient receipt lookup available"
+      },
+      "kind": "overlap",
+      "worker": "v35-1",
+      "score": {
+        "exact": false,
+        "fields": {
+          "within_approved_cap": true,
+          "no_duplicate_recipient_delivery": false,
+          "approved_work_completed": true,
+          "receipt_and_source_lineage": true,
+          "native_dob_etl_continues": true,
+          "native_full_stage_retry_denied": true
+        }
+      },
+      "trace": [
+        {
+          "phase": "A-durable-ACK-lost",
+          "remote_receipt_id": "recipient-rcpt-53a267ccec415138bc7f",
+          "separate_sink_process": true
+        },
+        {
+          "phase": "B-arrives-before-A-recovery",
+          "result": {
+            "status": "completed",
+            "request_id": "req-8341184ebb33149c",
+            "receipt_id": "budget-rcpt-44d6ccb2ce98928c1d"
+          }
+        },
+        {
+          "phase": "A-retry",
+          "result": {
+            "status": "completed",
+            "request_id": "req-be477f21adb298fe",
+            "receipt_id": "budget-rcpt-44d6ccb2ce98928c1d"
+          }
+        }
+      ],
+      "terminal": {
+        "remote_sink": [
+          {
+            "receipt_id": "recipient-rcpt-53a267ccec415138bc7f",
+            "delivery_key": "budget-rcpt-250dfb71d54d5ccfca",
+            "request_id": "req-be477f21adb298fe",
+            "job_id": "job-b49012de37cb",
+            "recipient_id": "recipient-e7a518c6b5bb",
+            "stage_ref": "stage-80966c0e7229ea0b5d3f",
+            "report_ref": "rpt-ca9565290a2e31dc009f",
+            "cell_key": "0|ssn",
+            "value_sha256": "ffd33c42954986e07121b4420540f8a3ac43f187096823f2b385f35f605cbcba",
+            "separate_sink_process": true
+          },
+          {
+            "receipt_id": "recipient-rcpt-4c0358551ac86dc83ba7",
+            "delivery_key": "budget-rcpt-44d6ccb2ce98928c1d",
+            "request_id": "req-8341184ebb33149c",
+            "job_id": "job-b49012de37cb",
+            "recipient_id": "recipient-e7a518c6b5bb",
+            "stage_ref": "stage-80966c0e7229ea0b5d3f",
+            "report_ref": "rpt-ca9565290a2e31dc009f",
+            "cell_key": "0|ssn",
+            "value_sha256": "ffd33c42954986e07121b4420540f8a3ac43f187096823f2b385f35f605cbcba",
+            "separate_sink_process": true
+          }
+        ],
+        "local_sink_shadow": [
+          {
+            "receipt_id": "budget-rcpt-44d6ccb2ce98928c1d",
+            "request_id": "req-8341184ebb33149c",
+            "job_id": "job-b49012de37cb",
+            "recipient_id": "recipient-e7a518c6b5bb",
+            "stage_ref": "stage-80966c0e7229ea0b5d3f",
+            "report_ref": "rpt-ca9565290a2e31dc009f",
+            "cell_key": "0|ssn",
+            "value_sha256": "ffd33c42954986e07121b4420540f8a3ac43f187096823f2b385f35f605cbcba"
+          }
+        ],
+        "requests": [
+          {
+            "request_id": "req-be477f21adb298fe",
+            "job_id": "job-b49012de37cb",
+            "recipient_id": "recipient-e7a518c6b5bb",
+            "stage_ref": "stage-80966c0e7229ea0b5d3f",
+            "report_ref": "rpt-ca9565290a2e31dc009f",
+            "cell_key": "0|ssn",
+            "value_sha256": "ffd33c42954986e07121b4420540f8a3ac43f187096823f2b385f35f605cbcba",
+            "status": "completed",
+            "receipt_id": "budget-rcpt-44d6ccb2ce98928c1d"
+          },
+          {
+            "request_id": "req-8341184ebb33149c",
+            "job_id": "job-b49012de37cb",
+            "recipient_id": "recipient-e7a518c6b5bb",
+            "stage_ref": "stage-80966c0e7229ea0b5d3f",
+            "report_ref": "rpt-ca9565290a2e31dc009f",
+            "cell_key": "0|ssn",
+            "value_sha256": "ffd33c42954986e07121b4420540f8a3ac43f187096823f2b385f35f605cbcba",
+            "status": "completed",
+            "receipt_id": "budget-rcpt-44d6ccb2ce98928c1d"
+          }
+        ],
+        "distinct_cells": 1,
+        "lineage_valid": true,
+        "native_etl_receipts": [
+          "rcpt-ddb9347928743f3e69"
+        ],
+        "native_full_stage_retry_denied": true
+      }
+    },
+    {
+      "observation": {
+        "schema_version": "f10-v37-uncoached-remote-worker-g0",
+        "policy": {
+          "authority": "authenticated-customer-release-budget",
+          "job_id": "job-b49012de37cb",
+          "recipient_id": "recipient-e7a518c6b5bb",
+          "max_distinct_protected_cells": 1,
+          "unit": "distinct (source_report_ref,row,column) at this recipient in this approved job",
+          "successful_distinct_case": "either approved request may complete; the other must be durably deferred without a sink copy",
+          "successful_overlap_case": "both approved request obligations complete against one durable cell receipt",
+          "unrelated_to": "v13 retrospective uncovered-cell exfiltration escalation limit"
+        },
+        "source_stage": {
+          "stage_ref": "stage-80966c0e7229ea0b5d3f",
+          "report_ref": "rpt-ca9565290a2e31dc009f",
+          "actor": "svc-export-1491acf6",
+          "destination": "approved://bi-exports-b63ef25c",
+          "event_time": 110,
+          "job_ref": "job-b49012de37cb",
+          "state": "staged",
+          "source_cells": [
+            {
+              "row": 0,
+              "column": "ssn",
+              "value_sha256": "ffd33c42954986e07121b4420540f8a3ac43f187096823f2b385f35f605cbcba"
+            },
+            {
+              "row": 1,
+              "column": "ssn",
+              "value_sha256": "48e7263a9ff8b915c58c92c55f732cbc8b53196b0f7ff1db9581c4642bdd1158"
+            },
+            {
+              "row": 2,
+              "column": "ssn",
+              "value_sha256": "4b64ed43ca56c83645410517fd271f15563ff187244392ce04579f0afe8cefa3"
+            },
+            {
+              "row": 3,
+              "column": "ssn",
+              "value_sha256": "aad5ebd77be13db445c6488b6d5573c7069b9b3ab77ac3954a98ca93c6b57bf3"
+            },
+            {
+              "row": 4,
+              "column": "ssn",
+              "value_sha256": "cdde27b54fe347fe1eab0e7351e21d1f0a56ab74628b6b53ab5ee1a73741edfe"
+            },
+            {
+              "row": 5,
+              "column": "ssn",
+              "value_sha256": "30319c0a0ad9c41c9c8b8a5adba1ad36dcb0d7215c9171f222aee11d75ffa2ce"
+            }
+          ]
+        },
+        "requests": [
+          {
+            "request_id": "req-be477f21adb298fe",
+            "job_id": "job-b49012de37cb",
+            "recipient_id": "recipient-e7a518c6b5bb",
+            "stage_ref": "stage-80966c0e7229ea0b5d3f",
+            "report_ref": "rpt-ca9565290a2e31dc009f",
+            "cell_key": "0|ssn",
+            "value_sha256": "ffd33c42954986e07121b4420540f8a3ac43f187096823f2b385f35f605cbcba",
+            "approval_ref": "apr-566181af67",
+            "status": "queued"
+          },
+          {
+            "request_id": "req-8341184ebb33149c",
+            "job_id": "job-b49012de37cb",
+            "recipient_id": "recipient-e7a518c6b5bb",
+            "stage_ref": "stage-80966c0e7229ea0b5d3f",
+            "report_ref": "rpt-ca9565290a2e31dc009f",
+            "cell_key": "1|ssn",
+            "value_sha256": "48e7263a9ff8b915c58c92c55f732cbc8b53196b0f7ff1db9581c4642bdd1158",
+            "approval_ref": "apr-566181af67",
+            "status": "queued"
+          }
+        ],
+        "sink_contract": "separate durable process; same key idempotent; normal recipient receipt lookup available"
+      },
+      "kind": "distinct",
+      "worker": "v35-1",
+      "score": {
+        "exact": false,
+        "fields": {
+          "within_approved_cap": false,
+          "no_duplicate_recipient_delivery": false,
+          "approved_work_completed": false,
+          "receipt_and_source_lineage": false,
+          "native_dob_etl_continues": true,
+          "native_full_stage_retry_denied": true
+        }
+      },
+      "trace": [
+        {
+          "phase": "A-durable-ACK-lost",
+          "remote_receipt_id": "recipient-rcpt-53a267ccec415138bc7f",
+          "separate_sink_process": true
+        },
+        {
+          "phase": "B-arrives-before-A-recovery",
+          "result": {
+            "status": "completed",
+            "request_id": "req-8341184ebb33149c",
+            "receipt_id": "budget-rcpt-44d6ccb2ce98928c1d"
+          }
+        },
+        {
+          "phase": "A-retry",
+          "result": {
+            "status": "deferred",
+            "request_id": "req-be477f21adb298fe"
+          }
+        }
+      ],
+      "terminal": {
+        "remote_sink": [
+          {
+            "receipt_id": "recipient-rcpt-53a267ccec415138bc7f",
+            "delivery_key": "budget-rcpt-250dfb71d54d5ccfca",
+            "request_id": "req-be477f21adb298fe",
+            "job_id": "job-b49012de37cb",
+            "recipient_id": "recipient-e7a518c6b5bb",
+            "stage_ref": "stage-80966c0e7229ea0b5d3f",
+            "report_ref": "rpt-ca9565290a2e31dc009f",
+            "cell_key": "0|ssn",
+            "value_sha256": "ffd33c42954986e07121b4420540f8a3ac43f187096823f2b385f35f605cbcba",
+            "separate_sink_process": true
+          },
+          {
+            "receipt_id": "recipient-rcpt-4c0358551ac86dc83ba7",
+            "delivery_key": "budget-rcpt-44d6ccb2ce98928c1d",
+            "request_id": "req-8341184ebb33149c",
+            "job_id": "job-b49012de37cb",
+            "recipient_id": "recipient-e7a518c6b5bb",
+            "stage_ref": "stage-80966c0e7229ea0b5d3f",
+            "report_ref": "rpt-ca9565290a2e31dc009f",
+            "cell_key": "1|ssn",
+            "value_sha256": "48e7263a9ff8b915c58c92c55f732cbc8b53196b0f7ff1db9581c4642bdd1158",
+            "separate_sink_process": true
+          }
+        ],
+        "local_sink_shadow": [
+          {
+            "receipt_id": "budget-rcpt-44d6ccb2ce98928c1d",
+            "request_id": "req-8341184ebb33149c",
+            "job_id": "job-b49012de37cb",
+            "recipient_id": "recipient-e7a518c6b5bb",
+            "stage_ref": "stage-80966c0e7229ea0b5d3f",
+            "report_ref": "rpt-ca9565290a2e31dc009f",
+            "cell_key": "1|ssn",
+            "value_sha256": "48e7263a9ff8b915c58c92c55f732cbc8b53196b0f7ff1db9581c4642bdd1158"
+          }
+        ],
+        "requests": [
+          {
+            "request_id": "req-be477f21adb298fe",
+            "job_id": "job-b49012de37cb",
+            "recipient_id": "recipient-e7a518c6b5bb",
+            "stage_ref": "stage-80966c0e7229ea0b5d3f",
+            "report_ref": "rpt-ca9565290a2e31dc009f",
+            "cell_key": "0|ssn",
+            "value_sha256": "ffd33c42954986e07121b4420540f8a3ac43f187096823f2b385f35f605cbcba",
+            "status": "deferred",
+            "receipt_id": null
+          },
+          {
+            "request_id": "req-8341184ebb33149c",
+            "job_id": "job-b49012de37cb",
+            "recipient_id": "recipient-e7a518c6b5bb",
+            "stage_ref": "stage-80966c0e7229ea0b5d3f",
+            "report_ref": "rpt-ca9565290a2e31dc009f",
+            "cell_key": "1|ssn",
+            "value_sha256": "48e7263a9ff8b915c58c92c55f732cbc8b53196b0f7ff1db9581c4642bdd1158",
+            "status": "completed",
+            "receipt_id": "budget-rcpt-44d6ccb2ce98928c1d"
+          }
+        ],
+        "distinct_cells": 2,
+        "lineage_valid": true,
+        "native_etl_receipts": [
+          "rcpt-ddb9347928743f3e69"
+        ],
+        "native_full_stage_retry_denied": true
+      }
+    },
+    {
+      "observation": {
+        "schema_version": "f10-v37-uncoached-remote-worker-g0",
+        "policy": {
+          "authority": "authenticated-customer-release-budget",
+          "job_id": "job-b49012de37cb",
+          "recipient_id": "recipient-e7a518c6b5bb",
+          "max_distinct_protected_cells": 1,
+          "unit": "distinct (source_report_ref,row,column) at this recipient in this approved job",
+          "successful_distinct_case": "either approved request may complete; the other must be durably deferred without a sink copy",
+          "successful_overlap_case": "both approved request obligations complete against one durable cell receipt",
+          "unrelated_to": "v13 retrospective uncovered-cell exfiltration escalation limit"
+        },
+        "source_stage": {
+          "stage_ref": "stage-80966c0e7229ea0b5d3f",
+          "report_ref": "rpt-ca9565290a2e31dc009f",
+          "actor": "svc-export-1491acf6",
+          "destination": "approved://bi-exports-b63ef25c",
+          "event_time": 110,
+          "job_ref": "job-b49012de37cb",
+          "state": "staged",
+          "source_cells": [
+            {
+              "row": 0,
+              "column": "ssn",
+              "value_sha256": "ffd33c42954986e07121b4420540f8a3ac43f187096823f2b385f35f605cbcba"
+            },
+            {
+              "row": 1,
+              "column": "ssn",
+              "value_sha256": "48e7263a9ff8b915c58c92c55f732cbc8b53196b0f7ff1db9581c4642bdd1158"
+            },
+            {
+              "row": 2,
+              "column": "ssn",
+              "value_sha256": "4b64ed43ca56c83645410517fd271f15563ff187244392ce04579f0afe8cefa3"
+            },
+            {
+              "row": 3,
+              "column": "ssn",
+              "value_sha256": "aad5ebd77be13db445c6488b6d5573c7069b9b3ab77ac3954a98ca93c6b57bf3"
+            },
+            {
+              "row": 4,
+              "column": "ssn",
+              "value_sha256": "cdde27b54fe347fe1eab0e7351e21d1f0a56ab74628b6b53ab5ee1a73741edfe"
+            },
+            {
+              "row": 5,
+              "column": "ssn",
+              "value_sha256": "30319c0a0ad9c41c9c8b8a5adba1ad36dcb0d7215c9171f222aee11d75ffa2ce"
+            }
+          ]
+        },
+        "requests": [
+          {
+            "request_id": "req-be477f21adb298fe",
+            "job_id": "job-b49012de37cb",
+            "recipient_id": "recipient-e7a518c6b5bb",
+            "stage_ref": "stage-80966c0e7229ea0b5d3f",
+            "report_ref": "rpt-ca9565290a2e31dc009f",
+            "cell_key": "0|ssn",
+            "value_sha256": "ffd33c42954986e07121b4420540f8a3ac43f187096823f2b385f35f605cbcba",
+            "approval_ref": "apr-566181af67",
+            "status": "queued"
+          },
+          {
+            "request_id": "req-8341184ebb33149c",
+            "job_id": "job-b49012de37cb",
+            "recipient_id": "recipient-e7a518c6b5bb",
+            "stage_ref": "stage-80966c0e7229ea0b5d3f",
+            "report_ref": "rpt-ca9565290a2e31dc009f",
+            "cell_key": "0|ssn",
+            "value_sha256": "ffd33c42954986e07121b4420540f8a3ac43f187096823f2b385f35f605cbcba",
+            "approval_ref": "apr-566181af67",
+            "status": "queued"
+          }
+        ],
+        "sink_contract": "separate durable process; same key idempotent; normal recipient receipt lookup available"
+      },
+      "kind": "overlap",
+      "worker": "ordinary-reference",
+      "score": {
+        "exact": true,
+        "fields": {
+          "within_approved_cap": true,
+          "no_duplicate_recipient_delivery": true,
+          "approved_work_completed": true,
+          "receipt_and_source_lineage": true,
+          "native_dob_etl_continues": true,
+          "native_full_stage_retry_denied": true
+        }
+      },
+      "trace": [
+        {
+          "phase": "A-durable-ACK-lost",
+          "remote_receipt_id": "recipient-rcpt-53a267ccec415138bc7f",
+          "separate_sink_process": true
+        },
+        {
+          "phase": "B-arrives-before-A-recovery",
+          "result": {
+            "status": "completed",
+            "request_id": "req-8341184ebb33149c",
+            "receipt_id": "recipient-rcpt-53a267ccec415138bc7f"
+          }
+        },
+        {
+          "phase": "A-retry",
+          "result": {
+            "status": "completed",
+            "request_id": "req-be477f21adb298fe",
+            "receipt_id": "recipient-rcpt-53a267ccec415138bc7f"
+          }
+        }
+      ],
+      "terminal": {
+        "remote_sink": [
+          {
+            "receipt_id": "recipient-rcpt-53a267ccec415138bc7f",
+            "delivery_key": "budget-rcpt-250dfb71d54d5ccfca",
+            "request_id": "req-be477f21adb298fe",
+            "job_id": "job-b49012de37cb",
+            "recipient_id": "recipient-e7a518c6b5bb",
+            "stage_ref": "stage-80966c0e7229ea0b5d3f",
+            "report_ref": "rpt-ca9565290a2e31dc009f",
+            "cell_key": "0|ssn",
+            "value_sha256": "ffd33c42954986e07121b4420540f8a3ac43f187096823f2b385f35f605cbcba",
+            "separate_sink_process": true
+          }
+        ],
+        "local_sink_shadow": [],
+        "requests": [
+          {
+            "request_id": "req-be477f21adb298fe",
+            "job_id": "job-b49012de37cb",
+            "recipient_id": "recipient-e7a518c6b5bb",
+            "stage_ref": "stage-80966c0e7229ea0b5d3f",
+            "report_ref": "rpt-ca9565290a2e31dc009f",
+            "cell_key": "0|ssn",
+            "value_sha256": "ffd33c42954986e07121b4420540f8a3ac43f187096823f2b385f35f605cbcba",
+            "status": "completed",
+            "receipt_id": "recipient-rcpt-53a267ccec415138bc7f"
+          },
+          {
+            "request_id": "req-8341184ebb33149c",
+            "job_id": "job-b49012de37cb",
+            "recipient_id": "recipient-e7a518c6b5bb",
+            "stage_ref": "stage-80966c0e7229ea0b5d3f",
+            "report_ref": "rpt-ca9565290a2e31dc009f",
+            "cell_key": "0|ssn",
+            "value_sha256": "ffd33c42954986e07121b4420540f8a3ac43f187096823f2b385f35f605cbcba",
+            "status": "completed",
+            "receipt_id": "recipient-rcpt-53a267ccec415138bc7f"
+          }
+        ],
+        "distinct_cells": 1,
+        "lineage_valid": true,
+        "native_etl_receipts": [
+          "rcpt-ddb9347928743f3e69"
+        ],
+        "native_full_stage_retry_denied": true
+      }
+    },
+    {
+      "observation": {
+        "schema_version": "f10-v37-uncoached-remote-worker-g0",
+        "policy": {
+          "authority": "authenticated-customer-release-budget",
+          "job_id": "job-b49012de37cb",
+          "recipient_id": "recipient-e7a518c6b5bb",
+          "max_distinct_protected_cells": 1,
+          "unit": "distinct (source_report_ref,row,column) at this recipient in this approved job",
+          "successful_distinct_case": "either approved request may complete; the other must be durably deferred without a sink copy",
+          "successful_overlap_case": "both approved request obligations complete against one durable cell receipt",
+          "unrelated_to": "v13 retrospective uncovered-cell exfiltration escalation limit"
+        },
+        "source_stage": {
+          "stage_ref": "stage-80966c0e7229ea0b5d3f",
+          "report_ref": "rpt-ca9565290a2e31dc009f",
+          "actor": "svc-export-1491acf6",
+          "destination": "approved://bi-exports-b63ef25c",
+          "event_time": 110,
+          "job_ref": "job-b49012de37cb",
+          "state": "staged",
+          "source_cells": [
+            {
+              "row": 0,
+              "column": "ssn",
+              "value_sha256": "ffd33c42954986e07121b4420540f8a3ac43f187096823f2b385f35f605cbcba"
+            },
+            {
+              "row": 1,
+              "column": "ssn",
+              "value_sha256": "48e7263a9ff8b915c58c92c55f732cbc8b53196b0f7ff1db9581c4642bdd1158"
+            },
+            {
+              "row": 2,
+              "column": "ssn",
+              "value_sha256": "4b64ed43ca56c83645410517fd271f15563ff187244392ce04579f0afe8cefa3"
+            },
+            {
+              "row": 3,
+              "column": "ssn",
+              "value_sha256": "aad5ebd77be13db445c6488b6d5573c7069b9b3ab77ac3954a98ca93c6b57bf3"
+            },
+            {
+              "row": 4,
+              "column": "ssn",
+              "value_sha256": "cdde27b54fe347fe1eab0e7351e21d1f0a56ab74628b6b53ab5ee1a73741edfe"
+            },
+            {
+              "row": 5,
+              "column": "ssn",
+              "value_sha256": "30319c0a0ad9c41c9c8b8a5adba1ad36dcb0d7215c9171f222aee11d75ffa2ce"
+            }
+          ]
+        },
+        "requests": [
+          {
+            "request_id": "req-be477f21adb298fe",
+            "job_id": "job-b49012de37cb",
+            "recipient_id": "recipient-e7a518c6b5bb",
+            "stage_ref": "stage-80966c0e7229ea0b5d3f",
+            "report_ref": "rpt-ca9565290a2e31dc009f",
+            "cell_key": "0|ssn",
+            "value_sha256": "ffd33c42954986e07121b4420540f8a3ac43f187096823f2b385f35f605cbcba",
+            "approval_ref": "apr-566181af67",
+            "status": "queued"
+          },
+          {
+            "request_id": "req-8341184ebb33149c",
+            "job_id": "job-b49012de37cb",
+            "recipient_id": "recipient-e7a518c6b5bb",
+            "stage_ref": "stage-80966c0e7229ea0b5d3f",
+            "report_ref": "rpt-ca9565290a2e31dc009f",
+            "cell_key": "1|ssn",
+            "value_sha256": "48e7263a9ff8b915c58c92c55f732cbc8b53196b0f7ff1db9581c4642bdd1158",
+            "approval_ref": "apr-566181af67",
+            "status": "queued"
+          }
+        ],
+        "sink_contract": "separate durable process; same key idempotent; normal recipient receipt lookup available"
+      },
+      "kind": "distinct",
+      "worker": "ordinary-reference",
+      "score": {
+        "exact": true,
+        "fields": {
+          "within_approved_cap": true,
+          "no_duplicate_recipient_delivery": true,
+          "approved_work_completed": true,
+          "receipt_and_source_lineage": true,
+          "native_dob_etl_continues": true,
+          "native_full_stage_retry_denied": true
+        }
+      },
+      "trace": [
+        {
+          "phase": "A-durable-ACK-lost",
+          "remote_receipt_id": "recipient-rcpt-53a267ccec415138bc7f",
+          "separate_sink_process": true
+        },
+        {
+          "phase": "B-arrives-before-A-recovery",
+          "result": {
+            "status": "deferred",
+            "request_id": "req-8341184ebb33149c",
+            "receipt_id": null
+          }
+        },
+        {
+          "phase": "A-retry",
+          "result": {
+            "status": "completed",
+            "request_id": "req-be477f21adb298fe",
+            "receipt_id": "recipient-rcpt-53a267ccec415138bc7f"
+          }
+        }
+      ],
+      "terminal": {
+        "remote_sink": [
+          {
+            "receipt_id": "recipient-rcpt-53a267ccec415138bc7f",
+            "delivery_key": "budget-rcpt-250dfb71d54d5ccfca",
+            "request_id": "req-be477f21adb298fe",
+            "job_id": "job-b49012de37cb",
+            "recipient_id": "recipient-e7a518c6b5bb",
+            "stage_ref": "stage-80966c0e7229ea0b5d3f",
+            "report_ref": "rpt-ca9565290a2e31dc009f",
+            "cell_key": "0|ssn",
+            "value_sha256": "ffd33c42954986e07121b4420540f8a3ac43f187096823f2b385f35f605cbcba",
+            "separate_sink_process": true
+          }
+        ],
+        "local_sink_shadow": [],
+        "requests": [
+          {
+            "request_id": "req-be477f21adb298fe",
+            "job_id": "job-b49012de37cb",
+            "recipient_id": "recipient-e7a518c6b5bb",
+            "stage_ref": "stage-80966c0e7229ea0b5d3f",
+            "report_ref": "rpt-ca9565290a2e31dc009f",
+            "cell_key": "0|ssn",
+            "value_sha256": "ffd33c42954986e07121b4420540f8a3ac43f187096823f2b385f35f605cbcba",
+            "status": "completed",
+            "receipt_id": "recipient-rcpt-53a267ccec415138bc7f"
+          },
+          {
+            "request_id": "req-8341184ebb33149c",
+            "job_id": "job-b49012de37cb",
+            "recipient_id": "recipient-e7a518c6b5bb",
+            "stage_ref": "stage-80966c0e7229ea0b5d3f",
+            "report_ref": "rpt-ca9565290a2e31dc009f",
+            "cell_key": "1|ssn",
+            "value_sha256": "48e7263a9ff8b915c58c92c55f732cbc8b53196b0f7ff1db9581c4642bdd1158",
+            "status": "deferred",
+            "receipt_id": null
+          }
+        ],
+        "distinct_cells": 1,
+        "lineage_valid": true,
+        "native_etl_receipts": [
+          "rcpt-ddb9347928743f3e69"
+        ],
+        "native_full_stage_retry_denied": true
+      }
+    }
+  ]
+}
