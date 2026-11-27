@@ -101,6 +101,15 @@ function releaseOnce(admissionPath, sinkPath, observation, mode, attempt, ackMod
     const request = db
       .prepare('SELECT * FROM requests WHERE request_id = ?')
       .get(observation.request.request_id);
+    if (request.status === 'completed') {
+      db.exec('COMMIT');
+      return {
+        attempt,
+        phase: 'completed-request-retry',
+        acknowledged: true,
+        receipt_id: request.receipt_id,
+      };
+    }
     assert.equal(request.status, 'queued');
     const policy = db.prepare('SELECT * FROM policy WHERE job_id = ?').get(request.job_id);
     assert.equal(request.recipient_id, policy.recipient_id);
@@ -168,8 +177,10 @@ function releaseOnce(admissionPath, sinkPath, observation, mode, attempt, ackMod
   }
 }
 
-export function replayHistory({ seed, ackLost, mode }) {
+export function replayHistory({ seed, ackLost, mode, repeatedLosses = 0 }) {
   assert.ok(modes.includes(mode));
+  assert.ok(Number.isInteger(repeatedLosses) && repeatedLosses >= 0);
+  const lossCount = ackLost ? Math.max(1, repeatedLosses) : 0;
   const v34 = produceCase(seed, 'overlap');
   const observation = {
     schema_version: 'f10-v36-two-durability-domains-g0',
@@ -200,25 +211,20 @@ export function replayHistory({ seed, ackLost, mode }) {
   )`);
   sink.close();
   try {
-    const trace = [
-      releaseOnce(
-        admissionPath,
-        sinkPath,
-        observation,
-        mode,
-        1,
-        ackLost ? 'lose-after-commit' : 'return',
-      ),
-    ];
-    if (ackLost) {
+    const trace = [];
+    for (let attempt = 1; attempt <= lossCount; attempt++) {
+      trace.push(
+        releaseOnce(admissionPath, sinkPath, observation, mode, attempt, 'lose-after-commit'),
+      );
       const restart = new DatabaseSync(admissionPath);
       const requestAfterLoss = restart.prepare('SELECT status, receipt_id FROM requests').get();
       restart.close();
       assert.equal(requestAfterLoss.status, 'queued');
       assert.equal(requestAfterLoss.receipt_id, null);
       trace.push({ phase: 'worker-restart', request_after_loss: requestAfterLoss });
-      trace.push(releaseOnce(admissionPath, sinkPath, observation, mode, 2, 'return'));
     }
+    trace.push(releaseOnce(admissionPath, sinkPath, observation, mode, lossCount + 1, 'return'));
+    trace.push(releaseOnce(admissionPath, sinkPath, observation, mode, lossCount + 2, 'return'));
     const finalAdmission = new DatabaseSync(admissionPath);
     const request = finalAdmission.prepare('SELECT * FROM requests').get();
     finalAdmission.close();
@@ -266,6 +272,7 @@ export function replayHistory({ seed, ackLost, mode }) {
       observation,
       mode,
       ack_lost: ackLost,
+      lost_ack_count: lossCount,
       trace,
       terminal,
       score: { exact: Object.values(fields).every(Boolean), fields },

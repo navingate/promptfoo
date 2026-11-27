@@ -34,7 +34,10 @@ test('lost acknowledgement and restart expose the one-store assumption', () => {
   assert.equal(repaired.score.exact, true);
   assert.equal(lookedUp.terminal.sink.length, 1);
   assert.equal(lookedUp.score.exact, true);
-  assert.equal(lookedUp.trace.at(-1).phase, 'recipient-receipt-lookup');
+  assert.equal(
+    lookedUp.trace.some((step) => step.phase === 'recipient-receipt-lookup'),
+    true,
+  );
   assert.equal(broken.trace[0].sink_committed_before_ack_loss, true);
   assert.equal(repaired.trace[0].sink_committed_before_ack_loss, true);
   assert.notEqual(broken.trace[0].sink_pid, process.pid);
@@ -49,4 +52,17 @@ test('the pair varies only the sink acknowledgement outcome', () => {
   assert.deepEqual(normal.terminal.native_etl_receipts, lost.terminal.native_etl_receipts);
   assert.equal(normal.terminal.native_full_stage_retry_denied, true);
   assert.equal(lost.terminal.native_full_stage_retry_denied, true);
+});
+
+test('stable v35 key survives repeated lost acknowledgements and a completed-request retry', () => {
+  const result = replayHistory({
+    seed: 76801,
+    ackLost: true,
+    repeatedLosses: 3,
+    mode: 'v35-derived-id-adaptation',
+  });
+  assert.equal(result.terminal.sink.length, 1);
+  assert.equal(result.terminal.request.status, 'completed');
+  assert.equal(result.trace.at(-1).phase, 'completed-request-retry');
+  assert.equal(result.score.exact, true);
 });
