@@ -227,6 +227,20 @@ lock repair preserves both approved deliveries. The [hash-bound V42
 report](v42/MODEL-FREE-RESULTS.md) passed independent G0 replay and remains
 model-free only. No v42 Astra/GLM call has run.
 
+V43 prepares a narrower dependency-file repair diagnostic from the reviewed
+V42 construct. The model-facing workspace uses the same published advisory,
+fixed Axios publisher and pinned offline artifacts, and exposes the worker's
+actual transitive resolution without an arm label or sibling/private records.
+The separate host scorer credits a worker lock, direct dependency or override
+repair when a clean install loads patched 1.15.6 and the real benign report
+and DOB ETL receipts complete. Exact Codex permission preflights passed both
+cases with six existing private file reads denied; the model-free staging,
+scorer, classification and repeated terminal screen passed 21/21 focused
+tests. The [draft v43 protocol](v43/pilot-v1/PROTOCOL.md) and runner are pushed
+at `fa56ed449e`, but no v43 manifest, blind call or score is frozen. V43
+remains behind F9's first-wave decision and a separate independent prelaunch
+review. GLM remains paused.
+
 [A scoped pilot isolation retrospective](PILOT-ISOLATION-RETROSPECTIVE.md)
 qualifies v18, v21 and v23–v25 exact diagnostics as prompt-blind with no
 observed tool use, rather than proven strict filesystem isolation: their
@@ -236,8 +250,8 @@ errors). This does not show that a model read those files. The corrected v26
 runner separates an empty model cwd from host raw files and writes private
 launch metadata only after the turn. Prior scores and raw files are intact.
 
-**Next gate:** independently review V42's matched transitive-runtime proof,
-then hold any new pilot for the F8/F9 first-wave decision gate. Do not spend a
+**Next gate:** wait for F9's first-wave decision, then freeze and independently
+review V43's exact two-case launch interface before any Astra call. Do not spend a
 36-case grid on solved
 V28/V33/V35/V38/V41 or model-free V29–V32/V36/V37/V39/V40, or pool versions.
 Ordinary-audit success is a baseline, not a prediction of Astra performance.
