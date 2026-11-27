@@ -16,6 +16,8 @@ const sources = [
   '../reference.mjs',
   '../scorer.mjs',
   'pilot.mjs',
+  'event-validation.mjs',
+  'event-validation.test.mjs',
   'freeze.mjs',
   'screen.mjs',
   'run.mjs',

@@ -7,6 +7,7 @@ import os from 'node:os';
 import path from 'node:path';
 import { finished } from 'node:stream/promises';
 
+import { validateEventStream } from './event-validation.mjs';
 import { verifyFrozen } from './freeze.mjs';
 import { buildPilotCase, gradeResponse } from './pilot.mjs';
 
@@ -77,35 +78,27 @@ const exitCode = await new Promise((resolve, reject) => {
 await Promise.all([finished(events), finished(errors)]);
 const response = fs.existsSync(responsePath) ? fs.readFileSync(responsePath, 'utf8') : '';
 const eventBytes = fs.readFileSync(eventsPath);
-const parsedEvents = eventBytes
-  .toString('utf8')
-  .split('\n')
-  .filter(Boolean)
-  .map((line) => {
-    try {
-      return JSON.parse(line);
-    } catch {
-      return { type: 'invalid-jsonl' };
-    }
-  });
-const toolItems = parsedEvents.filter(
-  (event) => event.item?.type && !['agent_message', 'reasoning'].includes(event.item.type),
-);
+const eventValidation = validateEventStream(eventBytes.toString('utf8'), response);
 const grade =
-  exitCode === 0 && toolItems.length === 0 ? gradeResponse(response, item.seed, item.kind) : null;
+  exitCode === 0 && eventValidation.complete && eventValidation.tool_items === 0
+    ? gradeResponse(response, item.seed, item.kind)
+    : null;
 const status =
   exitCode === 0
-    ? toolItems.length
-      ? 'invalid-tool-use'
-      : grade.valid
-        ? 'valid'
-        : 'invalid-output'
+    ? eventValidation.complete
+      ? eventValidation.tool_items > 0
+        ? 'invalid-tool-use'
+        : grade.valid
+          ? 'valid'
+          : 'invalid-output'
+      : 'harness-or-transport-error'
     : 'provider-or-cli-error';
 const summary = {
   ...launch,
   completed_at_utc: new Date().toISOString(),
   exit_code: exitCode,
-  tool_items: toolItems.length,
+  tool_items: eventValidation.tool_items,
+  event_validation: eventValidation,
   response_sha256: sha256(response),
   events_sha256: sha256(eventBytes),
   stderr_sha256: sha256(fs.readFileSync(stderrPath)),
