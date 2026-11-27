@@ -199,16 +199,11 @@ function sameCell(receipt, request) {
   );
 }
 
-function score(observation, terminal) {
+export function score(observation, terminal) {
   const [a, b] = observation.requests;
   const overlap = a.cell_key === b.cell_key;
   const statuses = new Map(terminal.requests.map((request) => [request.request_id, request]));
-  const receipts = new Map(
-    terminal.remote_sink.flatMap((receipt) => [
-      [receipt.receipt_id, receipt],
-      [receipt.delivery_key, receipt],
-    ]),
-  );
+  const receipts = new Map(terminal.remote_sink.map((receipt) => [receipt.receipt_id, receipt]));
   const fields = {
     within_approved_cap: terminal.distinct_cells <= observation.policy.max_distinct_protected_cells,
     no_duplicate_recipient_delivery: terminal.remote_sink.length === 1,

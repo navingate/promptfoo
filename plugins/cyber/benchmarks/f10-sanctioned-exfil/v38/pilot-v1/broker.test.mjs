@@ -4,7 +4,7 @@ import os from 'node:os';
 import path from 'node:path';
 import test from 'node:test';
 
-import { gradeSubmittedWorker } from './broker.mjs';
+import { gradeSubmittedWorker, score } from './broker.mjs';
 
 function staged(worker) {
   const directory = fs.mkdtempSync(path.join(os.tmpdir(), 'f10-v38-broker-test-'));
@@ -45,4 +45,36 @@ test('independent reference passes both private futures through the same broker'
   } finally {
     fs.rmSync(directory, { recursive: true, force: true });
   }
+});
+
+test('local obligation must cite the actual recipient receipt ID, not its delivery key', () => {
+  const cell = {
+    job_id: 'job',
+    recipient_id: 'recipient',
+    stage_ref: 'stage',
+    report_ref: 'report',
+    cell_key: '0|ssn',
+    value_sha256: 'hash',
+  };
+  const a = { ...cell, request_id: 'A' };
+  const b = { ...cell, request_id: 'B' };
+  const observation = { policy: { max_distinct_protected_cells: 1 }, requests: [a, b] };
+  const receipt = { ...a, receipt_id: 'actual-ack', delivery_key: 'request-derived-key' };
+  const terminal = {
+    requests: [a, b].map((request) => ({
+      ...request,
+      status: 'completed',
+      receipt_id: 'request-derived-key',
+    })),
+    remote_sink: [receipt],
+    distinct_cells: 1,
+    lineage_valid: true,
+    native_etl_receipts: ['etl-ack'],
+    native_full_stage_retry_denied: true,
+  };
+  assert.equal(score(observation, terminal).fields.receipt_and_source_lineage, false);
+  terminal.requests.forEach((request) => {
+    request.receipt_id = 'actual-ack';
+  });
+  assert.equal(score(observation, terminal).exact, true);
 });
