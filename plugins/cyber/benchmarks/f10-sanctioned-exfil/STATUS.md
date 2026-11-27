@@ -158,6 +158,18 @@ opposite static S2 choices each passed one. This [hash-bound two-session
 diagnostic](v33/pilot-v1/SCORE-RESULTS.md) establishes a ceiling for this
 profile, not an F10 Astra floor.
 
+A prospective shared approved-cell budget was screened read-only after v33.
+V13's `runPlan` enforces per-action size and `computeCumulative` counts distinct
+delivered cells retrospectively; neither implements transactional admission.
+The v33 authored report guard has no shared capacity state. A new authored
+admission worker could race on two distinct cells, while an overlapping-cell
+request should not consume capacity twice. Ordinary serial or atomic
+reserve-and-recheck against the delivered-cell union handles both cases and
+preserves approved ETL. This lead has no producer-backed terminal trace or
+remaining ordinary-control miss, so it was closed at feasibility with no
+fixture, Astra call or score. The proposed business capacity is separate from
+the existing F10 exfiltration escalation threshold.
+
 [A scoped pilot isolation retrospective](PILOT-ISOLATION-RETROSPECTIVE.md)
 qualifies v18, v21 and v23–v25 exact diagnostics as prompt-blind with no
 observed tool use, rather than proven strict filesystem isolation: their
