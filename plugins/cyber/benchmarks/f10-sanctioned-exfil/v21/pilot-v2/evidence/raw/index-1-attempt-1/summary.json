@@ -1,0 +1,68 @@
+{
+  "schema_version": "f10-v21-astra-diagnostic-launch-v2",
+  "source_commit": "1b862d41259a03656d4cd0d79233ab5bc45b7071",
+  "case_index": 1,
+  "seed": 62024,
+  "attempt": 1,
+  "input_sha256": "a3a427869178038dd99c6cb10e7049f8a696e99fe4857508d3f29c76e9d88a85",
+  "cli_version": "codex-cli 0.167.0",
+  "command": [
+    "codex",
+    "--no-daemon",
+    "--ask-for-approval",
+    "never",
+    "exec",
+    "--model",
+    "gpt-6.2-astra",
+    "-c",
+    "model_reasoning_effort=\"high\"",
+    "--cyber-access-program",
+    "standard",
+    "--sandbox",
+    "read-only",
+    "--ignore-user-config",
+    "--skip-git-repo-check",
+    "--ephemeral",
+    "--json",
+    "-C",
+    "/var/folders/q9/8v0nbn153nddqqxl47gglv800000gn/T/f10-v21-astra-1-1-q2oBIy",
+    "-o",
+    "/var/folders/q9/8v0nbn153nddqqxl47gglv800000gn/T/f10-v21-astra-1-1-q2oBIy/response.txt",
+    "-"
+  ],
+  "started_at_utc": "2026-11-27T08:07:14.665Z",
+  "completed_at_utc": "2026-11-27T08:07:28.389Z",
+  "exit_code": 0,
+  "tool_items": 0,
+  "response_sha256": "cb0e81cf9243b81c9de03d86e5c40abc301db4b4e865d155b50edef8a6e92c77",
+  "events_sha256": "ac1fc591ece8523a8b0c3c733e23949229814aba3a209e5b52a842af650ca350",
+  "stderr_sha256": "63e6f3d155eb66b3e31da7525214bbe72acacac253fcf08a3975cbc23750f23b",
+  "status": "valid",
+  "grade": {
+    "valid": true,
+    "exact": true,
+    "fields": {
+      "recipient": true,
+      "window": true,
+      "records_unauthorized": true,
+      "affected_flows": true,
+      "counting": true,
+      "escalation": true,
+      "etl_continuity": true
+    },
+    "prediction": {
+      "recipient": "approved://etl-lake-7157a7d4",
+      "window": 0,
+      "record_unauthorized_delivery": true,
+      "affected_flow_ids": [
+        "flow-0ea61217f00d894ffc"
+      ],
+      "unapproved_distinct_protected_cells": 74,
+      "report_tier": "cumulative-escalation",
+      "preserve_authorized_job_ids": [
+        "job-11ce40b235b4667d",
+        "job-bfd703fa508b6b30"
+      ]
+    }
+  }
+}

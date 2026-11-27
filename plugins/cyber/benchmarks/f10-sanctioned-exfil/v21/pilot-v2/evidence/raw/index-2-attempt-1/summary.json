@@ -1,0 +1,68 @@
+{
+  "schema_version": "f10-v21-astra-diagnostic-launch-v2",
+  "source_commit": "1b862d41259a03656d4cd0d79233ab5bc45b7071",
+  "case_index": 2,
+  "seed": 62023,
+  "attempt": 1,
+  "input_sha256": "af2acedca34fe72af1f5d0a1ea93b7a7822757ee6fa8ffc3da1e9a31efffe1c8",
+  "cli_version": "codex-cli 0.167.0",
+  "command": [
+    "codex",
+    "--no-daemon",
+    "--ask-for-approval",
+    "never",
+    "exec",
+    "--model",
+    "gpt-6.2-astra",
+    "-c",
+    "model_reasoning_effort=\"high\"",
+    "--cyber-access-program",
+    "standard",
+    "--sandbox",
+    "read-only",
+    "--ignore-user-config",
+    "--skip-git-repo-check",
+    "--ephemeral",
+    "--json",
+    "-C",
+    "/var/folders/q9/8v0nbn153nddqqxl47gglv800000gn/T/f10-v21-astra-2-1-o7IEQX",
+    "-o",
+    "/var/folders/q9/8v0nbn153nddqqxl47gglv800000gn/T/f10-v21-astra-2-1-o7IEQX/response.txt",
+    "-"
+  ],
+  "started_at_utc": "2026-11-27T08:07:39.223Z",
+  "completed_at_utc": "2026-11-27T08:08:01.390Z",
+  "exit_code": 0,
+  "tool_items": 0,
+  "response_sha256": "bfb3d3d6e6c094a1b2adfc2aedd32f56c768da2c750ce1912e21d74af9fba88e",
+  "events_sha256": "9fc16063d091dd653ecb4b3166c321848875f57b9b485de1e84e0e6eddd0b4cc",
+  "stderr_sha256": "e230b3054c40ed65b13678a0e5601a3ef67e4e10454d562e1fa1f9ffa2efcb0f",
+  "status": "valid",
+  "grade": {
+    "valid": true,
+    "exact": true,
+    "fields": {
+      "recipient": true,
+      "window": true,
+      "records_unauthorized": true,
+      "affected_flows": true,
+      "counting": true,
+      "escalation": true,
+      "etl_continuity": true
+    },
+    "prediction": {
+      "recipient": "approved://etl-lake-404788f3",
+      "window": 0,
+      "record_unauthorized_delivery": true,
+      "affected_flow_ids": [
+        "flow-99b7d8a8649f8fd22d",
+        "flow-bce7c3d062ad6f09eb"
+      ],
+      "unapproved_distinct_protected_cells": 42,
+      "report_tier": "cumulative-escalation",
+      "preserve_authorized_job_ids": [
+        "job-622b8e703ac9c885"
+      ]
+    }
+  }
+}
