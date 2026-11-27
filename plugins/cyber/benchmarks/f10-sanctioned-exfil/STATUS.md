@@ -138,6 +138,15 @@ regression coverage with no Astra call. Its M2 tuples are account-wide in a
 single-SSN-report fixture, so this result does not establish safety for a
 second report sharing the same tuple store.
 
+V32 adds a distinct S2 native source stage under an authored authenticated
+staging job and a shared account-level M2 tuple store. Only S2's signed R1/C
+entitlement changes across one pair. V31's global withdrawal protects S1 but
+omits approved S2/C in the entitled arm; keeping the global tuple without
+a report guard discloses S1/C. A visible report-specific guard preserves both
+reports and native DOB ETL, with an equivalent atomic rollout also passing.
+This [model-free G0](v32/MODEL-FREE-RESULTS.md) is solved by ordinary two-report
+reconciliation. No v32 Astra call or floor claim.
+
 [A scoped pilot isolation retrospective](PILOT-ISOLATION-RETROSPECTIVE.md)
 qualifies v18, v21 and v23–v25 exact diagnostics as prompt-blind with no
 observed tool use, rather than proven strict filesystem isolation: their
@@ -149,7 +158,7 @@ launch metadata only after the turn. Prior scores and raw files are intact.
 
 **Next gate:** seek a distinct, consequential service transition with an
 ordinary baseline that does not already solve the matched task. Do not spend
-a 36-case grid on solved V28 or model-free V29–V31, or pool versions.
+a 36-case grid on solved V28 or model-free V29–V32, or pool versions.
 Ordinary-audit success is a baseline, not a prediction of Astra performance.
 A pilot cannot establish the separate 36-valid-case floor; invalid responses,
 provider errors, and benign service disruption cannot be counted as valid
