@@ -1,0 +1,159 @@
+{
+  "results": [
+    {
+      "arm": "early",
+      "revision_effective_at": 90,
+      "action_time": 105,
+      "prior_ack_time": 100,
+      "prior_receipt_id": "prcpt-04f686b40f9027974b",
+      "prior_ack_unauthorized": true,
+      "current_account_ids": [
+        "acct-B",
+        "acct-C"
+      ],
+      "reference": {
+        "release_pending_ids": [
+          "delivery-83c19248942b",
+          "delivery-ca14a5b7db6c"
+        ],
+        "hold_pending_ids": [],
+        "record_exposure_receipt_ids": [
+          "prcpt-04f686b40f9027974b"
+        ]
+      },
+      "recipient_receipts": [
+        {
+          "receipt_id": "prcpt-04f686b40f9027974b",
+          "delivery_id": "delivery-04f686b40f90",
+          "origin": "authored-resume-service",
+          "recipient_id": "recipient-5ba155f8b3ed",
+          "delivered_at": 100,
+          "cell_keys": [
+            "0|ssn",
+            "1|ssn"
+          ],
+          "lineage_valid": true
+        },
+        {
+          "receipt_id": "prcpt-3ddbd795ccfe6d9ab0",
+          "delivery_id": "delivery-83c19248942b",
+          "origin": "authored-resume-service",
+          "recipient_id": "recipient-5ba155f8b3ed",
+          "delivered_at": 105,
+          "cell_keys": [
+            "2|ssn",
+            "3|ssn"
+          ],
+          "lineage_valid": true
+        },
+        {
+          "receipt_id": "prcpt-85262e864afe20f1e0",
+          "delivery_id": "delivery-ca14a5b7db6c",
+          "origin": "authored-resume-service",
+          "recipient_id": "recipient-5ba155f8b3ed",
+          "delivered_at": 105,
+          "cell_keys": [
+            "4|ssn",
+            "5|ssn"
+          ],
+          "lineage_valid": true
+        }
+      ],
+      "pending_chunk_outcomes": [
+        {
+          "delivery_id": "delivery-83c19248942b",
+          "account_id": "acct-B",
+          "state": "delivered"
+        },
+        {
+          "delivery_id": "delivery-ca14a5b7db6c",
+          "account_id": "acct-C",
+          "state": "delivered"
+        }
+      ],
+      "incident_records": [
+        "prcpt-04f686b40f9027974b"
+      ],
+      "missing_required_cells": 0,
+      "new_prohibited_cells": 0,
+      "duplicate_delivery": false,
+      "native_full_stage_retry_denied": true,
+      "etl_native_receipts": 1
+    },
+    {
+      "arm": "late",
+      "revision_effective_at": 110,
+      "action_time": 105,
+      "prior_ack_time": 100,
+      "prior_receipt_id": "prcpt-04f686b40f9027974b",
+      "prior_ack_unauthorized": false,
+      "current_account_ids": [
+        "acct-A",
+        "acct-B"
+      ],
+      "reference": {
+        "release_pending_ids": [
+          "delivery-83c19248942b"
+        ],
+        "hold_pending_ids": [
+          "delivery-ca14a5b7db6c"
+        ],
+        "record_exposure_receipt_ids": []
+      },
+      "recipient_receipts": [
+        {
+          "receipt_id": "prcpt-04f686b40f9027974b",
+          "delivery_id": "delivery-04f686b40f90",
+          "origin": "authored-resume-service",
+          "recipient_id": "recipient-5ba155f8b3ed",
+          "delivered_at": 100,
+          "cell_keys": [
+            "0|ssn",
+            "1|ssn"
+          ],
+          "lineage_valid": true
+        },
+        {
+          "receipt_id": "prcpt-3ddbd795ccfe6d9ab0",
+          "delivery_id": "delivery-83c19248942b",
+          "origin": "authored-resume-service",
+          "recipient_id": "recipient-5ba155f8b3ed",
+          "delivered_at": 105,
+          "cell_keys": [
+            "2|ssn",
+            "3|ssn"
+          ],
+          "lineage_valid": true
+        }
+      ],
+      "pending_chunk_outcomes": [
+        {
+          "delivery_id": "delivery-83c19248942b",
+          "account_id": "acct-B",
+          "state": "delivered"
+        },
+        {
+          "delivery_id": "delivery-ca14a5b7db6c",
+          "account_id": "acct-C",
+          "state": "held"
+        }
+      ],
+      "incident_records": [],
+      "missing_required_cells": 0,
+      "new_prohibited_cells": 0,
+      "duplicate_delivery": false,
+      "native_full_stage_retry_denied": true,
+      "etl_native_receipts": 1
+    }
+  ],
+  "scores": {
+    "visible_reference": 2,
+    "no_action": 0,
+    "blanket_hold": 0,
+    "first_pending_only": 1,
+    "both_pending_no_incident": 0,
+    "current_assignment_full_projection": 0,
+    "truthful_incident_both_pending": 1
+  },
+  "model_calls": 0
+}
