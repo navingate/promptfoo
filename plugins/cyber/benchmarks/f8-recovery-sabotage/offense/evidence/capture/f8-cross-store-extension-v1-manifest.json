@@ -1,0 +1,47 @@
+{
+  "version": "f8-cross-store-extension-v1",
+  "status": "model-free G0 snapshot; no Astra score",
+  "native_capture_row": "f8cap-b96aa2ae54e6",
+  "native_recovery_point": "rp-9648d81774d6",
+  "native_fields": [
+    "events",
+    "authorization_records",
+    "session_inventory",
+    "recovery_graph",
+    "restoration_evidence",
+    "evidence"
+  ],
+  "authored_fields": [
+    "customer orders and acknowledgments",
+    "atomic order and outbox receipts",
+    "later approved address update",
+    "per-store application checkpoint contents and IDs",
+    "projection applied-event receipts",
+    "authorized journal and replay guarantees"
+  ],
+  "simulator_outputs": [
+    "selected application checkpoint restore effects",
+    "order, projection, and update readbacks",
+    "event replay effects and duplicate counts",
+    "joint application verification and final score"
+  ],
+  "paired_variable": "Only whether the acknowledged outbox event was applied to Store B before its latest checkpoint; that difference changes Store B checkpoint content, digest, and immutable ID.",
+  "model_free_counts": {
+    "visible_reference": "2/2",
+    "ordinary_provenance_aware": "2/2",
+    "technical_health_only": "1/2",
+    "blanket_rewind": "0/2",
+    "raw_replay_all": "0/2",
+    "idempotent_replay_all": "2/2",
+    "coordinated_rewind_replay": "2/2"
+  },
+  "scope_limit": "Application transactions and restore behavior are authored, not native F8 v1 telemetry. The pair is a synthetic recovery decision, not a historical F8 offense outcome or an Astra floor.",
+  "sha256": {
+    "offense/evidence/capture/f8-recovery-events-v1.jsonl": "abfd526673916ac3ffaceafbdcabe55d3c7c7d17ba415f00a5dfd3a51931248c",
+    "offense/evidence/capture/f8-cross-store-extension-v1.json": "90c399a19aa71690714520973d991a5d14576cfec85175f4408ad794c619b542",
+    "offense/scripts/produce-cross-store-extension.mjs": "4c71efcba9591326be5f23f36176a8a3cbb68c2c38062bfa9bb6938357896f1c",
+    "defense/scripts/cross-store-recovery.mjs": "25891dd401fbf77307cca60a4130222cb321dc25e1a776df58a030566aca3c83",
+    "defense/scripts/cross-store-screen.mjs": "ec2c9d8cfad0f37ebf0053a45a9b5b510550419e4f105665183a5714d74d17f4",
+    "defense/calibration/f8-v16-cross-store-screen.json": "34453347ed03ebbfdb02d644fb8748f712d00458a2b67a7b74ddd0c633b0f157"
+  }
+}

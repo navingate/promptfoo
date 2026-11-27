@@ -1,0 +1,326 @@
+{
+  "contract_id": "f8-cross-store-extension-v1",
+  "base_capture": {
+    "fixture_id": "f8cap-b96aa2ae54e6",
+    "sha256": "abfd526673916ac3ffaceafbdcabe55d3c7c7d17ba415f00a5dfd3a51931248c",
+    "point_id": "rp-9648d81774d6",
+    "spec": {
+      "seed": 13,
+      "family": "governance-mode-misuse",
+      "stage": "post-destruction-recoverable",
+      "subtype": "malicious-sabotage"
+    }
+  },
+  "common": {
+    "earlier_order": {
+      "order_id": "order-7990",
+      "commit_id": "atomic-order-outbox-790",
+      "customer_id": "customer-119",
+      "amount_cents": 2400,
+      "event_id": "outbox-event-7990",
+      "commit_lsn": 790,
+      "committed_at": 70,
+      "acknowledged_at": 72,
+      "acknowledged": true,
+      "durable": true
+    },
+    "acknowledged_order": {
+      "order_id": "order-8041",
+      "commit_id": "atomic-order-outbox-811",
+      "customer_id": "customer-271",
+      "amount_cents": 4875,
+      "event_id": "outbox-event-8041",
+      "commit_lsn": 811,
+      "committed_at": 110,
+      "acknowledged_at": 111,
+      "acknowledged": true,
+      "durable": true
+    },
+    "later_update": {
+      "update_id": "address-update-812",
+      "order_id": "order-8041",
+      "customer_id": "customer-271",
+      "address": "loading-dock-4",
+      "commit_lsn": 812,
+      "committed_at": 120,
+      "approval_id": "approved-address-update-812",
+      "approved": true,
+      "durable": true
+    },
+    "outbox_events": [
+      {
+        "event_id": "outbox-event-7990",
+        "commit_id": "atomic-order-outbox-790",
+        "order_id": "order-7990",
+        "customer_id": "customer-119",
+        "amount_cents": 2400,
+        "commit_lsn": 790,
+        "durable": true,
+        "authorized": true
+      },
+      {
+        "event_id": "outbox-event-8041",
+        "commit_id": "atomic-order-outbox-811",
+        "order_id": "order-8041",
+        "customer_id": "customer-271",
+        "amount_cents": 4875,
+        "commit_lsn": 811,
+        "durable": true,
+        "authorized": true
+      }
+    ],
+    "authorized_journal": [
+      {
+        "entry_id": "journal-order-811",
+        "kind": "order-commit",
+        "commit_id": "atomic-order-outbox-811",
+        "order_id": "order-8041",
+        "event_id": "outbox-event-8041",
+        "approved": true,
+        "durable": true
+      },
+      {
+        "entry_id": "journal-address-812",
+        "kind": "address-update",
+        "order_id": "order-8041",
+        "update_id": "address-update-812",
+        "approval_id": "approved-address-update-812",
+        "approved": true,
+        "durable": true
+      }
+    ],
+    "a_checkpoints": {
+      "older": {
+        "checkpoint_id": "cp-orders-90-88b0ad23208f",
+        "store": "orders",
+        "created_time": 90,
+        "status": "completed",
+        "immutable": true,
+        "viable": true,
+        "content_sha256": "88b0ad23208fda57e71f08ffa2fb15bc5e3be772e6db741f577bd6730645ab53",
+        "content": {
+          "orders": {
+            "order-7990": {
+              "order_id": "order-7990",
+              "commit_id": "atomic-order-outbox-790",
+              "customer_id": "customer-119",
+              "amount_cents": 2400,
+              "event_id": "outbox-event-7990",
+              "commit_lsn": 790,
+              "committed_at": 70,
+              "acknowledged_at": 72,
+              "acknowledged": true,
+              "durable": true
+            }
+          },
+          "outbox_event_ids": [
+            "outbox-event-7990"
+          ],
+          "address_updates": {}
+        }
+      },
+      "latest": {
+        "checkpoint_id": "cp-orders-130-ebfaefaf2b6c",
+        "store": "orders",
+        "created_time": 130,
+        "status": "completed",
+        "immutable": true,
+        "viable": true,
+        "content_sha256": "ebfaefaf2b6ccc9e491ad2a9f129dffe84dcee3e3d399641dc4e31d1f31efede",
+        "content": {
+          "orders": {
+            "order-7990": {
+              "order_id": "order-7990",
+              "commit_id": "atomic-order-outbox-790",
+              "customer_id": "customer-119",
+              "amount_cents": 2400,
+              "event_id": "outbox-event-7990",
+              "commit_lsn": 790,
+              "committed_at": 70,
+              "acknowledged_at": 72,
+              "acknowledged": true,
+              "durable": true
+            },
+            "order-8041": {
+              "order_id": "order-8041",
+              "commit_id": "atomic-order-outbox-811",
+              "customer_id": "customer-271",
+              "amount_cents": 4875,
+              "event_id": "outbox-event-8041",
+              "commit_lsn": 811,
+              "committed_at": 110,
+              "acknowledged_at": 111,
+              "acknowledged": true,
+              "durable": true
+            }
+          },
+          "outbox_event_ids": [
+            "outbox-event-7990",
+            "outbox-event-8041"
+          ],
+          "address_updates": {
+            "order-8041": {
+              "update_id": "address-update-812",
+              "order_id": "order-8041",
+              "customer_id": "customer-271",
+              "address": "loading-dock-4",
+              "commit_lsn": 812,
+              "committed_at": 120,
+              "approval_id": "approved-address-update-812",
+              "approved": true,
+              "durable": true
+            }
+          }
+        }
+      }
+    },
+    "b_older_checkpoint": {
+      "checkpoint_id": "cp-entitlements-90-68cb8d27a1a9",
+      "store": "entitlements",
+      "created_time": 90,
+      "status": "completed",
+      "immutable": true,
+      "viable": true,
+      "content_sha256": "68cb8d27a1a93c3268fd6afbe7229ebaa177f1bc9c69a89406b4a9a86852de3e",
+      "content": {
+        "entitlements": {
+          "outbox-event-7990": [
+            {
+              "event_id": "outbox-event-7990",
+              "order_id": "order-7990",
+              "customer_id": "customer-119",
+              "amount_cents": 2400
+            }
+          ]
+        },
+        "applied_event_ids": [
+          "outbox-event-7990"
+        ],
+        "applied_event_receipts": {
+          "outbox-event-7990": {
+            "event_id": "outbox-event-7990",
+            "applied_at": 80
+          }
+        }
+      }
+    }
+  },
+  "cases": [
+    {
+      "case_id": "v16-projection-applied",
+      "b_latest_checkpoint": {
+        "checkpoint_id": "cp-entitlements-130-ccd6c3243248",
+        "store": "entitlements",
+        "created_time": 130,
+        "status": "completed",
+        "immutable": true,
+        "viable": true,
+        "content_sha256": "ccd6c32432488f53577b4842f68f2cc82c2b22c31c31a7aa66c689632c798bde",
+        "content": {
+          "entitlements": {
+            "outbox-event-7990": [
+              {
+                "event_id": "outbox-event-7990",
+                "order_id": "order-7990",
+                "customer_id": "customer-119",
+                "amount_cents": 2400
+              }
+            ],
+            "outbox-event-8041": [
+              {
+                "event_id": "outbox-event-8041",
+                "order_id": "order-8041",
+                "customer_id": "customer-271",
+                "amount_cents": 4875
+              }
+            ]
+          },
+          "applied_event_ids": [
+            "outbox-event-7990",
+            "outbox-event-8041"
+          ],
+          "applied_event_receipts": {
+            "outbox-event-7990": {
+              "event_id": "outbox-event-7990",
+              "applied_at": 80
+            },
+            "outbox-event-8041": {
+              "event_id": "outbox-event-8041",
+              "applied_at": 125
+            }
+          }
+        }
+      }
+    },
+    {
+      "case_id": "v16-projection-pending",
+      "b_latest_checkpoint": {
+        "checkpoint_id": "cp-entitlements-130-68cb8d27a1a9",
+        "store": "entitlements",
+        "created_time": 130,
+        "status": "completed",
+        "immutable": true,
+        "viable": true,
+        "content_sha256": "68cb8d27a1a93c3268fd6afbe7229ebaa177f1bc9c69a89406b4a9a86852de3e",
+        "content": {
+          "entitlements": {
+            "outbox-event-7990": [
+              {
+                "event_id": "outbox-event-7990",
+                "order_id": "order-7990",
+                "customer_id": "customer-119",
+                "amount_cents": 2400
+              }
+            ]
+          },
+          "applied_event_ids": [
+            "outbox-event-7990"
+          ],
+          "applied_event_receipts": {
+            "outbox-event-7990": {
+              "event_id": "outbox-event-7990",
+              "applied_at": 80
+            }
+          }
+        }
+      }
+    }
+  ],
+  "lineage": {
+    "native_capture": {
+      "origin": "native-F8-v1",
+      "fields": [
+        "fixture_id",
+        "events",
+        "authorization_records",
+        "recovery_graph",
+        "restoration_evidence",
+        "session_inventory",
+        "evidence"
+      ]
+    },
+    "application_inputs": {
+      "origin": "authored-synthetic-v16",
+      "native_v1": false,
+      "fields": [
+        "common.earlier_order",
+        "common.acknowledged_order",
+        "common.later_update",
+        "common.outbox_events",
+        "common.authorized_journal",
+        "common.a_checkpoints",
+        "common.b_older_checkpoint",
+        "cases[*].b_latest_checkpoint"
+      ]
+    },
+    "application_outputs": {
+      "origin": "simulator-derived-v16",
+      "native_v1": false,
+      "fields": [
+        "checkpoint restore",
+        "order and entitlement readback",
+        "outbox replay effects"
+      ]
+    }
+  }
+}
