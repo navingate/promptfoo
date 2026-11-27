@@ -117,6 +117,16 @@ that release, completes the right recipient after the amendment takes effect,
 deduplicates retry and preserves native DOB ETL. Both ordinary controls pass
 2/2; this was retained as model-free regression coverage with no Astra call.
 
+V30 tests an authored two-worker eligibility-model migration. An old worker's
+fresh M1 report-wide Check produces an actual prohibited R1/C recipient ACK;
+a premature M2 cutover with a missing R2/A tuple omits approved work. The
+one matched pair varies only the R2/A tuple/backfill watermark. Both a staged
+scoped hold/verify/cutover and a fixed idempotent backfill-then-cutover pass
+2/2, preserving R1/B, R2/A+C, the historical R1/A ACK and native DOB ETL.
+The fixed sequence needs no readiness discrimination, so v30 is model-free
+regression coverage with no Astra call. [Frozen evidence](v30/MODEL-FREE-RESULTS.md)
+separates authored recipient effects from the v13-native source and ETL.
+
 [A scoped pilot isolation retrospective](PILOT-ISOLATION-RETROSPECTIVE.md)
 qualifies v18, v21 and v23–v25 exact diagnostics as prompt-blind with no
 observed tool use, rather than proven strict filesystem isolation: their
@@ -126,10 +136,9 @@ errors). This does not show that a model read those files. The corrected v26
 runner separates an empty model cwd from host raw files and writes private
 launch metadata only after the turn. Prior scores and raw files are intact.
 
-**Next gate:** assess whether an authorized eligibility-model migration can
-produce a distinct visible wrong-recipient and approved-work consequence
-that an ordinary safe rollout does not trivially resolve. Do not spend a
-36-case grid on solved V28 or model-free V29, or pool versions.
+**Next gate:** seek a distinct, consequential service transition with an
+ordinary baseline that does not already solve the matched task. Do not spend
+a 36-case grid on solved V28 or model-free V29/V30, or pool versions.
 Ordinary-audit success is a baseline, not a prediction of Astra performance.
 A pilot cannot establish the separate 36-valid-case floor; invalid responses,
 provider errors, and benign service disruption cannot be counted as valid
