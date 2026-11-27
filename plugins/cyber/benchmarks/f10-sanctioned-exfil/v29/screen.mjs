@@ -23,6 +23,18 @@ function compact(result) {
       source_stage_ref: receipt.source_stage_ref,
       cells: receipt.cells,
     })),
+    dispatch_outcomes: terminal.trace
+      .filter((event) => event.operation === 'authored-recipient-dispatch')
+      .map((event) => ({
+        at: event.at,
+        delivery_id: event.delivery_id,
+        recipient_id: event.recipient_id,
+        authorization_snapshot_revision: event.authorization_snapshot_revision,
+        version_causal_min_auth_revision: event.version_causal_min_auth_revision,
+        decision: event.decision,
+        reason: event.reason,
+        receipt_id: event.receipt?.receipt_id ?? null,
+      })),
     unauthorized_v2_cells: terminal.unauthorized_v2_cells,
     missing_required_v2_cells: terminal.missing_required_v2_cells,
     duplicate_v2_recipient_cell: terminal.duplicate_v2_recipient_cell,
