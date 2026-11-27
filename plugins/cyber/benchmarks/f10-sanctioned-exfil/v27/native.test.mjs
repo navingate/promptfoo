@@ -22,8 +22,24 @@ test('one preinstalled policy adapts to two hidden future revision times', () =>
   const acknowledgments = early.proof.authored_preaction_trace.filter(
     (event) => event.operation === 'authored-recipient-acknowledge',
   );
+  const queued = early.proof.authored_preaction_trace.filter(
+    (event) => event.operation === 'queue-internal',
+  );
+  const held = early.proof.authored_preaction_trace.find(
+    (event) => event.operation === 'hold',
+  );
+  assert.equal(queued.length, 3);
+  assert.equal(queued.every((event) => event.queued_at < 130), true);
+  assert.equal(new Set(queued.map((event) => event.chunk.delivery_id)).size, 3);
   assert.equal(acknowledgments.length, 2);
   assert.deepEqual(acknowledgments.map((event) => event.receipt.delivered_at), [130, 135]);
+  assert.equal(
+    acknowledgments.every((event) =>
+      queued.some((item) => item.chunk.delivery_id === event.receipt.delivery_id),
+    ),
+    true,
+  );
+  assert.equal(queued.some((event) => event.chunk.delivery_id === held.delivery_id), true);
   assert.equal(acknowledgments.every((event) => event.native_full_stage_right_consumed), true);
   const action = respond(early.observation);
   const earlyScore = scorePolicy(seed, 'early', action);
@@ -127,6 +143,14 @@ test('time-135 observation reflects completed initial ETL and visible dry-run pr
   assert.equal(sourceStage.state, 'recipient-report-complete-native-stage-consumed');
   assert.equal(etlStage.state, 'published');
   assert.equal(observation.initial_native_etl_receipts.length, 1);
+  assert.equal(observation.prior_held_chunk.delivery_id, observation.held_prior_delivery_id);
+  assert.equal(observation.prior_held_chunk.state, 'held');
+  assert.equal(
+    observation.prior_recipient_receipts.some(
+      (receipt) => receipt.delivery_id === observation.held_prior_delivery_id,
+    ),
+    false,
+  );
   assert.equal(observation.publisher_checkpoint.action_time, 135);
   assert.equal(Object.hasOwn(observation.publisher_checkpoint, 'projection_service'), false);
   const terminal = applyPolicy(seed, 'early', respond(observation));

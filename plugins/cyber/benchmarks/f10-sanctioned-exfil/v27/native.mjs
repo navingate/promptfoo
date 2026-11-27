@@ -34,9 +34,28 @@ function recipientReceipt(source, cells, recipientId, seed, label, time) {
   };
 }
 
-function acknowledgeInitialChunk(service, cells, label, time) {
+function queueInitialChunk(service, cells, label, accountId, time) {
   assert.ok(cells.length > 0);
   assert.ok(cells.every((cell) => cell && cell.column === 'ssn'));
+  const chunk = {
+    delivery_id: `delivery-${hash(`f10-v27|${service.seed}|${label}`).slice(0, 12)}`,
+    source_stage_ref: service.source.stage.stage_ref,
+    source_report_ref: service.source.stage.report_ref,
+    recipient_id: service.recipientId,
+    account_id: accountId,
+    cells: cells.map((cell) => ({ row: cell.row, column: cell.column })),
+    state: 'queued',
+  };
+  assert.equal(service.chunks.has(chunk.delivery_id), false);
+  service.chunks.set(chunk.delivery_id, chunk);
+  service.trace.push({ operation: 'queue-internal', queued_at: time, chunk: structuredClone(chunk) });
+  return chunk;
+}
+
+function acknowledgeInitialChunk(service, chunk, label, time) {
+  assert.equal(service.chunks.get(chunk.delivery_id), chunk);
+  assert.equal(chunk.state, 'queued');
+  const cells = chunk.cells.map((cell) => service.byRow.get(cell.row));
   const receipt = recipientReceipt(
     service.source,
     cells,
@@ -45,6 +64,7 @@ function acknowledgeInitialChunk(service, cells, label, time) {
     label,
     time,
   );
+  assert.equal(receipt.delivery_id, chunk.delivery_id);
   assert.ok(!service.receipts.some((entry) => entry.delivery_id === receipt.delivery_id));
   if (service.receipts.length === 0) {
     assert.equal(service.source.published, false);
@@ -52,6 +72,7 @@ function acknowledgeInitialChunk(service, cells, label, time) {
     service.source.projection_consumed = true;
   }
   assert.equal(service.source.projection_consumed, true);
+  chunk.state = 'acknowledged';
   service.receipts.push(receipt);
   service.trace.push({
     operation: 'authored-recipient-acknowledge',
@@ -59,6 +80,19 @@ function acknowledgeInitialChunk(service, cells, label, time) {
     native_full_stage_right_consumed: service.source.projection_consumed,
   });
   return receipt;
+}
+
+function holdInitialChunk(service, chunk) {
+  assert.equal(service.chunks.get(chunk.delivery_id), chunk);
+  assert.equal(chunk.state, 'queued');
+  chunk.state = 'held';
+  service.trace.push({
+    operation: 'hold',
+    delivery_id: chunk.delivery_id,
+    account_id: chunk.account_id,
+    source_stage_ref: chunk.source_stage_ref,
+    source_report_ref: chunk.source_report_ref,
+  });
 }
 
 function createInitial(seed) {
@@ -81,14 +115,13 @@ function createInitial(seed) {
   assert.ok(source && session.staged.has(base.answer.etl_stage_ref));
   const recipientId = base.observation.recipient_entitlement.recipient_id;
   const byRow = new Map(source.cells.map((cell) => [cell.row, cell]));
-  const service = { source, recipientId, seed, receipts: [], trace: [] };
-  const first = acknowledgeInitialChunk(service, [byRow.get(0), byRow.get(1)], 'initial-a', 130);
-  const second = acknowledgeInitialChunk(
-    service,
-    [byRow.get(2), byRow.get(3)],
-    'initial-b',
-    ACTION_TIME,
-  );
+  const service = { source, recipientId, seed, byRow, receipts: [], trace: [], chunks: new Map() };
+  const aChunk = queueInitialChunk(service, [byRow.get(0), byRow.get(1)], 'initial-a', 'acct-A', 120);
+  const bChunk = queueInitialChunk(service, [byRow.get(2), byRow.get(3)], 'initial-b', 'acct-B', 120);
+  const cChunk = queueInitialChunk(service, [byRow.get(4), byRow.get(5)], 'old-c-held', 'acct-C', 120);
+  const first = acknowledgeInitialChunk(service, aChunk, 'initial-a', 130);
+  const second = acknowledgeInitialChunk(service, bChunk, 'initial-b', ACTION_TIME);
+  holdInitialChunk(service, cChunk);
   const authoredTrace = service.trace;
   const initialEtlPublish = stepOffense(session, {
     tool: 'publish',
@@ -99,8 +132,7 @@ function createInitial(seed) {
     },
   });
   assert.equal(initialEtlPublish.ok, true, initialEtlPublish.reason);
-  const heldPriorDeliveryId = `delivery-${hash(`f10-v27|${seed}|old-c-held`).slice(0, 12)}`;
-  authoredTrace.push({ operation: 'hold', delivery_id: heldPriorDeliveryId, account_id: 'acct-C' });
+  const heldPriorDeliveryId = cChunk.delivery_id;
   const observation = structuredClone(base.observation);
   observation.case_id = `case-${hash(`f10-v27|${seed}`).slice(0, 18)}`;
   observation.stage_manifests.find(
@@ -119,6 +151,7 @@ function createInitial(seed) {
   observation.prior_recipient_receipts = [structuredClone(first), structuredClone(second)];
   observation.initial_native_etl_receipts = [structuredClone(session.sink[0].receipt)];
   observation.held_prior_delivery_id = heldPriorDeliveryId;
+  observation.prior_held_chunk = structuredClone(cChunk);
   observation.approved_delivery_request = {
     source_stage_ref: source.stage.stage_ref,
     source_report_ref: source.stage.report_ref,

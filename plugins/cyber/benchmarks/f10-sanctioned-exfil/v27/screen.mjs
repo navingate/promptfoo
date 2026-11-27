@@ -78,6 +78,7 @@ for (const [name, action] of Object.entries(choices)) {
     results[name][arm] = {
       exact: scored.exact,
       fields: scored.fields,
+      guard_installation: terminal.guard_installation.status,
       new_recipient_rows: terminal.new_recipient_rows,
       new_prohibited_cells: terminal.new_prohibited_cells,
       duplicate_delivery: terminal.duplicate_delivery,
