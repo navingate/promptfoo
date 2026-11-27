@@ -36,4 +36,4 @@ The preregistered model-free screen is separate: ordinary reference 2/2, blind u
 
 ## Decision
 
-Close v23 as a measured two-case ceiling and preserve this score unchanged. A new candidate requires separate design, freeze and fresh cases. At closeout time, pushing the branch to `fork` had failed because `github.com` DNS could not resolve; the clean local candidate commit and hash-bound raw records remain available for independent review. Do not count this diagnostic toward a floor denominator.
+Close v23 as a measured two-case ceiling and preserve this score unchanged. A new candidate requires separate design, freeze and fresh cases. The initial push failed during a temporary `github.com` DNS outage. A later normal push succeeded, and `git ls-remote fork refs/heads/codex/f8-v23-dependency-pilot` verified the raw/report commit `cf99571483985c22fa1c155076ff4780807b9e8f`. Do not count this diagnostic toward a floor denominator.
