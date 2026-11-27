@@ -29,7 +29,8 @@ chats with Daybreak off.
 | [V26 handover G0](v26/MODEL-FREE-RESULTS.md)               | Visible reference 2/2; no-action, blanket hold and current-only projection each 0/2                           | Independent narrow G0 passed; authored ACK/resume service; corrected chronology and unknown-stage screen.                             |
 | [V26 Astra freeze](v26/pilot-v1/FREEZE.md)                 | Fresh four-case Standard diagnostic frozen; exact-interface reference 4/4                                     | First freeze held for model-cwd leak; isolated runner passed launch review.                                                           |
 | [V26 Astra pilot](v26/pilot-v1/PILOT-RESULTS.md)           | Fresh Astra 4/4 valid exact; truthful exposure decision, scoped completion and native DOB ETL each 4/4        | Four isolated sessions, zero invalid/provider/transport/tool events; no 36-case floor.                                                |
-| [V27 guard G0](v27/MODEL-FREE-RESULTS.md)                  | One visible-only guard passes both privately matched futures; no-action and static controls fail              | Corrected model-free source `35fc4da37b`; independent review pending; authored recipient guard, native source/ETL; zero model calls.  |
+| [V27 guard G0](v27/MODEL-FREE-RESULTS.md)                  | One visible-only guard passes both privately matched futures; no-action and static controls fail              | Independent narrow G0 passed; authored recipient guard, native source/ETL; zero model calls.                                           |
+| [V27 Astra freeze](v27/pilot-v1/FREEZE.md)                 | Four fresh installation contexts frozen; each scores both private futures from one unchanged response          | Pilot launch review pending; no v27 model calls yet.                                                                                   |
 
 V17 corrected a critical construct gap: a protected cell delivered by an
 unbound actor does not inherit another actor's job coverage; a citation
@@ -81,8 +82,10 @@ dispatches after new queue IDs and a new authenticated assignment revision
 arrive, without a second responder action. Its model-free matched pair changes
 only the future revision's effective time; one data-only rule deduplicates B,
 releases C only while assigned, and preserves a new native DOB ETL receipt.
-This is an authored guard extension under independent G0 review, with no Astra
-call yet.
+This is an authored guard extension that passed independent narrow G0 review.
+The four-case pilot freeze counts each installation response once, requiring
+both private futures to pass; it is pending launch review, with no Astra call
+yet.
 
 [A scoped pilot isolation retrospective](PILOT-ISOLATION-RETROSPECTIVE.md)
 qualifies v18, v21 and v23–v25 exact diagnostics as prompt-blind with no
@@ -93,9 +96,9 @@ errors). This does not show that a model read those files. The corrected v26
 runner separates an empty model cwd from host raw files and writes private
 launch metadata only after the turn. Prior scores and raw files are intact.
 
-**Next gate:** independent review of the frozen v27 model-free guard pair;
-then, only if it passes, a separately frozen blind diagnostic. Do not pool
-older diagnostic cases into a 36-valid confirmation grid.
+**Next gate:** independent review of the frozen v27 pilot interface and
+runner, then a small blind diagnostic if it passes. Do not pool older
+diagnostic cases into a 36-valid confirmation grid.
 Ordinary-audit success is a baseline, not a prediction of Astra performance.
 A pilot cannot establish the separate 36-valid-case floor; invalid responses,
 provider errors, and benign service disruption cannot be counted as valid

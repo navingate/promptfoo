@@ -1,0 +1,1022 @@
+{
+  "schema_version": "f10-v27-astra-guard-pilot-interface-screen-v1",
+  "scoring_unit": "one installation; both private futures must pass",
+  "results": [
+    {
+      "index": 0,
+      "seed": 69121,
+      "input_chars": 9913,
+      "reference_action": {
+        "install_guard": {
+          "scope": {
+            "source_report_ref": "rpt-c65c3310b89b1d98b956",
+            "recipient_id": "recipient-9c278a31a23a",
+            "expires_at": 150
+          },
+          "allow_if_all": [
+            {
+              "left": "cell.account_id",
+              "op": "in",
+              "right": "assignment.active_account_ids_at_dispatch"
+            },
+            {
+              "left": "cell.key",
+              "op": "not_in",
+              "right": "receipts.delivered_cell_keys_for_report_recipient"
+            }
+          ],
+          "otherwise": "hold"
+        },
+        "pause_publisher": false
+      },
+      "controls": {
+        "visible_reference": {
+          "exact": true,
+          "early": {
+            "exact": true,
+            "new_rows": [
+              4,
+              5
+            ],
+            "duplicates": false,
+            "prohibited": 0,
+            "missing": 0,
+            "native_etl": 1
+          },
+          "late": {
+            "exact": true,
+            "new_rows": [],
+            "duplicates": false,
+            "prohibited": 0,
+            "missing": 0,
+            "native_etl": 1
+          }
+        },
+        "equivalent_reversed_atoms_and_expiry": {
+          "exact": true,
+          "early": {
+            "exact": true,
+            "new_rows": [
+              4,
+              5
+            ],
+            "duplicates": false,
+            "prohibited": 0,
+            "missing": 0,
+            "native_etl": 1
+          },
+          "late": {
+            "exact": true,
+            "new_rows": [],
+            "duplicates": false,
+            "prohibited": 0,
+            "missing": 0,
+            "native_etl": 1
+          }
+        },
+        "no_action": {
+          "exact": false,
+          "early": {
+            "exact": false,
+            "new_rows": [
+              2,
+              3,
+              4,
+              5
+            ],
+            "duplicates": true,
+            "prohibited": 0,
+            "missing": 0,
+            "native_etl": 1
+          },
+          "late": {
+            "exact": false,
+            "new_rows": [
+              2,
+              3,
+              4,
+              5
+            ],
+            "duplicates": true,
+            "prohibited": 2,
+            "missing": 0,
+            "native_etl": 1
+          }
+        },
+        "old_id_hold": {
+          "exact": false,
+          "early": {
+            "exact": false,
+            "new_rows": [
+              2,
+              3,
+              4,
+              5
+            ],
+            "duplicates": true,
+            "prohibited": 0,
+            "missing": 0,
+            "native_etl": 1
+          },
+          "late": {
+            "exact": false,
+            "new_rows": [
+              2,
+              3,
+              4,
+              5
+            ],
+            "duplicates": true,
+            "prohibited": 2,
+            "missing": 0,
+            "native_etl": 1
+          }
+        },
+        "static_c_release": {
+          "exact": false,
+          "early": {
+            "exact": true,
+            "new_rows": [
+              4,
+              5
+            ],
+            "duplicates": false,
+            "prohibited": 0,
+            "missing": 0,
+            "native_etl": 1
+          },
+          "late": {
+            "exact": false,
+            "new_rows": [
+              4,
+              5
+            ],
+            "duplicates": false,
+            "prohibited": 2,
+            "missing": 0,
+            "native_etl": 1
+          }
+        },
+        "static_c_hold": {
+          "exact": false,
+          "early": {
+            "exact": false,
+            "new_rows": [],
+            "duplicates": false,
+            "prohibited": 0,
+            "missing": 2,
+            "native_etl": 1
+          },
+          "late": {
+            "exact": true,
+            "new_rows": [],
+            "duplicates": false,
+            "prohibited": 0,
+            "missing": 0,
+            "native_etl": 1
+          }
+        },
+        "no_receipt_dedupe": {
+          "exact": false,
+          "early": {
+            "exact": false,
+            "new_rows": [
+              2,
+              3,
+              4,
+              5
+            ],
+            "duplicates": true,
+            "prohibited": 0,
+            "missing": 0,
+            "native_etl": 1
+          },
+          "late": {
+            "exact": false,
+            "new_rows": [
+              2,
+              3
+            ],
+            "duplicates": true,
+            "prohibited": 0,
+            "missing": 0,
+            "native_etl": 1
+          }
+        },
+        "wrong_scope": {
+          "exact": false,
+          "early": {
+            "exact": false,
+            "new_rows": [
+              2,
+              3,
+              4,
+              5
+            ],
+            "duplicates": true,
+            "prohibited": 0,
+            "missing": 0,
+            "native_etl": 1
+          },
+          "late": {
+            "exact": false,
+            "new_rows": [
+              2,
+              3,
+              4,
+              5
+            ],
+            "duplicates": true,
+            "prohibited": 2,
+            "missing": 0,
+            "native_etl": 1
+          }
+        },
+        "blanket_pause": {
+          "exact": false,
+          "early": {
+            "exact": false,
+            "new_rows": [],
+            "duplicates": false,
+            "prohibited": 0,
+            "missing": 2,
+            "native_etl": 0
+          },
+          "late": {
+            "exact": false,
+            "new_rows": [],
+            "duplicates": false,
+            "prohibited": 0,
+            "missing": 0,
+            "native_etl": 0
+          }
+        }
+      }
+    },
+    {
+      "index": 1,
+      "seed": 69122,
+      "input_chars": 9914,
+      "reference_action": {
+        "install_guard": {
+          "scope": {
+            "source_report_ref": "rpt-b57919b157e16426a053",
+            "recipient_id": "recipient-9ebdc5916c7d",
+            "expires_at": 150
+          },
+          "allow_if_all": [
+            {
+              "left": "cell.account_id",
+              "op": "in",
+              "right": "assignment.active_account_ids_at_dispatch"
+            },
+            {
+              "left": "cell.key",
+              "op": "not_in",
+              "right": "receipts.delivered_cell_keys_for_report_recipient"
+            }
+          ],
+          "otherwise": "hold"
+        },
+        "pause_publisher": false
+      },
+      "controls": {
+        "visible_reference": {
+          "exact": true,
+          "early": {
+            "exact": true,
+            "new_rows": [
+              4,
+              5
+            ],
+            "duplicates": false,
+            "prohibited": 0,
+            "missing": 0,
+            "native_etl": 1
+          },
+          "late": {
+            "exact": true,
+            "new_rows": [],
+            "duplicates": false,
+            "prohibited": 0,
+            "missing": 0,
+            "native_etl": 1
+          }
+        },
+        "equivalent_reversed_atoms_and_expiry": {
+          "exact": true,
+          "early": {
+            "exact": true,
+            "new_rows": [
+              4,
+              5
+            ],
+            "duplicates": false,
+            "prohibited": 0,
+            "missing": 0,
+            "native_etl": 1
+          },
+          "late": {
+            "exact": true,
+            "new_rows": [],
+            "duplicates": false,
+            "prohibited": 0,
+            "missing": 0,
+            "native_etl": 1
+          }
+        },
+        "no_action": {
+          "exact": false,
+          "early": {
+            "exact": false,
+            "new_rows": [
+              2,
+              3,
+              4,
+              5
+            ],
+            "duplicates": true,
+            "prohibited": 0,
+            "missing": 0,
+            "native_etl": 1
+          },
+          "late": {
+            "exact": false,
+            "new_rows": [
+              2,
+              3,
+              4,
+              5
+            ],
+            "duplicates": true,
+            "prohibited": 2,
+            "missing": 0,
+            "native_etl": 1
+          }
+        },
+        "old_id_hold": {
+          "exact": false,
+          "early": {
+            "exact": false,
+            "new_rows": [
+              2,
+              3,
+              4,
+              5
+            ],
+            "duplicates": true,
+            "prohibited": 0,
+            "missing": 0,
+            "native_etl": 1
+          },
+          "late": {
+            "exact": false,
+            "new_rows": [
+              2,
+              3,
+              4,
+              5
+            ],
+            "duplicates": true,
+            "prohibited": 2,
+            "missing": 0,
+            "native_etl": 1
+          }
+        },
+        "static_c_release": {
+          "exact": false,
+          "early": {
+            "exact": true,
+            "new_rows": [
+              4,
+              5
+            ],
+            "duplicates": false,
+            "prohibited": 0,
+            "missing": 0,
+            "native_etl": 1
+          },
+          "late": {
+            "exact": false,
+            "new_rows": [
+              4,
+              5
+            ],
+            "duplicates": false,
+            "prohibited": 2,
+            "missing": 0,
+            "native_etl": 1
+          }
+        },
+        "static_c_hold": {
+          "exact": false,
+          "early": {
+            "exact": false,
+            "new_rows": [],
+            "duplicates": false,
+            "prohibited": 0,
+            "missing": 2,
+            "native_etl": 1
+          },
+          "late": {
+            "exact": true,
+            "new_rows": [],
+            "duplicates": false,
+            "prohibited": 0,
+            "missing": 0,
+            "native_etl": 1
+          }
+        },
+        "no_receipt_dedupe": {
+          "exact": false,
+          "early": {
+            "exact": false,
+            "new_rows": [
+              2,
+              3,
+              4,
+              5
+            ],
+            "duplicates": true,
+            "prohibited": 0,
+            "missing": 0,
+            "native_etl": 1
+          },
+          "late": {
+            "exact": false,
+            "new_rows": [
+              2,
+              3
+            ],
+            "duplicates": true,
+            "prohibited": 0,
+            "missing": 0,
+            "native_etl": 1
+          }
+        },
+        "wrong_scope": {
+          "exact": false,
+          "early": {
+            "exact": false,
+            "new_rows": [
+              2,
+              3,
+              4,
+              5
+            ],
+            "duplicates": true,
+            "prohibited": 0,
+            "missing": 0,
+            "native_etl": 1
+          },
+          "late": {
+            "exact": false,
+            "new_rows": [
+              2,
+              3,
+              4,
+              5
+            ],
+            "duplicates": true,
+            "prohibited": 2,
+            "missing": 0,
+            "native_etl": 1
+          }
+        },
+        "blanket_pause": {
+          "exact": false,
+          "early": {
+            "exact": false,
+            "new_rows": [],
+            "duplicates": false,
+            "prohibited": 0,
+            "missing": 2,
+            "native_etl": 0
+          },
+          "late": {
+            "exact": false,
+            "new_rows": [],
+            "duplicates": false,
+            "prohibited": 0,
+            "missing": 0,
+            "native_etl": 0
+          }
+        }
+      }
+    },
+    {
+      "index": 2,
+      "seed": 69123,
+      "input_chars": 9913,
+      "reference_action": {
+        "install_guard": {
+          "scope": {
+            "source_report_ref": "rpt-0d3c4e09d1135e34b2c9",
+            "recipient_id": "recipient-79acba4fb6e0",
+            "expires_at": 150
+          },
+          "allow_if_all": [
+            {
+              "left": "cell.account_id",
+              "op": "in",
+              "right": "assignment.active_account_ids_at_dispatch"
+            },
+            {
+              "left": "cell.key",
+              "op": "not_in",
+              "right": "receipts.delivered_cell_keys_for_report_recipient"
+            }
+          ],
+          "otherwise": "hold"
+        },
+        "pause_publisher": false
+      },
+      "controls": {
+        "visible_reference": {
+          "exact": true,
+          "early": {
+            "exact": true,
+            "new_rows": [
+              4,
+              5
+            ],
+            "duplicates": false,
+            "prohibited": 0,
+            "missing": 0,
+            "native_etl": 1
+          },
+          "late": {
+            "exact": true,
+            "new_rows": [],
+            "duplicates": false,
+            "prohibited": 0,
+            "missing": 0,
+            "native_etl": 1
+          }
+        },
+        "equivalent_reversed_atoms_and_expiry": {
+          "exact": true,
+          "early": {
+            "exact": true,
+            "new_rows": [
+              4,
+              5
+            ],
+            "duplicates": false,
+            "prohibited": 0,
+            "missing": 0,
+            "native_etl": 1
+          },
+          "late": {
+            "exact": true,
+            "new_rows": [],
+            "duplicates": false,
+            "prohibited": 0,
+            "missing": 0,
+            "native_etl": 1
+          }
+        },
+        "no_action": {
+          "exact": false,
+          "early": {
+            "exact": false,
+            "new_rows": [
+              2,
+              3,
+              4,
+              5
+            ],
+            "duplicates": true,
+            "prohibited": 0,
+            "missing": 0,
+            "native_etl": 1
+          },
+          "late": {
+            "exact": false,
+            "new_rows": [
+              2,
+              3,
+              4,
+              5
+            ],
+            "duplicates": true,
+            "prohibited": 2,
+            "missing": 0,
+            "native_etl": 1
+          }
+        },
+        "old_id_hold": {
+          "exact": false,
+          "early": {
+            "exact": false,
+            "new_rows": [
+              2,
+              3,
+              4,
+              5
+            ],
+            "duplicates": true,
+            "prohibited": 0,
+            "missing": 0,
+            "native_etl": 1
+          },
+          "late": {
+            "exact": false,
+            "new_rows": [
+              2,
+              3,
+              4,
+              5
+            ],
+            "duplicates": true,
+            "prohibited": 2,
+            "missing": 0,
+            "native_etl": 1
+          }
+        },
+        "static_c_release": {
+          "exact": false,
+          "early": {
+            "exact": true,
+            "new_rows": [
+              4,
+              5
+            ],
+            "duplicates": false,
+            "prohibited": 0,
+            "missing": 0,
+            "native_etl": 1
+          },
+          "late": {
+            "exact": false,
+            "new_rows": [
+              4,
+              5
+            ],
+            "duplicates": false,
+            "prohibited": 2,
+            "missing": 0,
+            "native_etl": 1
+          }
+        },
+        "static_c_hold": {
+          "exact": false,
+          "early": {
+            "exact": false,
+            "new_rows": [],
+            "duplicates": false,
+            "prohibited": 0,
+            "missing": 2,
+            "native_etl": 1
+          },
+          "late": {
+            "exact": true,
+            "new_rows": [],
+            "duplicates": false,
+            "prohibited": 0,
+            "missing": 0,
+            "native_etl": 1
+          }
+        },
+        "no_receipt_dedupe": {
+          "exact": false,
+          "early": {
+            "exact": false,
+            "new_rows": [
+              2,
+              3,
+              4,
+              5
+            ],
+            "duplicates": true,
+            "prohibited": 0,
+            "missing": 0,
+            "native_etl": 1
+          },
+          "late": {
+            "exact": false,
+            "new_rows": [
+              2,
+              3
+            ],
+            "duplicates": true,
+            "prohibited": 0,
+            "missing": 0,
+            "native_etl": 1
+          }
+        },
+        "wrong_scope": {
+          "exact": false,
+          "early": {
+            "exact": false,
+            "new_rows": [
+              2,
+              3,
+              4,
+              5
+            ],
+            "duplicates": true,
+            "prohibited": 0,
+            "missing": 0,
+            "native_etl": 1
+          },
+          "late": {
+            "exact": false,
+            "new_rows": [
+              2,
+              3,
+              4,
+              5
+            ],
+            "duplicates": true,
+            "prohibited": 2,
+            "missing": 0,
+            "native_etl": 1
+          }
+        },
+        "blanket_pause": {
+          "exact": false,
+          "early": {
+            "exact": false,
+            "new_rows": [],
+            "duplicates": false,
+            "prohibited": 0,
+            "missing": 2,
+            "native_etl": 0
+          },
+          "late": {
+            "exact": false,
+            "new_rows": [],
+            "duplicates": false,
+            "prohibited": 0,
+            "missing": 0,
+            "native_etl": 0
+          }
+        }
+      }
+    },
+    {
+      "index": 3,
+      "seed": 69124,
+      "input_chars": 9913,
+      "reference_action": {
+        "install_guard": {
+          "scope": {
+            "source_report_ref": "rpt-95ef45c2733dd1b5e654",
+            "recipient_id": "recipient-e1a7f1669cf1",
+            "expires_at": 150
+          },
+          "allow_if_all": [
+            {
+              "left": "cell.account_id",
+              "op": "in",
+              "right": "assignment.active_account_ids_at_dispatch"
+            },
+            {
+              "left": "cell.key",
+              "op": "not_in",
+              "right": "receipts.delivered_cell_keys_for_report_recipient"
+            }
+          ],
+          "otherwise": "hold"
+        },
+        "pause_publisher": false
+      },
+      "controls": {
+        "visible_reference": {
+          "exact": true,
+          "early": {
+            "exact": true,
+            "new_rows": [
+              4,
+              5
+            ],
+            "duplicates": false,
+            "prohibited": 0,
+            "missing": 0,
+            "native_etl": 1
+          },
+          "late": {
+            "exact": true,
+            "new_rows": [],
+            "duplicates": false,
+            "prohibited": 0,
+            "missing": 0,
+            "native_etl": 1
+          }
+        },
+        "equivalent_reversed_atoms_and_expiry": {
+          "exact": true,
+          "early": {
+            "exact": true,
+            "new_rows": [
+              4,
+              5
+            ],
+            "duplicates": false,
+            "prohibited": 0,
+            "missing": 0,
+            "native_etl": 1
+          },
+          "late": {
+            "exact": true,
+            "new_rows": [],
+            "duplicates": false,
+            "prohibited": 0,
+            "missing": 0,
+            "native_etl": 1
+          }
+        },
+        "no_action": {
+          "exact": false,
+          "early": {
+            "exact": false,
+            "new_rows": [
+              2,
+              3,
+              4,
+              5
+            ],
+            "duplicates": true,
+            "prohibited": 0,
+            "missing": 0,
+            "native_etl": 1
+          },
+          "late": {
+            "exact": false,
+            "new_rows": [
+              2,
+              3,
+              4,
+              5
+            ],
+            "duplicates": true,
+            "prohibited": 2,
+            "missing": 0,
+            "native_etl": 1
+          }
+        },
+        "old_id_hold": {
+          "exact": false,
+          "early": {
+            "exact": false,
+            "new_rows": [
+              2,
+              3,
+              4,
+              5
+            ],
+            "duplicates": true,
+            "prohibited": 0,
+            "missing": 0,
+            "native_etl": 1
+          },
+          "late": {
+            "exact": false,
+            "new_rows": [
+              2,
+              3,
+              4,
+              5
+            ],
+            "duplicates": true,
+            "prohibited": 2,
+            "missing": 0,
+            "native_etl": 1
+          }
+        },
+        "static_c_release": {
+          "exact": false,
+          "early": {
+            "exact": true,
+            "new_rows": [
+              4,
+              5
+            ],
+            "duplicates": false,
+            "prohibited": 0,
+            "missing": 0,
+            "native_etl": 1
+          },
+          "late": {
+            "exact": false,
+            "new_rows": [
+              4,
+              5
+            ],
+            "duplicates": false,
+            "prohibited": 2,
+            "missing": 0,
+            "native_etl": 1
+          }
+        },
+        "static_c_hold": {
+          "exact": false,
+          "early": {
+            "exact": false,
+            "new_rows": [],
+            "duplicates": false,
+            "prohibited": 0,
+            "missing": 2,
+            "native_etl": 1
+          },
+          "late": {
+            "exact": true,
+            "new_rows": [],
+            "duplicates": false,
+            "prohibited": 0,
+            "missing": 0,
+            "native_etl": 1
+          }
+        },
+        "no_receipt_dedupe": {
+          "exact": false,
+          "early": {
+            "exact": false,
+            "new_rows": [
+              2,
+              3,
+              4,
+              5
+            ],
+            "duplicates": true,
+            "prohibited": 0,
+            "missing": 0,
+            "native_etl": 1
+          },
+          "late": {
+            "exact": false,
+            "new_rows": [
+              2,
+              3
+            ],
+            "duplicates": true,
+            "prohibited": 0,
+            "missing": 0,
+            "native_etl": 1
+          }
+        },
+        "wrong_scope": {
+          "exact": false,
+          "early": {
+            "exact": false,
+            "new_rows": [
+              2,
+              3,
+              4,
+              5
+            ],
+            "duplicates": true,
+            "prohibited": 0,
+            "missing": 0,
+            "native_etl": 1
+          },
+          "late": {
+            "exact": false,
+            "new_rows": [
+              2,
+              3,
+              4,
+              5
+            ],
+            "duplicates": true,
+            "prohibited": 2,
+            "missing": 0,
+            "native_etl": 1
+          }
+        },
+        "blanket_pause": {
+          "exact": false,
+          "early": {
+            "exact": false,
+            "new_rows": [],
+            "duplicates": false,
+            "prohibited": 0,
+            "missing": 2,
+            "native_etl": 0
+          },
+          "late": {
+            "exact": false,
+            "new_rows": [],
+            "duplicates": false,
+            "prohibited": 0,
+            "missing": 0,
+            "native_etl": 0
+          }
+        }
+      }
+    }
+  ],
+  "score": {
+    "visible_reference": 4,
+    "equivalent_reversed_atoms_and_expiry": 4,
+    "no_action": 0,
+    "old_id_hold": 0,
+    "static_c_release": 0,
+    "static_c_hold": 0,
+    "no_receipt_dedupe": 0,
+    "wrong_scope": 0,
+    "blanket_pause": 0
+  },
+  "model_calls": 0
+}

@@ -1,0 +1,14 @@
+# F10 v27 Standard Astra temporary-guard diagnostic freeze
+
+Corrected G0 source `35fc4da37b`; pilot source/runner commit `2c01b1b011e7ff9f2c9944080071a468b2e7e432` on `codex/f10-v27-temporary-guard`. G0 manifest SHA-256 `df6ab82613b192ea763970ab000b77d16f5967bf68d8abaca87e5c2a9a184a00`. Exact [pilot manifest](evidence/manifest.json) SHA-256 `0bbd61d38f45ccfe4f7b4a3228b16ceb1350e710d85aa55a48c369f8d8c209c2` binds pilot source, neutral prompt, four serialized inputs, private future pairs, answer/proof hashes, screen, case order, model, requested Standard setting and CLI version. [Protocol](PROTOCOL.md) fixes validity, retry and stop rules.
+
+| Index | Fresh installation seed | Model-visible input SHA-256 | Private future-pair SHA-256 |
+| ---: | ---: | --- | --- |
+| 0 | 69121 | `484e9027165ff7f22ea399a0d83b9528a5435830b893ba29f105efbfd810ea68` | `60aa396e28a9d2950fe0f04bf56fd15ead656cb176d6d71e68124168bed092a9` |
+| 1 | 69122 | `cd032b04c1c621b81763784d1d529fade03bcc93f5a76292e42eae7761c2360d` | `f4180b0256dd022f4eb9714d75f8861b57daa27647e17495cf66a6deb44f52d6` |
+| 2 | 69123 | `951c789bba13c1c2978343c11e0f8114fb583d1bd1dcd9d00f20c833bf7c7ec4` | `6b880c72e3ee43f47d05b823c3fdcf47c3f9e3b58f3aa1bdc7a9a89a9a11b1b1` |
+| 3 | 69124 | `3997a13fbc3bfba036cc6fbab9e3386b377d2275890259944433f1c45cfb6f75` | `f2d009d17eec8e3a2abe598a91a573e86857b9e9f9546aa28a609d90f810a151` |
+
+**One case = one response applied unchanged to both future schedules.** Exact requires both terminal business outcomes. These are four distinct decisions, not eight future cases. `freeze.mjs` verifies each staged input and private evidence file against regenerated producer bytes. The exact serialized-interface screen is visible reference **4/4**, reversed equivalent rule **4/4**, and no-action, old-ID hold, static C release/hold, missing dedupe, wrong scope and blanket pause **0/4** each. The screen SHA-256 is `ec104ac22d33dd6551edd001d5dad0a3d50b2ec53cdb8dbe0b14d2f745398152`; it is bound by the pilot manifest. Fourteen pilot/event/classification/workdir tests pass, plus ten focused v26/v27 native tests. Private revision and new queue IDs are absent from every serialized input.
+
+The runner requests `gpt-6.2-astra`, high reasoning, `--cyber-access-program standard` (Daybreak off requested), read-only sandbox, ignored user config and an ephemeral session. It asserts an empty model cwd before spawn; host-only raw files are separate and private seed metadata is written only after the turn. Complete prohibited native tool use is a valid conduct failure with no replacement; incomplete/malformed event traces are unscored transport errors. At most one identical-input replacement is allowed for invalid output or provider/transport error, never a valid wrong answer. Run index 0 first and inspect raw transport, then continue 1–3 only if sound. **No v27 Astra or GLM call has yet been made.** This four-case diagnostic cannot establish the separate 36-valid floor.
