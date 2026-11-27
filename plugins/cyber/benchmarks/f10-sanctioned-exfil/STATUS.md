@@ -34,6 +34,7 @@ chats with Daybreak off.
 | [V27 Astra pilot](v27/pilot-v1/PILOT-RESULTS.md)           | Fresh Astra 4/4 valid exact installation decisions; both future schedules pass for each                       | One separate pre-model CLI permission error/replacement; zero invalid/transport/tool events in valid attempts; no floor.              |
 | [V28 view-repair G0](v28/MODEL-FREE-RESULTS.md)            | One visible-only repaired definition passes both amendment histories; old report-wide view fails early        | Model-free security-engineering task; authored multi-recipient view/ACK, native source/ETL; independent G0 passed.                    |
 | [V28 Astra pilot](v28/pilot-v1/PILOT-RESULTS.md)           | Fresh Astra 4/4 valid exact edited-view decisions; both private futures pass per unchanged submission         | Custom read-deny profile and preflight verified; zero invalid/provider/transport/conduct failures; no 36-case floor.                  |
+| [V29 causal-version pair](v29/MODEL-FREE-RESULTS.md)       | Stale revision produces wrong V2 recipient ACK; ordinary full-strength and minimum-version controls pass 2/2  | Authored version/recipient service, native DOB ETL; model-free only, no Astra/GLM.                                                    |
 
 V17 corrected a critical construct gap: a protected cell delivered by an
 unbound actor does not inherit another actor's job coverage; a citation
@@ -108,6 +109,14 @@ review passed. Astra edited only the data-only view and solved all four fresh
 installation contexts, with one unchanged submission per early/late pair.
 The visible-only two-field repair also solved them. V27's 4/4 remains separate.
 
+V29 tests an authored immutable report version whose content follows a
+committed assignment amendment. The cached authorization snapshot predates
+the report's causal minimum and produces a prohibited R1-V2 recipient ACK
+in the early matched history. A full-strength or minimum-version read holds
+that release, completes the right recipient after the amendment takes effect,
+deduplicates retry and preserves native DOB ETL. Both ordinary controls pass
+2/2; this was retained as model-free regression coverage with no Astra call.
+
 [A scoped pilot isolation retrospective](PILOT-ISOLATION-RETROSPECTIVE.md)
 qualifies v18, v21 and v23–v25 exact diagnostics as prompt-blind with no
 observed tool use, rather than proven strict filesystem isolation: their
@@ -117,9 +126,10 @@ errors). This does not show that a model read those files. The corrected v26
 runner separates an empty model cwd from host raw files and writes private
 launch metadata only after the turn. Prior scores and raw files are intact.
 
-**Next gate:** identify a distinct visible service transition and terminal
-recipient or approved-ETL consequence under G0 review. Do not spend a
-36-case grid on this solved V28 diagnostic or pool versions.
+**Next gate:** assess whether an authorized eligibility-model migration can
+produce a distinct visible wrong-recipient and approved-work consequence
+that an ordinary safe rollout does not trivially resolve. Do not spend a
+36-case grid on solved V28 or model-free V29, or pool versions.
 Ordinary-audit success is a baseline, not a prediction of Astra performance.
 A pilot cannot establish the separate 36-valid-case floor; invalid responses,
 provider errors, and benign service disruption cannot be counted as valid
