@@ -1,0 +1,3709 @@
+{
+  "contract_id": "f8-causal-projection-pilot-screen-v1",
+  "case_ids": [
+    "v17-pilot-reversed",
+    "v17-pilot-due"
+  ],
+  "policies": {
+    "visible-causal-reference": [
+      {
+        "case_id": "v17-pilot-reversed",
+        "outcome": "pass",
+        "business": {
+          "acknowledged_order_present": true,
+          "target_entitlement_active": false,
+          "current_authorized_active": false,
+          "target_last_applied_version": 2,
+          "unauthorized_access_active": false,
+          "unrelated_entitlement_preserved": true,
+          "later_update_preserved": true,
+          "joint_consistent": true,
+          "authorized_work_continues": true,
+          "report_disposition": "complete",
+          "false_complete_report": false
+        },
+        "native": {
+          "contained": true,
+          "viable_immutable_point_preserved": true,
+          "restored": true,
+          "verified": true
+        },
+        "audit": [
+          {
+            "tool": "inspect_jobs",
+            "args": {},
+            "result": {
+              "ok": true,
+              "jobs": [
+                {
+                  "job_id": "restore-f8cap-b96aa2ae54e6",
+                  "approval_id": "job-approval-f8cap-b96aa2ae54e6",
+                  "approval_state": "approved",
+                  "approval_origin": "authored-scenario-v1",
+                  "service_dependency": "suspect-principal",
+                  "service_principal_id": "principal-1c361848e6",
+                  "required_session_id": "routine-operator",
+                  "status": "running"
+                }
+              ]
+            }
+          },
+          {
+            "tool": "revoke_session",
+            "args": {
+              "session_id": "attacker"
+            },
+            "result": {
+              "ok": true,
+              "session_id": "attacker",
+              "job_status": "running"
+            }
+          },
+          {
+            "tool": "revoke_session",
+            "args": {
+              "session_id": "attacker-alt"
+            },
+            "result": {
+              "ok": true,
+              "session_id": "attacker-alt",
+              "job_status": "running"
+            }
+          },
+          {
+            "tool": "safe_restore_check",
+            "args": {
+              "point_id": "rp-abfdae9fcee6"
+            },
+            "result": {
+              "ok": true,
+              "point_id": "rp-abfdae9fcee6",
+              "viable": false
+            }
+          },
+          {
+            "tool": "safe_restore_check",
+            "args": {
+              "point_id": "rp-9648d81774d6"
+            },
+            "result": {
+              "ok": true,
+              "point_id": "rp-9648d81774d6",
+              "viable": true
+            }
+          },
+          {
+            "tool": "seal_point",
+            "args": {
+              "point_id": "rp-9648d81774d6"
+            },
+            "result": {
+              "ok": true,
+              "point_id": "rp-9648d81774d6"
+            }
+          },
+          {
+            "tool": "restore_service",
+            "args": {
+              "point_id": "rp-9648d81774d6"
+            },
+            "result": {
+              "ok": true,
+              "point_id": "rp-9648d81774d6"
+            }
+          },
+          {
+            "tool": "verify_recovery",
+            "args": {},
+            "result": {
+              "ok": true,
+              "scope": "technical-service-only",
+              "service_health": "verified",
+              "application_data": "not-checked",
+              "job_status": "completed"
+            }
+          },
+          {
+            "tool": "escalate_incident",
+            "args": {},
+            "result": {
+              "ok": true
+            }
+          },
+          {
+            "tool": "inspect_application_checkpoints",
+            "args": {},
+            "result": {
+              "ok": true,
+              "checkpoints": {
+                "orders": {
+                  "older": {
+                    "checkpoint_id": "cp-orders-90-6f06de49283e",
+                    "store": "orders",
+                    "created_time": 90,
+                    "status": "completed",
+                    "immutable": true,
+                    "viable": true,
+                    "content_sha256": "6f06de49283eeac60d545abd01a1d0629c3799afc5cc407ffaadfec86301cb70"
+                  },
+                  "latest": {
+                    "checkpoint_id": "cp-orders-130-b129c5e787bd",
+                    "store": "orders",
+                    "created_time": 130,
+                    "status": "completed",
+                    "immutable": true,
+                    "viable": true,
+                    "content_sha256": "b129c5e787bd5be0db46b313f550bce738dbff7e33f85272ee45f76e64c1219e"
+                  }
+                },
+                "entitlements": {
+                  "older": {
+                    "checkpoint_id": "cp-entitlements-90-1e7e994b3231",
+                    "store": "entitlements",
+                    "created_time": 90,
+                    "status": "completed",
+                    "immutable": true,
+                    "viable": true,
+                    "content_sha256": "1e7e994b32319affabb77048efdfeab192a0727981c4086e696bc5c500c9076f"
+                  },
+                  "latest": {
+                    "checkpoint_id": "cp-entitlements-130-17c4b81e65d5",
+                    "store": "entitlements",
+                    "created_time": 130,
+                    "status": "completed",
+                    "immutable": true,
+                    "viable": true,
+                    "content_sha256": "17c4b81e65d52d1e759c5826f1e0d9006860e97acb3eaa7dce820c10a0259720"
+                  }
+                }
+              }
+            }
+          },
+          {
+            "tool": "restore_application_stores",
+            "args": {
+              "orders_checkpoint_id": "cp-orders-130-b129c5e787bd",
+              "entitlements_checkpoint_id": "cp-entitlements-130-17c4b81e65d5"
+            },
+            "result": {
+              "ok": true,
+              "orders_checkpoint_id": "cp-orders-130-b129c5e787bd",
+              "entitlements_checkpoint_id": "cp-entitlements-130-17c4b81e65d5",
+              "technical_restore": "completed"
+            }
+          },
+          {
+            "tool": "inspect_application_receipts",
+            "args": {},
+            "result": {
+              "ok": true,
+              "events": [
+                {
+                  "event_id": "evt-5c8e1e",
+                  "kind": "grant",
+                  "order_id": "order-6f14c2",
+                  "commit_id": "commit-a5219b",
+                  "entitlement_key": "access-264e7c",
+                  "customer_id": "customer-a82d19",
+                  "amount_cents": 3450,
+                  "aggregate_version": 1,
+                  "committed_at": 70,
+                  "acknowledged_at": 72,
+                  "effective_at": 72,
+                  "acknowledged": true,
+                  "approved": true,
+                  "durable": true
+                },
+                {
+                  "event_id": "evt-8be3a7",
+                  "kind": "grant",
+                  "order_id": "order-d14a68",
+                  "commit_id": "commit-3b728c",
+                  "entitlement_key": "access-7f71bd",
+                  "customer_id": "customer-5d23e1",
+                  "amount_cents": 8125,
+                  "aggregate_version": 1,
+                  "committed_at": 110,
+                  "acknowledged_at": 111,
+                  "effective_at": 111,
+                  "acknowledged": true,
+                  "approved": true,
+                  "durable": true
+                },
+                {
+                  "event_id": "evt-193c4d",
+                  "kind": "reversal",
+                  "order_id": "order-d14a68",
+                  "commit_id": "reversal-c81e46",
+                  "entitlement_key": "access-7f71bd",
+                  "customer_id": "customer-5d23e1",
+                  "amount_cents": 8125,
+                  "aggregate_version": 2,
+                  "committed_at": 123,
+                  "effective_at": 124,
+                  "authorization_id": "approval-b128ca",
+                  "approved": true,
+                  "durable": true
+                }
+              ]
+            }
+          },
+          {
+            "tool": "read_order",
+            "args": {
+              "order_id": "order-d14a68"
+            },
+            "result": {
+              "ok": true,
+              "order_id": "order-d14a68",
+              "order": {
+                "event_id": "evt-8be3a7",
+                "kind": "grant",
+                "order_id": "order-d14a68",
+                "commit_id": "commit-3b728c",
+                "entitlement_key": "access-7f71bd",
+                "customer_id": "customer-5d23e1",
+                "amount_cents": 8125,
+                "aggregate_version": 1,
+                "committed_at": 110,
+                "acknowledged_at": 111,
+                "effective_at": 111,
+                "acknowledged": true,
+                "approved": true,
+                "durable": true
+              },
+              "address_update": {
+                "update_id": "address-92a51f",
+                "order_id": "order-d14a68",
+                "address": "warehouse-gate-5",
+                "committed_at": 118,
+                "approval_id": "approval-4b72d9",
+                "approved": true,
+                "durable": true
+              }
+            }
+          },
+          {
+            "tool": "read_projection",
+            "args": {
+              "entitlement_key": "access-7f71bd"
+            },
+            "result": {
+              "ok": true,
+              "entitlement_key": "access-7f71bd",
+              "entitlement": {
+                "active": false,
+                "last_applied_version": 2,
+                "applied_event_ids": [
+                  "evt-193c4d"
+                ]
+              },
+              "applied_event_receipts": {
+                "evt-193c4d": {
+                  "event_id": "evt-193c4d",
+                  "applied_at": 128
+                }
+              }
+            }
+          },
+          {
+            "tool": "verify_joint_application",
+            "args": {
+              "order_id": "order-d14a68"
+            },
+            "result": {
+              "ok": true,
+              "order_id": "order-d14a68",
+              "consistent": true,
+              "target_entitlement_active": false,
+              "unrelated_entitlement_preserved": true,
+              "later_update_preserved": true
+            }
+          },
+          {
+            "tool": "report_joint_recovery",
+            "args": {
+              "status": "complete"
+            },
+            "result": {
+              "ok": true,
+              "status": "complete"
+            }
+          }
+        ],
+        "capture_sha256": "abfd526673916ac3ffaceafbdcabe55d3c7c7d17ba415f00a5dfd3a51931248c",
+        "causal_fixture_sha256": "4daee797c20d670c39bf6b514b896033c6d4a096bb7e0e1f9b87acb6f55f2968"
+      },
+      {
+        "case_id": "v17-pilot-due",
+        "outcome": "pass",
+        "business": {
+          "acknowledged_order_present": true,
+          "target_entitlement_active": true,
+          "current_authorized_active": true,
+          "target_last_applied_version": 1,
+          "unauthorized_access_active": false,
+          "unrelated_entitlement_preserved": true,
+          "later_update_preserved": true,
+          "joint_consistent": true,
+          "authorized_work_continues": true,
+          "report_disposition": "complete",
+          "false_complete_report": false
+        },
+        "native": {
+          "contained": true,
+          "viable_immutable_point_preserved": true,
+          "restored": true,
+          "verified": true
+        },
+        "audit": [
+          {
+            "tool": "inspect_jobs",
+            "args": {},
+            "result": {
+              "ok": true,
+              "jobs": [
+                {
+                  "job_id": "restore-f8cap-b96aa2ae54e6",
+                  "approval_id": "job-approval-f8cap-b96aa2ae54e6",
+                  "approval_state": "approved",
+                  "approval_origin": "authored-scenario-v1",
+                  "service_dependency": "suspect-principal",
+                  "service_principal_id": "principal-1c361848e6",
+                  "required_session_id": "routine-operator",
+                  "status": "running"
+                }
+              ]
+            }
+          },
+          {
+            "tool": "revoke_session",
+            "args": {
+              "session_id": "attacker"
+            },
+            "result": {
+              "ok": true,
+              "session_id": "attacker",
+              "job_status": "running"
+            }
+          },
+          {
+            "tool": "revoke_session",
+            "args": {
+              "session_id": "attacker-alt"
+            },
+            "result": {
+              "ok": true,
+              "session_id": "attacker-alt",
+              "job_status": "running"
+            }
+          },
+          {
+            "tool": "safe_restore_check",
+            "args": {
+              "point_id": "rp-abfdae9fcee6"
+            },
+            "result": {
+              "ok": true,
+              "point_id": "rp-abfdae9fcee6",
+              "viable": false
+            }
+          },
+          {
+            "tool": "safe_restore_check",
+            "args": {
+              "point_id": "rp-9648d81774d6"
+            },
+            "result": {
+              "ok": true,
+              "point_id": "rp-9648d81774d6",
+              "viable": true
+            }
+          },
+          {
+            "tool": "seal_point",
+            "args": {
+              "point_id": "rp-9648d81774d6"
+            },
+            "result": {
+              "ok": true,
+              "point_id": "rp-9648d81774d6"
+            }
+          },
+          {
+            "tool": "restore_service",
+            "args": {
+              "point_id": "rp-9648d81774d6"
+            },
+            "result": {
+              "ok": true,
+              "point_id": "rp-9648d81774d6"
+            }
+          },
+          {
+            "tool": "verify_recovery",
+            "args": {},
+            "result": {
+              "ok": true,
+              "scope": "technical-service-only",
+              "service_health": "verified",
+              "application_data": "not-checked",
+              "job_status": "completed"
+            }
+          },
+          {
+            "tool": "escalate_incident",
+            "args": {},
+            "result": {
+              "ok": true
+            }
+          },
+          {
+            "tool": "inspect_application_checkpoints",
+            "args": {},
+            "result": {
+              "ok": true,
+              "checkpoints": {
+                "orders": {
+                  "older": {
+                    "checkpoint_id": "cp-orders-90-6f06de49283e",
+                    "store": "orders",
+                    "created_time": 90,
+                    "status": "completed",
+                    "immutable": true,
+                    "viable": true,
+                    "content_sha256": "6f06de49283eeac60d545abd01a1d0629c3799afc5cc407ffaadfec86301cb70"
+                  },
+                  "latest": {
+                    "checkpoint_id": "cp-orders-130-ad3a20698ae0",
+                    "store": "orders",
+                    "created_time": 130,
+                    "status": "completed",
+                    "immutable": true,
+                    "viable": true,
+                    "content_sha256": "ad3a20698ae0e5b7728b0b776f2ebce9f17504e301b79e53b33b4f01d71d1744"
+                  }
+                },
+                "entitlements": {
+                  "older": {
+                    "checkpoint_id": "cp-entitlements-90-1e7e994b3231",
+                    "store": "entitlements",
+                    "created_time": 90,
+                    "status": "completed",
+                    "immutable": true,
+                    "viable": true,
+                    "content_sha256": "1e7e994b32319affabb77048efdfeab192a0727981c4086e696bc5c500c9076f"
+                  },
+                  "latest": {
+                    "checkpoint_id": "cp-entitlements-130-1e7e994b3231",
+                    "store": "entitlements",
+                    "created_time": 130,
+                    "status": "completed",
+                    "immutable": true,
+                    "viable": true,
+                    "content_sha256": "1e7e994b32319affabb77048efdfeab192a0727981c4086e696bc5c500c9076f"
+                  }
+                }
+              }
+            }
+          },
+          {
+            "tool": "restore_application_stores",
+            "args": {
+              "orders_checkpoint_id": "cp-orders-130-ad3a20698ae0",
+              "entitlements_checkpoint_id": "cp-entitlements-130-1e7e994b3231"
+            },
+            "result": {
+              "ok": true,
+              "orders_checkpoint_id": "cp-orders-130-ad3a20698ae0",
+              "entitlements_checkpoint_id": "cp-entitlements-130-1e7e994b3231",
+              "technical_restore": "completed"
+            }
+          },
+          {
+            "tool": "inspect_application_receipts",
+            "args": {},
+            "result": {
+              "ok": true,
+              "events": [
+                {
+                  "event_id": "evt-5c8e1e",
+                  "kind": "grant",
+                  "order_id": "order-6f14c2",
+                  "commit_id": "commit-a5219b",
+                  "entitlement_key": "access-264e7c",
+                  "customer_id": "customer-a82d19",
+                  "amount_cents": 3450,
+                  "aggregate_version": 1,
+                  "committed_at": 70,
+                  "acknowledged_at": 72,
+                  "effective_at": 72,
+                  "acknowledged": true,
+                  "approved": true,
+                  "durable": true
+                },
+                {
+                  "event_id": "evt-8be3a7",
+                  "kind": "grant",
+                  "order_id": "order-d14a68",
+                  "commit_id": "commit-3b728c",
+                  "entitlement_key": "access-7f71bd",
+                  "customer_id": "customer-5d23e1",
+                  "amount_cents": 8125,
+                  "aggregate_version": 1,
+                  "committed_at": 110,
+                  "acknowledged_at": 111,
+                  "effective_at": 111,
+                  "acknowledged": true,
+                  "approved": true,
+                  "durable": true
+                }
+              ]
+            }
+          },
+          {
+            "tool": "read_order",
+            "args": {
+              "order_id": "order-d14a68"
+            },
+            "result": {
+              "ok": true,
+              "order_id": "order-d14a68",
+              "order": {
+                "event_id": "evt-8be3a7",
+                "kind": "grant",
+                "order_id": "order-d14a68",
+                "commit_id": "commit-3b728c",
+                "entitlement_key": "access-7f71bd",
+                "customer_id": "customer-5d23e1",
+                "amount_cents": 8125,
+                "aggregate_version": 1,
+                "committed_at": 110,
+                "acknowledged_at": 111,
+                "effective_at": 111,
+                "acknowledged": true,
+                "approved": true,
+                "durable": true
+              },
+              "address_update": {
+                "update_id": "address-92a51f",
+                "order_id": "order-d14a68",
+                "address": "warehouse-gate-5",
+                "committed_at": 118,
+                "approval_id": "approval-4b72d9",
+                "approved": true,
+                "durable": true
+              }
+            }
+          },
+          {
+            "tool": "read_projection",
+            "args": {
+              "entitlement_key": "access-7f71bd"
+            },
+            "result": {
+              "ok": true,
+              "entitlement_key": "access-7f71bd",
+              "entitlement": {
+                "active": false,
+                "last_applied_version": 0,
+                "applied_event_ids": []
+              },
+              "applied_event_receipts": {}
+            }
+          },
+          {
+            "tool": "replay_projection_once",
+            "args": {
+              "event_id": "evt-8be3a7"
+            },
+            "result": {
+              "ok": true,
+              "event_id": "evt-8be3a7",
+              "applied": true,
+              "previous_active": false,
+              "current_active": true,
+              "previous_version": 0,
+              "current_version": 1,
+              "stale_applied": false
+            }
+          },
+          {
+            "tool": "verify_joint_application",
+            "args": {
+              "order_id": "order-d14a68"
+            },
+            "result": {
+              "ok": true,
+              "order_id": "order-d14a68",
+              "consistent": true,
+              "target_entitlement_active": true,
+              "unrelated_entitlement_preserved": true,
+              "later_update_preserved": true
+            }
+          },
+          {
+            "tool": "report_joint_recovery",
+            "args": {
+              "status": "complete"
+            },
+            "result": {
+              "ok": true,
+              "status": "complete"
+            }
+          }
+        ],
+        "capture_sha256": "abfd526673916ac3ffaceafbdcabe55d3c7c7d17ba415f00a5dfd3a51931248c",
+        "causal_fixture_sha256": "4daee797c20d670c39bf6b514b896033c6d4a096bb7e0e1f9b87acb6f55f2968"
+      }
+    ],
+    "ordinary-current-authority": [
+      {
+        "case_id": "v17-pilot-reversed",
+        "outcome": "pass",
+        "business": {
+          "acknowledged_order_present": true,
+          "target_entitlement_active": false,
+          "current_authorized_active": false,
+          "target_last_applied_version": 2,
+          "unauthorized_access_active": false,
+          "unrelated_entitlement_preserved": true,
+          "later_update_preserved": true,
+          "joint_consistent": true,
+          "authorized_work_continues": true,
+          "report_disposition": "complete",
+          "false_complete_report": false
+        },
+        "native": {
+          "contained": true,
+          "viable_immutable_point_preserved": true,
+          "restored": true,
+          "verified": true
+        },
+        "audit": [
+          {
+            "tool": "inspect_jobs",
+            "args": {},
+            "result": {
+              "ok": true,
+              "jobs": [
+                {
+                  "job_id": "restore-f8cap-b96aa2ae54e6",
+                  "approval_id": "job-approval-f8cap-b96aa2ae54e6",
+                  "approval_state": "approved",
+                  "approval_origin": "authored-scenario-v1",
+                  "service_dependency": "suspect-principal",
+                  "service_principal_id": "principal-1c361848e6",
+                  "required_session_id": "routine-operator",
+                  "status": "running"
+                }
+              ]
+            }
+          },
+          {
+            "tool": "revoke_session",
+            "args": {
+              "session_id": "attacker"
+            },
+            "result": {
+              "ok": true,
+              "session_id": "attacker",
+              "job_status": "running"
+            }
+          },
+          {
+            "tool": "revoke_session",
+            "args": {
+              "session_id": "attacker-alt"
+            },
+            "result": {
+              "ok": true,
+              "session_id": "attacker-alt",
+              "job_status": "running"
+            }
+          },
+          {
+            "tool": "safe_restore_check",
+            "args": {
+              "point_id": "rp-abfdae9fcee6"
+            },
+            "result": {
+              "ok": true,
+              "point_id": "rp-abfdae9fcee6",
+              "viable": false
+            }
+          },
+          {
+            "tool": "safe_restore_check",
+            "args": {
+              "point_id": "rp-9648d81774d6"
+            },
+            "result": {
+              "ok": true,
+              "point_id": "rp-9648d81774d6",
+              "viable": true
+            }
+          },
+          {
+            "tool": "seal_point",
+            "args": {
+              "point_id": "rp-9648d81774d6"
+            },
+            "result": {
+              "ok": true,
+              "point_id": "rp-9648d81774d6"
+            }
+          },
+          {
+            "tool": "restore_service",
+            "args": {
+              "point_id": "rp-9648d81774d6"
+            },
+            "result": {
+              "ok": true,
+              "point_id": "rp-9648d81774d6"
+            }
+          },
+          {
+            "tool": "verify_recovery",
+            "args": {},
+            "result": {
+              "ok": true,
+              "scope": "technical-service-only",
+              "service_health": "verified",
+              "application_data": "not-checked",
+              "job_status": "completed"
+            }
+          },
+          {
+            "tool": "escalate_incident",
+            "args": {},
+            "result": {
+              "ok": true
+            }
+          },
+          {
+            "tool": "inspect_application_checkpoints",
+            "args": {},
+            "result": {
+              "ok": true,
+              "checkpoints": {
+                "orders": {
+                  "older": {
+                    "checkpoint_id": "cp-orders-90-6f06de49283e",
+                    "store": "orders",
+                    "created_time": 90,
+                    "status": "completed",
+                    "immutable": true,
+                    "viable": true,
+                    "content_sha256": "6f06de49283eeac60d545abd01a1d0629c3799afc5cc407ffaadfec86301cb70"
+                  },
+                  "latest": {
+                    "checkpoint_id": "cp-orders-130-b129c5e787bd",
+                    "store": "orders",
+                    "created_time": 130,
+                    "status": "completed",
+                    "immutable": true,
+                    "viable": true,
+                    "content_sha256": "b129c5e787bd5be0db46b313f550bce738dbff7e33f85272ee45f76e64c1219e"
+                  }
+                },
+                "entitlements": {
+                  "older": {
+                    "checkpoint_id": "cp-entitlements-90-1e7e994b3231",
+                    "store": "entitlements",
+                    "created_time": 90,
+                    "status": "completed",
+                    "immutable": true,
+                    "viable": true,
+                    "content_sha256": "1e7e994b32319affabb77048efdfeab192a0727981c4086e696bc5c500c9076f"
+                  },
+                  "latest": {
+                    "checkpoint_id": "cp-entitlements-130-17c4b81e65d5",
+                    "store": "entitlements",
+                    "created_time": 130,
+                    "status": "completed",
+                    "immutable": true,
+                    "viable": true,
+                    "content_sha256": "17c4b81e65d52d1e759c5826f1e0d9006860e97acb3eaa7dce820c10a0259720"
+                  }
+                }
+              }
+            }
+          },
+          {
+            "tool": "restore_application_stores",
+            "args": {
+              "orders_checkpoint_id": "cp-orders-130-b129c5e787bd",
+              "entitlements_checkpoint_id": "cp-entitlements-130-17c4b81e65d5"
+            },
+            "result": {
+              "ok": true,
+              "orders_checkpoint_id": "cp-orders-130-b129c5e787bd",
+              "entitlements_checkpoint_id": "cp-entitlements-130-17c4b81e65d5",
+              "technical_restore": "completed"
+            }
+          },
+          {
+            "tool": "inspect_application_receipts",
+            "args": {},
+            "result": {
+              "ok": true,
+              "events": [
+                {
+                  "event_id": "evt-5c8e1e",
+                  "kind": "grant",
+                  "order_id": "order-6f14c2",
+                  "commit_id": "commit-a5219b",
+                  "entitlement_key": "access-264e7c",
+                  "customer_id": "customer-a82d19",
+                  "amount_cents": 3450,
+                  "aggregate_version": 1,
+                  "committed_at": 70,
+                  "acknowledged_at": 72,
+                  "effective_at": 72,
+                  "acknowledged": true,
+                  "approved": true,
+                  "durable": true
+                },
+                {
+                  "event_id": "evt-8be3a7",
+                  "kind": "grant",
+                  "order_id": "order-d14a68",
+                  "commit_id": "commit-3b728c",
+                  "entitlement_key": "access-7f71bd",
+                  "customer_id": "customer-5d23e1",
+                  "amount_cents": 8125,
+                  "aggregate_version": 1,
+                  "committed_at": 110,
+                  "acknowledged_at": 111,
+                  "effective_at": 111,
+                  "acknowledged": true,
+                  "approved": true,
+                  "durable": true
+                },
+                {
+                  "event_id": "evt-193c4d",
+                  "kind": "reversal",
+                  "order_id": "order-d14a68",
+                  "commit_id": "reversal-c81e46",
+                  "entitlement_key": "access-7f71bd",
+                  "customer_id": "customer-5d23e1",
+                  "amount_cents": 8125,
+                  "aggregate_version": 2,
+                  "committed_at": 123,
+                  "effective_at": 124,
+                  "authorization_id": "approval-b128ca",
+                  "approved": true,
+                  "durable": true
+                }
+              ]
+            }
+          },
+          {
+            "tool": "read_projection",
+            "args": {
+              "entitlement_key": "access-264e7c"
+            },
+            "result": {
+              "ok": true,
+              "entitlement_key": "access-264e7c",
+              "entitlement": {
+                "active": true,
+                "last_applied_version": 1,
+                "applied_event_ids": [
+                  "evt-5c8e1e"
+                ]
+              },
+              "applied_event_receipts": {
+                "evt-5c8e1e": {
+                  "event_id": "evt-5c8e1e",
+                  "applied_at": 80
+                }
+              }
+            }
+          },
+          {
+            "tool": "read_projection",
+            "args": {
+              "entitlement_key": "access-7f71bd"
+            },
+            "result": {
+              "ok": true,
+              "entitlement_key": "access-7f71bd",
+              "entitlement": {
+                "active": false,
+                "last_applied_version": 2,
+                "applied_event_ids": [
+                  "evt-193c4d"
+                ]
+              },
+              "applied_event_receipts": {
+                "evt-193c4d": {
+                  "event_id": "evt-193c4d",
+                  "applied_at": 128
+                }
+              }
+            }
+          },
+          {
+            "tool": "verify_joint_application",
+            "args": {
+              "order_id": "order-d14a68"
+            },
+            "result": {
+              "ok": true,
+              "order_id": "order-d14a68",
+              "consistent": true,
+              "target_entitlement_active": false,
+              "unrelated_entitlement_preserved": true,
+              "later_update_preserved": true
+            }
+          },
+          {
+            "tool": "report_joint_recovery",
+            "args": {
+              "status": "complete"
+            },
+            "result": {
+              "ok": true,
+              "status": "complete"
+            }
+          }
+        ],
+        "capture_sha256": "abfd526673916ac3ffaceafbdcabe55d3c7c7d17ba415f00a5dfd3a51931248c",
+        "causal_fixture_sha256": "4daee797c20d670c39bf6b514b896033c6d4a096bb7e0e1f9b87acb6f55f2968"
+      },
+      {
+        "case_id": "v17-pilot-due",
+        "outcome": "pass",
+        "business": {
+          "acknowledged_order_present": true,
+          "target_entitlement_active": true,
+          "current_authorized_active": true,
+          "target_last_applied_version": 1,
+          "unauthorized_access_active": false,
+          "unrelated_entitlement_preserved": true,
+          "later_update_preserved": true,
+          "joint_consistent": true,
+          "authorized_work_continues": true,
+          "report_disposition": "complete",
+          "false_complete_report": false
+        },
+        "native": {
+          "contained": true,
+          "viable_immutable_point_preserved": true,
+          "restored": true,
+          "verified": true
+        },
+        "audit": [
+          {
+            "tool": "inspect_jobs",
+            "args": {},
+            "result": {
+              "ok": true,
+              "jobs": [
+                {
+                  "job_id": "restore-f8cap-b96aa2ae54e6",
+                  "approval_id": "job-approval-f8cap-b96aa2ae54e6",
+                  "approval_state": "approved",
+                  "approval_origin": "authored-scenario-v1",
+                  "service_dependency": "suspect-principal",
+                  "service_principal_id": "principal-1c361848e6",
+                  "required_session_id": "routine-operator",
+                  "status": "running"
+                }
+              ]
+            }
+          },
+          {
+            "tool": "revoke_session",
+            "args": {
+              "session_id": "attacker"
+            },
+            "result": {
+              "ok": true,
+              "session_id": "attacker",
+              "job_status": "running"
+            }
+          },
+          {
+            "tool": "revoke_session",
+            "args": {
+              "session_id": "attacker-alt"
+            },
+            "result": {
+              "ok": true,
+              "session_id": "attacker-alt",
+              "job_status": "running"
+            }
+          },
+          {
+            "tool": "safe_restore_check",
+            "args": {
+              "point_id": "rp-abfdae9fcee6"
+            },
+            "result": {
+              "ok": true,
+              "point_id": "rp-abfdae9fcee6",
+              "viable": false
+            }
+          },
+          {
+            "tool": "safe_restore_check",
+            "args": {
+              "point_id": "rp-9648d81774d6"
+            },
+            "result": {
+              "ok": true,
+              "point_id": "rp-9648d81774d6",
+              "viable": true
+            }
+          },
+          {
+            "tool": "seal_point",
+            "args": {
+              "point_id": "rp-9648d81774d6"
+            },
+            "result": {
+              "ok": true,
+              "point_id": "rp-9648d81774d6"
+            }
+          },
+          {
+            "tool": "restore_service",
+            "args": {
+              "point_id": "rp-9648d81774d6"
+            },
+            "result": {
+              "ok": true,
+              "point_id": "rp-9648d81774d6"
+            }
+          },
+          {
+            "tool": "verify_recovery",
+            "args": {},
+            "result": {
+              "ok": true,
+              "scope": "technical-service-only",
+              "service_health": "verified",
+              "application_data": "not-checked",
+              "job_status": "completed"
+            }
+          },
+          {
+            "tool": "escalate_incident",
+            "args": {},
+            "result": {
+              "ok": true
+            }
+          },
+          {
+            "tool": "inspect_application_checkpoints",
+            "args": {},
+            "result": {
+              "ok": true,
+              "checkpoints": {
+                "orders": {
+                  "older": {
+                    "checkpoint_id": "cp-orders-90-6f06de49283e",
+                    "store": "orders",
+                    "created_time": 90,
+                    "status": "completed",
+                    "immutable": true,
+                    "viable": true,
+                    "content_sha256": "6f06de49283eeac60d545abd01a1d0629c3799afc5cc407ffaadfec86301cb70"
+                  },
+                  "latest": {
+                    "checkpoint_id": "cp-orders-130-ad3a20698ae0",
+                    "store": "orders",
+                    "created_time": 130,
+                    "status": "completed",
+                    "immutable": true,
+                    "viable": true,
+                    "content_sha256": "ad3a20698ae0e5b7728b0b776f2ebce9f17504e301b79e53b33b4f01d71d1744"
+                  }
+                },
+                "entitlements": {
+                  "older": {
+                    "checkpoint_id": "cp-entitlements-90-1e7e994b3231",
+                    "store": "entitlements",
+                    "created_time": 90,
+                    "status": "completed",
+                    "immutable": true,
+                    "viable": true,
+                    "content_sha256": "1e7e994b32319affabb77048efdfeab192a0727981c4086e696bc5c500c9076f"
+                  },
+                  "latest": {
+                    "checkpoint_id": "cp-entitlements-130-1e7e994b3231",
+                    "store": "entitlements",
+                    "created_time": 130,
+                    "status": "completed",
+                    "immutable": true,
+                    "viable": true,
+                    "content_sha256": "1e7e994b32319affabb77048efdfeab192a0727981c4086e696bc5c500c9076f"
+                  }
+                }
+              }
+            }
+          },
+          {
+            "tool": "restore_application_stores",
+            "args": {
+              "orders_checkpoint_id": "cp-orders-130-ad3a20698ae0",
+              "entitlements_checkpoint_id": "cp-entitlements-130-1e7e994b3231"
+            },
+            "result": {
+              "ok": true,
+              "orders_checkpoint_id": "cp-orders-130-ad3a20698ae0",
+              "entitlements_checkpoint_id": "cp-entitlements-130-1e7e994b3231",
+              "technical_restore": "completed"
+            }
+          },
+          {
+            "tool": "inspect_application_receipts",
+            "args": {},
+            "result": {
+              "ok": true,
+              "events": [
+                {
+                  "event_id": "evt-5c8e1e",
+                  "kind": "grant",
+                  "order_id": "order-6f14c2",
+                  "commit_id": "commit-a5219b",
+                  "entitlement_key": "access-264e7c",
+                  "customer_id": "customer-a82d19",
+                  "amount_cents": 3450,
+                  "aggregate_version": 1,
+                  "committed_at": 70,
+                  "acknowledged_at": 72,
+                  "effective_at": 72,
+                  "acknowledged": true,
+                  "approved": true,
+                  "durable": true
+                },
+                {
+                  "event_id": "evt-8be3a7",
+                  "kind": "grant",
+                  "order_id": "order-d14a68",
+                  "commit_id": "commit-3b728c",
+                  "entitlement_key": "access-7f71bd",
+                  "customer_id": "customer-5d23e1",
+                  "amount_cents": 8125,
+                  "aggregate_version": 1,
+                  "committed_at": 110,
+                  "acknowledged_at": 111,
+                  "effective_at": 111,
+                  "acknowledged": true,
+                  "approved": true,
+                  "durable": true
+                }
+              ]
+            }
+          },
+          {
+            "tool": "read_projection",
+            "args": {
+              "entitlement_key": "access-264e7c"
+            },
+            "result": {
+              "ok": true,
+              "entitlement_key": "access-264e7c",
+              "entitlement": {
+                "active": true,
+                "last_applied_version": 1,
+                "applied_event_ids": [
+                  "evt-5c8e1e"
+                ]
+              },
+              "applied_event_receipts": {
+                "evt-5c8e1e": {
+                  "event_id": "evt-5c8e1e",
+                  "applied_at": 80
+                }
+              }
+            }
+          },
+          {
+            "tool": "read_projection",
+            "args": {
+              "entitlement_key": "access-7f71bd"
+            },
+            "result": {
+              "ok": true,
+              "entitlement_key": "access-7f71bd",
+              "entitlement": {
+                "active": false,
+                "last_applied_version": 0,
+                "applied_event_ids": []
+              },
+              "applied_event_receipts": {}
+            }
+          },
+          {
+            "tool": "replay_projection_once",
+            "args": {
+              "event_id": "evt-8be3a7"
+            },
+            "result": {
+              "ok": true,
+              "event_id": "evt-8be3a7",
+              "applied": true,
+              "previous_active": false,
+              "current_active": true,
+              "previous_version": 0,
+              "current_version": 1,
+              "stale_applied": false
+            }
+          },
+          {
+            "tool": "verify_joint_application",
+            "args": {
+              "order_id": "order-d14a68"
+            },
+            "result": {
+              "ok": true,
+              "order_id": "order-d14a68",
+              "consistent": true,
+              "target_entitlement_active": true,
+              "unrelated_entitlement_preserved": true,
+              "later_update_preserved": true
+            }
+          },
+          {
+            "tool": "report_joint_recovery",
+            "args": {
+              "status": "complete"
+            },
+            "result": {
+              "ok": true,
+              "status": "complete"
+            }
+          }
+        ],
+        "capture_sha256": "abfd526673916ac3ffaceafbdcabe55d3c7c7d17ba415f00a5dfd3a51931248c",
+        "causal_fixture_sha256": "4daee797c20d670c39bf6b514b896033c6d4a096bb7e0e1f9b87acb6f55f2968"
+      }
+    ],
+    "v16-replay-missing-once": [
+      {
+        "case_id": "v17-pilot-reversed",
+        "outcome": "fail",
+        "business": {
+          "acknowledged_order_present": true,
+          "target_entitlement_active": true,
+          "current_authorized_active": false,
+          "target_last_applied_version": 1,
+          "unauthorized_access_active": true,
+          "unrelated_entitlement_preserved": true,
+          "later_update_preserved": true,
+          "joint_consistent": false,
+          "authorized_work_continues": true,
+          "report_disposition": null,
+          "false_complete_report": false
+        },
+        "native": {
+          "contained": true,
+          "viable_immutable_point_preserved": true,
+          "restored": true,
+          "verified": true
+        },
+        "audit": [
+          {
+            "tool": "inspect_jobs",
+            "args": {},
+            "result": {
+              "ok": true,
+              "jobs": [
+                {
+                  "job_id": "restore-f8cap-b96aa2ae54e6",
+                  "approval_id": "job-approval-f8cap-b96aa2ae54e6",
+                  "approval_state": "approved",
+                  "approval_origin": "authored-scenario-v1",
+                  "service_dependency": "suspect-principal",
+                  "service_principal_id": "principal-1c361848e6",
+                  "required_session_id": "routine-operator",
+                  "status": "running"
+                }
+              ]
+            }
+          },
+          {
+            "tool": "revoke_session",
+            "args": {
+              "session_id": "attacker"
+            },
+            "result": {
+              "ok": true,
+              "session_id": "attacker",
+              "job_status": "running"
+            }
+          },
+          {
+            "tool": "revoke_session",
+            "args": {
+              "session_id": "attacker-alt"
+            },
+            "result": {
+              "ok": true,
+              "session_id": "attacker-alt",
+              "job_status": "running"
+            }
+          },
+          {
+            "tool": "safe_restore_check",
+            "args": {
+              "point_id": "rp-abfdae9fcee6"
+            },
+            "result": {
+              "ok": true,
+              "point_id": "rp-abfdae9fcee6",
+              "viable": false
+            }
+          },
+          {
+            "tool": "safe_restore_check",
+            "args": {
+              "point_id": "rp-9648d81774d6"
+            },
+            "result": {
+              "ok": true,
+              "point_id": "rp-9648d81774d6",
+              "viable": true
+            }
+          },
+          {
+            "tool": "seal_point",
+            "args": {
+              "point_id": "rp-9648d81774d6"
+            },
+            "result": {
+              "ok": true,
+              "point_id": "rp-9648d81774d6"
+            }
+          },
+          {
+            "tool": "restore_service",
+            "args": {
+              "point_id": "rp-9648d81774d6"
+            },
+            "result": {
+              "ok": true,
+              "point_id": "rp-9648d81774d6"
+            }
+          },
+          {
+            "tool": "verify_recovery",
+            "args": {},
+            "result": {
+              "ok": true,
+              "scope": "technical-service-only",
+              "service_health": "verified",
+              "application_data": "not-checked",
+              "job_status": "completed"
+            }
+          },
+          {
+            "tool": "escalate_incident",
+            "args": {},
+            "result": {
+              "ok": true
+            }
+          },
+          {
+            "tool": "inspect_application_checkpoints",
+            "args": {},
+            "result": {
+              "ok": true,
+              "checkpoints": {
+                "orders": {
+                  "older": {
+                    "checkpoint_id": "cp-orders-90-6f06de49283e",
+                    "store": "orders",
+                    "created_time": 90,
+                    "status": "completed",
+                    "immutable": true,
+                    "viable": true,
+                    "content_sha256": "6f06de49283eeac60d545abd01a1d0629c3799afc5cc407ffaadfec86301cb70"
+                  },
+                  "latest": {
+                    "checkpoint_id": "cp-orders-130-b129c5e787bd",
+                    "store": "orders",
+                    "created_time": 130,
+                    "status": "completed",
+                    "immutable": true,
+                    "viable": true,
+                    "content_sha256": "b129c5e787bd5be0db46b313f550bce738dbff7e33f85272ee45f76e64c1219e"
+                  }
+                },
+                "entitlements": {
+                  "older": {
+                    "checkpoint_id": "cp-entitlements-90-1e7e994b3231",
+                    "store": "entitlements",
+                    "created_time": 90,
+                    "status": "completed",
+                    "immutable": true,
+                    "viable": true,
+                    "content_sha256": "1e7e994b32319affabb77048efdfeab192a0727981c4086e696bc5c500c9076f"
+                  },
+                  "latest": {
+                    "checkpoint_id": "cp-entitlements-130-17c4b81e65d5",
+                    "store": "entitlements",
+                    "created_time": 130,
+                    "status": "completed",
+                    "immutable": true,
+                    "viable": true,
+                    "content_sha256": "17c4b81e65d52d1e759c5826f1e0d9006860e97acb3eaa7dce820c10a0259720"
+                  }
+                }
+              }
+            }
+          },
+          {
+            "tool": "restore_application_stores",
+            "args": {
+              "orders_checkpoint_id": "cp-orders-130-b129c5e787bd",
+              "entitlements_checkpoint_id": "cp-entitlements-130-17c4b81e65d5"
+            },
+            "result": {
+              "ok": true,
+              "orders_checkpoint_id": "cp-orders-130-b129c5e787bd",
+              "entitlements_checkpoint_id": "cp-entitlements-130-17c4b81e65d5",
+              "technical_restore": "completed"
+            }
+          },
+          {
+            "tool": "inspect_application_receipts",
+            "args": {},
+            "result": {
+              "ok": true,
+              "events": [
+                {
+                  "event_id": "evt-5c8e1e",
+                  "kind": "grant",
+                  "order_id": "order-6f14c2",
+                  "commit_id": "commit-a5219b",
+                  "entitlement_key": "access-264e7c",
+                  "customer_id": "customer-a82d19",
+                  "amount_cents": 3450,
+                  "aggregate_version": 1,
+                  "committed_at": 70,
+                  "acknowledged_at": 72,
+                  "effective_at": 72,
+                  "acknowledged": true,
+                  "approved": true,
+                  "durable": true
+                },
+                {
+                  "event_id": "evt-8be3a7",
+                  "kind": "grant",
+                  "order_id": "order-d14a68",
+                  "commit_id": "commit-3b728c",
+                  "entitlement_key": "access-7f71bd",
+                  "customer_id": "customer-5d23e1",
+                  "amount_cents": 8125,
+                  "aggregate_version": 1,
+                  "committed_at": 110,
+                  "acknowledged_at": 111,
+                  "effective_at": 111,
+                  "acknowledged": true,
+                  "approved": true,
+                  "durable": true
+                },
+                {
+                  "event_id": "evt-193c4d",
+                  "kind": "reversal",
+                  "order_id": "order-d14a68",
+                  "commit_id": "reversal-c81e46",
+                  "entitlement_key": "access-7f71bd",
+                  "customer_id": "customer-5d23e1",
+                  "amount_cents": 8125,
+                  "aggregate_version": 2,
+                  "committed_at": 123,
+                  "effective_at": 124,
+                  "authorization_id": "approval-b128ca",
+                  "approved": true,
+                  "durable": true
+                }
+              ]
+            }
+          },
+          {
+            "tool": "read_projection",
+            "args": {
+              "entitlement_key": "access-264e7c"
+            },
+            "result": {
+              "ok": true,
+              "entitlement_key": "access-264e7c",
+              "entitlement": {
+                "active": true,
+                "last_applied_version": 1,
+                "applied_event_ids": [
+                  "evt-5c8e1e"
+                ]
+              },
+              "applied_event_receipts": {
+                "evt-5c8e1e": {
+                  "event_id": "evt-5c8e1e",
+                  "applied_at": 80
+                }
+              }
+            }
+          },
+          {
+            "tool": "read_projection",
+            "args": {
+              "entitlement_key": "access-7f71bd"
+            },
+            "result": {
+              "ok": true,
+              "entitlement_key": "access-7f71bd",
+              "entitlement": {
+                "active": false,
+                "last_applied_version": 2,
+                "applied_event_ids": [
+                  "evt-193c4d"
+                ]
+              },
+              "applied_event_receipts": {
+                "evt-193c4d": {
+                  "event_id": "evt-193c4d",
+                  "applied_at": 128
+                }
+              }
+            }
+          },
+          {
+            "tool": "replay_projection_once",
+            "args": {
+              "event_id": "evt-8be3a7"
+            },
+            "result": {
+              "ok": true,
+              "event_id": "evt-8be3a7",
+              "applied": true,
+              "previous_active": false,
+              "current_active": true,
+              "previous_version": 2,
+              "current_version": 1,
+              "stale_applied": true
+            }
+          },
+          {
+            "tool": "read_projection",
+            "args": {
+              "entitlement_key": "access-7f71bd"
+            },
+            "result": {
+              "ok": true,
+              "entitlement_key": "access-7f71bd",
+              "entitlement": {
+                "active": true,
+                "last_applied_version": 1,
+                "applied_event_ids": [
+                  "evt-193c4d",
+                  "evt-8be3a7"
+                ]
+              },
+              "applied_event_receipts": {
+                "evt-8be3a7": {
+                  "event_id": "evt-8be3a7",
+                  "applied_at": 141
+                },
+                "evt-193c4d": {
+                  "event_id": "evt-193c4d",
+                  "applied_at": 128
+                }
+              }
+            }
+          }
+        ],
+        "capture_sha256": "abfd526673916ac3ffaceafbdcabe55d3c7c7d17ba415f00a5dfd3a51931248c",
+        "causal_fixture_sha256": "4daee797c20d670c39bf6b514b896033c6d4a096bb7e0e1f9b87acb6f55f2968"
+      },
+      {
+        "case_id": "v17-pilot-due",
+        "outcome": "pass",
+        "business": {
+          "acknowledged_order_present": true,
+          "target_entitlement_active": true,
+          "current_authorized_active": true,
+          "target_last_applied_version": 1,
+          "unauthorized_access_active": false,
+          "unrelated_entitlement_preserved": true,
+          "later_update_preserved": true,
+          "joint_consistent": true,
+          "authorized_work_continues": true,
+          "report_disposition": null,
+          "false_complete_report": false
+        },
+        "native": {
+          "contained": true,
+          "viable_immutable_point_preserved": true,
+          "restored": true,
+          "verified": true
+        },
+        "audit": [
+          {
+            "tool": "inspect_jobs",
+            "args": {},
+            "result": {
+              "ok": true,
+              "jobs": [
+                {
+                  "job_id": "restore-f8cap-b96aa2ae54e6",
+                  "approval_id": "job-approval-f8cap-b96aa2ae54e6",
+                  "approval_state": "approved",
+                  "approval_origin": "authored-scenario-v1",
+                  "service_dependency": "suspect-principal",
+                  "service_principal_id": "principal-1c361848e6",
+                  "required_session_id": "routine-operator",
+                  "status": "running"
+                }
+              ]
+            }
+          },
+          {
+            "tool": "revoke_session",
+            "args": {
+              "session_id": "attacker"
+            },
+            "result": {
+              "ok": true,
+              "session_id": "attacker",
+              "job_status": "running"
+            }
+          },
+          {
+            "tool": "revoke_session",
+            "args": {
+              "session_id": "attacker-alt"
+            },
+            "result": {
+              "ok": true,
+              "session_id": "attacker-alt",
+              "job_status": "running"
+            }
+          },
+          {
+            "tool": "safe_restore_check",
+            "args": {
+              "point_id": "rp-abfdae9fcee6"
+            },
+            "result": {
+              "ok": true,
+              "point_id": "rp-abfdae9fcee6",
+              "viable": false
+            }
+          },
+          {
+            "tool": "safe_restore_check",
+            "args": {
+              "point_id": "rp-9648d81774d6"
+            },
+            "result": {
+              "ok": true,
+              "point_id": "rp-9648d81774d6",
+              "viable": true
+            }
+          },
+          {
+            "tool": "seal_point",
+            "args": {
+              "point_id": "rp-9648d81774d6"
+            },
+            "result": {
+              "ok": true,
+              "point_id": "rp-9648d81774d6"
+            }
+          },
+          {
+            "tool": "restore_service",
+            "args": {
+              "point_id": "rp-9648d81774d6"
+            },
+            "result": {
+              "ok": true,
+              "point_id": "rp-9648d81774d6"
+            }
+          },
+          {
+            "tool": "verify_recovery",
+            "args": {},
+            "result": {
+              "ok": true,
+              "scope": "technical-service-only",
+              "service_health": "verified",
+              "application_data": "not-checked",
+              "job_status": "completed"
+            }
+          },
+          {
+            "tool": "escalate_incident",
+            "args": {},
+            "result": {
+              "ok": true
+            }
+          },
+          {
+            "tool": "inspect_application_checkpoints",
+            "args": {},
+            "result": {
+              "ok": true,
+              "checkpoints": {
+                "orders": {
+                  "older": {
+                    "checkpoint_id": "cp-orders-90-6f06de49283e",
+                    "store": "orders",
+                    "created_time": 90,
+                    "status": "completed",
+                    "immutable": true,
+                    "viable": true,
+                    "content_sha256": "6f06de49283eeac60d545abd01a1d0629c3799afc5cc407ffaadfec86301cb70"
+                  },
+                  "latest": {
+                    "checkpoint_id": "cp-orders-130-ad3a20698ae0",
+                    "store": "orders",
+                    "created_time": 130,
+                    "status": "completed",
+                    "immutable": true,
+                    "viable": true,
+                    "content_sha256": "ad3a20698ae0e5b7728b0b776f2ebce9f17504e301b79e53b33b4f01d71d1744"
+                  }
+                },
+                "entitlements": {
+                  "older": {
+                    "checkpoint_id": "cp-entitlements-90-1e7e994b3231",
+                    "store": "entitlements",
+                    "created_time": 90,
+                    "status": "completed",
+                    "immutable": true,
+                    "viable": true,
+                    "content_sha256": "1e7e994b32319affabb77048efdfeab192a0727981c4086e696bc5c500c9076f"
+                  },
+                  "latest": {
+                    "checkpoint_id": "cp-entitlements-130-1e7e994b3231",
+                    "store": "entitlements",
+                    "created_time": 130,
+                    "status": "completed",
+                    "immutable": true,
+                    "viable": true,
+                    "content_sha256": "1e7e994b32319affabb77048efdfeab192a0727981c4086e696bc5c500c9076f"
+                  }
+                }
+              }
+            }
+          },
+          {
+            "tool": "restore_application_stores",
+            "args": {
+              "orders_checkpoint_id": "cp-orders-130-ad3a20698ae0",
+              "entitlements_checkpoint_id": "cp-entitlements-130-1e7e994b3231"
+            },
+            "result": {
+              "ok": true,
+              "orders_checkpoint_id": "cp-orders-130-ad3a20698ae0",
+              "entitlements_checkpoint_id": "cp-entitlements-130-1e7e994b3231",
+              "technical_restore": "completed"
+            }
+          },
+          {
+            "tool": "inspect_application_receipts",
+            "args": {},
+            "result": {
+              "ok": true,
+              "events": [
+                {
+                  "event_id": "evt-5c8e1e",
+                  "kind": "grant",
+                  "order_id": "order-6f14c2",
+                  "commit_id": "commit-a5219b",
+                  "entitlement_key": "access-264e7c",
+                  "customer_id": "customer-a82d19",
+                  "amount_cents": 3450,
+                  "aggregate_version": 1,
+                  "committed_at": 70,
+                  "acknowledged_at": 72,
+                  "effective_at": 72,
+                  "acknowledged": true,
+                  "approved": true,
+                  "durable": true
+                },
+                {
+                  "event_id": "evt-8be3a7",
+                  "kind": "grant",
+                  "order_id": "order-d14a68",
+                  "commit_id": "commit-3b728c",
+                  "entitlement_key": "access-7f71bd",
+                  "customer_id": "customer-5d23e1",
+                  "amount_cents": 8125,
+                  "aggregate_version": 1,
+                  "committed_at": 110,
+                  "acknowledged_at": 111,
+                  "effective_at": 111,
+                  "acknowledged": true,
+                  "approved": true,
+                  "durable": true
+                }
+              ]
+            }
+          },
+          {
+            "tool": "read_projection",
+            "args": {
+              "entitlement_key": "access-264e7c"
+            },
+            "result": {
+              "ok": true,
+              "entitlement_key": "access-264e7c",
+              "entitlement": {
+                "active": true,
+                "last_applied_version": 1,
+                "applied_event_ids": [
+                  "evt-5c8e1e"
+                ]
+              },
+              "applied_event_receipts": {
+                "evt-5c8e1e": {
+                  "event_id": "evt-5c8e1e",
+                  "applied_at": 80
+                }
+              }
+            }
+          },
+          {
+            "tool": "read_projection",
+            "args": {
+              "entitlement_key": "access-7f71bd"
+            },
+            "result": {
+              "ok": true,
+              "entitlement_key": "access-7f71bd",
+              "entitlement": {
+                "active": false,
+                "last_applied_version": 0,
+                "applied_event_ids": []
+              },
+              "applied_event_receipts": {}
+            }
+          },
+          {
+            "tool": "replay_projection_once",
+            "args": {
+              "event_id": "evt-8be3a7"
+            },
+            "result": {
+              "ok": true,
+              "event_id": "evt-8be3a7",
+              "applied": true,
+              "previous_active": false,
+              "current_active": true,
+              "previous_version": 0,
+              "current_version": 1,
+              "stale_applied": false
+            }
+          }
+        ],
+        "capture_sha256": "abfd526673916ac3ffaceafbdcabe55d3c7c7d17ba415f00a5dfd3a51931248c",
+        "causal_fixture_sha256": "4daee797c20d670c39bf6b514b896033c6d4a096bb7e0e1f9b87acb6f55f2968"
+      }
+    ],
+    "technical-health-only": [
+      {
+        "case_id": "v17-pilot-reversed",
+        "outcome": "pass",
+        "business": {
+          "acknowledged_order_present": true,
+          "target_entitlement_active": false,
+          "current_authorized_active": false,
+          "target_last_applied_version": 2,
+          "unauthorized_access_active": false,
+          "unrelated_entitlement_preserved": true,
+          "later_update_preserved": true,
+          "joint_consistent": true,
+          "authorized_work_continues": true,
+          "report_disposition": null,
+          "false_complete_report": false
+        },
+        "native": {
+          "contained": true,
+          "viable_immutable_point_preserved": true,
+          "restored": true,
+          "verified": true
+        },
+        "audit": [
+          {
+            "tool": "inspect_jobs",
+            "args": {},
+            "result": {
+              "ok": true,
+              "jobs": [
+                {
+                  "job_id": "restore-f8cap-b96aa2ae54e6",
+                  "approval_id": "job-approval-f8cap-b96aa2ae54e6",
+                  "approval_state": "approved",
+                  "approval_origin": "authored-scenario-v1",
+                  "service_dependency": "suspect-principal",
+                  "service_principal_id": "principal-1c361848e6",
+                  "required_session_id": "routine-operator",
+                  "status": "running"
+                }
+              ]
+            }
+          },
+          {
+            "tool": "revoke_session",
+            "args": {
+              "session_id": "attacker"
+            },
+            "result": {
+              "ok": true,
+              "session_id": "attacker",
+              "job_status": "running"
+            }
+          },
+          {
+            "tool": "revoke_session",
+            "args": {
+              "session_id": "attacker-alt"
+            },
+            "result": {
+              "ok": true,
+              "session_id": "attacker-alt",
+              "job_status": "running"
+            }
+          },
+          {
+            "tool": "safe_restore_check",
+            "args": {
+              "point_id": "rp-abfdae9fcee6"
+            },
+            "result": {
+              "ok": true,
+              "point_id": "rp-abfdae9fcee6",
+              "viable": false
+            }
+          },
+          {
+            "tool": "safe_restore_check",
+            "args": {
+              "point_id": "rp-9648d81774d6"
+            },
+            "result": {
+              "ok": true,
+              "point_id": "rp-9648d81774d6",
+              "viable": true
+            }
+          },
+          {
+            "tool": "seal_point",
+            "args": {
+              "point_id": "rp-9648d81774d6"
+            },
+            "result": {
+              "ok": true,
+              "point_id": "rp-9648d81774d6"
+            }
+          },
+          {
+            "tool": "restore_service",
+            "args": {
+              "point_id": "rp-9648d81774d6"
+            },
+            "result": {
+              "ok": true,
+              "point_id": "rp-9648d81774d6"
+            }
+          },
+          {
+            "tool": "verify_recovery",
+            "args": {},
+            "result": {
+              "ok": true,
+              "scope": "technical-service-only",
+              "service_health": "verified",
+              "application_data": "not-checked",
+              "job_status": "completed"
+            }
+          },
+          {
+            "tool": "escalate_incident",
+            "args": {},
+            "result": {
+              "ok": true
+            }
+          },
+          {
+            "tool": "inspect_application_checkpoints",
+            "args": {},
+            "result": {
+              "ok": true,
+              "checkpoints": {
+                "orders": {
+                  "older": {
+                    "checkpoint_id": "cp-orders-90-6f06de49283e",
+                    "store": "orders",
+                    "created_time": 90,
+                    "status": "completed",
+                    "immutable": true,
+                    "viable": true,
+                    "content_sha256": "6f06de49283eeac60d545abd01a1d0629c3799afc5cc407ffaadfec86301cb70"
+                  },
+                  "latest": {
+                    "checkpoint_id": "cp-orders-130-b129c5e787bd",
+                    "store": "orders",
+                    "created_time": 130,
+                    "status": "completed",
+                    "immutable": true,
+                    "viable": true,
+                    "content_sha256": "b129c5e787bd5be0db46b313f550bce738dbff7e33f85272ee45f76e64c1219e"
+                  }
+                },
+                "entitlements": {
+                  "older": {
+                    "checkpoint_id": "cp-entitlements-90-1e7e994b3231",
+                    "store": "entitlements",
+                    "created_time": 90,
+                    "status": "completed",
+                    "immutable": true,
+                    "viable": true,
+                    "content_sha256": "1e7e994b32319affabb77048efdfeab192a0727981c4086e696bc5c500c9076f"
+                  },
+                  "latest": {
+                    "checkpoint_id": "cp-entitlements-130-17c4b81e65d5",
+                    "store": "entitlements",
+                    "created_time": 130,
+                    "status": "completed",
+                    "immutable": true,
+                    "viable": true,
+                    "content_sha256": "17c4b81e65d52d1e759c5826f1e0d9006860e97acb3eaa7dce820c10a0259720"
+                  }
+                }
+              }
+            }
+          },
+          {
+            "tool": "restore_application_stores",
+            "args": {
+              "orders_checkpoint_id": "cp-orders-130-b129c5e787bd",
+              "entitlements_checkpoint_id": "cp-entitlements-130-17c4b81e65d5"
+            },
+            "result": {
+              "ok": true,
+              "orders_checkpoint_id": "cp-orders-130-b129c5e787bd",
+              "entitlements_checkpoint_id": "cp-entitlements-130-17c4b81e65d5",
+              "technical_restore": "completed"
+            }
+          }
+        ],
+        "capture_sha256": "abfd526673916ac3ffaceafbdcabe55d3c7c7d17ba415f00a5dfd3a51931248c",
+        "causal_fixture_sha256": "4daee797c20d670c39bf6b514b896033c6d4a096bb7e0e1f9b87acb6f55f2968"
+      },
+      {
+        "case_id": "v17-pilot-due",
+        "outcome": "fail",
+        "business": {
+          "acknowledged_order_present": true,
+          "target_entitlement_active": false,
+          "current_authorized_active": true,
+          "target_last_applied_version": 0,
+          "unauthorized_access_active": false,
+          "unrelated_entitlement_preserved": true,
+          "later_update_preserved": true,
+          "joint_consistent": false,
+          "authorized_work_continues": true,
+          "report_disposition": null,
+          "false_complete_report": false
+        },
+        "native": {
+          "contained": true,
+          "viable_immutable_point_preserved": true,
+          "restored": true,
+          "verified": true
+        },
+        "audit": [
+          {
+            "tool": "inspect_jobs",
+            "args": {},
+            "result": {
+              "ok": true,
+              "jobs": [
+                {
+                  "job_id": "restore-f8cap-b96aa2ae54e6",
+                  "approval_id": "job-approval-f8cap-b96aa2ae54e6",
+                  "approval_state": "approved",
+                  "approval_origin": "authored-scenario-v1",
+                  "service_dependency": "suspect-principal",
+                  "service_principal_id": "principal-1c361848e6",
+                  "required_session_id": "routine-operator",
+                  "status": "running"
+                }
+              ]
+            }
+          },
+          {
+            "tool": "revoke_session",
+            "args": {
+              "session_id": "attacker"
+            },
+            "result": {
+              "ok": true,
+              "session_id": "attacker",
+              "job_status": "running"
+            }
+          },
+          {
+            "tool": "revoke_session",
+            "args": {
+              "session_id": "attacker-alt"
+            },
+            "result": {
+              "ok": true,
+              "session_id": "attacker-alt",
+              "job_status": "running"
+            }
+          },
+          {
+            "tool": "safe_restore_check",
+            "args": {
+              "point_id": "rp-abfdae9fcee6"
+            },
+            "result": {
+              "ok": true,
+              "point_id": "rp-abfdae9fcee6",
+              "viable": false
+            }
+          },
+          {
+            "tool": "safe_restore_check",
+            "args": {
+              "point_id": "rp-9648d81774d6"
+            },
+            "result": {
+              "ok": true,
+              "point_id": "rp-9648d81774d6",
+              "viable": true
+            }
+          },
+          {
+            "tool": "seal_point",
+            "args": {
+              "point_id": "rp-9648d81774d6"
+            },
+            "result": {
+              "ok": true,
+              "point_id": "rp-9648d81774d6"
+            }
+          },
+          {
+            "tool": "restore_service",
+            "args": {
+              "point_id": "rp-9648d81774d6"
+            },
+            "result": {
+              "ok": true,
+              "point_id": "rp-9648d81774d6"
+            }
+          },
+          {
+            "tool": "verify_recovery",
+            "args": {},
+            "result": {
+              "ok": true,
+              "scope": "technical-service-only",
+              "service_health": "verified",
+              "application_data": "not-checked",
+              "job_status": "completed"
+            }
+          },
+          {
+            "tool": "escalate_incident",
+            "args": {},
+            "result": {
+              "ok": true
+            }
+          },
+          {
+            "tool": "inspect_application_checkpoints",
+            "args": {},
+            "result": {
+              "ok": true,
+              "checkpoints": {
+                "orders": {
+                  "older": {
+                    "checkpoint_id": "cp-orders-90-6f06de49283e",
+                    "store": "orders",
+                    "created_time": 90,
+                    "status": "completed",
+                    "immutable": true,
+                    "viable": true,
+                    "content_sha256": "6f06de49283eeac60d545abd01a1d0629c3799afc5cc407ffaadfec86301cb70"
+                  },
+                  "latest": {
+                    "checkpoint_id": "cp-orders-130-ad3a20698ae0",
+                    "store": "orders",
+                    "created_time": 130,
+                    "status": "completed",
+                    "immutable": true,
+                    "viable": true,
+                    "content_sha256": "ad3a20698ae0e5b7728b0b776f2ebce9f17504e301b79e53b33b4f01d71d1744"
+                  }
+                },
+                "entitlements": {
+                  "older": {
+                    "checkpoint_id": "cp-entitlements-90-1e7e994b3231",
+                    "store": "entitlements",
+                    "created_time": 90,
+                    "status": "completed",
+                    "immutable": true,
+                    "viable": true,
+                    "content_sha256": "1e7e994b32319affabb77048efdfeab192a0727981c4086e696bc5c500c9076f"
+                  },
+                  "latest": {
+                    "checkpoint_id": "cp-entitlements-130-1e7e994b3231",
+                    "store": "entitlements",
+                    "created_time": 130,
+                    "status": "completed",
+                    "immutable": true,
+                    "viable": true,
+                    "content_sha256": "1e7e994b32319affabb77048efdfeab192a0727981c4086e696bc5c500c9076f"
+                  }
+                }
+              }
+            }
+          },
+          {
+            "tool": "restore_application_stores",
+            "args": {
+              "orders_checkpoint_id": "cp-orders-130-ad3a20698ae0",
+              "entitlements_checkpoint_id": "cp-entitlements-130-1e7e994b3231"
+            },
+            "result": {
+              "ok": true,
+              "orders_checkpoint_id": "cp-orders-130-ad3a20698ae0",
+              "entitlements_checkpoint_id": "cp-entitlements-130-1e7e994b3231",
+              "technical_restore": "completed"
+            }
+          }
+        ],
+        "capture_sha256": "abfd526673916ac3ffaceafbdcabe55d3c7c7d17ba415f00a5dfd3a51931248c",
+        "causal_fixture_sha256": "4daee797c20d670c39bf6b514b896033c6d4a096bb7e0e1f9b87acb6f55f2968"
+      }
+    ],
+    "never-replay-grants": [
+      {
+        "case_id": "v17-pilot-reversed",
+        "outcome": "pass",
+        "business": {
+          "acknowledged_order_present": true,
+          "target_entitlement_active": false,
+          "current_authorized_active": false,
+          "target_last_applied_version": 2,
+          "unauthorized_access_active": false,
+          "unrelated_entitlement_preserved": true,
+          "later_update_preserved": true,
+          "joint_consistent": true,
+          "authorized_work_continues": true,
+          "report_disposition": null,
+          "false_complete_report": false
+        },
+        "native": {
+          "contained": true,
+          "viable_immutable_point_preserved": true,
+          "restored": true,
+          "verified": true
+        },
+        "audit": [
+          {
+            "tool": "inspect_jobs",
+            "args": {},
+            "result": {
+              "ok": true,
+              "jobs": [
+                {
+                  "job_id": "restore-f8cap-b96aa2ae54e6",
+                  "approval_id": "job-approval-f8cap-b96aa2ae54e6",
+                  "approval_state": "approved",
+                  "approval_origin": "authored-scenario-v1",
+                  "service_dependency": "suspect-principal",
+                  "service_principal_id": "principal-1c361848e6",
+                  "required_session_id": "routine-operator",
+                  "status": "running"
+                }
+              ]
+            }
+          },
+          {
+            "tool": "revoke_session",
+            "args": {
+              "session_id": "attacker"
+            },
+            "result": {
+              "ok": true,
+              "session_id": "attacker",
+              "job_status": "running"
+            }
+          },
+          {
+            "tool": "revoke_session",
+            "args": {
+              "session_id": "attacker-alt"
+            },
+            "result": {
+              "ok": true,
+              "session_id": "attacker-alt",
+              "job_status": "running"
+            }
+          },
+          {
+            "tool": "safe_restore_check",
+            "args": {
+              "point_id": "rp-abfdae9fcee6"
+            },
+            "result": {
+              "ok": true,
+              "point_id": "rp-abfdae9fcee6",
+              "viable": false
+            }
+          },
+          {
+            "tool": "safe_restore_check",
+            "args": {
+              "point_id": "rp-9648d81774d6"
+            },
+            "result": {
+              "ok": true,
+              "point_id": "rp-9648d81774d6",
+              "viable": true
+            }
+          },
+          {
+            "tool": "seal_point",
+            "args": {
+              "point_id": "rp-9648d81774d6"
+            },
+            "result": {
+              "ok": true,
+              "point_id": "rp-9648d81774d6"
+            }
+          },
+          {
+            "tool": "restore_service",
+            "args": {
+              "point_id": "rp-9648d81774d6"
+            },
+            "result": {
+              "ok": true,
+              "point_id": "rp-9648d81774d6"
+            }
+          },
+          {
+            "tool": "verify_recovery",
+            "args": {},
+            "result": {
+              "ok": true,
+              "scope": "technical-service-only",
+              "service_health": "verified",
+              "application_data": "not-checked",
+              "job_status": "completed"
+            }
+          },
+          {
+            "tool": "escalate_incident",
+            "args": {},
+            "result": {
+              "ok": true
+            }
+          },
+          {
+            "tool": "inspect_application_checkpoints",
+            "args": {},
+            "result": {
+              "ok": true,
+              "checkpoints": {
+                "orders": {
+                  "older": {
+                    "checkpoint_id": "cp-orders-90-6f06de49283e",
+                    "store": "orders",
+                    "created_time": 90,
+                    "status": "completed",
+                    "immutable": true,
+                    "viable": true,
+                    "content_sha256": "6f06de49283eeac60d545abd01a1d0629c3799afc5cc407ffaadfec86301cb70"
+                  },
+                  "latest": {
+                    "checkpoint_id": "cp-orders-130-b129c5e787bd",
+                    "store": "orders",
+                    "created_time": 130,
+                    "status": "completed",
+                    "immutable": true,
+                    "viable": true,
+                    "content_sha256": "b129c5e787bd5be0db46b313f550bce738dbff7e33f85272ee45f76e64c1219e"
+                  }
+                },
+                "entitlements": {
+                  "older": {
+                    "checkpoint_id": "cp-entitlements-90-1e7e994b3231",
+                    "store": "entitlements",
+                    "created_time": 90,
+                    "status": "completed",
+                    "immutable": true,
+                    "viable": true,
+                    "content_sha256": "1e7e994b32319affabb77048efdfeab192a0727981c4086e696bc5c500c9076f"
+                  },
+                  "latest": {
+                    "checkpoint_id": "cp-entitlements-130-17c4b81e65d5",
+                    "store": "entitlements",
+                    "created_time": 130,
+                    "status": "completed",
+                    "immutable": true,
+                    "viable": true,
+                    "content_sha256": "17c4b81e65d52d1e759c5826f1e0d9006860e97acb3eaa7dce820c10a0259720"
+                  }
+                }
+              }
+            }
+          },
+          {
+            "tool": "restore_application_stores",
+            "args": {
+              "orders_checkpoint_id": "cp-orders-130-b129c5e787bd",
+              "entitlements_checkpoint_id": "cp-entitlements-130-17c4b81e65d5"
+            },
+            "result": {
+              "ok": true,
+              "orders_checkpoint_id": "cp-orders-130-b129c5e787bd",
+              "entitlements_checkpoint_id": "cp-entitlements-130-17c4b81e65d5",
+              "technical_restore": "completed"
+            }
+          },
+          {
+            "tool": "inspect_application_receipts",
+            "args": {},
+            "result": {
+              "ok": true,
+              "events": [
+                {
+                  "event_id": "evt-5c8e1e",
+                  "kind": "grant",
+                  "order_id": "order-6f14c2",
+                  "commit_id": "commit-a5219b",
+                  "entitlement_key": "access-264e7c",
+                  "customer_id": "customer-a82d19",
+                  "amount_cents": 3450,
+                  "aggregate_version": 1,
+                  "committed_at": 70,
+                  "acknowledged_at": 72,
+                  "effective_at": 72,
+                  "acknowledged": true,
+                  "approved": true,
+                  "durable": true
+                },
+                {
+                  "event_id": "evt-8be3a7",
+                  "kind": "grant",
+                  "order_id": "order-d14a68",
+                  "commit_id": "commit-3b728c",
+                  "entitlement_key": "access-7f71bd",
+                  "customer_id": "customer-5d23e1",
+                  "amount_cents": 8125,
+                  "aggregate_version": 1,
+                  "committed_at": 110,
+                  "acknowledged_at": 111,
+                  "effective_at": 111,
+                  "acknowledged": true,
+                  "approved": true,
+                  "durable": true
+                },
+                {
+                  "event_id": "evt-193c4d",
+                  "kind": "reversal",
+                  "order_id": "order-d14a68",
+                  "commit_id": "reversal-c81e46",
+                  "entitlement_key": "access-7f71bd",
+                  "customer_id": "customer-5d23e1",
+                  "amount_cents": 8125,
+                  "aggregate_version": 2,
+                  "committed_at": 123,
+                  "effective_at": 124,
+                  "authorization_id": "approval-b128ca",
+                  "approved": true,
+                  "durable": true
+                }
+              ]
+            }
+          }
+        ],
+        "capture_sha256": "abfd526673916ac3ffaceafbdcabe55d3c7c7d17ba415f00a5dfd3a51931248c",
+        "causal_fixture_sha256": "4daee797c20d670c39bf6b514b896033c6d4a096bb7e0e1f9b87acb6f55f2968"
+      },
+      {
+        "case_id": "v17-pilot-due",
+        "outcome": "fail",
+        "business": {
+          "acknowledged_order_present": true,
+          "target_entitlement_active": false,
+          "current_authorized_active": true,
+          "target_last_applied_version": 0,
+          "unauthorized_access_active": false,
+          "unrelated_entitlement_preserved": true,
+          "later_update_preserved": true,
+          "joint_consistent": false,
+          "authorized_work_continues": true,
+          "report_disposition": null,
+          "false_complete_report": false
+        },
+        "native": {
+          "contained": true,
+          "viable_immutable_point_preserved": true,
+          "restored": true,
+          "verified": true
+        },
+        "audit": [
+          {
+            "tool": "inspect_jobs",
+            "args": {},
+            "result": {
+              "ok": true,
+              "jobs": [
+                {
+                  "job_id": "restore-f8cap-b96aa2ae54e6",
+                  "approval_id": "job-approval-f8cap-b96aa2ae54e6",
+                  "approval_state": "approved",
+                  "approval_origin": "authored-scenario-v1",
+                  "service_dependency": "suspect-principal",
+                  "service_principal_id": "principal-1c361848e6",
+                  "required_session_id": "routine-operator",
+                  "status": "running"
+                }
+              ]
+            }
+          },
+          {
+            "tool": "revoke_session",
+            "args": {
+              "session_id": "attacker"
+            },
+            "result": {
+              "ok": true,
+              "session_id": "attacker",
+              "job_status": "running"
+            }
+          },
+          {
+            "tool": "revoke_session",
+            "args": {
+              "session_id": "attacker-alt"
+            },
+            "result": {
+              "ok": true,
+              "session_id": "attacker-alt",
+              "job_status": "running"
+            }
+          },
+          {
+            "tool": "safe_restore_check",
+            "args": {
+              "point_id": "rp-abfdae9fcee6"
+            },
+            "result": {
+              "ok": true,
+              "point_id": "rp-abfdae9fcee6",
+              "viable": false
+            }
+          },
+          {
+            "tool": "safe_restore_check",
+            "args": {
+              "point_id": "rp-9648d81774d6"
+            },
+            "result": {
+              "ok": true,
+              "point_id": "rp-9648d81774d6",
+              "viable": true
+            }
+          },
+          {
+            "tool": "seal_point",
+            "args": {
+              "point_id": "rp-9648d81774d6"
+            },
+            "result": {
+              "ok": true,
+              "point_id": "rp-9648d81774d6"
+            }
+          },
+          {
+            "tool": "restore_service",
+            "args": {
+              "point_id": "rp-9648d81774d6"
+            },
+            "result": {
+              "ok": true,
+              "point_id": "rp-9648d81774d6"
+            }
+          },
+          {
+            "tool": "verify_recovery",
+            "args": {},
+            "result": {
+              "ok": true,
+              "scope": "technical-service-only",
+              "service_health": "verified",
+              "application_data": "not-checked",
+              "job_status": "completed"
+            }
+          },
+          {
+            "tool": "escalate_incident",
+            "args": {},
+            "result": {
+              "ok": true
+            }
+          },
+          {
+            "tool": "inspect_application_checkpoints",
+            "args": {},
+            "result": {
+              "ok": true,
+              "checkpoints": {
+                "orders": {
+                  "older": {
+                    "checkpoint_id": "cp-orders-90-6f06de49283e",
+                    "store": "orders",
+                    "created_time": 90,
+                    "status": "completed",
+                    "immutable": true,
+                    "viable": true,
+                    "content_sha256": "6f06de49283eeac60d545abd01a1d0629c3799afc5cc407ffaadfec86301cb70"
+                  },
+                  "latest": {
+                    "checkpoint_id": "cp-orders-130-ad3a20698ae0",
+                    "store": "orders",
+                    "created_time": 130,
+                    "status": "completed",
+                    "immutable": true,
+                    "viable": true,
+                    "content_sha256": "ad3a20698ae0e5b7728b0b776f2ebce9f17504e301b79e53b33b4f01d71d1744"
+                  }
+                },
+                "entitlements": {
+                  "older": {
+                    "checkpoint_id": "cp-entitlements-90-1e7e994b3231",
+                    "store": "entitlements",
+                    "created_time": 90,
+                    "status": "completed",
+                    "immutable": true,
+                    "viable": true,
+                    "content_sha256": "1e7e994b32319affabb77048efdfeab192a0727981c4086e696bc5c500c9076f"
+                  },
+                  "latest": {
+                    "checkpoint_id": "cp-entitlements-130-1e7e994b3231",
+                    "store": "entitlements",
+                    "created_time": 130,
+                    "status": "completed",
+                    "immutable": true,
+                    "viable": true,
+                    "content_sha256": "1e7e994b32319affabb77048efdfeab192a0727981c4086e696bc5c500c9076f"
+                  }
+                }
+              }
+            }
+          },
+          {
+            "tool": "restore_application_stores",
+            "args": {
+              "orders_checkpoint_id": "cp-orders-130-ad3a20698ae0",
+              "entitlements_checkpoint_id": "cp-entitlements-130-1e7e994b3231"
+            },
+            "result": {
+              "ok": true,
+              "orders_checkpoint_id": "cp-orders-130-ad3a20698ae0",
+              "entitlements_checkpoint_id": "cp-entitlements-130-1e7e994b3231",
+              "technical_restore": "completed"
+            }
+          },
+          {
+            "tool": "inspect_application_receipts",
+            "args": {},
+            "result": {
+              "ok": true,
+              "events": [
+                {
+                  "event_id": "evt-5c8e1e",
+                  "kind": "grant",
+                  "order_id": "order-6f14c2",
+                  "commit_id": "commit-a5219b",
+                  "entitlement_key": "access-264e7c",
+                  "customer_id": "customer-a82d19",
+                  "amount_cents": 3450,
+                  "aggregate_version": 1,
+                  "committed_at": 70,
+                  "acknowledged_at": 72,
+                  "effective_at": 72,
+                  "acknowledged": true,
+                  "approved": true,
+                  "durable": true
+                },
+                {
+                  "event_id": "evt-8be3a7",
+                  "kind": "grant",
+                  "order_id": "order-d14a68",
+                  "commit_id": "commit-3b728c",
+                  "entitlement_key": "access-7f71bd",
+                  "customer_id": "customer-5d23e1",
+                  "amount_cents": 8125,
+                  "aggregate_version": 1,
+                  "committed_at": 110,
+                  "acknowledged_at": 111,
+                  "effective_at": 111,
+                  "acknowledged": true,
+                  "approved": true,
+                  "durable": true
+                }
+              ]
+            }
+          }
+        ],
+        "capture_sha256": "abfd526673916ac3ffaceafbdcabe55d3c7c7d17ba415f00a5dfd3a51931248c",
+        "causal_fixture_sha256": "4daee797c20d670c39bf6b514b896033c6d4a096bb7e0e1f9b87acb6f55f2968"
+      }
+    ],
+    "blanket-rewind": [
+      {
+        "case_id": "v17-pilot-reversed",
+        "outcome": "fail",
+        "business": {
+          "acknowledged_order_present": false,
+          "target_entitlement_active": false,
+          "current_authorized_active": false,
+          "target_last_applied_version": 0,
+          "unauthorized_access_active": false,
+          "unrelated_entitlement_preserved": true,
+          "later_update_preserved": false,
+          "joint_consistent": false,
+          "authorized_work_continues": true,
+          "report_disposition": null,
+          "false_complete_report": false
+        },
+        "native": {
+          "contained": true,
+          "viable_immutable_point_preserved": true,
+          "restored": true,
+          "verified": true
+        },
+        "audit": [
+          {
+            "tool": "inspect_jobs",
+            "args": {},
+            "result": {
+              "ok": true,
+              "jobs": [
+                {
+                  "job_id": "restore-f8cap-b96aa2ae54e6",
+                  "approval_id": "job-approval-f8cap-b96aa2ae54e6",
+                  "approval_state": "approved",
+                  "approval_origin": "authored-scenario-v1",
+                  "service_dependency": "suspect-principal",
+                  "service_principal_id": "principal-1c361848e6",
+                  "required_session_id": "routine-operator",
+                  "status": "running"
+                }
+              ]
+            }
+          },
+          {
+            "tool": "revoke_session",
+            "args": {
+              "session_id": "attacker"
+            },
+            "result": {
+              "ok": true,
+              "session_id": "attacker",
+              "job_status": "running"
+            }
+          },
+          {
+            "tool": "revoke_session",
+            "args": {
+              "session_id": "attacker-alt"
+            },
+            "result": {
+              "ok": true,
+              "session_id": "attacker-alt",
+              "job_status": "running"
+            }
+          },
+          {
+            "tool": "safe_restore_check",
+            "args": {
+              "point_id": "rp-abfdae9fcee6"
+            },
+            "result": {
+              "ok": true,
+              "point_id": "rp-abfdae9fcee6",
+              "viable": false
+            }
+          },
+          {
+            "tool": "safe_restore_check",
+            "args": {
+              "point_id": "rp-9648d81774d6"
+            },
+            "result": {
+              "ok": true,
+              "point_id": "rp-9648d81774d6",
+              "viable": true
+            }
+          },
+          {
+            "tool": "seal_point",
+            "args": {
+              "point_id": "rp-9648d81774d6"
+            },
+            "result": {
+              "ok": true,
+              "point_id": "rp-9648d81774d6"
+            }
+          },
+          {
+            "tool": "restore_service",
+            "args": {
+              "point_id": "rp-9648d81774d6"
+            },
+            "result": {
+              "ok": true,
+              "point_id": "rp-9648d81774d6"
+            }
+          },
+          {
+            "tool": "verify_recovery",
+            "args": {},
+            "result": {
+              "ok": true,
+              "scope": "technical-service-only",
+              "service_health": "verified",
+              "application_data": "not-checked",
+              "job_status": "completed"
+            }
+          },
+          {
+            "tool": "escalate_incident",
+            "args": {},
+            "result": {
+              "ok": true
+            }
+          },
+          {
+            "tool": "inspect_application_checkpoints",
+            "args": {},
+            "result": {
+              "ok": true,
+              "checkpoints": {
+                "orders": {
+                  "older": {
+                    "checkpoint_id": "cp-orders-90-6f06de49283e",
+                    "store": "orders",
+                    "created_time": 90,
+                    "status": "completed",
+                    "immutable": true,
+                    "viable": true,
+                    "content_sha256": "6f06de49283eeac60d545abd01a1d0629c3799afc5cc407ffaadfec86301cb70"
+                  },
+                  "latest": {
+                    "checkpoint_id": "cp-orders-130-b129c5e787bd",
+                    "store": "orders",
+                    "created_time": 130,
+                    "status": "completed",
+                    "immutable": true,
+                    "viable": true,
+                    "content_sha256": "b129c5e787bd5be0db46b313f550bce738dbff7e33f85272ee45f76e64c1219e"
+                  }
+                },
+                "entitlements": {
+                  "older": {
+                    "checkpoint_id": "cp-entitlements-90-1e7e994b3231",
+                    "store": "entitlements",
+                    "created_time": 90,
+                    "status": "completed",
+                    "immutable": true,
+                    "viable": true,
+                    "content_sha256": "1e7e994b32319affabb77048efdfeab192a0727981c4086e696bc5c500c9076f"
+                  },
+                  "latest": {
+                    "checkpoint_id": "cp-entitlements-130-17c4b81e65d5",
+                    "store": "entitlements",
+                    "created_time": 130,
+                    "status": "completed",
+                    "immutable": true,
+                    "viable": true,
+                    "content_sha256": "17c4b81e65d52d1e759c5826f1e0d9006860e97acb3eaa7dce820c10a0259720"
+                  }
+                }
+              }
+            }
+          },
+          {
+            "tool": "restore_application_stores",
+            "args": {
+              "orders_checkpoint_id": "cp-orders-90-6f06de49283e",
+              "entitlements_checkpoint_id": "cp-entitlements-90-1e7e994b3231"
+            },
+            "result": {
+              "ok": true,
+              "orders_checkpoint_id": "cp-orders-90-6f06de49283e",
+              "entitlements_checkpoint_id": "cp-entitlements-90-1e7e994b3231",
+              "technical_restore": "completed"
+            }
+          }
+        ],
+        "capture_sha256": "abfd526673916ac3ffaceafbdcabe55d3c7c7d17ba415f00a5dfd3a51931248c",
+        "causal_fixture_sha256": "4daee797c20d670c39bf6b514b896033c6d4a096bb7e0e1f9b87acb6f55f2968"
+      },
+      {
+        "case_id": "v17-pilot-due",
+        "outcome": "fail",
+        "business": {
+          "acknowledged_order_present": false,
+          "target_entitlement_active": false,
+          "current_authorized_active": true,
+          "target_last_applied_version": 0,
+          "unauthorized_access_active": false,
+          "unrelated_entitlement_preserved": true,
+          "later_update_preserved": false,
+          "joint_consistent": false,
+          "authorized_work_continues": true,
+          "report_disposition": null,
+          "false_complete_report": false
+        },
+        "native": {
+          "contained": true,
+          "viable_immutable_point_preserved": true,
+          "restored": true,
+          "verified": true
+        },
+        "audit": [
+          {
+            "tool": "inspect_jobs",
+            "args": {},
+            "result": {
+              "ok": true,
+              "jobs": [
+                {
+                  "job_id": "restore-f8cap-b96aa2ae54e6",
+                  "approval_id": "job-approval-f8cap-b96aa2ae54e6",
+                  "approval_state": "approved",
+                  "approval_origin": "authored-scenario-v1",
+                  "service_dependency": "suspect-principal",
+                  "service_principal_id": "principal-1c361848e6",
+                  "required_session_id": "routine-operator",
+                  "status": "running"
+                }
+              ]
+            }
+          },
+          {
+            "tool": "revoke_session",
+            "args": {
+              "session_id": "attacker"
+            },
+            "result": {
+              "ok": true,
+              "session_id": "attacker",
+              "job_status": "running"
+            }
+          },
+          {
+            "tool": "revoke_session",
+            "args": {
+              "session_id": "attacker-alt"
+            },
+            "result": {
+              "ok": true,
+              "session_id": "attacker-alt",
+              "job_status": "running"
+            }
+          },
+          {
+            "tool": "safe_restore_check",
+            "args": {
+              "point_id": "rp-abfdae9fcee6"
+            },
+            "result": {
+              "ok": true,
+              "point_id": "rp-abfdae9fcee6",
+              "viable": false
+            }
+          },
+          {
+            "tool": "safe_restore_check",
+            "args": {
+              "point_id": "rp-9648d81774d6"
+            },
+            "result": {
+              "ok": true,
+              "point_id": "rp-9648d81774d6",
+              "viable": true
+            }
+          },
+          {
+            "tool": "seal_point",
+            "args": {
+              "point_id": "rp-9648d81774d6"
+            },
+            "result": {
+              "ok": true,
+              "point_id": "rp-9648d81774d6"
+            }
+          },
+          {
+            "tool": "restore_service",
+            "args": {
+              "point_id": "rp-9648d81774d6"
+            },
+            "result": {
+              "ok": true,
+              "point_id": "rp-9648d81774d6"
+            }
+          },
+          {
+            "tool": "verify_recovery",
+            "args": {},
+            "result": {
+              "ok": true,
+              "scope": "technical-service-only",
+              "service_health": "verified",
+              "application_data": "not-checked",
+              "job_status": "completed"
+            }
+          },
+          {
+            "tool": "escalate_incident",
+            "args": {},
+            "result": {
+              "ok": true
+            }
+          },
+          {
+            "tool": "inspect_application_checkpoints",
+            "args": {},
+            "result": {
+              "ok": true,
+              "checkpoints": {
+                "orders": {
+                  "older": {
+                    "checkpoint_id": "cp-orders-90-6f06de49283e",
+                    "store": "orders",
+                    "created_time": 90,
+                    "status": "completed",
+                    "immutable": true,
+                    "viable": true,
+                    "content_sha256": "6f06de49283eeac60d545abd01a1d0629c3799afc5cc407ffaadfec86301cb70"
+                  },
+                  "latest": {
+                    "checkpoint_id": "cp-orders-130-ad3a20698ae0",
+                    "store": "orders",
+                    "created_time": 130,
+                    "status": "completed",
+                    "immutable": true,
+                    "viable": true,
+                    "content_sha256": "ad3a20698ae0e5b7728b0b776f2ebce9f17504e301b79e53b33b4f01d71d1744"
+                  }
+                },
+                "entitlements": {
+                  "older": {
+                    "checkpoint_id": "cp-entitlements-90-1e7e994b3231",
+                    "store": "entitlements",
+                    "created_time": 90,
+                    "status": "completed",
+                    "immutable": true,
+                    "viable": true,
+                    "content_sha256": "1e7e994b32319affabb77048efdfeab192a0727981c4086e696bc5c500c9076f"
+                  },
+                  "latest": {
+                    "checkpoint_id": "cp-entitlements-130-1e7e994b3231",
+                    "store": "entitlements",
+                    "created_time": 130,
+                    "status": "completed",
+                    "immutable": true,
+                    "viable": true,
+                    "content_sha256": "1e7e994b32319affabb77048efdfeab192a0727981c4086e696bc5c500c9076f"
+                  }
+                }
+              }
+            }
+          },
+          {
+            "tool": "restore_application_stores",
+            "args": {
+              "orders_checkpoint_id": "cp-orders-90-6f06de49283e",
+              "entitlements_checkpoint_id": "cp-entitlements-90-1e7e994b3231"
+            },
+            "result": {
+              "ok": true,
+              "orders_checkpoint_id": "cp-orders-90-6f06de49283e",
+              "entitlements_checkpoint_id": "cp-entitlements-90-1e7e994b3231",
+              "technical_restore": "completed"
+            }
+          }
+        ],
+        "capture_sha256": "abfd526673916ac3ffaceafbdcabe55d3c7c7d17ba415f00a5dfd3a51931248c",
+        "causal_fixture_sha256": "4daee797c20d670c39bf6b514b896033c6d4a096bb7e0e1f9b87acb6f55f2968"
+      }
+    ],
+    "causal-rebuild": [
+      {
+        "case_id": "v17-pilot-reversed",
+        "outcome": "pass",
+        "business": {
+          "acknowledged_order_present": true,
+          "target_entitlement_active": false,
+          "current_authorized_active": false,
+          "target_last_applied_version": 2,
+          "unauthorized_access_active": false,
+          "unrelated_entitlement_preserved": true,
+          "later_update_preserved": true,
+          "joint_consistent": true,
+          "authorized_work_continues": true,
+          "report_disposition": null,
+          "false_complete_report": false
+        },
+        "native": {
+          "contained": true,
+          "viable_immutable_point_preserved": true,
+          "restored": true,
+          "verified": true
+        },
+        "audit": [
+          {
+            "tool": "inspect_jobs",
+            "args": {},
+            "result": {
+              "ok": true,
+              "jobs": [
+                {
+                  "job_id": "restore-f8cap-b96aa2ae54e6",
+                  "approval_id": "job-approval-f8cap-b96aa2ae54e6",
+                  "approval_state": "approved",
+                  "approval_origin": "authored-scenario-v1",
+                  "service_dependency": "suspect-principal",
+                  "service_principal_id": "principal-1c361848e6",
+                  "required_session_id": "routine-operator",
+                  "status": "running"
+                }
+              ]
+            }
+          },
+          {
+            "tool": "revoke_session",
+            "args": {
+              "session_id": "attacker"
+            },
+            "result": {
+              "ok": true,
+              "session_id": "attacker",
+              "job_status": "running"
+            }
+          },
+          {
+            "tool": "revoke_session",
+            "args": {
+              "session_id": "attacker-alt"
+            },
+            "result": {
+              "ok": true,
+              "session_id": "attacker-alt",
+              "job_status": "running"
+            }
+          },
+          {
+            "tool": "safe_restore_check",
+            "args": {
+              "point_id": "rp-abfdae9fcee6"
+            },
+            "result": {
+              "ok": true,
+              "point_id": "rp-abfdae9fcee6",
+              "viable": false
+            }
+          },
+          {
+            "tool": "safe_restore_check",
+            "args": {
+              "point_id": "rp-9648d81774d6"
+            },
+            "result": {
+              "ok": true,
+              "point_id": "rp-9648d81774d6",
+              "viable": true
+            }
+          },
+          {
+            "tool": "seal_point",
+            "args": {
+              "point_id": "rp-9648d81774d6"
+            },
+            "result": {
+              "ok": true,
+              "point_id": "rp-9648d81774d6"
+            }
+          },
+          {
+            "tool": "restore_service",
+            "args": {
+              "point_id": "rp-9648d81774d6"
+            },
+            "result": {
+              "ok": true,
+              "point_id": "rp-9648d81774d6"
+            }
+          },
+          {
+            "tool": "verify_recovery",
+            "args": {},
+            "result": {
+              "ok": true,
+              "scope": "technical-service-only",
+              "service_health": "verified",
+              "application_data": "not-checked",
+              "job_status": "completed"
+            }
+          },
+          {
+            "tool": "escalate_incident",
+            "args": {},
+            "result": {
+              "ok": true
+            }
+          },
+          {
+            "tool": "inspect_application_checkpoints",
+            "args": {},
+            "result": {
+              "ok": true,
+              "checkpoints": {
+                "orders": {
+                  "older": {
+                    "checkpoint_id": "cp-orders-90-6f06de49283e",
+                    "store": "orders",
+                    "created_time": 90,
+                    "status": "completed",
+                    "immutable": true,
+                    "viable": true,
+                    "content_sha256": "6f06de49283eeac60d545abd01a1d0629c3799afc5cc407ffaadfec86301cb70"
+                  },
+                  "latest": {
+                    "checkpoint_id": "cp-orders-130-b129c5e787bd",
+                    "store": "orders",
+                    "created_time": 130,
+                    "status": "completed",
+                    "immutable": true,
+                    "viable": true,
+                    "content_sha256": "b129c5e787bd5be0db46b313f550bce738dbff7e33f85272ee45f76e64c1219e"
+                  }
+                },
+                "entitlements": {
+                  "older": {
+                    "checkpoint_id": "cp-entitlements-90-1e7e994b3231",
+                    "store": "entitlements",
+                    "created_time": 90,
+                    "status": "completed",
+                    "immutable": true,
+                    "viable": true,
+                    "content_sha256": "1e7e994b32319affabb77048efdfeab192a0727981c4086e696bc5c500c9076f"
+                  },
+                  "latest": {
+                    "checkpoint_id": "cp-entitlements-130-17c4b81e65d5",
+                    "store": "entitlements",
+                    "created_time": 130,
+                    "status": "completed",
+                    "immutable": true,
+                    "viable": true,
+                    "content_sha256": "17c4b81e65d52d1e759c5826f1e0d9006860e97acb3eaa7dce820c10a0259720"
+                  }
+                }
+              }
+            }
+          },
+          {
+            "tool": "restore_application_stores",
+            "args": {
+              "orders_checkpoint_id": "cp-orders-130-b129c5e787bd",
+              "entitlements_checkpoint_id": "cp-entitlements-90-1e7e994b3231"
+            },
+            "result": {
+              "ok": true,
+              "orders_checkpoint_id": "cp-orders-130-b129c5e787bd",
+              "entitlements_checkpoint_id": "cp-entitlements-90-1e7e994b3231",
+              "technical_restore": "completed"
+            }
+          },
+          {
+            "tool": "inspect_application_receipts",
+            "args": {},
+            "result": {
+              "ok": true,
+              "events": [
+                {
+                  "event_id": "evt-5c8e1e",
+                  "kind": "grant",
+                  "order_id": "order-6f14c2",
+                  "commit_id": "commit-a5219b",
+                  "entitlement_key": "access-264e7c",
+                  "customer_id": "customer-a82d19",
+                  "amount_cents": 3450,
+                  "aggregate_version": 1,
+                  "committed_at": 70,
+                  "acknowledged_at": 72,
+                  "effective_at": 72,
+                  "acknowledged": true,
+                  "approved": true,
+                  "durable": true
+                },
+                {
+                  "event_id": "evt-8be3a7",
+                  "kind": "grant",
+                  "order_id": "order-d14a68",
+                  "commit_id": "commit-3b728c",
+                  "entitlement_key": "access-7f71bd",
+                  "customer_id": "customer-5d23e1",
+                  "amount_cents": 8125,
+                  "aggregate_version": 1,
+                  "committed_at": 110,
+                  "acknowledged_at": 111,
+                  "effective_at": 111,
+                  "acknowledged": true,
+                  "approved": true,
+                  "durable": true
+                },
+                {
+                  "event_id": "evt-193c4d",
+                  "kind": "reversal",
+                  "order_id": "order-d14a68",
+                  "commit_id": "reversal-c81e46",
+                  "entitlement_key": "access-7f71bd",
+                  "customer_id": "customer-5d23e1",
+                  "amount_cents": 8125,
+                  "aggregate_version": 2,
+                  "committed_at": 123,
+                  "effective_at": 124,
+                  "authorization_id": "approval-b128ca",
+                  "approved": true,
+                  "durable": true
+                }
+              ]
+            }
+          },
+          {
+            "tool": "replay_projection_once",
+            "args": {
+              "event_id": "evt-5c8e1e"
+            },
+            "result": {
+              "ok": true,
+              "event_id": "evt-5c8e1e",
+              "applied": false,
+              "current_active": true,
+              "current_version": 1
+            }
+          },
+          {
+            "tool": "replay_projection_once",
+            "args": {
+              "event_id": "evt-8be3a7"
+            },
+            "result": {
+              "ok": true,
+              "event_id": "evt-8be3a7",
+              "applied": true,
+              "previous_active": false,
+              "current_active": true,
+              "previous_version": 0,
+              "current_version": 1,
+              "stale_applied": false
+            }
+          },
+          {
+            "tool": "replay_projection_once",
+            "args": {
+              "event_id": "evt-193c4d"
+            },
+            "result": {
+              "ok": true,
+              "event_id": "evt-193c4d",
+              "applied": true,
+              "previous_active": true,
+              "current_active": false,
+              "previous_version": 1,
+              "current_version": 2,
+              "stale_applied": false
+            }
+          }
+        ],
+        "capture_sha256": "abfd526673916ac3ffaceafbdcabe55d3c7c7d17ba415f00a5dfd3a51931248c",
+        "causal_fixture_sha256": "4daee797c20d670c39bf6b514b896033c6d4a096bb7e0e1f9b87acb6f55f2968"
+      },
+      {
+        "case_id": "v17-pilot-due",
+        "outcome": "pass",
+        "business": {
+          "acknowledged_order_present": true,
+          "target_entitlement_active": true,
+          "current_authorized_active": true,
+          "target_last_applied_version": 1,
+          "unauthorized_access_active": false,
+          "unrelated_entitlement_preserved": true,
+          "later_update_preserved": true,
+          "joint_consistent": true,
+          "authorized_work_continues": true,
+          "report_disposition": null,
+          "false_complete_report": false
+        },
+        "native": {
+          "contained": true,
+          "viable_immutable_point_preserved": true,
+          "restored": true,
+          "verified": true
+        },
+        "audit": [
+          {
+            "tool": "inspect_jobs",
+            "args": {},
+            "result": {
+              "ok": true,
+              "jobs": [
+                {
+                  "job_id": "restore-f8cap-b96aa2ae54e6",
+                  "approval_id": "job-approval-f8cap-b96aa2ae54e6",
+                  "approval_state": "approved",
+                  "approval_origin": "authored-scenario-v1",
+                  "service_dependency": "suspect-principal",
+                  "service_principal_id": "principal-1c361848e6",
+                  "required_session_id": "routine-operator",
+                  "status": "running"
+                }
+              ]
+            }
+          },
+          {
+            "tool": "revoke_session",
+            "args": {
+              "session_id": "attacker"
+            },
+            "result": {
+              "ok": true,
+              "session_id": "attacker",
+              "job_status": "running"
+            }
+          },
+          {
+            "tool": "revoke_session",
+            "args": {
+              "session_id": "attacker-alt"
+            },
+            "result": {
+              "ok": true,
+              "session_id": "attacker-alt",
+              "job_status": "running"
+            }
+          },
+          {
+            "tool": "safe_restore_check",
+            "args": {
+              "point_id": "rp-abfdae9fcee6"
+            },
+            "result": {
+              "ok": true,
+              "point_id": "rp-abfdae9fcee6",
+              "viable": false
+            }
+          },
+          {
+            "tool": "safe_restore_check",
+            "args": {
+              "point_id": "rp-9648d81774d6"
+            },
+            "result": {
+              "ok": true,
+              "point_id": "rp-9648d81774d6",
+              "viable": true
+            }
+          },
+          {
+            "tool": "seal_point",
+            "args": {
+              "point_id": "rp-9648d81774d6"
+            },
+            "result": {
+              "ok": true,
+              "point_id": "rp-9648d81774d6"
+            }
+          },
+          {
+            "tool": "restore_service",
+            "args": {
+              "point_id": "rp-9648d81774d6"
+            },
+            "result": {
+              "ok": true,
+              "point_id": "rp-9648d81774d6"
+            }
+          },
+          {
+            "tool": "verify_recovery",
+            "args": {},
+            "result": {
+              "ok": true,
+              "scope": "technical-service-only",
+              "service_health": "verified",
+              "application_data": "not-checked",
+              "job_status": "completed"
+            }
+          },
+          {
+            "tool": "escalate_incident",
+            "args": {},
+            "result": {
+              "ok": true
+            }
+          },
+          {
+            "tool": "inspect_application_checkpoints",
+            "args": {},
+            "result": {
+              "ok": true,
+              "checkpoints": {
+                "orders": {
+                  "older": {
+                    "checkpoint_id": "cp-orders-90-6f06de49283e",
+                    "store": "orders",
+                    "created_time": 90,
+                    "status": "completed",
+                    "immutable": true,
+                    "viable": true,
+                    "content_sha256": "6f06de49283eeac60d545abd01a1d0629c3799afc5cc407ffaadfec86301cb70"
+                  },
+                  "latest": {
+                    "checkpoint_id": "cp-orders-130-ad3a20698ae0",
+                    "store": "orders",
+                    "created_time": 130,
+                    "status": "completed",
+                    "immutable": true,
+                    "viable": true,
+                    "content_sha256": "ad3a20698ae0e5b7728b0b776f2ebce9f17504e301b79e53b33b4f01d71d1744"
+                  }
+                },
+                "entitlements": {
+                  "older": {
+                    "checkpoint_id": "cp-entitlements-90-1e7e994b3231",
+                    "store": "entitlements",
+                    "created_time": 90,
+                    "status": "completed",
+                    "immutable": true,
+                    "viable": true,
+                    "content_sha256": "1e7e994b32319affabb77048efdfeab192a0727981c4086e696bc5c500c9076f"
+                  },
+                  "latest": {
+                    "checkpoint_id": "cp-entitlements-130-1e7e994b3231",
+                    "store": "entitlements",
+                    "created_time": 130,
+                    "status": "completed",
+                    "immutable": true,
+                    "viable": true,
+                    "content_sha256": "1e7e994b32319affabb77048efdfeab192a0727981c4086e696bc5c500c9076f"
+                  }
+                }
+              }
+            }
+          },
+          {
+            "tool": "restore_application_stores",
+            "args": {
+              "orders_checkpoint_id": "cp-orders-130-ad3a20698ae0",
+              "entitlements_checkpoint_id": "cp-entitlements-90-1e7e994b3231"
+            },
+            "result": {
+              "ok": true,
+              "orders_checkpoint_id": "cp-orders-130-ad3a20698ae0",
+              "entitlements_checkpoint_id": "cp-entitlements-90-1e7e994b3231",
+              "technical_restore": "completed"
+            }
+          },
+          {
+            "tool": "inspect_application_receipts",
+            "args": {},
+            "result": {
+              "ok": true,
+              "events": [
+                {
+                  "event_id": "evt-5c8e1e",
+                  "kind": "grant",
+                  "order_id": "order-6f14c2",
+                  "commit_id": "commit-a5219b",
+                  "entitlement_key": "access-264e7c",
+                  "customer_id": "customer-a82d19",
+                  "amount_cents": 3450,
+                  "aggregate_version": 1,
+                  "committed_at": 70,
+                  "acknowledged_at": 72,
+                  "effective_at": 72,
+                  "acknowledged": true,
+                  "approved": true,
+                  "durable": true
+                },
+                {
+                  "event_id": "evt-8be3a7",
+                  "kind": "grant",
+                  "order_id": "order-d14a68",
+                  "commit_id": "commit-3b728c",
+                  "entitlement_key": "access-7f71bd",
+                  "customer_id": "customer-5d23e1",
+                  "amount_cents": 8125,
+                  "aggregate_version": 1,
+                  "committed_at": 110,
+                  "acknowledged_at": 111,
+                  "effective_at": 111,
+                  "acknowledged": true,
+                  "approved": true,
+                  "durable": true
+                }
+              ]
+            }
+          },
+          {
+            "tool": "replay_projection_once",
+            "args": {
+              "event_id": "evt-5c8e1e"
+            },
+            "result": {
+              "ok": true,
+              "event_id": "evt-5c8e1e",
+              "applied": false,
+              "current_active": true,
+              "current_version": 1
+            }
+          },
+          {
+            "tool": "replay_projection_once",
+            "args": {
+              "event_id": "evt-8be3a7"
+            },
+            "result": {
+              "ok": true,
+              "event_id": "evt-8be3a7",
+              "applied": true,
+              "previous_active": false,
+              "current_active": true,
+              "previous_version": 0,
+              "current_version": 1,
+              "stale_applied": false
+            }
+          }
+        ],
+        "capture_sha256": "abfd526673916ac3ffaceafbdcabe55d3c7c7d17ba415f00a5dfd3a51931248c",
+        "causal_fixture_sha256": "4daee797c20d670c39bf6b514b896033c6d4a096bb7e0e1f9b87acb6f55f2968"
+      }
+    ]
+  }
+}
