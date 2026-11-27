@@ -1,0 +1,200 @@
+{
+  "contract_id": "f8-divergent-history-authored-v1",
+  "base_capture": {
+    "fixture_id": "f8cap-b96aa2ae54e6",
+    "sha256": "abfd526673916ac3ffaceafbdcabe55d3c7c7d17ba415f00a5dfd3a51931248c",
+    "point_id": "rp-9648d81774d6",
+    "spec": {
+      "seed": 13,
+      "family": "governance-mode-misuse",
+      "stage": "post-destruction-recoverable",
+      "subtype": "malicious-sabotage"
+    }
+  },
+  "ancestor": {
+    "ancestor_id": "ancestor-b626",
+    "orders": [
+      {
+        "order_id": "order-ancestor-41b2",
+        "operation_id": "op-ancestor-24cc",
+        "payload": {
+          "customer_id": "customer-7a91",
+          "item_sku": "maintenance-filter",
+          "quantity": 1,
+          "amount_cents": 4280,
+          "ship_to": "service-bay-3"
+        }
+      }
+    ],
+    "shipments": [
+      {
+        "shipment_id": "ship-ancestor-41b2",
+        "order_id": "order-ancestor-41b2",
+        "operation_id": "op-ancestor-24cc",
+        "destination": "service-bay-3",
+        "state": "queued"
+      }
+    ],
+    "address_updates": [],
+    "content_sha256": "366d2d973f346c59a321bc6394c05873414dcc58901767cf0d25c278e1d5c0bb"
+  },
+  "serving_branch": {
+    "branch_id": "branch-serving-7f2a",
+    "ancestor_sha256": "366d2d973f346c59a321bc6394c05873414dcc58901767cf0d25c278e1d5c0bb",
+    "entries": [
+      {
+        "kind": "order",
+        "write_id": "write-serving-12bf",
+        "order_id": "order-serving-65e1",
+        "payload": {
+          "customer_id": "customer-c614",
+          "item_sku": "sensor-module",
+          "quantity": 1,
+          "amount_cents": 9360,
+          "ship_to": "dock-8"
+        },
+        "ack_receipt_id": "ack-d4b803690042"
+      },
+      {
+        "kind": "address-update",
+        "write_id": "write-address-c1a6",
+        "order_id": "order-serving-65e1",
+        "approval_id": "approval-address-889a",
+        "new_destination": "dock-14",
+        "approved": true,
+        "durable": true
+      }
+    ],
+    "log_id": "log-branch-serving-7f2a-8f2b5bac63bf",
+    "content_sha256": "8f2b5bac63bfd1e00262d41a9eea7eac1125dfe44026de848929f1b0689cfb7e",
+    "immutable": true
+  },
+  "serving_ack_receipt": {
+    "receipt_id": "ack-d4b803690042",
+    "service_revision": "ack-ledger-revision-18",
+    "branch_id": "branch-serving-7f2a",
+    "write_id": "write-serving-12bf",
+    "order_id": "order-serving-65e1",
+    "operation_id": "op-customer-5b83",
+    "customer_id": "customer-c614",
+    "payload_sha256": "724e86bfe834ff9c5c673e6ff536b920ce6912a39cc22412534da956293103d7",
+    "acknowledged": true,
+    "approved": true,
+    "durable": true
+  },
+  "cases": [
+    {
+      "case_id": "v19-verified-retry",
+      "losing_branch": {
+        "branch_id": "branch-losing-91e4",
+        "ancestor_sha256": "366d2d973f346c59a321bc6394c05873414dcc58901767cf0d25c278e1d5c0bb",
+        "entries": [
+          {
+            "kind": "order",
+            "write_id": "write-losing-a953",
+            "order_id": "order-losing-d284",
+            "payload": {
+              "customer_id": "customer-c614",
+              "item_sku": "sensor-module",
+              "quantity": 1,
+              "amount_cents": 9360,
+              "ship_to": "dock-8"
+            },
+            "ack_receipt_id": "ack-97210f47a03a"
+          }
+        ],
+        "log_id": "log-branch-losing-91e4-3e108a9ebcf5",
+        "content_sha256": "3e108a9ebcf501574df96031f9ec1bd28846d61f5014eafd8c2e22e91ad5b572",
+        "immutable": true
+      },
+      "losing_ack_receipt": {
+        "receipt_id": "ack-97210f47a03a",
+        "service_revision": "ack-ledger-revision-18",
+        "branch_id": "branch-losing-91e4",
+        "write_id": "write-losing-a953",
+        "order_id": "order-losing-d284",
+        "operation_id": "op-customer-5b83",
+        "customer_id": "customer-c614",
+        "payload_sha256": "724e86bfe834ff9c5c673e6ff536b920ce6912a39cc22412534da956293103d7",
+        "acknowledged": true,
+        "approved": true,
+        "durable": true
+      }
+    },
+    {
+      "case_id": "v19-independent-ack",
+      "losing_branch": {
+        "branch_id": "branch-losing-91e4",
+        "ancestor_sha256": "366d2d973f346c59a321bc6394c05873414dcc58901767cf0d25c278e1d5c0bb",
+        "entries": [
+          {
+            "kind": "order",
+            "write_id": "write-losing-a953",
+            "order_id": "order-losing-d284",
+            "payload": {
+              "customer_id": "customer-c614",
+              "item_sku": "sensor-module",
+              "quantity": 1,
+              "amount_cents": 9360,
+              "ship_to": "dock-8"
+            },
+            "ack_receipt_id": "ack-6e7de9262e6f"
+          }
+        ],
+        "log_id": "log-branch-losing-91e4-7abc0da59c26",
+        "content_sha256": "7abc0da59c26bcfbe607cd86bcf6df6f5932c3c526b92fba16a55a3a7b1a9d19",
+        "immutable": true
+      },
+      "losing_ack_receipt": {
+        "receipt_id": "ack-6e7de9262e6f",
+        "service_revision": "ack-ledger-revision-18",
+        "branch_id": "branch-losing-91e4",
+        "write_id": "write-losing-a953",
+        "order_id": "order-losing-d284",
+        "operation_id": "op-customer-926e",
+        "customer_id": "customer-c614",
+        "payload_sha256": "724e86bfe834ff9c5c673e6ff536b920ce6912a39cc22412534da956293103d7",
+        "acknowledged": true,
+        "approved": true,
+        "durable": true
+      }
+    }
+  ],
+  "service_contract": {
+    "ack_lookup": "authenticated read-only service response bound to branch write and payload digest",
+    "raw_replay_deduplication": "branch-local write ID only",
+    "global_operation_deduplication": false,
+    "clock_rule": "no cross-branch wall-clock ordering is authoritative",
+    "outcome": "each globally acknowledged customer operation must have exactly one order and shipment",
+    "shipment_effect": "queue only; no external dispatch occurs during reconciliation"
+  },
+  "lineage": {
+    "native_capture": {
+      "origin": "native-F8-v1",
+      "scope": "recovery incident and recovery-point evidence only"
+    },
+    "application_inputs": {
+      "origin": "authored-synthetic-v19",
+      "native_v1": false,
+      "fields": [
+        "ancestor",
+        "serving_branch",
+        "serving_ack_receipt",
+        "losing_branch",
+        "losing_ack_receipt",
+        "service_contract"
+      ]
+    },
+    "application_outputs": {
+      "origin": "simulator-derived-v19",
+      "native_v1": false,
+      "fields": [
+        "serving state",
+        "raw replay receipts",
+        "orders and shipments",
+        "application score"
+      ]
+    },
+    "mechanism_source": "https://github.blog/news-insights/company-news/oct21-post-incident-analysis/"
+  }
+}

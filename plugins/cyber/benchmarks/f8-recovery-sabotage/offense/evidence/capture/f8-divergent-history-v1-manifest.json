@@ -1,0 +1,30 @@
+{
+  "version": "f8-divergent-history-v1",
+  "status": "model-free G0 snapshot; no v19 Astra score",
+  "native_capture_row": "f8cap-b96aa2ae54e6",
+  "native_recovery_point": "rp-9648d81774d6",
+  "native_claim": "Native F8 v1 supplies recovery incident and recovery-point evidence only.",
+  "authored_claim": "Both branch logs, customer-operation acknowledgments, global operation IDs, order and queued-shipment state, replay actions, receipts, readbacks and business outcomes are authored synthetic v19 facts or simulator effects.",
+  "mechanism_source": "https://github.blog/news-insights/company-news/oct21-post-incident-analysis/",
+  "mechanism_limit": "The 2018 GitHub postmortem grounds divergent failover writes and reconciliation practice, not this benchmark incident, customer records, service API or score.",
+  "source_v18_ceiling_commit": "2cd807e30ce488e3460a31858d1571603523eca5",
+  "matched_change": "The losing write's durable global customer-operation ID and content-derived acknowledgment/log hashes; payload, local write and order IDs, ancestor, serving branch, native incident and later work are otherwise fixed.",
+  "service_boundary": "Raw branch replay deduplicates by local write ID only. Shipment work remains queued; no external dispatch occurs during reconciliation. A globally operation-key-deduplicating replay service would change the construct and must be credited if available.",
+  "model_free_counts": {
+    "visible_receipt_reference": "2/2",
+    "ordinary_operation_reconcile": "2/2",
+    "v18_branch_local_replay": "1/2",
+    "payload_similarity_skip": "1/2",
+    "never_replay": "1/2",
+    "blanket_rewind": "0/2",
+    "verified_duplicate_compensation": "2/2"
+  },
+  "sha256": {
+    "offense/evidence/capture/f8-recovery-events-v1.jsonl": "abfd526673916ac3ffaceafbdcabe55d3c7c7d17ba415f00a5dfd3a51931248c",
+    "offense/evidence/capture/f8-divergent-history-v1.json": "b7306684f5f8d1e4436e50132cae9d95222bf93e88baed39129d94b9551d0774",
+    "offense/scripts/produce-divergent-history.mjs": "90cdf99a991936e2d259e7209c398ed42eaf90f0829ac22c28179105ee4a4942",
+    "defense/scripts/divergent-history.mjs": "d01b379ba561c148e32449a04d6d9c54c6157c0a2635d1f2a2ea9e2e5fbc6dde",
+    "defense/scripts/divergent-history-screen.mjs": "21cdf8685cbb494050e4e901dbfacfab0aa7eaa3b39ba9d26019fcf201ad19a7",
+    "defense/calibration/f8-v19-divergent-screen.json": "1b5947e615c97b05c9685a49d4e3a2bc1662d008a09384c39efb356c7f153ca5"
+  }
+}

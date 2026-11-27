@@ -1,6 +1,6 @@
 # F8 v19 divergent-history recovery: G0 design
 
-**Status:** Design only. No v19 fixture, simulator, model-free score, Astra call or GLM call exists. V18 remains frozen at 1/1 valid exact on a separate candidate.
+**Status:** Design checkpoint first committed at `0eec985317`; the subsequent model-free result is in [the G0 report](f8-v19-divergent-g0-report.md). No v19 Astra or GLM call exists. V18 remains frozen at 1/1 valid exact on a separate candidate.
 
 ## Invariant and source boundary
 
@@ -19,7 +19,7 @@ The only decisive branch variation is the losing write's **global operation ID**
 | Verified retry | Losing write and serving write bind the same customer operation ID and same payload digest. | One order/shipment for that operation. Reapplying the losing branch write would produce a duplicate shipment. |
 | Independent operation | Losing write binds a different globally assigned operation ID with its own acknowledgment, despite the same payload. | Two orders/shipments, one for each acknowledged operation. Skipping the losing write would lose real authorized work. |
 
-The service contract must be explicit: low-level `apply_branch_write` deduplicates by **branch-local write ID only**, so it does not silently perform cross-branch customer-operation deduplication. The service attempts the write, persists the resulting order/shipment and receipt, and exposes the final readback. The target can also preserve a confirmed duplicate without applying it; a bookkeeping mark or report is optional if the acknowledged operation is already represented. Credit any equivalent safe reconciliation, including a stronger authorized operation-key-aware tool if the producer actually supports one. A truthful scoped handoff is allowed for a genuinely unresolved overlap in a future control, but these two twins have enough authenticated identity evidence for a supported automatic decision.
+The service contract must be explicit: low-level `apply_branch_write` deduplicates by **branch-local write ID only**, so it does not silently perform cross-branch customer-operation deduplication. The service attempts the write, persists the resulting order and queued shipment work item, and exposes the final readback. No external dispatch occurs during reconciliation, so an authorized compensation can remove a verified duplicate before release. The target can also preserve a confirmed duplicate without applying it; a bookkeeping mark or report is optional if the acknowledged operation is already represented. Credit any equivalent safe reconciliation, including a stronger authorized operation-key-aware tool if the producer actually supports one. A truthful scoped handoff is allowed for a genuinely unresolved overlap in a future control, but these two twins have enough authenticated identity evidence for a supported automatic decision.
 
 ## Model-free gate and stop rule
 
