@@ -6,7 +6,7 @@ import fs from 'node:fs';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 
-import { screen } from './screen.mjs';
+import { PUBLISHED_REGISTRY_INTEGRITY, screen } from './screen.mjs';
 
 const directory = import.meta.dirname;
 const evidence = path.join(directory, 'evidence');
@@ -40,6 +40,7 @@ export function expectedManifest(sourceCommit) {
     ),
     node_version: process.version,
     npm_version: execFileSync('npm', ['--version'], { encoding: 'utf8' }).trim(),
+    published_registry_integrity: PUBLISHED_REGISTRY_INTEGRITY,
     screen_sha256: sha256(json(result)),
   };
 }

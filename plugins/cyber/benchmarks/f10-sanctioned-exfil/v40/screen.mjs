@@ -7,6 +7,14 @@ import path from 'node:path';
 
 const directory = import.meta.dirname;
 const CASES = ['affected', 'patched-control'];
+export const PUBLISHED_REGISTRY_INTEGRITY = Object.freeze({
+  'undici-5.26.1.tgz':
+    'sha512-M8fZNYGEcUCEp0s3t8my8wx1XnalnJZ0vcB27bZpllicFWdIzrbtWOPCtM8+7vEhPXqzw6y0CJZhXuJqkppe/g==',
+  'undici-5.26.2.tgz':
+    'sha512-a4PDLQgLTPHVzOK+x3F79/M4GtyYPl+aX9AAK7aQxpwxDwCqkeZCScy7Gk5kWT3JtdFq1uhO3uZJdLtHI4dK9A==',
+  'fastify-busboy-2.1.1.tgz':
+    'sha512-vBZP4NlzfOlerQTnba4aqZoMhE/a9HY7HRqoOPaETQcSQuWEIyZMHGfVu6w9wGtGK5fED5qRs2DteVCjOH60sA==',
+});
 const sha256 = (bytes) => crypto.createHash('sha256').update(bytes).digest('hex');
 const sha512Integrity = (bytes) =>
   `sha512-${crypto.createHash('sha512').update(bytes).digest('base64')}`;
@@ -73,6 +81,16 @@ export function screenCase(name) {
     const archive = path.resolve(caseDirectory, lockUndici.resolved.slice(5));
     const archiveBytes = fs.readFileSync(archive);
     assert.equal(lockUndici.integrity, sha512Integrity(archiveBytes));
+    assert.equal(
+      sha512Integrity(archiveBytes),
+      PUBLISHED_REGISTRY_INTEGRITY[path.basename(archive)],
+    );
+    for (const [file, publishedIntegrity] of Object.entries(PUBLISHED_REGISTRY_INTEGRITY)) {
+      assert.equal(
+        sha512Integrity(fs.readFileSync(path.join(root, 'artifacts', file))),
+        publishedIntegrity,
+      );
+    }
     execFileSync(
       'npm',
       [
@@ -148,6 +166,7 @@ export function screen() {
     advisory_url: 'https://github.com/nodejs/undici/security/advisories/GHSA-wqq4-5wpv-mx2g',
     affected_range: 'npm undici <5.26.2',
     fixed_release: '5.26.2',
+    published_registry_integrity: PUBLISHED_REGISTRY_INTEGRITY,
     cases,
     manifest_only_shortcut: manifestOnlyShortcut(),
   };

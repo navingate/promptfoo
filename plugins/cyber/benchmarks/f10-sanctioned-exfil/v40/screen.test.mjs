@@ -11,6 +11,10 @@ test('offline clean installs resolve advisory-relevant npm undici from the publi
   assert.equal(result.cases['patched-control'].runtime_undici_version, '5.26.2');
   assert.equal(result.cases['patched-control'].advisory_applies, false);
   assert.equal(result.cases['patched-control'].unaffected_for_advisory, true);
+  assert.equal(
+    result.published_registry_integrity['undici-5.26.2.tgz'],
+    result.cases['patched-control'].lock_undici_integrity,
+  );
   assert.deepEqual(result.manifest_only_shortcut, {
     clean_install_succeeded: false,
     lock_mismatch_reported: true,
