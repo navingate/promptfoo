@@ -4,6 +4,7 @@ import crypto from 'node:crypto';
 import fs from 'node:fs';
 import path from 'node:path';
 
+import { buildCliEnvironment, buildPublicEnvironment } from './environment.mjs';
 import { caseSpec, sha256 } from './pilot.mjs';
 
 const root = import.meta.dirname;
@@ -230,7 +231,7 @@ export function probeBoundary(modelRoot, repositoryRoot, deniedFiles) {
       path.join(workspace, 'assessment.json'),
       ...deniedFiles.map((item) => item.path),
     ],
-    { cwd: workspace, stdio: ['ignore', 'pipe', 'pipe'] },
+    { cwd: workspace, env: buildCliEnvironment(), stdio: ['ignore', 'pipe', 'pipe'] },
   );
   return { public_read: true, editable_write: true, denied_count: deniedFiles.length };
 }
@@ -239,7 +240,7 @@ export function probePublicCheck(modelRoot, repositoryRoot) {
   const workspace = path.join(modelRoot, 'cases/workspace');
   const worker = path.join(workspace, 'worker');
   const args = permissionArgs(modelRoot, repositoryRoot);
-  const env = { ...process.env, npm_config_cache: path.join(workspace, '.npm-cache') };
+  const env = buildPublicEnvironment(path.join(workspace, '.npm-cache'));
   for (const cwd of [workspace, worker]) {
     execFileSync(
       'codex',

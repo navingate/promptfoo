@@ -21,6 +21,8 @@ const localSources = [
   'public-check.cjs',
   'evaluate.mjs',
   'evaluate.test.mjs',
+  'environment.mjs',
+  'environment.test.mjs',
   'pilot.mjs',
   'preflight.mjs',
   'workdir.mjs',

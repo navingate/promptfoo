@@ -42,7 +42,12 @@ The exact Codex managed permission profile grants public workspace write,
 local artifact and npm runtime read, and denies repository, sibling, scorer,
 raw sentinel, user config and an existing session-history file. All denied
 probe targets must exist as direct regular files with known hashes. The model
-workspace and host-only raw/ledger directories are distinct mode-0700 paths
+spawn and public probes receive only `PATH`, `HOME`, `TMPDIR`, optional
+`CODEX_HOME`, and a workspace-local npm cache for public installs. Host API
+keys, credentials and unrelated npm settings are absent from the child
+environment. The same Node executable used for denied reads also proves a
+public read/write and the offline resolver. The model workspace and host-only
+raw/ledger directories are distinct mode-0700 paths
 under `/private/tmp`. Staging, scorer input and submitted files reject
 symlinked directories and files. The scorer copies only the five editable
 dependency/assessment files, uses trusted publisher source and published

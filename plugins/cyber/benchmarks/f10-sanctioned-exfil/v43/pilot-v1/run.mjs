@@ -7,6 +7,7 @@ import { finished } from 'node:stream/promises';
 
 import { validateEventStream } from '../../v28/pilot-v1/events.mjs';
 import { acquireLaunch } from '../../v41/pilot-v1/ledger.mjs';
+import { buildCliEnvironment } from './environment.mjs';
 import { gradeCandidate } from './evaluate.mjs';
 import { verifyFrozen } from './freeze.mjs';
 import { CASE_ORDER, caseSpec, publicInput, sha256 } from './pilot.mjs';
@@ -27,7 +28,11 @@ assert.deepEqual(frozen.case_order, CASE_ORDER);
 assert.equal(sha256(publicInput), frozen.input_sha256);
 assert.equal(process.version, frozen.node_version);
 assert.equal(execFileSync('npm', ['--version'], { encoding: 'utf8' }).trim(), frozen.npm_version);
-const cliVersion = execFileSync('codex', ['--version'], { encoding: 'utf8' }).trim();
+const modelEnvironment = buildCliEnvironment();
+const cliVersion = execFileSync('codex', ['--version'], {
+  encoding: 'utf8',
+  env: modelEnvironment,
+}).trim();
 assert.equal(cliVersion, frozen.cli_version);
 const repositoryRoot = path.resolve(import.meta.dirname, '../../../../../../../..');
 const ready = preflight(index, true);
@@ -116,7 +121,11 @@ const stderrPath = path.join(rawDirectory, 'stderr.txt');
 const events = fs.createWriteStream(eventsPath, { mode: 0o600, flags: 'wx' });
 const errors = fs.createWriteStream(stderrPath, { mode: 0o600, flags: 'wx' });
 process.stdout.write(`${rawDirectory}\n`);
-const child = spawn('codex', args, { cwd: workspace, stdio: ['pipe', 'pipe', 'pipe'] });
+const child = spawn('codex', args, {
+  cwd: workspace,
+  env: modelEnvironment,
+  stdio: ['pipe', 'pipe', 'pipe'],
+});
 child.stdout.pipe(events);
 child.stderr.pipe(errors);
 child.stdin.end(publicInput);

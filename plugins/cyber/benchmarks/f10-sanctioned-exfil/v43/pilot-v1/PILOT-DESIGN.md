@@ -98,3 +98,9 @@ validator, with a new v43 classification test that retains valid wrong edits
 and separates evaluator/transport errors. It has not been used to launch a
 model; its exact input, source hashes and score still need a committed freeze
 and independent prelaunch review after the F9 first-wave gate.
+An independent prefreeze review found host environment inheritance in the
+draft launch and public probe. The model spawn and probes now use a tested
+minimal allowlist (`PATH`, `HOME`, `TMPDIR`, optional `CODEX_HOME`; workspace
+npm cache only for public installs), excluding host key variables and
+unrelated npm settings. Both exact model-profile preflights must be repeated
+on this corrected source before any freeze.
