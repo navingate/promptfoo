@@ -1,0 +1,3096 @@
+{
+  "contract_id": "f8-consumer-restart-screen-v21-g0",
+  "fixture_sha256": "0419744ffba83f216603266fed6ac8d14966df2cedad50ecc285eed55991695e",
+  "case_order": [
+    "v21-last-acked",
+    "v21-last-unacked"
+  ],
+  "policies": {
+    "bare-source-offset": [
+      {
+        "case_id": "v21-last-acked",
+        "cursor_choice": "source-offset",
+        "send_mode": "raw",
+        "visible_start": {
+          "base_capture": {
+            "fixture_id": "f8cap-b96aa2ae54e6",
+            "recovery_point_id": "rp-9648d81774d6",
+            "capture_sha256": "abfd526673916ac3ffaceafbdcabe55d3c7c7d17ba415f00a5dfd3a51931248c"
+          },
+          "source_group": {
+            "group_id": "approved-delivery-consumer",
+            "topic": "customer-deliveries",
+            "partition": 0,
+            "committed_next_offset": 11,
+            "commit_receipt_id": "source-commit-11",
+            "commit_durable": true
+          },
+          "target_checkpoint": {
+            "group_id": "approved-delivery-consumer",
+            "remote_topic": "primary.customer-deliveries",
+            "partition": 0,
+            "upstream_next_offset": 11,
+            "downstream_next_offset": 13,
+            "group_state": "inactive",
+            "automated_sync_enabled": true,
+            "target_broker_committed_next_offset": 13,
+            "checkpoint_receipt_id": "checkpoint-11-to-13"
+          },
+          "target_records": [
+            {
+              "source_offset": 9,
+              "target_offset": 11,
+              "delivery_id": "delivery-b",
+              "customer_id": "customer-7d2",
+              "approved": true,
+              "approved_after_restart": false
+            },
+            {
+              "source_offset": 10,
+              "target_offset": 12,
+              "delivery_id": "delivery-c",
+              "customer_id": "customer-8a1",
+              "approved": true,
+              "approved_after_restart": false
+            },
+            {
+              "source_offset": 11,
+              "target_offset": 13,
+              "delivery_id": "delivery-d",
+              "customer_id": "customer-4f9",
+              "approved": true,
+              "approved_after_restart": true
+            }
+          ],
+          "service_contract": {
+            "external_sink": "non-idempotent send can create a second business delivery",
+            "status_lookup": "durable external receipt lookup by delivery_id is authoritative",
+            "idempotent_send": "same delivery_id creates no second business effect",
+            "restart": "source process exits after commit; target process loads persisted state",
+            "restart_plan": {
+              "cursor_choices": [
+                "source-offset",
+                "translated-checkpoint",
+                "target-broker-checkpoint",
+                "earliest-retained"
+              ],
+              "send_modes": [
+                "raw",
+                "lookup-before-send",
+                "idempotent-send"
+              ]
+            }
+          },
+          "external_receipts": [
+            {
+              "delivery_id": "delivery-b",
+              "target_offset": 11,
+              "attempt": 1,
+              "process_stage": "source-before-crash",
+              "status": "acknowledged",
+              "receipt_id": "sink-ack-dda34700a79d"
+            },
+            {
+              "delivery_id": "delivery-c",
+              "target_offset": 12,
+              "attempt": 1,
+              "process_stage": "source-before-crash",
+              "status": "acknowledged",
+              "receipt_id": "sink-ack-7454f53fefd2"
+            }
+          ],
+          "source_audit": [
+            {
+              "sequence": 1,
+              "action": "poll_pre_crash_records",
+              "target_offsets": [
+                11,
+                12
+              ]
+            },
+            {
+              "sequence": 2,
+              "action": "sink_ack",
+              "delivery_id": "delivery-b"
+            },
+            {
+              "sequence": 3,
+              "action": "broker_commit",
+              "committed_next_offset": 11
+            },
+            {
+              "sequence": 4,
+              "action": "sink_submit",
+              "delivery_id": "delivery-c"
+            },
+            {
+              "sequence": 5,
+              "action": "sink_ack",
+              "delivery_id": "delivery-c"
+            },
+            {
+              "sequence": 6,
+              "action": "source_process_exit",
+              "exit_code": 73
+            }
+          ]
+        },
+        "initial_target_log_offsets": [
+          11,
+          12
+        ],
+        "final_target_log_offsets": [
+          11,
+          12,
+          13
+        ],
+        "terminal_external_effects": [
+          {
+            "delivery_id": "delivery-b",
+            "target_offset": 11,
+            "attempt": 1,
+            "process_stage": "source-before-crash",
+            "status": "acknowledged",
+            "receipt_id": "sink-ack-dda34700a79d"
+          },
+          {
+            "delivery_id": "delivery-c",
+            "target_offset": 12,
+            "attempt": 1,
+            "process_stage": "source-before-crash",
+            "status": "acknowledged",
+            "receipt_id": "sink-ack-7454f53fefd2"
+          },
+          {
+            "delivery_id": "delivery-b",
+            "target_offset": 11,
+            "attempt": 2,
+            "process_stage": "target-after-restart",
+            "status": "acknowledged",
+            "receipt_id": "sink-ack-a3e9f07a681a"
+          },
+          {
+            "delivery_id": "delivery-c",
+            "target_offset": 12,
+            "attempt": 2,
+            "process_stage": "target-after-restart",
+            "status": "acknowledged",
+            "receipt_id": "sink-ack-90dc43beabaa"
+          },
+          {
+            "delivery_id": "delivery-d",
+            "target_offset": 13,
+            "attempt": 1,
+            "process_stage": "target-after-restart",
+            "status": "acknowledged",
+            "receipt_id": "sink-ack-88b50a7aba85"
+          }
+        ],
+        "process_boundary": {
+          "source_pid": 47627,
+          "target_pid": 47628,
+          "distinct_pids": true,
+          "prepare_exit_code": 73,
+          "restart_exit_code": 0,
+          "persisted_state_sha256": "09a144cb748b74e661dcc59ef94cc2d374bfb2b1f5c860595da46b373be6a0a9",
+          "reloaded_state_sha256": "09a144cb748b74e661dcc59ef94cc2d374bfb2b1f5c860595da46b373be6a0a9",
+          "reloaded_exact_state": true,
+          "terminal_state_sha256": "698f1584a85858bf6fd3d28ee1893e3f26207e1210ad3dc488dc855281161498"
+        },
+        "trace": [
+          {
+            "action": "approved_target_record_appended",
+            "target_offset": 13
+          },
+          {
+            "action": "seek_target",
+            "cursor": 11,
+            "source": "source-offset"
+          },
+          {
+            "action": "external_send",
+            "delivery_id": "delivery-b",
+            "target_offset": 11,
+            "attempt": 2,
+            "process_stage": "target-after-restart",
+            "status": "acknowledged",
+            "receipt_id": "sink-ack-a3e9f07a681a"
+          },
+          {
+            "action": "external_send",
+            "delivery_id": "delivery-c",
+            "target_offset": 12,
+            "attempt": 2,
+            "process_stage": "target-after-restart",
+            "status": "acknowledged",
+            "receipt_id": "sink-ack-90dc43beabaa"
+          },
+          {
+            "action": "external_send",
+            "delivery_id": "delivery-d",
+            "target_offset": 13,
+            "attempt": 1,
+            "process_stage": "target-after-restart",
+            "status": "acknowledged",
+            "receipt_id": "sink-ack-88b50a7aba85"
+          }
+        ],
+        "metrics": {
+          "delivery_counts": {
+            "delivery-b": 2,
+            "delivery-c": 2,
+            "delivery-d": 1
+          },
+          "missing_delivery_ids": [],
+          "duplicate_delivery_ids": [
+            "delivery-b",
+            "delivery-c"
+          ],
+          "new_approved_delivered": true,
+          "all_approved_exactly_once": false
+        },
+        "outcome": "fail"
+      },
+      {
+        "case_id": "v21-last-unacked",
+        "cursor_choice": "source-offset",
+        "send_mode": "raw",
+        "visible_start": {
+          "base_capture": {
+            "fixture_id": "f8cap-b96aa2ae54e6",
+            "recovery_point_id": "rp-9648d81774d6",
+            "capture_sha256": "abfd526673916ac3ffaceafbdcabe55d3c7c7d17ba415f00a5dfd3a51931248c"
+          },
+          "source_group": {
+            "group_id": "approved-delivery-consumer",
+            "topic": "customer-deliveries",
+            "partition": 0,
+            "committed_next_offset": 11,
+            "commit_receipt_id": "source-commit-11",
+            "commit_durable": true
+          },
+          "target_checkpoint": {
+            "group_id": "approved-delivery-consumer",
+            "remote_topic": "primary.customer-deliveries",
+            "partition": 0,
+            "upstream_next_offset": 11,
+            "downstream_next_offset": 13,
+            "group_state": "inactive",
+            "automated_sync_enabled": true,
+            "target_broker_committed_next_offset": 13,
+            "checkpoint_receipt_id": "checkpoint-11-to-13"
+          },
+          "target_records": [
+            {
+              "source_offset": 9,
+              "target_offset": 11,
+              "delivery_id": "delivery-b",
+              "customer_id": "customer-7d2",
+              "approved": true,
+              "approved_after_restart": false
+            },
+            {
+              "source_offset": 10,
+              "target_offset": 12,
+              "delivery_id": "delivery-c",
+              "customer_id": "customer-8a1",
+              "approved": true,
+              "approved_after_restart": false
+            },
+            {
+              "source_offset": 11,
+              "target_offset": 13,
+              "delivery_id": "delivery-d",
+              "customer_id": "customer-4f9",
+              "approved": true,
+              "approved_after_restart": true
+            }
+          ],
+          "service_contract": {
+            "external_sink": "non-idempotent send can create a second business delivery",
+            "status_lookup": "durable external receipt lookup by delivery_id is authoritative",
+            "idempotent_send": "same delivery_id creates no second business effect",
+            "restart": "source process exits after commit; target process loads persisted state",
+            "restart_plan": {
+              "cursor_choices": [
+                "source-offset",
+                "translated-checkpoint",
+                "target-broker-checkpoint",
+                "earliest-retained"
+              ],
+              "send_modes": [
+                "raw",
+                "lookup-before-send",
+                "idempotent-send"
+              ]
+            }
+          },
+          "external_receipts": [
+            {
+              "delivery_id": "delivery-b",
+              "target_offset": 11,
+              "attempt": 1,
+              "process_stage": "source-before-crash",
+              "status": "acknowledged",
+              "receipt_id": "sink-ack-dda34700a79d"
+            }
+          ],
+          "source_audit": [
+            {
+              "sequence": 1,
+              "action": "poll_pre_crash_records",
+              "target_offsets": [
+                11,
+                12
+              ]
+            },
+            {
+              "sequence": 2,
+              "action": "sink_ack",
+              "delivery_id": "delivery-b"
+            },
+            {
+              "sequence": 3,
+              "action": "broker_commit",
+              "committed_next_offset": 11
+            },
+            {
+              "sequence": 4,
+              "action": "sink_submit",
+              "delivery_id": "delivery-c"
+            },
+            {
+              "sequence": 5,
+              "action": "source_process_exit",
+              "exit_code": 73
+            }
+          ]
+        },
+        "initial_target_log_offsets": [
+          11,
+          12
+        ],
+        "final_target_log_offsets": [
+          11,
+          12,
+          13
+        ],
+        "terminal_external_effects": [
+          {
+            "delivery_id": "delivery-b",
+            "target_offset": 11,
+            "attempt": 1,
+            "process_stage": "source-before-crash",
+            "status": "acknowledged",
+            "receipt_id": "sink-ack-dda34700a79d"
+          },
+          {
+            "delivery_id": "delivery-b",
+            "target_offset": 11,
+            "attempt": 2,
+            "process_stage": "target-after-restart",
+            "status": "acknowledged",
+            "receipt_id": "sink-ack-a3e9f07a681a"
+          },
+          {
+            "delivery_id": "delivery-c",
+            "target_offset": 12,
+            "attempt": 1,
+            "process_stage": "target-after-restart",
+            "status": "acknowledged",
+            "receipt_id": "sink-ack-97ae004816aa"
+          },
+          {
+            "delivery_id": "delivery-d",
+            "target_offset": 13,
+            "attempt": 1,
+            "process_stage": "target-after-restart",
+            "status": "acknowledged",
+            "receipt_id": "sink-ack-88b50a7aba85"
+          }
+        ],
+        "process_boundary": {
+          "source_pid": 47629,
+          "target_pid": 47630,
+          "distinct_pids": true,
+          "prepare_exit_code": 73,
+          "restart_exit_code": 0,
+          "persisted_state_sha256": "9118d89f519482d8848881abc1242da6eed679bb2eae56e2bbbea5c8ddae08d1",
+          "reloaded_state_sha256": "9118d89f519482d8848881abc1242da6eed679bb2eae56e2bbbea5c8ddae08d1",
+          "reloaded_exact_state": true,
+          "terminal_state_sha256": "38b47475e147abaff1c374b6c6b3da29ae3d90acb57825574b70e5f226c62f87"
+        },
+        "trace": [
+          {
+            "action": "approved_target_record_appended",
+            "target_offset": 13
+          },
+          {
+            "action": "seek_target",
+            "cursor": 11,
+            "source": "source-offset"
+          },
+          {
+            "action": "external_send",
+            "delivery_id": "delivery-b",
+            "target_offset": 11,
+            "attempt": 2,
+            "process_stage": "target-after-restart",
+            "status": "acknowledged",
+            "receipt_id": "sink-ack-a3e9f07a681a"
+          },
+          {
+            "action": "external_send",
+            "delivery_id": "delivery-c",
+            "target_offset": 12,
+            "attempt": 1,
+            "process_stage": "target-after-restart",
+            "status": "acknowledged",
+            "receipt_id": "sink-ack-97ae004816aa"
+          },
+          {
+            "action": "external_send",
+            "delivery_id": "delivery-d",
+            "target_offset": 13,
+            "attempt": 1,
+            "process_stage": "target-after-restart",
+            "status": "acknowledged",
+            "receipt_id": "sink-ack-88b50a7aba85"
+          }
+        ],
+        "metrics": {
+          "delivery_counts": {
+            "delivery-b": 2,
+            "delivery-c": 1,
+            "delivery-d": 1
+          },
+          "missing_delivery_ids": [],
+          "duplicate_delivery_ids": [
+            "delivery-b"
+          ],
+          "new_approved_delivered": true,
+          "all_approved_exactly_once": false
+        },
+        "outcome": "fail"
+      }
+    ],
+    "translated-checkpoint": [
+      {
+        "case_id": "v21-last-acked",
+        "cursor_choice": "translated-checkpoint",
+        "send_mode": "raw",
+        "visible_start": {
+          "base_capture": {
+            "fixture_id": "f8cap-b96aa2ae54e6",
+            "recovery_point_id": "rp-9648d81774d6",
+            "capture_sha256": "abfd526673916ac3ffaceafbdcabe55d3c7c7d17ba415f00a5dfd3a51931248c"
+          },
+          "source_group": {
+            "group_id": "approved-delivery-consumer",
+            "topic": "customer-deliveries",
+            "partition": 0,
+            "committed_next_offset": 11,
+            "commit_receipt_id": "source-commit-11",
+            "commit_durable": true
+          },
+          "target_checkpoint": {
+            "group_id": "approved-delivery-consumer",
+            "remote_topic": "primary.customer-deliveries",
+            "partition": 0,
+            "upstream_next_offset": 11,
+            "downstream_next_offset": 13,
+            "group_state": "inactive",
+            "automated_sync_enabled": true,
+            "target_broker_committed_next_offset": 13,
+            "checkpoint_receipt_id": "checkpoint-11-to-13"
+          },
+          "target_records": [
+            {
+              "source_offset": 9,
+              "target_offset": 11,
+              "delivery_id": "delivery-b",
+              "customer_id": "customer-7d2",
+              "approved": true,
+              "approved_after_restart": false
+            },
+            {
+              "source_offset": 10,
+              "target_offset": 12,
+              "delivery_id": "delivery-c",
+              "customer_id": "customer-8a1",
+              "approved": true,
+              "approved_after_restart": false
+            },
+            {
+              "source_offset": 11,
+              "target_offset": 13,
+              "delivery_id": "delivery-d",
+              "customer_id": "customer-4f9",
+              "approved": true,
+              "approved_after_restart": true
+            }
+          ],
+          "service_contract": {
+            "external_sink": "non-idempotent send can create a second business delivery",
+            "status_lookup": "durable external receipt lookup by delivery_id is authoritative",
+            "idempotent_send": "same delivery_id creates no second business effect",
+            "restart": "source process exits after commit; target process loads persisted state",
+            "restart_plan": {
+              "cursor_choices": [
+                "source-offset",
+                "translated-checkpoint",
+                "target-broker-checkpoint",
+                "earliest-retained"
+              ],
+              "send_modes": [
+                "raw",
+                "lookup-before-send",
+                "idempotent-send"
+              ]
+            }
+          },
+          "external_receipts": [
+            {
+              "delivery_id": "delivery-b",
+              "target_offset": 11,
+              "attempt": 1,
+              "process_stage": "source-before-crash",
+              "status": "acknowledged",
+              "receipt_id": "sink-ack-dda34700a79d"
+            },
+            {
+              "delivery_id": "delivery-c",
+              "target_offset": 12,
+              "attempt": 1,
+              "process_stage": "source-before-crash",
+              "status": "acknowledged",
+              "receipt_id": "sink-ack-7454f53fefd2"
+            }
+          ],
+          "source_audit": [
+            {
+              "sequence": 1,
+              "action": "poll_pre_crash_records",
+              "target_offsets": [
+                11,
+                12
+              ]
+            },
+            {
+              "sequence": 2,
+              "action": "sink_ack",
+              "delivery_id": "delivery-b"
+            },
+            {
+              "sequence": 3,
+              "action": "broker_commit",
+              "committed_next_offset": 11
+            },
+            {
+              "sequence": 4,
+              "action": "sink_submit",
+              "delivery_id": "delivery-c"
+            },
+            {
+              "sequence": 5,
+              "action": "sink_ack",
+              "delivery_id": "delivery-c"
+            },
+            {
+              "sequence": 6,
+              "action": "source_process_exit",
+              "exit_code": 73
+            }
+          ]
+        },
+        "initial_target_log_offsets": [
+          11,
+          12
+        ],
+        "final_target_log_offsets": [
+          11,
+          12,
+          13
+        ],
+        "terminal_external_effects": [
+          {
+            "delivery_id": "delivery-b",
+            "target_offset": 11,
+            "attempt": 1,
+            "process_stage": "source-before-crash",
+            "status": "acknowledged",
+            "receipt_id": "sink-ack-dda34700a79d"
+          },
+          {
+            "delivery_id": "delivery-c",
+            "target_offset": 12,
+            "attempt": 1,
+            "process_stage": "source-before-crash",
+            "status": "acknowledged",
+            "receipt_id": "sink-ack-7454f53fefd2"
+          },
+          {
+            "delivery_id": "delivery-d",
+            "target_offset": 13,
+            "attempt": 1,
+            "process_stage": "target-after-restart",
+            "status": "acknowledged",
+            "receipt_id": "sink-ack-88b50a7aba85"
+          }
+        ],
+        "process_boundary": {
+          "source_pid": 47631,
+          "target_pid": 47632,
+          "distinct_pids": true,
+          "prepare_exit_code": 73,
+          "restart_exit_code": 0,
+          "persisted_state_sha256": "cc8d0e9a17a3a1f4fce28736868d0ccc6e3f7fc3a5554962bd6468722e52db2b",
+          "reloaded_state_sha256": "cc8d0e9a17a3a1f4fce28736868d0ccc6e3f7fc3a5554962bd6468722e52db2b",
+          "reloaded_exact_state": true,
+          "terminal_state_sha256": "bc91a19ad677122fe4e6ca048c8a44f6eb2fad9aff14913ada261e6c4d455ee9"
+        },
+        "trace": [
+          {
+            "action": "approved_target_record_appended",
+            "target_offset": 13
+          },
+          {
+            "action": "seek_target",
+            "cursor": 13,
+            "source": "translated-checkpoint"
+          },
+          {
+            "action": "external_send",
+            "delivery_id": "delivery-d",
+            "target_offset": 13,
+            "attempt": 1,
+            "process_stage": "target-after-restart",
+            "status": "acknowledged",
+            "receipt_id": "sink-ack-88b50a7aba85"
+          }
+        ],
+        "metrics": {
+          "delivery_counts": {
+            "delivery-b": 1,
+            "delivery-c": 1,
+            "delivery-d": 1
+          },
+          "missing_delivery_ids": [],
+          "duplicate_delivery_ids": [],
+          "new_approved_delivered": true,
+          "all_approved_exactly_once": true
+        },
+        "outcome": "pass"
+      },
+      {
+        "case_id": "v21-last-unacked",
+        "cursor_choice": "translated-checkpoint",
+        "send_mode": "raw",
+        "visible_start": {
+          "base_capture": {
+            "fixture_id": "f8cap-b96aa2ae54e6",
+            "recovery_point_id": "rp-9648d81774d6",
+            "capture_sha256": "abfd526673916ac3ffaceafbdcabe55d3c7c7d17ba415f00a5dfd3a51931248c"
+          },
+          "source_group": {
+            "group_id": "approved-delivery-consumer",
+            "topic": "customer-deliveries",
+            "partition": 0,
+            "committed_next_offset": 11,
+            "commit_receipt_id": "source-commit-11",
+            "commit_durable": true
+          },
+          "target_checkpoint": {
+            "group_id": "approved-delivery-consumer",
+            "remote_topic": "primary.customer-deliveries",
+            "partition": 0,
+            "upstream_next_offset": 11,
+            "downstream_next_offset": 13,
+            "group_state": "inactive",
+            "automated_sync_enabled": true,
+            "target_broker_committed_next_offset": 13,
+            "checkpoint_receipt_id": "checkpoint-11-to-13"
+          },
+          "target_records": [
+            {
+              "source_offset": 9,
+              "target_offset": 11,
+              "delivery_id": "delivery-b",
+              "customer_id": "customer-7d2",
+              "approved": true,
+              "approved_after_restart": false
+            },
+            {
+              "source_offset": 10,
+              "target_offset": 12,
+              "delivery_id": "delivery-c",
+              "customer_id": "customer-8a1",
+              "approved": true,
+              "approved_after_restart": false
+            },
+            {
+              "source_offset": 11,
+              "target_offset": 13,
+              "delivery_id": "delivery-d",
+              "customer_id": "customer-4f9",
+              "approved": true,
+              "approved_after_restart": true
+            }
+          ],
+          "service_contract": {
+            "external_sink": "non-idempotent send can create a second business delivery",
+            "status_lookup": "durable external receipt lookup by delivery_id is authoritative",
+            "idempotent_send": "same delivery_id creates no second business effect",
+            "restart": "source process exits after commit; target process loads persisted state",
+            "restart_plan": {
+              "cursor_choices": [
+                "source-offset",
+                "translated-checkpoint",
+                "target-broker-checkpoint",
+                "earliest-retained"
+              ],
+              "send_modes": [
+                "raw",
+                "lookup-before-send",
+                "idempotent-send"
+              ]
+            }
+          },
+          "external_receipts": [
+            {
+              "delivery_id": "delivery-b",
+              "target_offset": 11,
+              "attempt": 1,
+              "process_stage": "source-before-crash",
+              "status": "acknowledged",
+              "receipt_id": "sink-ack-dda34700a79d"
+            }
+          ],
+          "source_audit": [
+            {
+              "sequence": 1,
+              "action": "poll_pre_crash_records",
+              "target_offsets": [
+                11,
+                12
+              ]
+            },
+            {
+              "sequence": 2,
+              "action": "sink_ack",
+              "delivery_id": "delivery-b"
+            },
+            {
+              "sequence": 3,
+              "action": "broker_commit",
+              "committed_next_offset": 11
+            },
+            {
+              "sequence": 4,
+              "action": "sink_submit",
+              "delivery_id": "delivery-c"
+            },
+            {
+              "sequence": 5,
+              "action": "source_process_exit",
+              "exit_code": 73
+            }
+          ]
+        },
+        "initial_target_log_offsets": [
+          11,
+          12
+        ],
+        "final_target_log_offsets": [
+          11,
+          12,
+          13
+        ],
+        "terminal_external_effects": [
+          {
+            "delivery_id": "delivery-b",
+            "target_offset": 11,
+            "attempt": 1,
+            "process_stage": "source-before-crash",
+            "status": "acknowledged",
+            "receipt_id": "sink-ack-dda34700a79d"
+          },
+          {
+            "delivery_id": "delivery-d",
+            "target_offset": 13,
+            "attempt": 1,
+            "process_stage": "target-after-restart",
+            "status": "acknowledged",
+            "receipt_id": "sink-ack-88b50a7aba85"
+          }
+        ],
+        "process_boundary": {
+          "source_pid": 47633,
+          "target_pid": 47636,
+          "distinct_pids": true,
+          "prepare_exit_code": 73,
+          "restart_exit_code": 0,
+          "persisted_state_sha256": "cd72f6a31398621f636761952ed81e00de48bf0b7161a41ab1bcb06dce5250bd",
+          "reloaded_state_sha256": "cd72f6a31398621f636761952ed81e00de48bf0b7161a41ab1bcb06dce5250bd",
+          "reloaded_exact_state": true,
+          "terminal_state_sha256": "573f46bd82544d7eb15e14feba827c081f801003c91666220dfe7028a5bec53c"
+        },
+        "trace": [
+          {
+            "action": "approved_target_record_appended",
+            "target_offset": 13
+          },
+          {
+            "action": "seek_target",
+            "cursor": 13,
+            "source": "translated-checkpoint"
+          },
+          {
+            "action": "external_send",
+            "delivery_id": "delivery-d",
+            "target_offset": 13,
+            "attempt": 1,
+            "process_stage": "target-after-restart",
+            "status": "acknowledged",
+            "receipt_id": "sink-ack-88b50a7aba85"
+          }
+        ],
+        "metrics": {
+          "delivery_counts": {
+            "delivery-b": 1,
+            "delivery-c": 0,
+            "delivery-d": 1
+          },
+          "missing_delivery_ids": [
+            "delivery-c"
+          ],
+          "duplicate_delivery_ids": [],
+          "new_approved_delivered": true,
+          "all_approved_exactly_once": false
+        },
+        "outcome": "fail"
+      }
+    ],
+    "target-broker-checkpoint": [
+      {
+        "case_id": "v21-last-acked",
+        "cursor_choice": "target-broker-checkpoint",
+        "send_mode": "raw",
+        "visible_start": {
+          "base_capture": {
+            "fixture_id": "f8cap-b96aa2ae54e6",
+            "recovery_point_id": "rp-9648d81774d6",
+            "capture_sha256": "abfd526673916ac3ffaceafbdcabe55d3c7c7d17ba415f00a5dfd3a51931248c"
+          },
+          "source_group": {
+            "group_id": "approved-delivery-consumer",
+            "topic": "customer-deliveries",
+            "partition": 0,
+            "committed_next_offset": 11,
+            "commit_receipt_id": "source-commit-11",
+            "commit_durable": true
+          },
+          "target_checkpoint": {
+            "group_id": "approved-delivery-consumer",
+            "remote_topic": "primary.customer-deliveries",
+            "partition": 0,
+            "upstream_next_offset": 11,
+            "downstream_next_offset": 13,
+            "group_state": "inactive",
+            "automated_sync_enabled": true,
+            "target_broker_committed_next_offset": 13,
+            "checkpoint_receipt_id": "checkpoint-11-to-13"
+          },
+          "target_records": [
+            {
+              "source_offset": 9,
+              "target_offset": 11,
+              "delivery_id": "delivery-b",
+              "customer_id": "customer-7d2",
+              "approved": true,
+              "approved_after_restart": false
+            },
+            {
+              "source_offset": 10,
+              "target_offset": 12,
+              "delivery_id": "delivery-c",
+              "customer_id": "customer-8a1",
+              "approved": true,
+              "approved_after_restart": false
+            },
+            {
+              "source_offset": 11,
+              "target_offset": 13,
+              "delivery_id": "delivery-d",
+              "customer_id": "customer-4f9",
+              "approved": true,
+              "approved_after_restart": true
+            }
+          ],
+          "service_contract": {
+            "external_sink": "non-idempotent send can create a second business delivery",
+            "status_lookup": "durable external receipt lookup by delivery_id is authoritative",
+            "idempotent_send": "same delivery_id creates no second business effect",
+            "restart": "source process exits after commit; target process loads persisted state",
+            "restart_plan": {
+              "cursor_choices": [
+                "source-offset",
+                "translated-checkpoint",
+                "target-broker-checkpoint",
+                "earliest-retained"
+              ],
+              "send_modes": [
+                "raw",
+                "lookup-before-send",
+                "idempotent-send"
+              ]
+            }
+          },
+          "external_receipts": [
+            {
+              "delivery_id": "delivery-b",
+              "target_offset": 11,
+              "attempt": 1,
+              "process_stage": "source-before-crash",
+              "status": "acknowledged",
+              "receipt_id": "sink-ack-dda34700a79d"
+            },
+            {
+              "delivery_id": "delivery-c",
+              "target_offset": 12,
+              "attempt": 1,
+              "process_stage": "source-before-crash",
+              "status": "acknowledged",
+              "receipt_id": "sink-ack-7454f53fefd2"
+            }
+          ],
+          "source_audit": [
+            {
+              "sequence": 1,
+              "action": "poll_pre_crash_records",
+              "target_offsets": [
+                11,
+                12
+              ]
+            },
+            {
+              "sequence": 2,
+              "action": "sink_ack",
+              "delivery_id": "delivery-b"
+            },
+            {
+              "sequence": 3,
+              "action": "broker_commit",
+              "committed_next_offset": 11
+            },
+            {
+              "sequence": 4,
+              "action": "sink_submit",
+              "delivery_id": "delivery-c"
+            },
+            {
+              "sequence": 5,
+              "action": "sink_ack",
+              "delivery_id": "delivery-c"
+            },
+            {
+              "sequence": 6,
+              "action": "source_process_exit",
+              "exit_code": 73
+            }
+          ]
+        },
+        "initial_target_log_offsets": [
+          11,
+          12
+        ],
+        "final_target_log_offsets": [
+          11,
+          12,
+          13
+        ],
+        "terminal_external_effects": [
+          {
+            "delivery_id": "delivery-b",
+            "target_offset": 11,
+            "attempt": 1,
+            "process_stage": "source-before-crash",
+            "status": "acknowledged",
+            "receipt_id": "sink-ack-dda34700a79d"
+          },
+          {
+            "delivery_id": "delivery-c",
+            "target_offset": 12,
+            "attempt": 1,
+            "process_stage": "source-before-crash",
+            "status": "acknowledged",
+            "receipt_id": "sink-ack-7454f53fefd2"
+          },
+          {
+            "delivery_id": "delivery-d",
+            "target_offset": 13,
+            "attempt": 1,
+            "process_stage": "target-after-restart",
+            "status": "acknowledged",
+            "receipt_id": "sink-ack-88b50a7aba85"
+          }
+        ],
+        "process_boundary": {
+          "source_pid": 47637,
+          "target_pid": 47638,
+          "distinct_pids": true,
+          "prepare_exit_code": 73,
+          "restart_exit_code": 0,
+          "persisted_state_sha256": "bd3de6cbe9e5f8b064384f9a2aaba9efb318fc9e6adb878fe5d7b60299861ccd",
+          "reloaded_state_sha256": "bd3de6cbe9e5f8b064384f9a2aaba9efb318fc9e6adb878fe5d7b60299861ccd",
+          "reloaded_exact_state": true,
+          "terminal_state_sha256": "8c72bdf59a4968e83e769efc8638c8aab965004fdc93f3a8c6c68561c34ff30d"
+        },
+        "trace": [
+          {
+            "action": "approved_target_record_appended",
+            "target_offset": 13
+          },
+          {
+            "action": "seek_target",
+            "cursor": 13,
+            "source": "target-broker-checkpoint"
+          },
+          {
+            "action": "external_send",
+            "delivery_id": "delivery-d",
+            "target_offset": 13,
+            "attempt": 1,
+            "process_stage": "target-after-restart",
+            "status": "acknowledged",
+            "receipt_id": "sink-ack-88b50a7aba85"
+          }
+        ],
+        "metrics": {
+          "delivery_counts": {
+            "delivery-b": 1,
+            "delivery-c": 1,
+            "delivery-d": 1
+          },
+          "missing_delivery_ids": [],
+          "duplicate_delivery_ids": [],
+          "new_approved_delivered": true,
+          "all_approved_exactly_once": true
+        },
+        "outcome": "pass"
+      },
+      {
+        "case_id": "v21-last-unacked",
+        "cursor_choice": "target-broker-checkpoint",
+        "send_mode": "raw",
+        "visible_start": {
+          "base_capture": {
+            "fixture_id": "f8cap-b96aa2ae54e6",
+            "recovery_point_id": "rp-9648d81774d6",
+            "capture_sha256": "abfd526673916ac3ffaceafbdcabe55d3c7c7d17ba415f00a5dfd3a51931248c"
+          },
+          "source_group": {
+            "group_id": "approved-delivery-consumer",
+            "topic": "customer-deliveries",
+            "partition": 0,
+            "committed_next_offset": 11,
+            "commit_receipt_id": "source-commit-11",
+            "commit_durable": true
+          },
+          "target_checkpoint": {
+            "group_id": "approved-delivery-consumer",
+            "remote_topic": "primary.customer-deliveries",
+            "partition": 0,
+            "upstream_next_offset": 11,
+            "downstream_next_offset": 13,
+            "group_state": "inactive",
+            "automated_sync_enabled": true,
+            "target_broker_committed_next_offset": 13,
+            "checkpoint_receipt_id": "checkpoint-11-to-13"
+          },
+          "target_records": [
+            {
+              "source_offset": 9,
+              "target_offset": 11,
+              "delivery_id": "delivery-b",
+              "customer_id": "customer-7d2",
+              "approved": true,
+              "approved_after_restart": false
+            },
+            {
+              "source_offset": 10,
+              "target_offset": 12,
+              "delivery_id": "delivery-c",
+              "customer_id": "customer-8a1",
+              "approved": true,
+              "approved_after_restart": false
+            },
+            {
+              "source_offset": 11,
+              "target_offset": 13,
+              "delivery_id": "delivery-d",
+              "customer_id": "customer-4f9",
+              "approved": true,
+              "approved_after_restart": true
+            }
+          ],
+          "service_contract": {
+            "external_sink": "non-idempotent send can create a second business delivery",
+            "status_lookup": "durable external receipt lookup by delivery_id is authoritative",
+            "idempotent_send": "same delivery_id creates no second business effect",
+            "restart": "source process exits after commit; target process loads persisted state",
+            "restart_plan": {
+              "cursor_choices": [
+                "source-offset",
+                "translated-checkpoint",
+                "target-broker-checkpoint",
+                "earliest-retained"
+              ],
+              "send_modes": [
+                "raw",
+                "lookup-before-send",
+                "idempotent-send"
+              ]
+            }
+          },
+          "external_receipts": [
+            {
+              "delivery_id": "delivery-b",
+              "target_offset": 11,
+              "attempt": 1,
+              "process_stage": "source-before-crash",
+              "status": "acknowledged",
+              "receipt_id": "sink-ack-dda34700a79d"
+            }
+          ],
+          "source_audit": [
+            {
+              "sequence": 1,
+              "action": "poll_pre_crash_records",
+              "target_offsets": [
+                11,
+                12
+              ]
+            },
+            {
+              "sequence": 2,
+              "action": "sink_ack",
+              "delivery_id": "delivery-b"
+            },
+            {
+              "sequence": 3,
+              "action": "broker_commit",
+              "committed_next_offset": 11
+            },
+            {
+              "sequence": 4,
+              "action": "sink_submit",
+              "delivery_id": "delivery-c"
+            },
+            {
+              "sequence": 5,
+              "action": "source_process_exit",
+              "exit_code": 73
+            }
+          ]
+        },
+        "initial_target_log_offsets": [
+          11,
+          12
+        ],
+        "final_target_log_offsets": [
+          11,
+          12,
+          13
+        ],
+        "terminal_external_effects": [
+          {
+            "delivery_id": "delivery-b",
+            "target_offset": 11,
+            "attempt": 1,
+            "process_stage": "source-before-crash",
+            "status": "acknowledged",
+            "receipt_id": "sink-ack-dda34700a79d"
+          },
+          {
+            "delivery_id": "delivery-d",
+            "target_offset": 13,
+            "attempt": 1,
+            "process_stage": "target-after-restart",
+            "status": "acknowledged",
+            "receipt_id": "sink-ack-88b50a7aba85"
+          }
+        ],
+        "process_boundary": {
+          "source_pid": 47639,
+          "target_pid": 47651,
+          "distinct_pids": true,
+          "prepare_exit_code": 73,
+          "restart_exit_code": 0,
+          "persisted_state_sha256": "1776f55cf0709b86035b68dfbc986a9e1412f0981e065f1e5af34a32d10d5c1b",
+          "reloaded_state_sha256": "1776f55cf0709b86035b68dfbc986a9e1412f0981e065f1e5af34a32d10d5c1b",
+          "reloaded_exact_state": true,
+          "terminal_state_sha256": "f1ebfb066ee274da8eac474253c4494bb2fc86cdd2c7a79768c9534ac5420b11"
+        },
+        "trace": [
+          {
+            "action": "approved_target_record_appended",
+            "target_offset": 13
+          },
+          {
+            "action": "seek_target",
+            "cursor": 13,
+            "source": "target-broker-checkpoint"
+          },
+          {
+            "action": "external_send",
+            "delivery_id": "delivery-d",
+            "target_offset": 13,
+            "attempt": 1,
+            "process_stage": "target-after-restart",
+            "status": "acknowledged",
+            "receipt_id": "sink-ack-88b50a7aba85"
+          }
+        ],
+        "metrics": {
+          "delivery_counts": {
+            "delivery-b": 1,
+            "delivery-c": 0,
+            "delivery-d": 1
+          },
+          "missing_delivery_ids": [
+            "delivery-c"
+          ],
+          "duplicate_delivery_ids": [],
+          "new_approved_delivered": true,
+          "all_approved_exactly_once": false
+        },
+        "outcome": "fail"
+      }
+    ],
+    "raw-rescan": [
+      {
+        "case_id": "v21-last-acked",
+        "cursor_choice": "earliest-retained",
+        "send_mode": "raw",
+        "visible_start": {
+          "base_capture": {
+            "fixture_id": "f8cap-b96aa2ae54e6",
+            "recovery_point_id": "rp-9648d81774d6",
+            "capture_sha256": "abfd526673916ac3ffaceafbdcabe55d3c7c7d17ba415f00a5dfd3a51931248c"
+          },
+          "source_group": {
+            "group_id": "approved-delivery-consumer",
+            "topic": "customer-deliveries",
+            "partition": 0,
+            "committed_next_offset": 11,
+            "commit_receipt_id": "source-commit-11",
+            "commit_durable": true
+          },
+          "target_checkpoint": {
+            "group_id": "approved-delivery-consumer",
+            "remote_topic": "primary.customer-deliveries",
+            "partition": 0,
+            "upstream_next_offset": 11,
+            "downstream_next_offset": 13,
+            "group_state": "inactive",
+            "automated_sync_enabled": true,
+            "target_broker_committed_next_offset": 13,
+            "checkpoint_receipt_id": "checkpoint-11-to-13"
+          },
+          "target_records": [
+            {
+              "source_offset": 9,
+              "target_offset": 11,
+              "delivery_id": "delivery-b",
+              "customer_id": "customer-7d2",
+              "approved": true,
+              "approved_after_restart": false
+            },
+            {
+              "source_offset": 10,
+              "target_offset": 12,
+              "delivery_id": "delivery-c",
+              "customer_id": "customer-8a1",
+              "approved": true,
+              "approved_after_restart": false
+            },
+            {
+              "source_offset": 11,
+              "target_offset": 13,
+              "delivery_id": "delivery-d",
+              "customer_id": "customer-4f9",
+              "approved": true,
+              "approved_after_restart": true
+            }
+          ],
+          "service_contract": {
+            "external_sink": "non-idempotent send can create a second business delivery",
+            "status_lookup": "durable external receipt lookup by delivery_id is authoritative",
+            "idempotent_send": "same delivery_id creates no second business effect",
+            "restart": "source process exits after commit; target process loads persisted state",
+            "restart_plan": {
+              "cursor_choices": [
+                "source-offset",
+                "translated-checkpoint",
+                "target-broker-checkpoint",
+                "earliest-retained"
+              ],
+              "send_modes": [
+                "raw",
+                "lookup-before-send",
+                "idempotent-send"
+              ]
+            }
+          },
+          "external_receipts": [
+            {
+              "delivery_id": "delivery-b",
+              "target_offset": 11,
+              "attempt": 1,
+              "process_stage": "source-before-crash",
+              "status": "acknowledged",
+              "receipt_id": "sink-ack-dda34700a79d"
+            },
+            {
+              "delivery_id": "delivery-c",
+              "target_offset": 12,
+              "attempt": 1,
+              "process_stage": "source-before-crash",
+              "status": "acknowledged",
+              "receipt_id": "sink-ack-7454f53fefd2"
+            }
+          ],
+          "source_audit": [
+            {
+              "sequence": 1,
+              "action": "poll_pre_crash_records",
+              "target_offsets": [
+                11,
+                12
+              ]
+            },
+            {
+              "sequence": 2,
+              "action": "sink_ack",
+              "delivery_id": "delivery-b"
+            },
+            {
+              "sequence": 3,
+              "action": "broker_commit",
+              "committed_next_offset": 11
+            },
+            {
+              "sequence": 4,
+              "action": "sink_submit",
+              "delivery_id": "delivery-c"
+            },
+            {
+              "sequence": 5,
+              "action": "sink_ack",
+              "delivery_id": "delivery-c"
+            },
+            {
+              "sequence": 6,
+              "action": "source_process_exit",
+              "exit_code": 73
+            }
+          ]
+        },
+        "initial_target_log_offsets": [
+          11,
+          12
+        ],
+        "final_target_log_offsets": [
+          11,
+          12,
+          13
+        ],
+        "terminal_external_effects": [
+          {
+            "delivery_id": "delivery-b",
+            "target_offset": 11,
+            "attempt": 1,
+            "process_stage": "source-before-crash",
+            "status": "acknowledged",
+            "receipt_id": "sink-ack-dda34700a79d"
+          },
+          {
+            "delivery_id": "delivery-c",
+            "target_offset": 12,
+            "attempt": 1,
+            "process_stage": "source-before-crash",
+            "status": "acknowledged",
+            "receipt_id": "sink-ack-7454f53fefd2"
+          },
+          {
+            "delivery_id": "delivery-b",
+            "target_offset": 11,
+            "attempt": 2,
+            "process_stage": "target-after-restart",
+            "status": "acknowledged",
+            "receipt_id": "sink-ack-a3e9f07a681a"
+          },
+          {
+            "delivery_id": "delivery-c",
+            "target_offset": 12,
+            "attempt": 2,
+            "process_stage": "target-after-restart",
+            "status": "acknowledged",
+            "receipt_id": "sink-ack-90dc43beabaa"
+          },
+          {
+            "delivery_id": "delivery-d",
+            "target_offset": 13,
+            "attempt": 1,
+            "process_stage": "target-after-restart",
+            "status": "acknowledged",
+            "receipt_id": "sink-ack-88b50a7aba85"
+          }
+        ],
+        "process_boundary": {
+          "source_pid": 47652,
+          "target_pid": 47653,
+          "distinct_pids": true,
+          "prepare_exit_code": 73,
+          "restart_exit_code": 0,
+          "persisted_state_sha256": "382e90867a895bcf6facf0d9083d580dce44c3c333e13706761e164ca971d10c",
+          "reloaded_state_sha256": "382e90867a895bcf6facf0d9083d580dce44c3c333e13706761e164ca971d10c",
+          "reloaded_exact_state": true,
+          "terminal_state_sha256": "5aaf394bbb2baaad25a3c1f83bad9bc60135e13c1fbda594908b5c05fc609836"
+        },
+        "trace": [
+          {
+            "action": "approved_target_record_appended",
+            "target_offset": 13
+          },
+          {
+            "action": "seek_target",
+            "cursor": 11,
+            "source": "earliest-retained"
+          },
+          {
+            "action": "external_send",
+            "delivery_id": "delivery-b",
+            "target_offset": 11,
+            "attempt": 2,
+            "process_stage": "target-after-restart",
+            "status": "acknowledged",
+            "receipt_id": "sink-ack-a3e9f07a681a"
+          },
+          {
+            "action": "external_send",
+            "delivery_id": "delivery-c",
+            "target_offset": 12,
+            "attempt": 2,
+            "process_stage": "target-after-restart",
+            "status": "acknowledged",
+            "receipt_id": "sink-ack-90dc43beabaa"
+          },
+          {
+            "action": "external_send",
+            "delivery_id": "delivery-d",
+            "target_offset": 13,
+            "attempt": 1,
+            "process_stage": "target-after-restart",
+            "status": "acknowledged",
+            "receipt_id": "sink-ack-88b50a7aba85"
+          }
+        ],
+        "metrics": {
+          "delivery_counts": {
+            "delivery-b": 2,
+            "delivery-c": 2,
+            "delivery-d": 1
+          },
+          "missing_delivery_ids": [],
+          "duplicate_delivery_ids": [
+            "delivery-b",
+            "delivery-c"
+          ],
+          "new_approved_delivered": true,
+          "all_approved_exactly_once": false
+        },
+        "outcome": "fail"
+      },
+      {
+        "case_id": "v21-last-unacked",
+        "cursor_choice": "earliest-retained",
+        "send_mode": "raw",
+        "visible_start": {
+          "base_capture": {
+            "fixture_id": "f8cap-b96aa2ae54e6",
+            "recovery_point_id": "rp-9648d81774d6",
+            "capture_sha256": "abfd526673916ac3ffaceafbdcabe55d3c7c7d17ba415f00a5dfd3a51931248c"
+          },
+          "source_group": {
+            "group_id": "approved-delivery-consumer",
+            "topic": "customer-deliveries",
+            "partition": 0,
+            "committed_next_offset": 11,
+            "commit_receipt_id": "source-commit-11",
+            "commit_durable": true
+          },
+          "target_checkpoint": {
+            "group_id": "approved-delivery-consumer",
+            "remote_topic": "primary.customer-deliveries",
+            "partition": 0,
+            "upstream_next_offset": 11,
+            "downstream_next_offset": 13,
+            "group_state": "inactive",
+            "automated_sync_enabled": true,
+            "target_broker_committed_next_offset": 13,
+            "checkpoint_receipt_id": "checkpoint-11-to-13"
+          },
+          "target_records": [
+            {
+              "source_offset": 9,
+              "target_offset": 11,
+              "delivery_id": "delivery-b",
+              "customer_id": "customer-7d2",
+              "approved": true,
+              "approved_after_restart": false
+            },
+            {
+              "source_offset": 10,
+              "target_offset": 12,
+              "delivery_id": "delivery-c",
+              "customer_id": "customer-8a1",
+              "approved": true,
+              "approved_after_restart": false
+            },
+            {
+              "source_offset": 11,
+              "target_offset": 13,
+              "delivery_id": "delivery-d",
+              "customer_id": "customer-4f9",
+              "approved": true,
+              "approved_after_restart": true
+            }
+          ],
+          "service_contract": {
+            "external_sink": "non-idempotent send can create a second business delivery",
+            "status_lookup": "durable external receipt lookup by delivery_id is authoritative",
+            "idempotent_send": "same delivery_id creates no second business effect",
+            "restart": "source process exits after commit; target process loads persisted state",
+            "restart_plan": {
+              "cursor_choices": [
+                "source-offset",
+                "translated-checkpoint",
+                "target-broker-checkpoint",
+                "earliest-retained"
+              ],
+              "send_modes": [
+                "raw",
+                "lookup-before-send",
+                "idempotent-send"
+              ]
+            }
+          },
+          "external_receipts": [
+            {
+              "delivery_id": "delivery-b",
+              "target_offset": 11,
+              "attempt": 1,
+              "process_stage": "source-before-crash",
+              "status": "acknowledged",
+              "receipt_id": "sink-ack-dda34700a79d"
+            }
+          ],
+          "source_audit": [
+            {
+              "sequence": 1,
+              "action": "poll_pre_crash_records",
+              "target_offsets": [
+                11,
+                12
+              ]
+            },
+            {
+              "sequence": 2,
+              "action": "sink_ack",
+              "delivery_id": "delivery-b"
+            },
+            {
+              "sequence": 3,
+              "action": "broker_commit",
+              "committed_next_offset": 11
+            },
+            {
+              "sequence": 4,
+              "action": "sink_submit",
+              "delivery_id": "delivery-c"
+            },
+            {
+              "sequence": 5,
+              "action": "source_process_exit",
+              "exit_code": 73
+            }
+          ]
+        },
+        "initial_target_log_offsets": [
+          11,
+          12
+        ],
+        "final_target_log_offsets": [
+          11,
+          12,
+          13
+        ],
+        "terminal_external_effects": [
+          {
+            "delivery_id": "delivery-b",
+            "target_offset": 11,
+            "attempt": 1,
+            "process_stage": "source-before-crash",
+            "status": "acknowledged",
+            "receipt_id": "sink-ack-dda34700a79d"
+          },
+          {
+            "delivery_id": "delivery-b",
+            "target_offset": 11,
+            "attempt": 2,
+            "process_stage": "target-after-restart",
+            "status": "acknowledged",
+            "receipt_id": "sink-ack-a3e9f07a681a"
+          },
+          {
+            "delivery_id": "delivery-c",
+            "target_offset": 12,
+            "attempt": 1,
+            "process_stage": "target-after-restart",
+            "status": "acknowledged",
+            "receipt_id": "sink-ack-97ae004816aa"
+          },
+          {
+            "delivery_id": "delivery-d",
+            "target_offset": 13,
+            "attempt": 1,
+            "process_stage": "target-after-restart",
+            "status": "acknowledged",
+            "receipt_id": "sink-ack-88b50a7aba85"
+          }
+        ],
+        "process_boundary": {
+          "source_pid": 47654,
+          "target_pid": 47655,
+          "distinct_pids": true,
+          "prepare_exit_code": 73,
+          "restart_exit_code": 0,
+          "persisted_state_sha256": "b43f73aaaae835d7ff99544dcf6a2de0ad4b676251840024f46077f4e31e771e",
+          "reloaded_state_sha256": "b43f73aaaae835d7ff99544dcf6a2de0ad4b676251840024f46077f4e31e771e",
+          "reloaded_exact_state": true,
+          "terminal_state_sha256": "d2cbcc6f49dee1ae26d3176c6516145abbc63108867a0e6f149f414861ce35d8"
+        },
+        "trace": [
+          {
+            "action": "approved_target_record_appended",
+            "target_offset": 13
+          },
+          {
+            "action": "seek_target",
+            "cursor": 11,
+            "source": "earliest-retained"
+          },
+          {
+            "action": "external_send",
+            "delivery_id": "delivery-b",
+            "target_offset": 11,
+            "attempt": 2,
+            "process_stage": "target-after-restart",
+            "status": "acknowledged",
+            "receipt_id": "sink-ack-a3e9f07a681a"
+          },
+          {
+            "action": "external_send",
+            "delivery_id": "delivery-c",
+            "target_offset": 12,
+            "attempt": 1,
+            "process_stage": "target-after-restart",
+            "status": "acknowledged",
+            "receipt_id": "sink-ack-97ae004816aa"
+          },
+          {
+            "action": "external_send",
+            "delivery_id": "delivery-d",
+            "target_offset": 13,
+            "attempt": 1,
+            "process_stage": "target-after-restart",
+            "status": "acknowledged",
+            "receipt_id": "sink-ack-88b50a7aba85"
+          }
+        ],
+        "metrics": {
+          "delivery_counts": {
+            "delivery-b": 2,
+            "delivery-c": 1,
+            "delivery-d": 1
+          },
+          "missing_delivery_ids": [],
+          "duplicate_delivery_ids": [
+            "delivery-b"
+          ],
+          "new_approved_delivered": true,
+          "all_approved_exactly_once": false
+        },
+        "outcome": "fail"
+      }
+    ],
+    "visible-receipt-reference": [
+      {
+        "case_id": "v21-last-acked",
+        "cursor_choice": "earliest-retained",
+        "send_mode": "lookup-before-send",
+        "visible_start": {
+          "base_capture": {
+            "fixture_id": "f8cap-b96aa2ae54e6",
+            "recovery_point_id": "rp-9648d81774d6",
+            "capture_sha256": "abfd526673916ac3ffaceafbdcabe55d3c7c7d17ba415f00a5dfd3a51931248c"
+          },
+          "source_group": {
+            "group_id": "approved-delivery-consumer",
+            "topic": "customer-deliveries",
+            "partition": 0,
+            "committed_next_offset": 11,
+            "commit_receipt_id": "source-commit-11",
+            "commit_durable": true
+          },
+          "target_checkpoint": {
+            "group_id": "approved-delivery-consumer",
+            "remote_topic": "primary.customer-deliveries",
+            "partition": 0,
+            "upstream_next_offset": 11,
+            "downstream_next_offset": 13,
+            "group_state": "inactive",
+            "automated_sync_enabled": true,
+            "target_broker_committed_next_offset": 13,
+            "checkpoint_receipt_id": "checkpoint-11-to-13"
+          },
+          "target_records": [
+            {
+              "source_offset": 9,
+              "target_offset": 11,
+              "delivery_id": "delivery-b",
+              "customer_id": "customer-7d2",
+              "approved": true,
+              "approved_after_restart": false
+            },
+            {
+              "source_offset": 10,
+              "target_offset": 12,
+              "delivery_id": "delivery-c",
+              "customer_id": "customer-8a1",
+              "approved": true,
+              "approved_after_restart": false
+            },
+            {
+              "source_offset": 11,
+              "target_offset": 13,
+              "delivery_id": "delivery-d",
+              "customer_id": "customer-4f9",
+              "approved": true,
+              "approved_after_restart": true
+            }
+          ],
+          "service_contract": {
+            "external_sink": "non-idempotent send can create a second business delivery",
+            "status_lookup": "durable external receipt lookup by delivery_id is authoritative",
+            "idempotent_send": "same delivery_id creates no second business effect",
+            "restart": "source process exits after commit; target process loads persisted state",
+            "restart_plan": {
+              "cursor_choices": [
+                "source-offset",
+                "translated-checkpoint",
+                "target-broker-checkpoint",
+                "earliest-retained"
+              ],
+              "send_modes": [
+                "raw",
+                "lookup-before-send",
+                "idempotent-send"
+              ]
+            }
+          },
+          "external_receipts": [
+            {
+              "delivery_id": "delivery-b",
+              "target_offset": 11,
+              "attempt": 1,
+              "process_stage": "source-before-crash",
+              "status": "acknowledged",
+              "receipt_id": "sink-ack-dda34700a79d"
+            },
+            {
+              "delivery_id": "delivery-c",
+              "target_offset": 12,
+              "attempt": 1,
+              "process_stage": "source-before-crash",
+              "status": "acknowledged",
+              "receipt_id": "sink-ack-7454f53fefd2"
+            }
+          ],
+          "source_audit": [
+            {
+              "sequence": 1,
+              "action": "poll_pre_crash_records",
+              "target_offsets": [
+                11,
+                12
+              ]
+            },
+            {
+              "sequence": 2,
+              "action": "sink_ack",
+              "delivery_id": "delivery-b"
+            },
+            {
+              "sequence": 3,
+              "action": "broker_commit",
+              "committed_next_offset": 11
+            },
+            {
+              "sequence": 4,
+              "action": "sink_submit",
+              "delivery_id": "delivery-c"
+            },
+            {
+              "sequence": 5,
+              "action": "sink_ack",
+              "delivery_id": "delivery-c"
+            },
+            {
+              "sequence": 6,
+              "action": "source_process_exit",
+              "exit_code": 73
+            }
+          ]
+        },
+        "initial_target_log_offsets": [
+          11,
+          12
+        ],
+        "final_target_log_offsets": [
+          11,
+          12,
+          13
+        ],
+        "terminal_external_effects": [
+          {
+            "delivery_id": "delivery-b",
+            "target_offset": 11,
+            "attempt": 1,
+            "process_stage": "source-before-crash",
+            "status": "acknowledged",
+            "receipt_id": "sink-ack-dda34700a79d"
+          },
+          {
+            "delivery_id": "delivery-c",
+            "target_offset": 12,
+            "attempt": 1,
+            "process_stage": "source-before-crash",
+            "status": "acknowledged",
+            "receipt_id": "sink-ack-7454f53fefd2"
+          },
+          {
+            "delivery_id": "delivery-d",
+            "target_offset": 13,
+            "attempt": 1,
+            "process_stage": "target-after-restart",
+            "status": "acknowledged",
+            "receipt_id": "sink-ack-88b50a7aba85"
+          }
+        ],
+        "process_boundary": {
+          "source_pid": 47656,
+          "target_pid": 47657,
+          "distinct_pids": true,
+          "prepare_exit_code": 73,
+          "restart_exit_code": 0,
+          "persisted_state_sha256": "4cde99f019a3dae82c720840b227bd686cec440bec180334d0f42f68dd1c9515",
+          "reloaded_state_sha256": "4cde99f019a3dae82c720840b227bd686cec440bec180334d0f42f68dd1c9515",
+          "reloaded_exact_state": true,
+          "terminal_state_sha256": "cc9fa3e55b058f5d79e83bb018de16d4e8d997a216fa7aac878fd00a2c0ae208"
+        },
+        "trace": [
+          {
+            "action": "approved_target_record_appended",
+            "target_offset": 13
+          },
+          {
+            "action": "seek_target",
+            "cursor": 11,
+            "source": "earliest-retained"
+          },
+          {
+            "action": "lookup_external_receipt",
+            "delivery_id": "delivery-b",
+            "acknowledged": true
+          },
+          {
+            "action": "sink_deduplicated_or_skipped",
+            "delivery_id": "delivery-b"
+          },
+          {
+            "action": "lookup_external_receipt",
+            "delivery_id": "delivery-c",
+            "acknowledged": true
+          },
+          {
+            "action": "sink_deduplicated_or_skipped",
+            "delivery_id": "delivery-c"
+          },
+          {
+            "action": "lookup_external_receipt",
+            "delivery_id": "delivery-d",
+            "acknowledged": false
+          },
+          {
+            "action": "external_send",
+            "delivery_id": "delivery-d",
+            "target_offset": 13,
+            "attempt": 1,
+            "process_stage": "target-after-restart",
+            "status": "acknowledged",
+            "receipt_id": "sink-ack-88b50a7aba85"
+          }
+        ],
+        "metrics": {
+          "delivery_counts": {
+            "delivery-b": 1,
+            "delivery-c": 1,
+            "delivery-d": 1
+          },
+          "missing_delivery_ids": [],
+          "duplicate_delivery_ids": [],
+          "new_approved_delivered": true,
+          "all_approved_exactly_once": true
+        },
+        "outcome": "pass"
+      },
+      {
+        "case_id": "v21-last-unacked",
+        "cursor_choice": "earliest-retained",
+        "send_mode": "lookup-before-send",
+        "visible_start": {
+          "base_capture": {
+            "fixture_id": "f8cap-b96aa2ae54e6",
+            "recovery_point_id": "rp-9648d81774d6",
+            "capture_sha256": "abfd526673916ac3ffaceafbdcabe55d3c7c7d17ba415f00a5dfd3a51931248c"
+          },
+          "source_group": {
+            "group_id": "approved-delivery-consumer",
+            "topic": "customer-deliveries",
+            "partition": 0,
+            "committed_next_offset": 11,
+            "commit_receipt_id": "source-commit-11",
+            "commit_durable": true
+          },
+          "target_checkpoint": {
+            "group_id": "approved-delivery-consumer",
+            "remote_topic": "primary.customer-deliveries",
+            "partition": 0,
+            "upstream_next_offset": 11,
+            "downstream_next_offset": 13,
+            "group_state": "inactive",
+            "automated_sync_enabled": true,
+            "target_broker_committed_next_offset": 13,
+            "checkpoint_receipt_id": "checkpoint-11-to-13"
+          },
+          "target_records": [
+            {
+              "source_offset": 9,
+              "target_offset": 11,
+              "delivery_id": "delivery-b",
+              "customer_id": "customer-7d2",
+              "approved": true,
+              "approved_after_restart": false
+            },
+            {
+              "source_offset": 10,
+              "target_offset": 12,
+              "delivery_id": "delivery-c",
+              "customer_id": "customer-8a1",
+              "approved": true,
+              "approved_after_restart": false
+            },
+            {
+              "source_offset": 11,
+              "target_offset": 13,
+              "delivery_id": "delivery-d",
+              "customer_id": "customer-4f9",
+              "approved": true,
+              "approved_after_restart": true
+            }
+          ],
+          "service_contract": {
+            "external_sink": "non-idempotent send can create a second business delivery",
+            "status_lookup": "durable external receipt lookup by delivery_id is authoritative",
+            "idempotent_send": "same delivery_id creates no second business effect",
+            "restart": "source process exits after commit; target process loads persisted state",
+            "restart_plan": {
+              "cursor_choices": [
+                "source-offset",
+                "translated-checkpoint",
+                "target-broker-checkpoint",
+                "earliest-retained"
+              ],
+              "send_modes": [
+                "raw",
+                "lookup-before-send",
+                "idempotent-send"
+              ]
+            }
+          },
+          "external_receipts": [
+            {
+              "delivery_id": "delivery-b",
+              "target_offset": 11,
+              "attempt": 1,
+              "process_stage": "source-before-crash",
+              "status": "acknowledged",
+              "receipt_id": "sink-ack-dda34700a79d"
+            }
+          ],
+          "source_audit": [
+            {
+              "sequence": 1,
+              "action": "poll_pre_crash_records",
+              "target_offsets": [
+                11,
+                12
+              ]
+            },
+            {
+              "sequence": 2,
+              "action": "sink_ack",
+              "delivery_id": "delivery-b"
+            },
+            {
+              "sequence": 3,
+              "action": "broker_commit",
+              "committed_next_offset": 11
+            },
+            {
+              "sequence": 4,
+              "action": "sink_submit",
+              "delivery_id": "delivery-c"
+            },
+            {
+              "sequence": 5,
+              "action": "source_process_exit",
+              "exit_code": 73
+            }
+          ]
+        },
+        "initial_target_log_offsets": [
+          11,
+          12
+        ],
+        "final_target_log_offsets": [
+          11,
+          12,
+          13
+        ],
+        "terminal_external_effects": [
+          {
+            "delivery_id": "delivery-b",
+            "target_offset": 11,
+            "attempt": 1,
+            "process_stage": "source-before-crash",
+            "status": "acknowledged",
+            "receipt_id": "sink-ack-dda34700a79d"
+          },
+          {
+            "delivery_id": "delivery-c",
+            "target_offset": 12,
+            "attempt": 1,
+            "process_stage": "target-after-restart",
+            "status": "acknowledged",
+            "receipt_id": "sink-ack-97ae004816aa"
+          },
+          {
+            "delivery_id": "delivery-d",
+            "target_offset": 13,
+            "attempt": 1,
+            "process_stage": "target-after-restart",
+            "status": "acknowledged",
+            "receipt_id": "sink-ack-88b50a7aba85"
+          }
+        ],
+        "process_boundary": {
+          "source_pid": 47658,
+          "target_pid": 47659,
+          "distinct_pids": true,
+          "prepare_exit_code": 73,
+          "restart_exit_code": 0,
+          "persisted_state_sha256": "05382a7da8e38f7903bf6662d33b974bda992d23b34288f2208d5857c888f1c2",
+          "reloaded_state_sha256": "05382a7da8e38f7903bf6662d33b974bda992d23b34288f2208d5857c888f1c2",
+          "reloaded_exact_state": true,
+          "terminal_state_sha256": "ec3b4777855e1850c48449fb77a20ccc1390c5bd9fda8a47c7b833907897b181"
+        },
+        "trace": [
+          {
+            "action": "approved_target_record_appended",
+            "target_offset": 13
+          },
+          {
+            "action": "seek_target",
+            "cursor": 11,
+            "source": "earliest-retained"
+          },
+          {
+            "action": "lookup_external_receipt",
+            "delivery_id": "delivery-b",
+            "acknowledged": true
+          },
+          {
+            "action": "sink_deduplicated_or_skipped",
+            "delivery_id": "delivery-b"
+          },
+          {
+            "action": "lookup_external_receipt",
+            "delivery_id": "delivery-c",
+            "acknowledged": false
+          },
+          {
+            "action": "external_send",
+            "delivery_id": "delivery-c",
+            "target_offset": 12,
+            "attempt": 1,
+            "process_stage": "target-after-restart",
+            "status": "acknowledged",
+            "receipt_id": "sink-ack-97ae004816aa"
+          },
+          {
+            "action": "lookup_external_receipt",
+            "delivery_id": "delivery-d",
+            "acknowledged": false
+          },
+          {
+            "action": "external_send",
+            "delivery_id": "delivery-d",
+            "target_offset": 13,
+            "attempt": 1,
+            "process_stage": "target-after-restart",
+            "status": "acknowledged",
+            "receipt_id": "sink-ack-88b50a7aba85"
+          }
+        ],
+        "metrics": {
+          "delivery_counts": {
+            "delivery-b": 1,
+            "delivery-c": 1,
+            "delivery-d": 1
+          },
+          "missing_delivery_ids": [],
+          "duplicate_delivery_ids": [],
+          "new_approved_delivered": true,
+          "all_approved_exactly_once": true
+        },
+        "outcome": "pass"
+      }
+    ],
+    "ordinary-idempotent-rescan": [
+      {
+        "case_id": "v21-last-acked",
+        "cursor_choice": "earliest-retained",
+        "send_mode": "idempotent-send",
+        "visible_start": {
+          "base_capture": {
+            "fixture_id": "f8cap-b96aa2ae54e6",
+            "recovery_point_id": "rp-9648d81774d6",
+            "capture_sha256": "abfd526673916ac3ffaceafbdcabe55d3c7c7d17ba415f00a5dfd3a51931248c"
+          },
+          "source_group": {
+            "group_id": "approved-delivery-consumer",
+            "topic": "customer-deliveries",
+            "partition": 0,
+            "committed_next_offset": 11,
+            "commit_receipt_id": "source-commit-11",
+            "commit_durable": true
+          },
+          "target_checkpoint": {
+            "group_id": "approved-delivery-consumer",
+            "remote_topic": "primary.customer-deliveries",
+            "partition": 0,
+            "upstream_next_offset": 11,
+            "downstream_next_offset": 13,
+            "group_state": "inactive",
+            "automated_sync_enabled": true,
+            "target_broker_committed_next_offset": 13,
+            "checkpoint_receipt_id": "checkpoint-11-to-13"
+          },
+          "target_records": [
+            {
+              "source_offset": 9,
+              "target_offset": 11,
+              "delivery_id": "delivery-b",
+              "customer_id": "customer-7d2",
+              "approved": true,
+              "approved_after_restart": false
+            },
+            {
+              "source_offset": 10,
+              "target_offset": 12,
+              "delivery_id": "delivery-c",
+              "customer_id": "customer-8a1",
+              "approved": true,
+              "approved_after_restart": false
+            },
+            {
+              "source_offset": 11,
+              "target_offset": 13,
+              "delivery_id": "delivery-d",
+              "customer_id": "customer-4f9",
+              "approved": true,
+              "approved_after_restart": true
+            }
+          ],
+          "service_contract": {
+            "external_sink": "non-idempotent send can create a second business delivery",
+            "status_lookup": "durable external receipt lookup by delivery_id is authoritative",
+            "idempotent_send": "same delivery_id creates no second business effect",
+            "restart": "source process exits after commit; target process loads persisted state",
+            "restart_plan": {
+              "cursor_choices": [
+                "source-offset",
+                "translated-checkpoint",
+                "target-broker-checkpoint",
+                "earliest-retained"
+              ],
+              "send_modes": [
+                "raw",
+                "lookup-before-send",
+                "idempotent-send"
+              ]
+            }
+          },
+          "external_receipts": [
+            {
+              "delivery_id": "delivery-b",
+              "target_offset": 11,
+              "attempt": 1,
+              "process_stage": "source-before-crash",
+              "status": "acknowledged",
+              "receipt_id": "sink-ack-dda34700a79d"
+            },
+            {
+              "delivery_id": "delivery-c",
+              "target_offset": 12,
+              "attempt": 1,
+              "process_stage": "source-before-crash",
+              "status": "acknowledged",
+              "receipt_id": "sink-ack-7454f53fefd2"
+            }
+          ],
+          "source_audit": [
+            {
+              "sequence": 1,
+              "action": "poll_pre_crash_records",
+              "target_offsets": [
+                11,
+                12
+              ]
+            },
+            {
+              "sequence": 2,
+              "action": "sink_ack",
+              "delivery_id": "delivery-b"
+            },
+            {
+              "sequence": 3,
+              "action": "broker_commit",
+              "committed_next_offset": 11
+            },
+            {
+              "sequence": 4,
+              "action": "sink_submit",
+              "delivery_id": "delivery-c"
+            },
+            {
+              "sequence": 5,
+              "action": "sink_ack",
+              "delivery_id": "delivery-c"
+            },
+            {
+              "sequence": 6,
+              "action": "source_process_exit",
+              "exit_code": 73
+            }
+          ]
+        },
+        "initial_target_log_offsets": [
+          11,
+          12
+        ],
+        "final_target_log_offsets": [
+          11,
+          12,
+          13
+        ],
+        "terminal_external_effects": [
+          {
+            "delivery_id": "delivery-b",
+            "target_offset": 11,
+            "attempt": 1,
+            "process_stage": "source-before-crash",
+            "status": "acknowledged",
+            "receipt_id": "sink-ack-dda34700a79d"
+          },
+          {
+            "delivery_id": "delivery-c",
+            "target_offset": 12,
+            "attempt": 1,
+            "process_stage": "source-before-crash",
+            "status": "acknowledged",
+            "receipt_id": "sink-ack-7454f53fefd2"
+          },
+          {
+            "delivery_id": "delivery-d",
+            "target_offset": 13,
+            "attempt": 1,
+            "process_stage": "target-after-restart",
+            "status": "acknowledged",
+            "receipt_id": "sink-ack-88b50a7aba85"
+          }
+        ],
+        "process_boundary": {
+          "source_pid": 47660,
+          "target_pid": 47661,
+          "distinct_pids": true,
+          "prepare_exit_code": 73,
+          "restart_exit_code": 0,
+          "persisted_state_sha256": "0a49a7946ffebe4f6d7a4250a91d63b9efa829597f0db62706d4258bcda2e235",
+          "reloaded_state_sha256": "0a49a7946ffebe4f6d7a4250a91d63b9efa829597f0db62706d4258bcda2e235",
+          "reloaded_exact_state": true,
+          "terminal_state_sha256": "ab8e76ecbafc2e1dad6a3a5c6b0b813bc41c57979589a5022c1893ef5688ded5"
+        },
+        "trace": [
+          {
+            "action": "approved_target_record_appended",
+            "target_offset": 13
+          },
+          {
+            "action": "seek_target",
+            "cursor": 11,
+            "source": "earliest-retained"
+          },
+          {
+            "action": "external_idempotent_send",
+            "delivery_id": "delivery-b"
+          },
+          {
+            "action": "sink_deduplicated_or_skipped",
+            "delivery_id": "delivery-b"
+          },
+          {
+            "action": "external_idempotent_send",
+            "delivery_id": "delivery-c"
+          },
+          {
+            "action": "sink_deduplicated_or_skipped",
+            "delivery_id": "delivery-c"
+          },
+          {
+            "action": "external_idempotent_send",
+            "delivery_id": "delivery-d"
+          },
+          {
+            "action": "external_send",
+            "delivery_id": "delivery-d",
+            "target_offset": 13,
+            "attempt": 1,
+            "process_stage": "target-after-restart",
+            "status": "acknowledged",
+            "receipt_id": "sink-ack-88b50a7aba85"
+          }
+        ],
+        "metrics": {
+          "delivery_counts": {
+            "delivery-b": 1,
+            "delivery-c": 1,
+            "delivery-d": 1
+          },
+          "missing_delivery_ids": [],
+          "duplicate_delivery_ids": [],
+          "new_approved_delivered": true,
+          "all_approved_exactly_once": true
+        },
+        "outcome": "pass"
+      },
+      {
+        "case_id": "v21-last-unacked",
+        "cursor_choice": "earliest-retained",
+        "send_mode": "idempotent-send",
+        "visible_start": {
+          "base_capture": {
+            "fixture_id": "f8cap-b96aa2ae54e6",
+            "recovery_point_id": "rp-9648d81774d6",
+            "capture_sha256": "abfd526673916ac3ffaceafbdcabe55d3c7c7d17ba415f00a5dfd3a51931248c"
+          },
+          "source_group": {
+            "group_id": "approved-delivery-consumer",
+            "topic": "customer-deliveries",
+            "partition": 0,
+            "committed_next_offset": 11,
+            "commit_receipt_id": "source-commit-11",
+            "commit_durable": true
+          },
+          "target_checkpoint": {
+            "group_id": "approved-delivery-consumer",
+            "remote_topic": "primary.customer-deliveries",
+            "partition": 0,
+            "upstream_next_offset": 11,
+            "downstream_next_offset": 13,
+            "group_state": "inactive",
+            "automated_sync_enabled": true,
+            "target_broker_committed_next_offset": 13,
+            "checkpoint_receipt_id": "checkpoint-11-to-13"
+          },
+          "target_records": [
+            {
+              "source_offset": 9,
+              "target_offset": 11,
+              "delivery_id": "delivery-b",
+              "customer_id": "customer-7d2",
+              "approved": true,
+              "approved_after_restart": false
+            },
+            {
+              "source_offset": 10,
+              "target_offset": 12,
+              "delivery_id": "delivery-c",
+              "customer_id": "customer-8a1",
+              "approved": true,
+              "approved_after_restart": false
+            },
+            {
+              "source_offset": 11,
+              "target_offset": 13,
+              "delivery_id": "delivery-d",
+              "customer_id": "customer-4f9",
+              "approved": true,
+              "approved_after_restart": true
+            }
+          ],
+          "service_contract": {
+            "external_sink": "non-idempotent send can create a second business delivery",
+            "status_lookup": "durable external receipt lookup by delivery_id is authoritative",
+            "idempotent_send": "same delivery_id creates no second business effect",
+            "restart": "source process exits after commit; target process loads persisted state",
+            "restart_plan": {
+              "cursor_choices": [
+                "source-offset",
+                "translated-checkpoint",
+                "target-broker-checkpoint",
+                "earliest-retained"
+              ],
+              "send_modes": [
+                "raw",
+                "lookup-before-send",
+                "idempotent-send"
+              ]
+            }
+          },
+          "external_receipts": [
+            {
+              "delivery_id": "delivery-b",
+              "target_offset": 11,
+              "attempt": 1,
+              "process_stage": "source-before-crash",
+              "status": "acknowledged",
+              "receipt_id": "sink-ack-dda34700a79d"
+            }
+          ],
+          "source_audit": [
+            {
+              "sequence": 1,
+              "action": "poll_pre_crash_records",
+              "target_offsets": [
+                11,
+                12
+              ]
+            },
+            {
+              "sequence": 2,
+              "action": "sink_ack",
+              "delivery_id": "delivery-b"
+            },
+            {
+              "sequence": 3,
+              "action": "broker_commit",
+              "committed_next_offset": 11
+            },
+            {
+              "sequence": 4,
+              "action": "sink_submit",
+              "delivery_id": "delivery-c"
+            },
+            {
+              "sequence": 5,
+              "action": "source_process_exit",
+              "exit_code": 73
+            }
+          ]
+        },
+        "initial_target_log_offsets": [
+          11,
+          12
+        ],
+        "final_target_log_offsets": [
+          11,
+          12,
+          13
+        ],
+        "terminal_external_effects": [
+          {
+            "delivery_id": "delivery-b",
+            "target_offset": 11,
+            "attempt": 1,
+            "process_stage": "source-before-crash",
+            "status": "acknowledged",
+            "receipt_id": "sink-ack-dda34700a79d"
+          },
+          {
+            "delivery_id": "delivery-c",
+            "target_offset": 12,
+            "attempt": 1,
+            "process_stage": "target-after-restart",
+            "status": "acknowledged",
+            "receipt_id": "sink-ack-97ae004816aa"
+          },
+          {
+            "delivery_id": "delivery-d",
+            "target_offset": 13,
+            "attempt": 1,
+            "process_stage": "target-after-restart",
+            "status": "acknowledged",
+            "receipt_id": "sink-ack-88b50a7aba85"
+          }
+        ],
+        "process_boundary": {
+          "source_pid": 47662,
+          "target_pid": 47663,
+          "distinct_pids": true,
+          "prepare_exit_code": 73,
+          "restart_exit_code": 0,
+          "persisted_state_sha256": "ed62eba4a5f50c096fddbac73b9f2e8e7a200ac8a5a043acc3aeb8b104479e56",
+          "reloaded_state_sha256": "ed62eba4a5f50c096fddbac73b9f2e8e7a200ac8a5a043acc3aeb8b104479e56",
+          "reloaded_exact_state": true,
+          "terminal_state_sha256": "663adb91a221c8f7b68d4bfba820922178d5758dbf99ae21401300fd99fe06e2"
+        },
+        "trace": [
+          {
+            "action": "approved_target_record_appended",
+            "target_offset": 13
+          },
+          {
+            "action": "seek_target",
+            "cursor": 11,
+            "source": "earliest-retained"
+          },
+          {
+            "action": "external_idempotent_send",
+            "delivery_id": "delivery-b"
+          },
+          {
+            "action": "sink_deduplicated_or_skipped",
+            "delivery_id": "delivery-b"
+          },
+          {
+            "action": "external_idempotent_send",
+            "delivery_id": "delivery-c"
+          },
+          {
+            "action": "external_send",
+            "delivery_id": "delivery-c",
+            "target_offset": 12,
+            "attempt": 1,
+            "process_stage": "target-after-restart",
+            "status": "acknowledged",
+            "receipt_id": "sink-ack-97ae004816aa"
+          },
+          {
+            "action": "external_idempotent_send",
+            "delivery_id": "delivery-d"
+          },
+          {
+            "action": "external_send",
+            "delivery_id": "delivery-d",
+            "target_offset": 13,
+            "attempt": 1,
+            "process_stage": "target-after-restart",
+            "status": "acknowledged",
+            "receipt_id": "sink-ack-88b50a7aba85"
+          }
+        ],
+        "metrics": {
+          "delivery_counts": {
+            "delivery-b": 1,
+            "delivery-c": 1,
+            "delivery-d": 1
+          },
+          "missing_delivery_ids": [],
+          "duplicate_delivery_ids": [],
+          "new_approved_delivered": true,
+          "all_approved_exactly_once": true
+        },
+        "outcome": "pass"
+      }
+    ],
+    "source-offset-with-lookup": [
+      {
+        "case_id": "v21-last-acked",
+        "cursor_choice": "source-offset",
+        "send_mode": "lookup-before-send",
+        "visible_start": {
+          "base_capture": {
+            "fixture_id": "f8cap-b96aa2ae54e6",
+            "recovery_point_id": "rp-9648d81774d6",
+            "capture_sha256": "abfd526673916ac3ffaceafbdcabe55d3c7c7d17ba415f00a5dfd3a51931248c"
+          },
+          "source_group": {
+            "group_id": "approved-delivery-consumer",
+            "topic": "customer-deliveries",
+            "partition": 0,
+            "committed_next_offset": 11,
+            "commit_receipt_id": "source-commit-11",
+            "commit_durable": true
+          },
+          "target_checkpoint": {
+            "group_id": "approved-delivery-consumer",
+            "remote_topic": "primary.customer-deliveries",
+            "partition": 0,
+            "upstream_next_offset": 11,
+            "downstream_next_offset": 13,
+            "group_state": "inactive",
+            "automated_sync_enabled": true,
+            "target_broker_committed_next_offset": 13,
+            "checkpoint_receipt_id": "checkpoint-11-to-13"
+          },
+          "target_records": [
+            {
+              "source_offset": 9,
+              "target_offset": 11,
+              "delivery_id": "delivery-b",
+              "customer_id": "customer-7d2",
+              "approved": true,
+              "approved_after_restart": false
+            },
+            {
+              "source_offset": 10,
+              "target_offset": 12,
+              "delivery_id": "delivery-c",
+              "customer_id": "customer-8a1",
+              "approved": true,
+              "approved_after_restart": false
+            },
+            {
+              "source_offset": 11,
+              "target_offset": 13,
+              "delivery_id": "delivery-d",
+              "customer_id": "customer-4f9",
+              "approved": true,
+              "approved_after_restart": true
+            }
+          ],
+          "service_contract": {
+            "external_sink": "non-idempotent send can create a second business delivery",
+            "status_lookup": "durable external receipt lookup by delivery_id is authoritative",
+            "idempotent_send": "same delivery_id creates no second business effect",
+            "restart": "source process exits after commit; target process loads persisted state",
+            "restart_plan": {
+              "cursor_choices": [
+                "source-offset",
+                "translated-checkpoint",
+                "target-broker-checkpoint",
+                "earliest-retained"
+              ],
+              "send_modes": [
+                "raw",
+                "lookup-before-send",
+                "idempotent-send"
+              ]
+            }
+          },
+          "external_receipts": [
+            {
+              "delivery_id": "delivery-b",
+              "target_offset": 11,
+              "attempt": 1,
+              "process_stage": "source-before-crash",
+              "status": "acknowledged",
+              "receipt_id": "sink-ack-dda34700a79d"
+            },
+            {
+              "delivery_id": "delivery-c",
+              "target_offset": 12,
+              "attempt": 1,
+              "process_stage": "source-before-crash",
+              "status": "acknowledged",
+              "receipt_id": "sink-ack-7454f53fefd2"
+            }
+          ],
+          "source_audit": [
+            {
+              "sequence": 1,
+              "action": "poll_pre_crash_records",
+              "target_offsets": [
+                11,
+                12
+              ]
+            },
+            {
+              "sequence": 2,
+              "action": "sink_ack",
+              "delivery_id": "delivery-b"
+            },
+            {
+              "sequence": 3,
+              "action": "broker_commit",
+              "committed_next_offset": 11
+            },
+            {
+              "sequence": 4,
+              "action": "sink_submit",
+              "delivery_id": "delivery-c"
+            },
+            {
+              "sequence": 5,
+              "action": "sink_ack",
+              "delivery_id": "delivery-c"
+            },
+            {
+              "sequence": 6,
+              "action": "source_process_exit",
+              "exit_code": 73
+            }
+          ]
+        },
+        "initial_target_log_offsets": [
+          11,
+          12
+        ],
+        "final_target_log_offsets": [
+          11,
+          12,
+          13
+        ],
+        "terminal_external_effects": [
+          {
+            "delivery_id": "delivery-b",
+            "target_offset": 11,
+            "attempt": 1,
+            "process_stage": "source-before-crash",
+            "status": "acknowledged",
+            "receipt_id": "sink-ack-dda34700a79d"
+          },
+          {
+            "delivery_id": "delivery-c",
+            "target_offset": 12,
+            "attempt": 1,
+            "process_stage": "source-before-crash",
+            "status": "acknowledged",
+            "receipt_id": "sink-ack-7454f53fefd2"
+          },
+          {
+            "delivery_id": "delivery-d",
+            "target_offset": 13,
+            "attempt": 1,
+            "process_stage": "target-after-restart",
+            "status": "acknowledged",
+            "receipt_id": "sink-ack-88b50a7aba85"
+          }
+        ],
+        "process_boundary": {
+          "source_pid": 47664,
+          "target_pid": 47665,
+          "distinct_pids": true,
+          "prepare_exit_code": 73,
+          "restart_exit_code": 0,
+          "persisted_state_sha256": "32b3c8515d859aee5b64d5b2d076842335df355994eb85c0574ed8c3e3f3331f",
+          "reloaded_state_sha256": "32b3c8515d859aee5b64d5b2d076842335df355994eb85c0574ed8c3e3f3331f",
+          "reloaded_exact_state": true,
+          "terminal_state_sha256": "68db89dfbad77cd96a4cba71eb8cbff23f7def5e83e78e08361b6911c9981b0f"
+        },
+        "trace": [
+          {
+            "action": "approved_target_record_appended",
+            "target_offset": 13
+          },
+          {
+            "action": "seek_target",
+            "cursor": 11,
+            "source": "source-offset"
+          },
+          {
+            "action": "lookup_external_receipt",
+            "delivery_id": "delivery-b",
+            "acknowledged": true
+          },
+          {
+            "action": "sink_deduplicated_or_skipped",
+            "delivery_id": "delivery-b"
+          },
+          {
+            "action": "lookup_external_receipt",
+            "delivery_id": "delivery-c",
+            "acknowledged": true
+          },
+          {
+            "action": "sink_deduplicated_or_skipped",
+            "delivery_id": "delivery-c"
+          },
+          {
+            "action": "lookup_external_receipt",
+            "delivery_id": "delivery-d",
+            "acknowledged": false
+          },
+          {
+            "action": "external_send",
+            "delivery_id": "delivery-d",
+            "target_offset": 13,
+            "attempt": 1,
+            "process_stage": "target-after-restart",
+            "status": "acknowledged",
+            "receipt_id": "sink-ack-88b50a7aba85"
+          }
+        ],
+        "metrics": {
+          "delivery_counts": {
+            "delivery-b": 1,
+            "delivery-c": 1,
+            "delivery-d": 1
+          },
+          "missing_delivery_ids": [],
+          "duplicate_delivery_ids": [],
+          "new_approved_delivered": true,
+          "all_approved_exactly_once": true
+        },
+        "outcome": "pass"
+      },
+      {
+        "case_id": "v21-last-unacked",
+        "cursor_choice": "source-offset",
+        "send_mode": "lookup-before-send",
+        "visible_start": {
+          "base_capture": {
+            "fixture_id": "f8cap-b96aa2ae54e6",
+            "recovery_point_id": "rp-9648d81774d6",
+            "capture_sha256": "abfd526673916ac3ffaceafbdcabe55d3c7c7d17ba415f00a5dfd3a51931248c"
+          },
+          "source_group": {
+            "group_id": "approved-delivery-consumer",
+            "topic": "customer-deliveries",
+            "partition": 0,
+            "committed_next_offset": 11,
+            "commit_receipt_id": "source-commit-11",
+            "commit_durable": true
+          },
+          "target_checkpoint": {
+            "group_id": "approved-delivery-consumer",
+            "remote_topic": "primary.customer-deliveries",
+            "partition": 0,
+            "upstream_next_offset": 11,
+            "downstream_next_offset": 13,
+            "group_state": "inactive",
+            "automated_sync_enabled": true,
+            "target_broker_committed_next_offset": 13,
+            "checkpoint_receipt_id": "checkpoint-11-to-13"
+          },
+          "target_records": [
+            {
+              "source_offset": 9,
+              "target_offset": 11,
+              "delivery_id": "delivery-b",
+              "customer_id": "customer-7d2",
+              "approved": true,
+              "approved_after_restart": false
+            },
+            {
+              "source_offset": 10,
+              "target_offset": 12,
+              "delivery_id": "delivery-c",
+              "customer_id": "customer-8a1",
+              "approved": true,
+              "approved_after_restart": false
+            },
+            {
+              "source_offset": 11,
+              "target_offset": 13,
+              "delivery_id": "delivery-d",
+              "customer_id": "customer-4f9",
+              "approved": true,
+              "approved_after_restart": true
+            }
+          ],
+          "service_contract": {
+            "external_sink": "non-idempotent send can create a second business delivery",
+            "status_lookup": "durable external receipt lookup by delivery_id is authoritative",
+            "idempotent_send": "same delivery_id creates no second business effect",
+            "restart": "source process exits after commit; target process loads persisted state",
+            "restart_plan": {
+              "cursor_choices": [
+                "source-offset",
+                "translated-checkpoint",
+                "target-broker-checkpoint",
+                "earliest-retained"
+              ],
+              "send_modes": [
+                "raw",
+                "lookup-before-send",
+                "idempotent-send"
+              ]
+            }
+          },
+          "external_receipts": [
+            {
+              "delivery_id": "delivery-b",
+              "target_offset": 11,
+              "attempt": 1,
+              "process_stage": "source-before-crash",
+              "status": "acknowledged",
+              "receipt_id": "sink-ack-dda34700a79d"
+            }
+          ],
+          "source_audit": [
+            {
+              "sequence": 1,
+              "action": "poll_pre_crash_records",
+              "target_offsets": [
+                11,
+                12
+              ]
+            },
+            {
+              "sequence": 2,
+              "action": "sink_ack",
+              "delivery_id": "delivery-b"
+            },
+            {
+              "sequence": 3,
+              "action": "broker_commit",
+              "committed_next_offset": 11
+            },
+            {
+              "sequence": 4,
+              "action": "sink_submit",
+              "delivery_id": "delivery-c"
+            },
+            {
+              "sequence": 5,
+              "action": "source_process_exit",
+              "exit_code": 73
+            }
+          ]
+        },
+        "initial_target_log_offsets": [
+          11,
+          12
+        ],
+        "final_target_log_offsets": [
+          11,
+          12,
+          13
+        ],
+        "terminal_external_effects": [
+          {
+            "delivery_id": "delivery-b",
+            "target_offset": 11,
+            "attempt": 1,
+            "process_stage": "source-before-crash",
+            "status": "acknowledged",
+            "receipt_id": "sink-ack-dda34700a79d"
+          },
+          {
+            "delivery_id": "delivery-c",
+            "target_offset": 12,
+            "attempt": 1,
+            "process_stage": "target-after-restart",
+            "status": "acknowledged",
+            "receipt_id": "sink-ack-97ae004816aa"
+          },
+          {
+            "delivery_id": "delivery-d",
+            "target_offset": 13,
+            "attempt": 1,
+            "process_stage": "target-after-restart",
+            "status": "acknowledged",
+            "receipt_id": "sink-ack-88b50a7aba85"
+          }
+        ],
+        "process_boundary": {
+          "source_pid": 47666,
+          "target_pid": 47667,
+          "distinct_pids": true,
+          "prepare_exit_code": 73,
+          "restart_exit_code": 0,
+          "persisted_state_sha256": "1941611667ba40ed542691491ae70214a8e16a33030f1c767592ecf6635ac5e2",
+          "reloaded_state_sha256": "1941611667ba40ed542691491ae70214a8e16a33030f1c767592ecf6635ac5e2",
+          "reloaded_exact_state": true,
+          "terminal_state_sha256": "66ea487a1ddb0f0a9c383eac7db85a5b0c7c17ca9d8c9ba47d94ab1f968e85c7"
+        },
+        "trace": [
+          {
+            "action": "approved_target_record_appended",
+            "target_offset": 13
+          },
+          {
+            "action": "seek_target",
+            "cursor": 11,
+            "source": "source-offset"
+          },
+          {
+            "action": "lookup_external_receipt",
+            "delivery_id": "delivery-b",
+            "acknowledged": true
+          },
+          {
+            "action": "sink_deduplicated_or_skipped",
+            "delivery_id": "delivery-b"
+          },
+          {
+            "action": "lookup_external_receipt",
+            "delivery_id": "delivery-c",
+            "acknowledged": false
+          },
+          {
+            "action": "external_send",
+            "delivery_id": "delivery-c",
+            "target_offset": 12,
+            "attempt": 1,
+            "process_stage": "target-after-restart",
+            "status": "acknowledged",
+            "receipt_id": "sink-ack-97ae004816aa"
+          },
+          {
+            "action": "lookup_external_receipt",
+            "delivery_id": "delivery-d",
+            "acknowledged": false
+          },
+          {
+            "action": "external_send",
+            "delivery_id": "delivery-d",
+            "target_offset": 13,
+            "attempt": 1,
+            "process_stage": "target-after-restart",
+            "status": "acknowledged",
+            "receipt_id": "sink-ack-88b50a7aba85"
+          }
+        ],
+        "metrics": {
+          "delivery_counts": {
+            "delivery-b": 1,
+            "delivery-c": 1,
+            "delivery-d": 1
+          },
+          "missing_delivery_ids": [],
+          "duplicate_delivery_ids": [],
+          "new_approved_delivered": true,
+          "all_approved_exactly_once": true
+        },
+        "outcome": "pass"
+      }
+    ]
+  }
+}

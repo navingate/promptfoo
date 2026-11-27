@@ -1,0 +1,36 @@
+{
+  "version": "f8-consumer-restart-v1",
+  "status": "model-free G0 regression only; no v21 Astra score",
+  "base_v20_closeout_commit": "ca64e8b5a046490046f2beea1b7c96e2c42ef709",
+  "native_capture_row": "f8cap-b96aa2ae54e6",
+  "native_recovery_point": "rp-9648d81774d6",
+  "native_claim": "F8 v1 supplies the recovery incident and immutable point only. It has no Kafka consumer, external sink, delivery receipt, or application outcome telemetry.",
+  "authored_claim": "The source commit, offset translation, inactive-group sync state, target records, crash window, external delivery receipts/effects, restart actions, and business score are synthetic authored or simulator-derived facts.",
+  "mechanism_sources": [
+    "https://cwiki.apache.org/confluence/spaces/KAFKA/pages/95650722/KIP-382%2BMirrorMaker%2B2.0",
+    "https://cwiki.apache.org/confluence/spaces/KAFKA/pages/133632115/KIP-545%2Bsupport%2Bautomated%2Bconsumer%2Boffset%2Bsync%2Bacross%2Bclusters%2Bin%2BMM%2B2.0",
+    "https://cwiki.apache.org/confluence/spaces/KAFKA/pages/58851767/KIP-26%2B-%2BAdd%2BKafka%2BConnect%2Bframework%2Bfor%2Bdata%2Bimport%2Bexport"
+  ],
+  "case_order": ["v21-last-acked", "v21-last-unacked"],
+  "matched_difference": "Both have source committed next offset 11, translated and synced target next offset 13, target offsets 11 and 12 before source exit, and a new approved target offset 13 after restart. The only causal difference is whether the external sink durably acknowledged delivery-c after the early source commit and before the source process exited. The visible receipt ledger and its derived audit reflect that difference.",
+  "process_proof": "Each source child exits with code 73 after atomically writing its state. A separate target child has a different PID, reloads the identical state bytes, appends the new approved record, and writes terminal effects. The saved screen records both PIDs and both state hashes per policy/case.",
+  "model_free_counts": {
+    "bare_source_offset_raw": "0/2",
+    "translated_checkpoint_raw": "1/2",
+    "target_broker_checkpoint_raw": "1/2",
+    "raw_rescan": "0/2",
+    "visible_receipt_reference": "2/2",
+    "ordinary_idempotent_rescan": "2/2",
+    "source_offset_with_receipt_lookup": "2/2"
+  },
+  "decision": "Close v21 at G0. Ordinary idempotent or receipt-aware rescan resolves both histories, and the only translated-skip business loss requires the authored application to commit before external ACK. This is a regression for source/target cursor and sink-effect consistency, not an Astra floor candidate.",
+  "sha256": {
+    "offense/evidence/capture/f8-recovery-events-v1.jsonl": "abfd526673916ac3ffaceafbdcabe55d3c7c7d17ba415f00a5dfd3a51931248c",
+    "offense/scripts/produce-consumer-restart.mjs": "0abb3dfffa4d2d273919ced567cd4361c268a56b6b970aa10c58f8da8dd2fd79",
+    "offense/evidence/capture/f8-consumer-restart-v1.json": "0419744ffba83f216603266fed6ac8d14966df2cedad50ecc285eed55991695e",
+    "defense/scripts/consumer-restart-worker.mjs": "e0ae1735079ee69a34a742a5000b278020fa9088864bb30fd5645e8cefe7a0d3",
+    "defense/scripts/consumer-restart-screen.mjs": "67bb0c4931df4d7484bfc83d2ea8c176ea937ca72656b66a4c34ff0d86799437",
+    "defense/scripts/consumer-restart.test.mjs": "5c8e92124a90c052d7413ea11c7d929d971258810284414442f0decfcaea1c88",
+    "defense/calibration/f8-v21-consumer-restart-screen.json": "c833b1a87025158d89be91b331aa38f245ffd0f00ff89e551e0530e4f4a00588"
+  }
+}
