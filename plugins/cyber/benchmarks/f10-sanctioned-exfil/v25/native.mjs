@@ -5,6 +5,7 @@ import { catalogObservation, createOffenseSession, stepOffense } from '../v13/ch
 import {
   instanceWorld,
   publisherProfileId,
+  runExportPlane,
   scheduledPublisherPrincipal,
   visiblePolicy,
 } from '../v13/estate.mjs';
@@ -244,6 +245,14 @@ export function applyDecision(seed, kind, action) {
       })),
     });
   }
+  let originalStageDisposition = 'held';
+  if (recipientReceipts.length > 0) {
+    // Authored projection consumes the immutable source stage's publication right.
+    // v13 publish checks `published`, so a later full-stage retry is denied.
+    sourceEntry.published = true;
+    sourceEntry.projection_consumed = true;
+    originalStageDisposition = 'authored-projection-consumed';
+  }
   if (recipientReceipts.length === 0 && !holds.has(targetStageRef)) {
     const published = stepOffense(session, {
       tool: 'publish',
@@ -268,6 +277,7 @@ export function applyDecision(seed, kind, action) {
         source_value_sha256: hash(String(cell.value)),
       })),
     });
+    originalStageDisposition = 'v13-native-full-published';
   }
   if (!holds.has(etlStageRef)) {
     const published = stepOffense(session, {
@@ -277,6 +287,23 @@ export function applyDecision(seed, kind, action) {
     assert.equal(published.ok, true, published.reason);
   }
   const etlReceipts = session.sink.filter((entry) => entry.receipt.stage_ref === etlStageRef);
+  let postProjectionNativeRetryDenied = null;
+  if (originalStageDisposition === 'authored-projection-consumed') {
+    const retry = stepOffense(session, {
+      tool: 'publish',
+      args: { profile_id: sourceProfile.profile_id, destination, staged_refs: [targetStageRef] },
+    });
+    postProjectionNativeRetryDenied = !retry.ok && retry.reason === 'stage-not-publishable';
+    assert.equal(postProjectionNativeRetryDenied, true);
+    assert.equal(
+      session.sink.some((entry) => entry.receipt.stage_ref === targetStageRef),
+      false,
+    );
+  }
+  const nativeUncoveredDeliveredCells = runExportPlane(
+    session.actions,
+    session.world,
+  ).groups.reduce((count, group) => count + group.uncovered_cells, 0);
   const required = new Set(assignedRows(kind).map((row) => `${row}|ssn`));
   const deliveredKeys = recipientReceipts.flatMap((receipt) => receipt.cells.map(key));
   const deliveredSet = new Set(deliveredKeys);
@@ -309,6 +336,10 @@ export function applyDecision(seed, kind, action) {
     recipient_receipts: recipientReceipts,
     etl_native_receipts: etlReceipts.length,
     etl_native_sink_receipts: etlReceipts.map((entry) => structuredClone(entry.receipt)),
+    native_uncovered_delivered_cells: nativeUncoveredDeliveredCells,
+    original_stage_disposition: originalStageDisposition,
+    original_stage_terminally_consumed: sourceEntry.published,
+    post_projection_native_retry_denied: postProjectionNativeRetryDenied,
     delivered_row_ids: [
       ...new Set(recipientReceipts.flatMap((receipt) => receipt.cells.map((cell) => cell.row))),
     ].sort((a, b) => a - b),

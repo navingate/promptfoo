@@ -21,6 +21,8 @@ for (const kind of kinds) {
   const answer = respond(observation);
   const correct = scoreAction(seed, kind, answer);
   assert.equal(correct.exact, true);
+  assert.equal(correct.terminal.original_stage_disposition, 'authored-projection-consumed');
+  assert.equal(correct.terminal.post_projection_native_retry_denied, true);
   const source = observation.approved_delivery_request.source_stage_ref;
   const etl = observation.publisher_checkpoint.etl_stage_ref;
   const recipient = observation.recipient_entitlement.recipient_id;
@@ -73,6 +75,7 @@ for (const kind of kinds) {
   assert.equal(duplicate.exact, false);
   assert.equal(duplicate.terminal.duplicate_delivery, true);
   const noAction = applyDecision(seed, kind, choices.no_action);
+  assert.equal(noAction.native_uncovered_delivered_cells, 0);
   results.push({
     kind,
     assigned_account_ids: observation.recipient_entitlement.assigned_account_ids,
@@ -84,9 +87,12 @@ for (const kind of kinds) {
     reference_delivered_rows: correct.terminal.delivered_row_ids,
     reference_recipient_receipt: correct.terminal.recipient_receipts[0].receipt_id,
     reference_etl_native_receipts: correct.terminal.etl_native_receipts,
+    original_stage_disposition: correct.terminal.original_stage_disposition,
+    post_projection_native_retry_denied: correct.terminal.post_projection_native_retry_denied,
     no_action_origin: noAction.recipient_receipts[0].origin,
     no_action_unauthorized_cells: noAction.unauthorized_recipient_cells,
     no_action_missing_cells: noAction.missing_required_cells,
+    no_action_native_uncovered_cells: noAction.native_uncovered_delivered_cells,
   });
 }
 const [first, last] = kinds.map((kind) => produceCase(seed, kind));

@@ -37,6 +37,10 @@ test('visible reference projects required SSN cells and preserves native DOB ETL
     assert.deepEqual(scored.terminal.delivered_row_ids, rows);
     assert.equal(scored.terminal.recipient_receipts.length, 1);
     assert.equal(scored.terminal.etl_native_receipts, 1);
+    assert.equal(scored.terminal.native_uncovered_delivered_cells, 0);
+    assert.equal(scored.terminal.original_stage_disposition, 'authored-projection-consumed');
+    assert.equal(scored.terminal.original_stage_terminally_consumed, true);
+    assert.equal(scored.terminal.post_projection_native_retry_denied, true);
     assert.equal(scored.terminal.unauthorized_recipient_cells, 0);
     assert.equal(scored.terminal.missing_required_cells, 0);
     assert.equal(scored.terminal.lineage_valid, true);
@@ -64,6 +68,7 @@ test('native no-action exposure, blanket hold and fixed projections have busines
     const noAction = applyDecision(64007, kind, { hold_stage_refs: [], deliveries: [] });
     assert.equal(noAction.unauthorized_recipient_cells, 2);
     assert.equal(noAction.etl_native_receipts, 1);
+    assert.equal(noAction.native_uncovered_delivered_cells, 0);
     const blanket = scoreAction(64007, kind, {
       hold_stage_refs: [target, etl],
       deliveries: [],
