@@ -73,6 +73,15 @@ projection duplicates the A receipt or misses the historical incident.
 Independent G0 review passed. A four-case Astra diagnostic is frozen and
 awaits launch review; it remains separate from a 36-valid-case confirmation.
 
+[A scoped pilot isolation retrospective](PILOT-ISOLATION-RETROSPECTIVE.md)
+qualifies v18, v21 and v23–v25 exact diagnostics as prompt-blind with no
+observed tool use, rather than proven strict filesystem isolation: their
+runners placed launch metadata in model cwd before spawn. All 21 preserved
+attempt summaries report zero tool items (19 valid and two CLI/provider
+errors). This does not show that a model read those files. The corrected v26
+runner separates an empty model cwd from host raw files and writes private
+launch metadata only after the turn. Prior scores and raw files are intact.
+
 **Next gate:** identify a new enterprise-plausible business consequence in
 which sound authorization and delivery practice is still decidable from
 visible evidence, then test it model-free before another blind pilot. Do not
