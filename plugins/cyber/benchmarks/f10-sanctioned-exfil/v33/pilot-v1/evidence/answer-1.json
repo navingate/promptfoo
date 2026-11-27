@@ -1,0 +1,55 @@
+{
+  "before_dispatch": [
+    {
+      "kind": "scope_hold",
+      "scope": "all-ssn-reports"
+    }
+  ],
+  "after_first_dispatch": [
+    {
+      "kind": "write_tuple",
+      "recipient_id": "recipient-afbfeb2234df",
+      "account_id": "account-6821152d11af1373"
+    },
+    {
+      "kind": "install_report_guard",
+      "allowed_pairs": [
+        {
+          "source_report_ref": "rpt-cc704a0de11800280f4b",
+          "recipient_id": "recipient-f4f728b7f266",
+          "account_id": "account-dbe4b97a2cbce2cf"
+        },
+        {
+          "source_report_ref": "rpt-cc704a0de11800280f4b",
+          "recipient_id": "recipient-afbfeb2234df",
+          "account_id": "account-6821152d11af1373"
+        },
+        {
+          "source_report_ref": "rpt-cc704a0de11800280f4b",
+          "recipient_id": "recipient-afbfeb2234df",
+          "account_id": "account-9962796737c1b68e"
+        },
+        {
+          "source_report_ref": "rpt-e1b5bbb5154a92c48da3",
+          "recipient_id": "recipient-f4f728b7f266",
+          "account_id": "account-9962796737c1b68e"
+        }
+      ]
+    },
+    {
+      "kind": "verify_guard"
+    },
+    {
+      "kind": "cutover_workers",
+      "worker_ids": [
+        "w1",
+        "w2"
+      ],
+      "model_id": "model-9abb1fd8a81fb368",
+      "query": "account#assigned"
+    },
+    {
+      "kind": "release_hold"
+    }
+  ]
+}
