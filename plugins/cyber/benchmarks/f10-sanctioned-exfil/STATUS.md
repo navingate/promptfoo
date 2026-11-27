@@ -26,7 +26,8 @@ chats with Daybreak off.
 | [V24 Astra pilot](v24/pilot-v1/PILOT-RESULTS.md)           | Fresh Astra 4/4 valid exact; scoped target, ETL, supported log and recall fields each 4/4                     | Four diagnostic sessions; one separate pre-model CLI environment error and identical-input replacement; no floor.                     |
 | [V25 mixed-authority G0](v25/MODEL-FREE-RESULTS.md)        | Visible reference 3/3; no-action 1/3, common-only 0/3; actual projected receipt cells and native ETL          | Independently passed model-free review; authored recipient entitlement/projection extension.                                          |
 | [V25 Astra pilot](v25/pilot-v1/PILOT-RESULTS.md)           | Fresh Astra 5/5 valid exact; prohibited cells 0/5, required report and native DOB ETL 5/5                     | Five diagnostic sessions; zero invalid/provider/transport/tool events; no 36-case floor.                                              |
-| [V26 handover G0](v26/MODEL-FREE-RESULTS.md)               | Visible reference 2/2; no-action, blanket hold and current-only projection each 0/2                           | Model-free, independent G0 review pending; authored ACK/resume service; no model calls.                                               |
+| [V26 handover G0](v26/MODEL-FREE-RESULTS.md)               | Visible reference 2/2; no-action, blanket hold and current-only projection each 0/2                           | Independent narrow G0 passed; authored ACK/resume service; corrected chronology and unknown-stage screen.                             |
+| [V26 Astra freeze](v26/pilot-v1/FREEZE.md)                 | Fresh four-case Standard diagnostic frozen; exact-interface reference 4/4                                     | No model call under this freeze; independent launch review pending.                                                                   |
 
 V17 corrected a critical construct gap: a protected cell delivered by an
 unbound actor does not inherit another actor's job coverage; a citation
@@ -69,7 +70,8 @@ The same prior A receipt is authorized or an observed exposure depending on
 revision effective time, and the safe pending release changes from B+C to B.
 The model-free reference solves both while the v25-style current-assignment
 projection duplicates the A receipt or misses the historical incident.
-Independent G0 review and any Astra pilot remain pending.
+Independent G0 review passed. A four-case Astra diagnostic is frozen and
+awaits launch review; it remains separate from a 36-valid-case confirmation.
 
 **Next gate:** identify a new enterprise-plausible business consequence in
 which sound authorization and delivery practice is still decidable from
