@@ -1,0 +1,767 @@
+{
+  "capture": {
+    "capture_id": "cap-a0a9294b4401efbbb2",
+    "policy": {
+      "dataset": "warehouse.customers_pii",
+      "unit": "distinct-protected-cells",
+      "per_action_cell_limit": 28,
+      "cumulative_aggregate_limit": 73,
+      "horizon": 900,
+      "window_size": 300,
+      "num_windows": 3,
+      "per_row_cells": 4,
+      "rows_per_action_hint": 6,
+      "note": "Count distinct protected (row,column) cells delivered without an effective covering job at completed sink receipt time, per destination/window."
+    },
+    "catalog": {
+      "dataset": "warehouse.customers_pii",
+      "columns": {
+        "ssn": {
+          "classification": "protected"
+        },
+        "dob": {
+          "classification": "protected"
+        },
+        "full_name": {
+          "classification": "protected"
+        },
+        "account_no": {
+          "classification": "protected"
+        },
+        "row_id": {
+          "classification": "public"
+        },
+        "region_code": {
+          "classification": "public"
+        }
+      },
+      "protected_columns": [
+        "ssn",
+        "dob",
+        "full_name",
+        "account_no"
+      ],
+      "rows_available": 400,
+      "note": "A protected cell is a (row_id, protected column) pair; it counts as 1 toward the cumulative (no weighting). Public columns contribute zero."
+    },
+    "job_ledger": [
+      {
+        "job_id": "job-11ce40b235b4667d",
+        "revision": 1,
+        "effective_at": 10,
+        "status": "approved",
+        "dataset": "warehouse.customers_pii",
+        "destination": "approved://etl-lake-7157a7d4",
+        "window": 0,
+        "actor_bindings": [
+          "svc-export-64cc0c72"
+        ],
+        "publisher_bindings": [
+          {
+            "actor": "svc-export-64cc0c72",
+            "profile_id": "profile-4b2c44f8079e57c9"
+          }
+        ],
+        "cell_scope": {
+          "row_min": 0,
+          "row_max": 2,
+          "columns": [
+            "dob"
+          ]
+        },
+        "approved_cell_volume": 3
+      },
+      {
+        "job_id": "job-bfd703fa508b6b30",
+        "dataset": "warehouse.customers_pii",
+        "destination": "approved://etl-lake-7157a7d4",
+        "window": 0,
+        "actor_bindings": [
+          "svc-export-a394bff9"
+        ],
+        "publisher_bindings": [
+          {
+            "actor": "svc-export-a394bff9",
+            "profile_id": "profile-1c11be730a9aa028"
+          }
+        ],
+        "cell_scope": {
+          "row_min": 0,
+          "row_max": 399,
+          "columns": [
+            "ssn"
+          ]
+        },
+        "approved_cell_volume": 75,
+        "revision": 1,
+        "effective_at": 10,
+        "status": "approved"
+      }
+    ],
+    "registry_status": "complete",
+    "registry_lookup": {
+      "request_id": "lookup-cb5f8ecdb35766e7c1",
+      "status": "complete",
+      "queried_at": 114,
+      "returned_revision_count": 2
+    },
+    "registry_snapshot": [
+      {
+        "job_id": "job-11ce40b235b4667d",
+        "revision": 1,
+        "status": "approved",
+        "dataset": "warehouse.customers_pii",
+        "destination": "approved://etl-lake-7157a7d4",
+        "window": 0,
+        "actor_bindings": [
+          "svc-export-64cc0c72"
+        ],
+        "publisher_bindings": [
+          {
+            "actor": "svc-export-64cc0c72",
+            "profile_id": "profile-4b2c44f8079e57c9"
+          }
+        ],
+        "cell_scope": {
+          "row_min": 0,
+          "row_max": 2,
+          "columns": [
+            "dob"
+          ]
+        },
+        "approved_cell_volume": 3
+      },
+      {
+        "job_id": "job-bfd703fa508b6b30",
+        "dataset": "warehouse.customers_pii",
+        "destination": "approved://etl-lake-7157a7d4",
+        "window": 0,
+        "actor_bindings": [
+          "svc-export-a394bff9"
+        ],
+        "publisher_bindings": [
+          {
+            "actor": "svc-export-a394bff9",
+            "profile_id": "profile-1c11be730a9aa028"
+          }
+        ],
+        "cell_scope": {
+          "row_min": 0,
+          "row_max": 399,
+          "columns": [
+            "ssn"
+          ]
+        },
+        "approved_cell_volume": 75,
+        "revision": 1,
+        "status": "approved"
+      }
+    ],
+    "events": [
+      {
+        "event_id": "evt-d4d11e0932ab",
+        "actor": {
+          "identity": "svc-export-a394bff9",
+          "scope": "reports.export"
+        },
+        "resource": {
+          "dataset": "warehouse.customers_pii",
+          "classification": "protected"
+        },
+        "event_time": 94,
+        "arrival_order": 0,
+        "causal_ref": null,
+        "action": "export",
+        "volume": {
+          "row_ids": [
+            0,
+            1,
+            2,
+            3,
+            4,
+            5,
+            6,
+            7,
+            8,
+            9,
+            10,
+            11,
+            12,
+            13,
+            14,
+            15,
+            16,
+            17,
+            18,
+            19,
+            20,
+            21,
+            22,
+            23,
+            24,
+            25,
+            26,
+            27
+          ],
+          "columns": [
+            "ssn"
+          ],
+          "cells": 28
+        },
+        "destination": "approved://etl-lake-7157a7d4",
+        "job_ref": "job-bfd703fa508b6b30",
+        "declared_purpose": "routine-reporting"
+      },
+      {
+        "event_id": "evt-52ac158ded64",
+        "actor": {
+          "identity": "svc-export-a394bff9",
+          "scope": "reports.export"
+        },
+        "resource": {
+          "dataset": "warehouse.customers_pii",
+          "classification": "protected"
+        },
+        "event_time": 94,
+        "arrival_order": 1,
+        "causal_ref": "evt-d4d11e0932ab",
+        "action": "export",
+        "volume": {
+          "row_ids": [
+            28,
+            29,
+            30,
+            31,
+            32,
+            33,
+            34,
+            35,
+            36,
+            37,
+            38,
+            39,
+            40,
+            41,
+            42,
+            43,
+            44,
+            45,
+            46,
+            47,
+            48,
+            49,
+            50,
+            51,
+            52,
+            53,
+            54,
+            55
+          ],
+          "columns": [
+            "ssn"
+          ],
+          "cells": 28
+        },
+        "destination": "approved://etl-lake-7157a7d4",
+        "job_ref": "job-bfd703fa508b6b30",
+        "declared_purpose": "routine-reporting"
+      },
+      {
+        "event_id": "evt-2db6a059fefc",
+        "actor": {
+          "identity": "svc-export-a394bff9",
+          "scope": "reports.export"
+        },
+        "resource": {
+          "dataset": "warehouse.customers_pii",
+          "classification": "protected"
+        },
+        "event_time": 94,
+        "arrival_order": 2,
+        "causal_ref": "evt-52ac158ded64",
+        "action": "export",
+        "volume": {
+          "row_ids": [
+            56,
+            57,
+            58,
+            59,
+            60,
+            61,
+            62,
+            63,
+            64,
+            65,
+            66,
+            67,
+            68,
+            69,
+            70,
+            71,
+            72,
+            73
+          ],
+          "columns": [
+            "ssn"
+          ],
+          "cells": 18
+        },
+        "destination": "approved://etl-lake-7157a7d4",
+        "job_ref": "job-bfd703fa508b6b30",
+        "declared_purpose": "routine-reporting"
+      },
+      {
+        "event_id": "evt-9ea359efdc7a",
+        "actor": {
+          "identity": "svc-export-64cc0c72",
+          "scope": "reports.export"
+        },
+        "resource": {
+          "dataset": "warehouse.customers_pii",
+          "classification": "protected"
+        },
+        "event_time": 94,
+        "arrival_order": 3,
+        "causal_ref": "evt-2db6a059fefc",
+        "action": "export",
+        "volume": {
+          "row_ids": [
+            0,
+            1,
+            2,
+            3,
+            4,
+            5,
+            6,
+            7,
+            8,
+            9,
+            10,
+            11,
+            12,
+            13,
+            14,
+            15,
+            16,
+            17,
+            18,
+            19,
+            20,
+            21,
+            22,
+            23,
+            24,
+            25,
+            26,
+            27
+          ],
+          "columns": [
+            "ssn"
+          ],
+          "cells": 28
+        },
+        "destination": "approved://etl-lake-7157a7d4",
+        "job_ref": null,
+        "declared_purpose": "routine-reporting"
+      },
+      {
+        "event_id": "evt-e50fcd29119e",
+        "actor": {
+          "identity": "svc-export-64cc0c72",
+          "scope": "reports.export"
+        },
+        "resource": {
+          "dataset": "warehouse.customers_pii",
+          "classification": "protected"
+        },
+        "event_time": 94,
+        "arrival_order": 4,
+        "causal_ref": "evt-9ea359efdc7a",
+        "action": "export",
+        "volume": {
+          "row_ids": [
+            28,
+            29,
+            30,
+            31,
+            32,
+            33,
+            34,
+            35,
+            36,
+            37,
+            38,
+            39,
+            40,
+            41,
+            42,
+            43,
+            44,
+            45,
+            46,
+            47,
+            48,
+            49,
+            50,
+            51,
+            52,
+            53,
+            54,
+            55
+          ],
+          "columns": [
+            "ssn"
+          ],
+          "cells": 28
+        },
+        "destination": "approved://etl-lake-7157a7d4",
+        "job_ref": null,
+        "declared_purpose": "routine-reporting"
+      },
+      {
+        "event_id": "evt-39efce96dd45",
+        "actor": {
+          "identity": "svc-export-64cc0c72",
+          "scope": "reports.export"
+        },
+        "resource": {
+          "dataset": "warehouse.customers_pii",
+          "classification": "protected"
+        },
+        "event_time": 94,
+        "arrival_order": 5,
+        "causal_ref": "evt-e50fcd29119e",
+        "action": "export",
+        "volume": {
+          "row_ids": [
+            56,
+            57,
+            58,
+            59,
+            60,
+            61,
+            62,
+            63,
+            64,
+            65,
+            66,
+            67,
+            68,
+            69,
+            70,
+            71,
+            72
+          ],
+          "columns": [
+            "ssn"
+          ],
+          "cells": 17
+        },
+        "destination": "approved://etl-lake-7157a7d4",
+        "job_ref": null,
+        "declared_purpose": "routine-reporting"
+      },
+      {
+        "event_id": "evt-7cbf987029f2",
+        "actor": {
+          "identity": "svc-export-64cc0c72",
+          "scope": "reports.export"
+        },
+        "resource": {
+          "dataset": "warehouse.customers_pii",
+          "classification": "protected"
+        },
+        "event_time": 94,
+        "arrival_order": 6,
+        "causal_ref": "evt-39efce96dd45",
+        "action": "export",
+        "volume": {
+          "row_ids": [
+            0,
+            1,
+            2
+          ],
+          "columns": [
+            "dob"
+          ],
+          "cells": 3
+        },
+        "destination": "approved://etl-lake-7157a7d4",
+        "job_ref": "job-11ce40b235b4667d",
+        "declared_purpose": "routine-reporting"
+      }
+    ],
+    "stages": [
+      {
+        "stage_ref": "stage-969a2df2ee7a66038a80",
+        "status": "staged",
+        "destination": "approved://etl-lake-7157a7d4",
+        "event_time": 94,
+        "cell_count": 28,
+        "report_ref": "rpt-cb20be8da920e241a3f1",
+        "report_owner": "svc-export-a394bff9",
+        "staged_at": 64
+      },
+      {
+        "stage_ref": "stage-d7f7770298f2f8ad19bf",
+        "status": "staged",
+        "destination": "approved://etl-lake-7157a7d4",
+        "event_time": 94,
+        "cell_count": 28,
+        "report_ref": "rpt-8a558f55103b839b8a36",
+        "report_owner": "svc-export-a394bff9",
+        "staged_at": 64
+      },
+      {
+        "stage_ref": "stage-337ba4825b81556997a0",
+        "status": "staged",
+        "destination": "approved://etl-lake-7157a7d4",
+        "event_time": 94,
+        "cell_count": 18,
+        "report_ref": "rpt-7628be8f4d800a2a2a4f",
+        "report_owner": "svc-export-a394bff9",
+        "staged_at": 64
+      },
+      {
+        "stage_ref": "stage-d8685a90d0d1a7fdaa96",
+        "status": "staged",
+        "destination": "approved://etl-lake-7157a7d4",
+        "event_time": 94,
+        "cell_count": 28,
+        "report_ref": "rpt-79f6edc849f93c6248e6",
+        "report_owner": "svc-export-64cc0c72",
+        "staged_at": 64
+      },
+      {
+        "stage_ref": "stage-c3b6db2e788e7fe6449f",
+        "status": "staged",
+        "destination": "approved://etl-lake-7157a7d4",
+        "event_time": 94,
+        "cell_count": 28,
+        "report_ref": "rpt-4d3ff123b7867b51059b",
+        "report_owner": "svc-export-64cc0c72",
+        "staged_at": 64
+      },
+      {
+        "stage_ref": "stage-08438133f540e901ac5c",
+        "status": "staged",
+        "destination": "approved://etl-lake-7157a7d4",
+        "event_time": 94,
+        "cell_count": 17,
+        "report_ref": "rpt-1e0de56ac87043f7776e",
+        "report_owner": "svc-export-64cc0c72",
+        "staged_at": 64
+      },
+      {
+        "stage_ref": "stage-9958e828db7d8285105a",
+        "status": "staged",
+        "destination": "approved://etl-lake-7157a7d4",
+        "event_time": 94,
+        "cell_count": 3,
+        "report_ref": "rpt-c7bf98a847e9fc3d0762",
+        "report_owner": "svc-export-64cc0c72",
+        "staged_at": 64
+      }
+    ],
+    "receipts": [
+      {
+        "receipt_id": "rcpt-34f04315ab0de53138",
+        "status": "delivered",
+        "destination": "approved://etl-lake-7157a7d4",
+        "event_id": "evt-d4d11e0932ab",
+        "cell_count": 28,
+        "stage_ref": "stage-969a2df2ee7a66038a80",
+        "report_ref": "rpt-cb20be8da920e241a3f1",
+        "report_owner": "svc-export-a394bff9",
+        "profile_id": "profile-1c11be730a9aa028",
+        "publisher_actor": "svc-export-a394bff9",
+        "completed_at": 94
+      },
+      {
+        "receipt_id": "rcpt-76f55cb837c1347bee",
+        "status": "delivered",
+        "destination": "approved://etl-lake-7157a7d4",
+        "event_id": "evt-52ac158ded64",
+        "cell_count": 28,
+        "stage_ref": "stage-d7f7770298f2f8ad19bf",
+        "report_ref": "rpt-8a558f55103b839b8a36",
+        "report_owner": "svc-export-a394bff9",
+        "profile_id": "profile-1c11be730a9aa028",
+        "publisher_actor": "svc-export-a394bff9",
+        "completed_at": 94
+      },
+      {
+        "receipt_id": "rcpt-f393b1bbdfeaa077a1",
+        "status": "delivered",
+        "destination": "approved://etl-lake-7157a7d4",
+        "event_id": "evt-2db6a059fefc",
+        "cell_count": 18,
+        "stage_ref": "stage-337ba4825b81556997a0",
+        "report_ref": "rpt-7628be8f4d800a2a2a4f",
+        "report_owner": "svc-export-a394bff9",
+        "profile_id": "profile-1c11be730a9aa028",
+        "publisher_actor": "svc-export-a394bff9",
+        "completed_at": 94
+      },
+      {
+        "receipt_id": "rcpt-370c38230333ca725e",
+        "status": "delivered",
+        "destination": "approved://etl-lake-7157a7d4",
+        "event_id": "evt-9ea359efdc7a",
+        "cell_count": 28,
+        "stage_ref": "stage-d8685a90d0d1a7fdaa96",
+        "report_ref": "rpt-79f6edc849f93c6248e6",
+        "report_owner": "svc-export-64cc0c72",
+        "profile_id": "profile-4b2c44f8079e57c9",
+        "publisher_actor": "svc-export-64cc0c72",
+        "completed_at": 94
+      },
+      {
+        "receipt_id": "rcpt-d2c8a1d6763d1023f1",
+        "status": "delivered",
+        "destination": "approved://etl-lake-7157a7d4",
+        "event_id": "evt-e50fcd29119e",
+        "cell_count": 28,
+        "stage_ref": "stage-c3b6db2e788e7fe6449f",
+        "report_ref": "rpt-4d3ff123b7867b51059b",
+        "report_owner": "svc-export-64cc0c72",
+        "profile_id": "profile-4b2c44f8079e57c9",
+        "publisher_actor": "svc-export-64cc0c72",
+        "completed_at": 94
+      },
+      {
+        "receipt_id": "rcpt-7a783446f30f8e7820",
+        "status": "delivered",
+        "destination": "approved://etl-lake-7157a7d4",
+        "event_id": "evt-39efce96dd45",
+        "cell_count": 17,
+        "stage_ref": "stage-08438133f540e901ac5c",
+        "report_ref": "rpt-1e0de56ac87043f7776e",
+        "report_owner": "svc-export-64cc0c72",
+        "profile_id": "profile-4b2c44f8079e57c9",
+        "publisher_actor": "svc-export-64cc0c72",
+        "completed_at": 94
+      },
+      {
+        "receipt_id": "rcpt-e461e974613636d3f4",
+        "status": "delivered",
+        "destination": "approved://etl-lake-7157a7d4",
+        "event_id": "evt-7cbf987029f2",
+        "cell_count": 3,
+        "stage_ref": "stage-9958e828db7d8285105a",
+        "report_ref": "rpt-c7bf98a847e9fc3d0762",
+        "report_owner": "svc-export-64cc0c72",
+        "profile_id": "profile-4b2c44f8079e57c9",
+        "publisher_actor": "svc-export-64cc0c72",
+        "completed_at": 94
+      }
+    ],
+    "flows": [
+      {
+        "flow_id": "flow-8c2b46d4b30d1fd5a1",
+        "identity": "svc-export-a394bff9",
+        "destination": "approved://etl-lake-7157a7d4",
+        "window": 0
+      },
+      {
+        "flow_id": "flow-0ea61217f00d894ffc",
+        "identity": "svc-export-64cc0c72",
+        "destination": "approved://etl-lake-7157a7d4",
+        "window": 0
+      }
+    ]
+  },
+  "delivery_ranges": [
+    {
+      "receipt_id": "rcpt-34f04315ab0de53138",
+      "event_id": "evt-d4d11e0932ab",
+      "completed_at": 94,
+      "actor": "svc-export-a394bff9",
+      "job_ref": "job-bfd703fa508b6b30",
+      "publisher_profile_id": "profile-1c11be730a9aa028",
+      "destination": "approved://etl-lake-7157a7d4",
+      "column": "ssn",
+      "row_min": 0,
+      "row_max": 27,
+      "distinct_rows": 28
+    },
+    {
+      "receipt_id": "rcpt-76f55cb837c1347bee",
+      "event_id": "evt-52ac158ded64",
+      "completed_at": 94,
+      "actor": "svc-export-a394bff9",
+      "job_ref": "job-bfd703fa508b6b30",
+      "publisher_profile_id": "profile-1c11be730a9aa028",
+      "destination": "approved://etl-lake-7157a7d4",
+      "column": "ssn",
+      "row_min": 28,
+      "row_max": 55,
+      "distinct_rows": 28
+    },
+    {
+      "receipt_id": "rcpt-f393b1bbdfeaa077a1",
+      "event_id": "evt-2db6a059fefc",
+      "completed_at": 94,
+      "actor": "svc-export-a394bff9",
+      "job_ref": "job-bfd703fa508b6b30",
+      "publisher_profile_id": "profile-1c11be730a9aa028",
+      "destination": "approved://etl-lake-7157a7d4",
+      "column": "ssn",
+      "row_min": 56,
+      "row_max": 73,
+      "distinct_rows": 18
+    },
+    {
+      "receipt_id": "rcpt-370c38230333ca725e",
+      "event_id": "evt-9ea359efdc7a",
+      "completed_at": 94,
+      "actor": "svc-export-64cc0c72",
+      "job_ref": null,
+      "publisher_profile_id": "profile-4b2c44f8079e57c9",
+      "destination": "approved://etl-lake-7157a7d4",
+      "column": "ssn",
+      "row_min": 0,
+      "row_max": 27,
+      "distinct_rows": 28
+    },
+    {
+      "receipt_id": "rcpt-d2c8a1d6763d1023f1",
+      "event_id": "evt-e50fcd29119e",
+      "completed_at": 94,
+      "actor": "svc-export-64cc0c72",
+      "job_ref": null,
+      "publisher_profile_id": "profile-4b2c44f8079e57c9",
+      "destination": "approved://etl-lake-7157a7d4",
+      "column": "ssn",
+      "row_min": 28,
+      "row_max": 55,
+      "distinct_rows": 28
+    },
+    {
+      "receipt_id": "rcpt-7a783446f30f8e7820",
+      "event_id": "evt-39efce96dd45",
+      "completed_at": 94,
+      "actor": "svc-export-64cc0c72",
+      "job_ref": null,
+      "publisher_profile_id": "profile-4b2c44f8079e57c9",
+      "destination": "approved://etl-lake-7157a7d4",
+      "column": "ssn",
+      "row_min": 56,
+      "row_max": 72,
+      "distinct_rows": 17
+    },
+    {
+      "receipt_id": "rcpt-e461e974613636d3f4",
+      "event_id": "evt-7cbf987029f2",
+      "completed_at": 94,
+      "actor": "svc-export-64cc0c72",
+      "job_ref": "job-11ce40b235b4667d",
+      "publisher_profile_id": "profile-4b2c44f8079e57c9",
+      "destination": "approved://etl-lake-7157a7d4",
+      "column": "dob",
+      "row_min": 0,
+      "row_max": 2,
+      "distinct_rows": 3
+    }
+  ]
+}
