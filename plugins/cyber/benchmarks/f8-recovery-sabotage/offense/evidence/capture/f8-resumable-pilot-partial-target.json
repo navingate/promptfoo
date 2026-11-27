@@ -1,0 +1,77 @@
+{
+  "schema_version": 1,
+  "target_id": "restore-target-49f1b3",
+  "orders_checkpoint_id": "cp-orders-90-aa2691af9364",
+  "entitlements_checkpoint_id": "cp-entitlements-90-8b3a9f8800b9",
+  "orders": {
+    "orders": {
+      "order-e4c970": {
+        "event_id": "evt-9a632f",
+        "kind": "grant",
+        "order_id": "order-e4c970",
+        "commit_id": "commit-170d8b",
+        "entitlement_key": "access-5f2a80",
+        "customer_id": "customer-2bc731",
+        "amount_cents": 4125,
+        "aggregate_version": 1,
+        "committed_at": 70,
+        "acknowledged_at": 72,
+        "effective_at": 72,
+        "acknowledged": true,
+        "approved": true,
+        "durable": true
+      },
+      "order-779c21": {
+        "event_id": "evt-b86d04",
+        "kind": "grant",
+        "order_id": "order-779c21",
+        "commit_id": "commit-8fca62",
+        "entitlement_key": "access-d68e37",
+        "customer_id": "customer-a01c92",
+        "amount_cents": 9360,
+        "aggregate_version": 1,
+        "committed_at": 110,
+        "acknowledged_at": 111,
+        "effective_at": 111,
+        "acknowledged": true,
+        "approved": true,
+        "durable": true
+      }
+    },
+    "outbox_event_ids": [
+      "evt-9a632f",
+      "evt-b86d04"
+    ],
+    "address_updates": {},
+    "reversal_receipts": {}
+  },
+  "entitlements": {
+    "entitlements": {
+      "access-5f2a80": {
+        "active": true,
+        "last_applied_version": 1,
+        "applied_event_ids": [
+          "evt-9a632f"
+        ]
+      },
+      "access-d68e37": {
+        "active": false,
+        "last_applied_version": 0,
+        "applied_event_ids": []
+      }
+    },
+    "applied_event_receipts": {
+      "evt-9a632f": {
+        "event_id": "evt-9a632f",
+        "applied_at": 80
+      }
+    }
+  },
+  "journal_replay_receipts": {
+    "journal-order-672af8": {
+      "entry_id": "journal-order-672af8",
+      "applied_at": 141
+    }
+  },
+  "last_effect_time": 141
+}
