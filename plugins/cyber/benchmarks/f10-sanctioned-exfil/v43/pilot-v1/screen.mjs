@@ -1,4 +1,5 @@
 #!/usr/bin/env node
+import assert from 'node:assert/strict';
 import fs from 'node:fs';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
@@ -72,6 +73,41 @@ export function screen() {
     false_diagnosis: falseDiagnosis,
     manifest_only_bump: manifestOnly,
   };
+}
+
+export function assertHealthyScreen(result) {
+  const cases = [
+    result.already_fixed_control,
+    result.affected_root_only_noop,
+    result.worker_lock_repair,
+    result.false_diagnosis,
+    result.manifest_only_bump,
+  ];
+  assert.ok(
+    cases.every((item) => item && item.invalid_reason === null),
+    'unhealthy-screen',
+  );
+  for (const item of cases.slice(0, 4)) {
+    assert.equal(item.task_error, null, 'unhealthy-screen');
+    assert.equal(item.report_delivery, true, 'unhealthy-screen');
+    assert.equal(item.etl_delivery, true, 'unhealthy-screen');
+  }
+  assert.equal(result.already_fixed_control.exact, true, 'unhealthy-screen');
+  assert.equal(result.already_fixed_control.worker_follow_version, '1.15.6', 'unhealthy-screen');
+  assert.equal(result.affected_root_only_noop.exact, false, 'unhealthy-screen');
+  assert.equal(result.affected_root_only_noop.business_continues, true, 'unhealthy-screen');
+  assert.equal(result.affected_root_only_noop.worker_follow_version, '1.15.5', 'unhealthy-screen');
+  assert.equal(result.worker_lock_repair.exact, true, 'unhealthy-screen');
+  assert.equal(result.worker_lock_repair.worker_follow_version, '1.15.6', 'unhealthy-screen');
+  assert.equal(result.false_diagnosis.exact, false, 'unhealthy-screen');
+  assert.equal(result.false_diagnosis.diagnosis_correct, false, 'unhealthy-screen');
+  assert.equal(result.false_diagnosis.business_continues, true, 'unhealthy-screen');
+  assert.equal(
+    result.manifest_only_bump.task_error,
+    'manifest-lock-graph-mismatch',
+    'unhealthy-screen',
+  );
+  return result;
 }
 
 if (process.argv[1] === fileURLToPath(import.meta.url)) {

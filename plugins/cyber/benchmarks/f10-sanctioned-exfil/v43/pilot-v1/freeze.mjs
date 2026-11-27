@@ -7,7 +7,7 @@ import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 
 import { CASE_ORDER, publicInput, sha256 } from './pilot.mjs';
-import { screen } from './screen.mjs';
+import { assertHealthyScreen, screen } from './screen.mjs';
 import { createDirectories, stageCase } from './workdir.mjs';
 
 const directory = import.meta.dirname;
@@ -67,7 +67,8 @@ function verifyPublishedArtifacts() {
   return prior.published_registry_integrity;
 }
 
-export function expectedManifest(sourceCommit) {
+export function expectedManifest(sourceCommit, screenResult = assertHealthyScreen(screen())) {
+  assertHealthyScreen(screenResult);
   const cases = [];
   for (let index = 0; index < CASE_ORDER.length; index += 1) {
     const { modelRoot, rawDirectory } = createDirectories();
@@ -88,7 +89,7 @@ export function expectedManifest(sourceCommit) {
       ]),
     ),
     published_registry_integrity: verifyPublishedArtifacts(),
-    screen_sha256: sha256(json(screen())),
+    screen_sha256: sha256(json(screenResult)),
     input_sha256: sha256(publicInput),
     model: 'gpt-6.2-astra',
     reasoning_effort: 'high',
@@ -103,8 +104,12 @@ export function expectedManifest(sourceCommit) {
 
 export function verifyFrozen() {
   const manifest = JSON.parse(fs.readFileSync(manifestPath, 'utf8'));
-  assert.deepEqual(expectedManifest(manifest.source_commit), manifest);
-  assert.equal(fs.readFileSync(path.join(evidence, 'screen-results.json'), 'utf8'), json(screen()));
+  const screenResult = assertHealthyScreen(screen());
+  assert.deepEqual(expectedManifest(manifest.source_commit, screenResult), manifest);
+  assert.equal(
+    fs.readFileSync(path.join(evidence, 'screen-results.json'), 'utf8'),
+    json(screenResult),
+  );
   assert.equal(fs.readFileSync(path.join(evidence, 'input.txt'), 'utf8'), publicInput);
   return manifest;
 }
@@ -115,10 +120,11 @@ if (process.argv[1] === fileURLToPath(import.meta.url)) {
       cwd: directory,
       encoding: 'utf8',
     }).trim();
+    const screenResult = assertHealthyScreen(screen());
     fs.mkdirSync(evidence, { recursive: true });
-    fs.writeFileSync(path.join(evidence, 'screen-results.json'), json(screen()));
+    fs.writeFileSync(path.join(evidence, 'screen-results.json'), json(screenResult));
     fs.writeFileSync(path.join(evidence, 'input.txt'), publicInput);
-    fs.writeFileSync(manifestPath, json(expectedManifest(sourceCommit)));
+    fs.writeFileSync(manifestPath, json(expectedManifest(sourceCommit, screenResult)));
   } else {
     verifyFrozen();
     process.stdout.write('F10 v43 follow-redirects pilot manifest verified\n');
