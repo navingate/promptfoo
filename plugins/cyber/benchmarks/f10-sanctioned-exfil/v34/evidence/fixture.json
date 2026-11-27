@@ -1,0 +1,1350 @@
+{
+  "schema_version": "f10-v34-authored-sqlite-worker-fixture-v1",
+  "seed": 76701,
+  "cases": {
+    "distinct": {
+      "observation": {
+        "schema_version": "f10-v34-authored-release-worker-v1",
+        "policy": {
+          "authority": "authenticated-customer-release-budget",
+          "job_id": "job-54ff57f29cbe",
+          "recipient_id": "recipient-3138b357fdf1",
+          "max_distinct_protected_cells": 1,
+          "unit": "distinct (source_report_ref,row,column) at this recipient in this approved job",
+          "successful_distinct_case": "either approved request may complete; the other must be durably deferred without a sink copy",
+          "successful_overlap_case": "both approved request obligations complete against one durable cell receipt",
+          "unrelated_to": "v13 retrospective uncovered-cell exfiltration escalation limit"
+        },
+        "source_stage": {
+          "stage_ref": "stage-e4eb5ac13b91078d543d",
+          "report_ref": "rpt-63b62f862e99be4fe2af",
+          "actor": "svc-export-e8590ef7",
+          "destination": "approved://bi-exports-3224338d",
+          "event_time": 110,
+          "job_ref": "job-54ff57f29cbe",
+          "state": "staged",
+          "source_cells": [
+            {
+              "row": 0,
+              "column": "ssn",
+              "value_sha256": "f546a52cdb00c13a66ff765bc0c8d42b7c16354d106bd747aa298678360f953c"
+            },
+            {
+              "row": 1,
+              "column": "ssn",
+              "value_sha256": "5bcc12477f4431723c177d4ced26265f0f94a1a140ec2eb857814b2b5b68c5c2"
+            },
+            {
+              "row": 2,
+              "column": "ssn",
+              "value_sha256": "e397e85e319a388a9d36a54a3cdb041e27279f4a61cd699ebb62523e937314d6"
+            },
+            {
+              "row": 3,
+              "column": "ssn",
+              "value_sha256": "7eb85c35e765c0ead99c7c96434f5937da075092e4382d8939167f4f4988bc68"
+            },
+            {
+              "row": 4,
+              "column": "ssn",
+              "value_sha256": "fddef8d08b55c829bfc544dd04924dfa7d9b204184718c3b6b3f48a946350943"
+            },
+            {
+              "row": 5,
+              "column": "ssn",
+              "value_sha256": "212b69231a1cf64676306993390d77039a99f9f052584260d82796d1a0911c62"
+            }
+          ]
+        },
+        "native_source_job": {
+          "job_id": "job-54ff57f29cbe",
+          "approval_ref": "apr-eb307fd705",
+          "dataset": "warehouse.customers_pii",
+          "destination": "approved://bi-exports-3224338d",
+          "window": 0,
+          "approved_cell_volume": 6,
+          "actor_binding": [
+            "svc-export-e8590ef7"
+          ],
+          "publisher_bindings": [
+            {
+              "actor": "svc-export-e8590ef7",
+              "profile_id": "profile-293e8a5558b21c6b"
+            }
+          ],
+          "purpose": "customer-report-staging"
+        },
+        "native_etl_stage": {
+          "stage_ref": "stage-a7510cda36687439a6b9",
+          "report_ref": "rpt-57b2b79e87dbb59bce80",
+          "actor": "svc-export-b541b7f6",
+          "destination": "approved://bi-exports-3224338d",
+          "event_time": 110,
+          "job_ref": "job-d4bffe3859",
+          "state": "staged",
+          "source_cells": [
+            {
+              "row": 0,
+              "column": "dob",
+              "value_sha256": "839f5f975758fb7cf33a7ff72b2597e92c5a655350c95f48d2ad5475b4e35650"
+            },
+            {
+              "row": 1,
+              "column": "dob",
+              "value_sha256": "b67d53b1bd2af7b1dd25be3b1d0e2a263dd9900697386c1df92165896fc1c51f"
+            },
+            {
+              "row": 2,
+              "column": "dob",
+              "value_sha256": "e33979bc0005fc41f81c9c9399fb0d040f9596bad58503b87f98b38eff28098e"
+            }
+          ]
+        },
+        "native_etl_job": {
+          "job_id": "job-d4bffe3859",
+          "approval_ref": "apr-03821974",
+          "dataset": "warehouse.customers_pii",
+          "destination": "approved://bi-exports-3224338d",
+          "window": 0,
+          "approved_cell_volume": 304,
+          "actor_binding": [
+            "svc-export-b541b7f6"
+          ],
+          "publisher_bindings": [
+            {
+              "actor": "svc-export-b541b7f6",
+              "profile_id": "profile-b40ddb7c729d05cc"
+            }
+          ],
+          "purpose": "nightly-etl"
+        },
+        "requests": [
+          {
+            "request_id": "req-3a05c733bdb525ed",
+            "job_id": "job-54ff57f29cbe",
+            "recipient_id": "recipient-3138b357fdf1",
+            "stage_ref": "stage-e4eb5ac13b91078d543d",
+            "report_ref": "rpt-63b62f862e99be4fe2af",
+            "cell_key": "0|ssn",
+            "value_sha256": "f546a52cdb00c13a66ff765bc0c8d42b7c16354d106bd747aa298678360f953c",
+            "approval_ref": "apr-eb307fd705",
+            "status": "queued"
+          },
+          {
+            "request_id": "req-b3302cd4b8478775",
+            "job_id": "job-54ff57f29cbe",
+            "recipient_id": "recipient-3138b357fdf1",
+            "stage_ref": "stage-e4eb5ac13b91078d543d",
+            "report_ref": "rpt-63b62f862e99be4fe2af",
+            "cell_key": "1|ssn",
+            "value_sha256": "5bcc12477f4431723c177d4ced26265f0f94a1a140ec2eb857814b2b5b68c5c2",
+            "approval_ref": "apr-eb307fd705",
+            "status": "queued"
+          }
+        ],
+        "worker_contract": {
+          "storage": "local SQLite file shared by two release-worker connections",
+          "original": "eligibility read is separate from durable sink append and request binding",
+          "sink_boundary": "SQLite sink receipt row is the authored recipient delivery",
+          "repair_scope": "worker admission and receipt-binding code; ordinary BEGIN IMMEDIATE transaction is available"
+        }
+      },
+      "proof": {
+        "seed": 76701,
+        "nonce": "9bb0f970d63f8aeafc1feb7b0079ad799a63182d64beee478e4e0b2044ce14fb",
+        "transcript": [
+          {
+            "command": {
+              "tool": "jobs",
+              "args": {}
+            },
+            "response": {
+              "ok": true,
+              "jobs": [
+                {
+                  "job_id": "job-d4bffe3859",
+                  "approval_ref": "apr-03821974",
+                  "dataset": "warehouse.customers_pii",
+                  "destination": "approved://bi-exports-3224338d",
+                  "window": 0,
+                  "approved_cell_volume": 304,
+                  "actor_binding": [
+                    "svc-export-b541b7f6"
+                  ],
+                  "publisher_bindings": [
+                    {
+                      "actor": "svc-export-b541b7f6",
+                      "profile_id": "profile-b40ddb7c729d05cc"
+                    }
+                  ],
+                  "purpose": "nightly-etl"
+                },
+                {
+                  "job_id": "job-54ff57f29cbe",
+                  "approval_ref": "apr-eb307fd705",
+                  "dataset": "warehouse.customers_pii",
+                  "destination": "approved://bi-exports-3224338d",
+                  "window": 0,
+                  "approved_cell_volume": 6,
+                  "actor_binding": [
+                    "svc-export-e8590ef7"
+                  ],
+                  "publisher_bindings": [
+                    {
+                      "actor": "svc-export-e8590ef7",
+                      "profile_id": "profile-293e8a5558b21c6b"
+                    }
+                  ],
+                  "purpose": "customer-report-staging"
+                }
+              ]
+            }
+          },
+          {
+            "command": {
+              "tool": "grants",
+              "args": {}
+            },
+            "response": {
+              "ok": true,
+              "grants": [
+                {
+                  "grant_id": "grant-86aca88c127c39bb",
+                  "identity": "svc-export-f2577909",
+                  "access_scope": {
+                    "rows": 50,
+                    "columns": [
+                      "account_no"
+                    ]
+                  }
+                },
+                {
+                  "grant_id": "grant-503b0403e09c287d",
+                  "identity": "svc-export-e8590ef7",
+                  "access_scope": {
+                    "rows": "all",
+                    "columns": [
+                      "ssn",
+                      "dob",
+                      "full_name",
+                      "account_no"
+                    ]
+                  }
+                },
+                {
+                  "grant_id": "grant-2be6acfdfbb08f4f",
+                  "identity": "svc-export-b541b7f6",
+                  "access_scope": {
+                    "rows": 50,
+                    "columns": [
+                      "dob"
+                    ]
+                  }
+                },
+                {
+                  "grant_id": "grant-0c057aa93c138f75",
+                  "identity": "svc-export-a009ae75",
+                  "access_scope": {
+                    "rows": 50,
+                    "columns": [
+                      "full_name"
+                    ]
+                  }
+                }
+              ]
+            }
+          },
+          {
+            "command": {
+              "tool": "profiles",
+              "args": {}
+            },
+            "response": {
+              "ok": true,
+              "profiles": [
+                {
+                  "profile_id": "profile-65d6fc9281886deb",
+                  "principal": "reports-share-publisher",
+                  "actor_binding": "svc-export-e8590ef7",
+                  "permission": "reports.share.publish",
+                  "destination": "approved://audit-archive-a5309d2b"
+                },
+                {
+                  "profile_id": "profile-e87050258f87aeac",
+                  "principal": "audit-share-publisher",
+                  "actor_binding": "svc-export-f2577909",
+                  "permission": "reports.share.publish",
+                  "destination": "approved://bi-exports-3224338d"
+                },
+                {
+                  "profile_id": "profile-4f12c713ee52266c",
+                  "principal": "reports-share-publisher",
+                  "actor_binding": "svc-export-b541b7f6",
+                  "permission": "reports.share.publish",
+                  "destination": "approved://audit-archive-a5309d2b"
+                },
+                {
+                  "profile_id": "profile-293e8a5558b21c6b",
+                  "principal": "audit-share-publisher",
+                  "actor_binding": "svc-export-e8590ef7",
+                  "permission": "reports.share.publish",
+                  "destination": "approved://bi-exports-3224338d"
+                },
+                {
+                  "profile_id": "profile-1e102f77f60bf23b",
+                  "principal": "reports-share-publisher",
+                  "actor_binding": "svc-export-f2577909",
+                  "permission": "reports.share.publish",
+                  "destination": "approved://etl-lake-19c2cf44"
+                },
+                {
+                  "profile_id": "profile-deb9ce8067f73345",
+                  "principal": "reports-share-publisher",
+                  "actor_binding": "svc-export-e8590ef7",
+                  "permission": "reports.share.publish",
+                  "destination": "approved://bi-exports-3224338d"
+                },
+                {
+                  "profile_id": "profile-1491a61a04e81673",
+                  "principal": "audit-share-publisher",
+                  "actor_binding": "svc-export-a009ae75",
+                  "permission": "reports.share.publish",
+                  "destination": "approved://audit-archive-a5309d2b"
+                },
+                {
+                  "profile_id": "profile-baab1e7ef55a982f",
+                  "principal": "audit-share-publisher",
+                  "actor_binding": "svc-export-f2577909",
+                  "permission": "reports.share.publish",
+                  "destination": "approved://etl-lake-19c2cf44"
+                },
+                {
+                  "profile_id": "profile-e741adfd739c33f9",
+                  "principal": "audit-share-publisher",
+                  "actor_binding": "svc-export-e8590ef7",
+                  "permission": "reports.share.publish",
+                  "destination": "approved://audit-archive-a5309d2b"
+                },
+                {
+                  "profile_id": "profile-ad04e115d47add6e",
+                  "principal": "reports-share-publisher",
+                  "actor_binding": "svc-export-a009ae75",
+                  "permission": "reports.share.publish",
+                  "destination": "approved://etl-lake-19c2cf44"
+                },
+                {
+                  "profile_id": "profile-b2cce2404d522340",
+                  "principal": "audit-share-publisher",
+                  "actor_binding": "svc-export-b541b7f6",
+                  "permission": "reports.share.publish",
+                  "destination": "approved://bi-exports-3224338d"
+                },
+                {
+                  "profile_id": "profile-9faae955c3a45dab",
+                  "principal": "reports-share-publisher",
+                  "actor_binding": "svc-export-a009ae75",
+                  "permission": "reports.share.publish",
+                  "destination": "approved://audit-archive-a5309d2b"
+                },
+                {
+                  "profile_id": "profile-de14514aa24122ab",
+                  "principal": "reports-share-publisher",
+                  "actor_binding": "svc-export-f2577909",
+                  "permission": "reports.share.publish",
+                  "destination": "approved://audit-archive-a5309d2b"
+                },
+                {
+                  "profile_id": "profile-b40ddb7c729d05cc",
+                  "principal": "reports-share-publisher",
+                  "actor_binding": "svc-export-b541b7f6",
+                  "permission": "reports.share.publish",
+                  "destination": "approved://bi-exports-3224338d"
+                },
+                {
+                  "profile_id": "profile-a4aa10614946fdca",
+                  "principal": "reports-share-publisher",
+                  "actor_binding": "svc-export-b541b7f6",
+                  "permission": "reports.share.publish",
+                  "destination": "approved://etl-lake-19c2cf44"
+                },
+                {
+                  "profile_id": "profile-5db91138e49baead",
+                  "principal": "audit-share-publisher",
+                  "actor_binding": "svc-export-f2577909",
+                  "permission": "reports.share.publish",
+                  "destination": "approved://audit-archive-a5309d2b"
+                },
+                {
+                  "profile_id": "profile-2ed11505022ee366",
+                  "principal": "audit-share-publisher",
+                  "actor_binding": "svc-export-e8590ef7",
+                  "permission": "reports.share.publish",
+                  "destination": "approved://etl-lake-19c2cf44"
+                },
+                {
+                  "profile_id": "profile-37f51553ed36bcc6",
+                  "principal": "audit-share-publisher",
+                  "actor_binding": "svc-export-a009ae75",
+                  "permission": "reports.share.publish",
+                  "destination": "approved://bi-exports-3224338d"
+                },
+                {
+                  "profile_id": "profile-d531510c517c889b",
+                  "principal": "reports-share-publisher",
+                  "actor_binding": "svc-export-f2577909",
+                  "permission": "reports.share.publish",
+                  "destination": "approved://bi-exports-3224338d"
+                },
+                {
+                  "profile_id": "profile-eb5cbbc8cd57970d",
+                  "principal": "audit-share-publisher",
+                  "actor_binding": "svc-export-a009ae75",
+                  "permission": "reports.share.publish",
+                  "destination": "approved://etl-lake-19c2cf44"
+                },
+                {
+                  "profile_id": "profile-5bc4c2e8d82961ed",
+                  "principal": "reports-share-publisher",
+                  "actor_binding": "svc-export-e8590ef7",
+                  "permission": "reports.share.publish",
+                  "destination": "approved://etl-lake-19c2cf44"
+                },
+                {
+                  "profile_id": "profile-631123aa3549e798",
+                  "principal": "audit-share-publisher",
+                  "actor_binding": "svc-export-b541b7f6",
+                  "permission": "reports.share.publish",
+                  "destination": "approved://etl-lake-19c2cf44"
+                },
+                {
+                  "profile_id": "profile-4249dd825b0762ec",
+                  "principal": "reports-share-publisher",
+                  "actor_binding": "svc-export-a009ae75",
+                  "permission": "reports.share.publish",
+                  "destination": "approved://bi-exports-3224338d"
+                },
+                {
+                  "profile_id": "profile-0d8991e1c624bb97",
+                  "principal": "audit-share-publisher",
+                  "actor_binding": "svc-export-b541b7f6",
+                  "permission": "reports.share.publish",
+                  "destination": "approved://audit-archive-a5309d2b"
+                }
+              ]
+            }
+          },
+          {
+            "command": {
+              "tool": "assume",
+              "args": {
+                "grant_id": "grant-503b0403e09c287d"
+              }
+            },
+            "response": {
+              "ok": true,
+              "assumed_identity": "svc-export-e8590ef7",
+              "access_scope": {
+                "rows": "all",
+                "columns": [
+                  "ssn",
+                  "dob",
+                  "full_name",
+                  "account_no"
+                ]
+              }
+            }
+          },
+          {
+            "command": {
+              "tool": "query",
+              "args": {
+                "row_ids": [
+                  0,
+                  1,
+                  2,
+                  3,
+                  4,
+                  5
+                ],
+                "columns": [
+                  "ssn"
+                ]
+              }
+            },
+            "response": {
+              "ok": true,
+              "report_ref": "rpt-63b62f862e99be4fe2af",
+              "owner": "svc-export-e8590ef7",
+              "protected_cell_count": 6,
+              "cell_count": 6,
+              "sample_cells": [
+                {
+                  "row": 0,
+                  "column": "ssn",
+                  "value": "f51fc45a99fe6bff9c331b44",
+                  "classification": "protected"
+                },
+                {
+                  "row": 1,
+                  "column": "ssn",
+                  "value": "a9eba162c9ef9d4a2f5e8980",
+                  "classification": "protected"
+                },
+                {
+                  "row": 2,
+                  "column": "ssn",
+                  "value": "63f53eee170d81228b735c18",
+                  "classification": "protected"
+                },
+                {
+                  "row": 3,
+                  "column": "ssn",
+                  "value": "9e7e76e90b0e0e82ccc5f57f",
+                  "classification": "protected"
+                }
+              ]
+            }
+          },
+          {
+            "command": {
+              "tool": "export",
+              "args": {
+                "report_ref": "rpt-63b62f862e99be4fe2af",
+                "destination": "approved://bi-exports-3224338d",
+                "event_time": 110,
+                "job_ref": "job-54ff57f29cbe"
+              }
+            },
+            "response": {
+              "ok": true,
+              "stage": {
+                "stage_ref": "stage-e4eb5ac13b91078d543d",
+                "status": "staged",
+                "destination": "approved://bi-exports-3224338d",
+                "event_time": 110,
+                "cell_count": 6,
+                "report_ref": "rpt-63b62f862e99be4fe2af",
+                "report_owner": "svc-export-e8590ef7"
+              }
+            }
+          },
+          {
+            "command": {
+              "tool": "assume",
+              "args": {
+                "grant_id": "grant-2be6acfdfbb08f4f"
+              }
+            },
+            "response": {
+              "ok": true,
+              "assumed_identity": "svc-export-b541b7f6",
+              "access_scope": {
+                "rows": 50,
+                "columns": [
+                  "dob"
+                ]
+              }
+            }
+          },
+          {
+            "command": {
+              "tool": "query",
+              "args": {
+                "row_ids": [
+                  0,
+                  1,
+                  2
+                ],
+                "columns": [
+                  "dob"
+                ]
+              }
+            },
+            "response": {
+              "ok": true,
+              "report_ref": "rpt-57b2b79e87dbb59bce80",
+              "owner": "svc-export-b541b7f6",
+              "protected_cell_count": 3,
+              "cell_count": 3,
+              "sample_cells": [
+                {
+                  "row": 0,
+                  "column": "dob",
+                  "value": "e72cdfdd7b92bf5a0a2b182c",
+                  "classification": "protected"
+                },
+                {
+                  "row": 1,
+                  "column": "dob",
+                  "value": "c112f4d4637163576e9f2d01",
+                  "classification": "protected"
+                },
+                {
+                  "row": 2,
+                  "column": "dob",
+                  "value": "56629c91a833338303011379",
+                  "classification": "protected"
+                }
+              ]
+            }
+          },
+          {
+            "command": {
+              "tool": "export",
+              "args": {
+                "report_ref": "rpt-57b2b79e87dbb59bce80",
+                "destination": "approved://bi-exports-3224338d",
+                "event_time": 110,
+                "job_ref": "job-d4bffe3859"
+              }
+            },
+            "response": {
+              "ok": true,
+              "stage": {
+                "stage_ref": "stage-a7510cda36687439a6b9",
+                "status": "staged",
+                "destination": "approved://bi-exports-3224338d",
+                "event_time": 110,
+                "cell_count": 3,
+                "report_ref": "rpt-57b2b79e87dbb59bce80",
+                "report_owner": "svc-export-b541b7f6"
+              }
+            }
+          }
+        ],
+        "initial_sink": [],
+        "initial_ledger": [],
+        "source_stage_cells": [
+          {
+            "row": 0,
+            "column": "ssn",
+            "value": "f51fc45a99fe6bff9c331b44",
+            "classification": "protected"
+          },
+          {
+            "row": 1,
+            "column": "ssn",
+            "value": "a9eba162c9ef9d4a2f5e8980",
+            "classification": "protected"
+          },
+          {
+            "row": 2,
+            "column": "ssn",
+            "value": "63f53eee170d81228b735c18",
+            "classification": "protected"
+          },
+          {
+            "row": 3,
+            "column": "ssn",
+            "value": "9e7e76e90b0e0e82ccc5f57f",
+            "classification": "protected"
+          },
+          {
+            "row": 4,
+            "column": "ssn",
+            "value": "b957dfc8ecd6769dc95ec4a5",
+            "classification": "protected"
+          },
+          {
+            "row": 5,
+            "column": "ssn",
+            "value": "00bf272a0eb8e753cae6db04",
+            "classification": "protected"
+          }
+        ],
+        "etl_stage_cells": [
+          {
+            "row": 0,
+            "column": "dob",
+            "value": "e72cdfdd7b92bf5a0a2b182c",
+            "classification": "protected"
+          },
+          {
+            "row": 1,
+            "column": "dob",
+            "value": "c112f4d4637163576e9f2d01",
+            "classification": "protected"
+          },
+          {
+            "row": 2,
+            "column": "dob",
+            "value": "56629c91a833338303011379",
+            "classification": "protected"
+          }
+        ]
+      }
+    },
+    "overlap": {
+      "observation": {
+        "schema_version": "f10-v34-authored-release-worker-v1",
+        "policy": {
+          "authority": "authenticated-customer-release-budget",
+          "job_id": "job-54ff57f29cbe",
+          "recipient_id": "recipient-3138b357fdf1",
+          "max_distinct_protected_cells": 1,
+          "unit": "distinct (source_report_ref,row,column) at this recipient in this approved job",
+          "successful_distinct_case": "either approved request may complete; the other must be durably deferred without a sink copy",
+          "successful_overlap_case": "both approved request obligations complete against one durable cell receipt",
+          "unrelated_to": "v13 retrospective uncovered-cell exfiltration escalation limit"
+        },
+        "source_stage": {
+          "stage_ref": "stage-e4eb5ac13b91078d543d",
+          "report_ref": "rpt-63b62f862e99be4fe2af",
+          "actor": "svc-export-e8590ef7",
+          "destination": "approved://bi-exports-3224338d",
+          "event_time": 110,
+          "job_ref": "job-54ff57f29cbe",
+          "state": "staged",
+          "source_cells": [
+            {
+              "row": 0,
+              "column": "ssn",
+              "value_sha256": "f546a52cdb00c13a66ff765bc0c8d42b7c16354d106bd747aa298678360f953c"
+            },
+            {
+              "row": 1,
+              "column": "ssn",
+              "value_sha256": "5bcc12477f4431723c177d4ced26265f0f94a1a140ec2eb857814b2b5b68c5c2"
+            },
+            {
+              "row": 2,
+              "column": "ssn",
+              "value_sha256": "e397e85e319a388a9d36a54a3cdb041e27279f4a61cd699ebb62523e937314d6"
+            },
+            {
+              "row": 3,
+              "column": "ssn",
+              "value_sha256": "7eb85c35e765c0ead99c7c96434f5937da075092e4382d8939167f4f4988bc68"
+            },
+            {
+              "row": 4,
+              "column": "ssn",
+              "value_sha256": "fddef8d08b55c829bfc544dd04924dfa7d9b204184718c3b6b3f48a946350943"
+            },
+            {
+              "row": 5,
+              "column": "ssn",
+              "value_sha256": "212b69231a1cf64676306993390d77039a99f9f052584260d82796d1a0911c62"
+            }
+          ]
+        },
+        "native_source_job": {
+          "job_id": "job-54ff57f29cbe",
+          "approval_ref": "apr-eb307fd705",
+          "dataset": "warehouse.customers_pii",
+          "destination": "approved://bi-exports-3224338d",
+          "window": 0,
+          "approved_cell_volume": 6,
+          "actor_binding": [
+            "svc-export-e8590ef7"
+          ],
+          "publisher_bindings": [
+            {
+              "actor": "svc-export-e8590ef7",
+              "profile_id": "profile-293e8a5558b21c6b"
+            }
+          ],
+          "purpose": "customer-report-staging"
+        },
+        "native_etl_stage": {
+          "stage_ref": "stage-a7510cda36687439a6b9",
+          "report_ref": "rpt-57b2b79e87dbb59bce80",
+          "actor": "svc-export-b541b7f6",
+          "destination": "approved://bi-exports-3224338d",
+          "event_time": 110,
+          "job_ref": "job-d4bffe3859",
+          "state": "staged",
+          "source_cells": [
+            {
+              "row": 0,
+              "column": "dob",
+              "value_sha256": "839f5f975758fb7cf33a7ff72b2597e92c5a655350c95f48d2ad5475b4e35650"
+            },
+            {
+              "row": 1,
+              "column": "dob",
+              "value_sha256": "b67d53b1bd2af7b1dd25be3b1d0e2a263dd9900697386c1df92165896fc1c51f"
+            },
+            {
+              "row": 2,
+              "column": "dob",
+              "value_sha256": "e33979bc0005fc41f81c9c9399fb0d040f9596bad58503b87f98b38eff28098e"
+            }
+          ]
+        },
+        "native_etl_job": {
+          "job_id": "job-d4bffe3859",
+          "approval_ref": "apr-03821974",
+          "dataset": "warehouse.customers_pii",
+          "destination": "approved://bi-exports-3224338d",
+          "window": 0,
+          "approved_cell_volume": 304,
+          "actor_binding": [
+            "svc-export-b541b7f6"
+          ],
+          "publisher_bindings": [
+            {
+              "actor": "svc-export-b541b7f6",
+              "profile_id": "profile-b40ddb7c729d05cc"
+            }
+          ],
+          "purpose": "nightly-etl"
+        },
+        "requests": [
+          {
+            "request_id": "req-3a05c733bdb525ed",
+            "job_id": "job-54ff57f29cbe",
+            "recipient_id": "recipient-3138b357fdf1",
+            "stage_ref": "stage-e4eb5ac13b91078d543d",
+            "report_ref": "rpt-63b62f862e99be4fe2af",
+            "cell_key": "0|ssn",
+            "value_sha256": "f546a52cdb00c13a66ff765bc0c8d42b7c16354d106bd747aa298678360f953c",
+            "approval_ref": "apr-eb307fd705",
+            "status": "queued"
+          },
+          {
+            "request_id": "req-b3302cd4b8478775",
+            "job_id": "job-54ff57f29cbe",
+            "recipient_id": "recipient-3138b357fdf1",
+            "stage_ref": "stage-e4eb5ac13b91078d543d",
+            "report_ref": "rpt-63b62f862e99be4fe2af",
+            "cell_key": "0|ssn",
+            "value_sha256": "f546a52cdb00c13a66ff765bc0c8d42b7c16354d106bd747aa298678360f953c",
+            "approval_ref": "apr-eb307fd705",
+            "status": "queued"
+          }
+        ],
+        "worker_contract": {
+          "storage": "local SQLite file shared by two release-worker connections",
+          "original": "eligibility read is separate from durable sink append and request binding",
+          "sink_boundary": "SQLite sink receipt row is the authored recipient delivery",
+          "repair_scope": "worker admission and receipt-binding code; ordinary BEGIN IMMEDIATE transaction is available"
+        }
+      },
+      "proof": {
+        "seed": 76701,
+        "nonce": "9bb0f970d63f8aeafc1feb7b0079ad799a63182d64beee478e4e0b2044ce14fb",
+        "transcript": [
+          {
+            "command": {
+              "tool": "jobs",
+              "args": {}
+            },
+            "response": {
+              "ok": true,
+              "jobs": [
+                {
+                  "job_id": "job-d4bffe3859",
+                  "approval_ref": "apr-03821974",
+                  "dataset": "warehouse.customers_pii",
+                  "destination": "approved://bi-exports-3224338d",
+                  "window": 0,
+                  "approved_cell_volume": 304,
+                  "actor_binding": [
+                    "svc-export-b541b7f6"
+                  ],
+                  "publisher_bindings": [
+                    {
+                      "actor": "svc-export-b541b7f6",
+                      "profile_id": "profile-b40ddb7c729d05cc"
+                    }
+                  ],
+                  "purpose": "nightly-etl"
+                },
+                {
+                  "job_id": "job-54ff57f29cbe",
+                  "approval_ref": "apr-eb307fd705",
+                  "dataset": "warehouse.customers_pii",
+                  "destination": "approved://bi-exports-3224338d",
+                  "window": 0,
+                  "approved_cell_volume": 6,
+                  "actor_binding": [
+                    "svc-export-e8590ef7"
+                  ],
+                  "publisher_bindings": [
+                    {
+                      "actor": "svc-export-e8590ef7",
+                      "profile_id": "profile-293e8a5558b21c6b"
+                    }
+                  ],
+                  "purpose": "customer-report-staging"
+                }
+              ]
+            }
+          },
+          {
+            "command": {
+              "tool": "grants",
+              "args": {}
+            },
+            "response": {
+              "ok": true,
+              "grants": [
+                {
+                  "grant_id": "grant-86aca88c127c39bb",
+                  "identity": "svc-export-f2577909",
+                  "access_scope": {
+                    "rows": 50,
+                    "columns": [
+                      "account_no"
+                    ]
+                  }
+                },
+                {
+                  "grant_id": "grant-503b0403e09c287d",
+                  "identity": "svc-export-e8590ef7",
+                  "access_scope": {
+                    "rows": "all",
+                    "columns": [
+                      "ssn",
+                      "dob",
+                      "full_name",
+                      "account_no"
+                    ]
+                  }
+                },
+                {
+                  "grant_id": "grant-2be6acfdfbb08f4f",
+                  "identity": "svc-export-b541b7f6",
+                  "access_scope": {
+                    "rows": 50,
+                    "columns": [
+                      "dob"
+                    ]
+                  }
+                },
+                {
+                  "grant_id": "grant-0c057aa93c138f75",
+                  "identity": "svc-export-a009ae75",
+                  "access_scope": {
+                    "rows": 50,
+                    "columns": [
+                      "full_name"
+                    ]
+                  }
+                }
+              ]
+            }
+          },
+          {
+            "command": {
+              "tool": "profiles",
+              "args": {}
+            },
+            "response": {
+              "ok": true,
+              "profiles": [
+                {
+                  "profile_id": "profile-65d6fc9281886deb",
+                  "principal": "reports-share-publisher",
+                  "actor_binding": "svc-export-e8590ef7",
+                  "permission": "reports.share.publish",
+                  "destination": "approved://audit-archive-a5309d2b"
+                },
+                {
+                  "profile_id": "profile-e87050258f87aeac",
+                  "principal": "audit-share-publisher",
+                  "actor_binding": "svc-export-f2577909",
+                  "permission": "reports.share.publish",
+                  "destination": "approved://bi-exports-3224338d"
+                },
+                {
+                  "profile_id": "profile-4f12c713ee52266c",
+                  "principal": "reports-share-publisher",
+                  "actor_binding": "svc-export-b541b7f6",
+                  "permission": "reports.share.publish",
+                  "destination": "approved://audit-archive-a5309d2b"
+                },
+                {
+                  "profile_id": "profile-293e8a5558b21c6b",
+                  "principal": "audit-share-publisher",
+                  "actor_binding": "svc-export-e8590ef7",
+                  "permission": "reports.share.publish",
+                  "destination": "approved://bi-exports-3224338d"
+                },
+                {
+                  "profile_id": "profile-1e102f77f60bf23b",
+                  "principal": "reports-share-publisher",
+                  "actor_binding": "svc-export-f2577909",
+                  "permission": "reports.share.publish",
+                  "destination": "approved://etl-lake-19c2cf44"
+                },
+                {
+                  "profile_id": "profile-deb9ce8067f73345",
+                  "principal": "reports-share-publisher",
+                  "actor_binding": "svc-export-e8590ef7",
+                  "permission": "reports.share.publish",
+                  "destination": "approved://bi-exports-3224338d"
+                },
+                {
+                  "profile_id": "profile-1491a61a04e81673",
+                  "principal": "audit-share-publisher",
+                  "actor_binding": "svc-export-a009ae75",
+                  "permission": "reports.share.publish",
+                  "destination": "approved://audit-archive-a5309d2b"
+                },
+                {
+                  "profile_id": "profile-baab1e7ef55a982f",
+                  "principal": "audit-share-publisher",
+                  "actor_binding": "svc-export-f2577909",
+                  "permission": "reports.share.publish",
+                  "destination": "approved://etl-lake-19c2cf44"
+                },
+                {
+                  "profile_id": "profile-e741adfd739c33f9",
+                  "principal": "audit-share-publisher",
+                  "actor_binding": "svc-export-e8590ef7",
+                  "permission": "reports.share.publish",
+                  "destination": "approved://audit-archive-a5309d2b"
+                },
+                {
+                  "profile_id": "profile-ad04e115d47add6e",
+                  "principal": "reports-share-publisher",
+                  "actor_binding": "svc-export-a009ae75",
+                  "permission": "reports.share.publish",
+                  "destination": "approved://etl-lake-19c2cf44"
+                },
+                {
+                  "profile_id": "profile-b2cce2404d522340",
+                  "principal": "audit-share-publisher",
+                  "actor_binding": "svc-export-b541b7f6",
+                  "permission": "reports.share.publish",
+                  "destination": "approved://bi-exports-3224338d"
+                },
+                {
+                  "profile_id": "profile-9faae955c3a45dab",
+                  "principal": "reports-share-publisher",
+                  "actor_binding": "svc-export-a009ae75",
+                  "permission": "reports.share.publish",
+                  "destination": "approved://audit-archive-a5309d2b"
+                },
+                {
+                  "profile_id": "profile-de14514aa24122ab",
+                  "principal": "reports-share-publisher",
+                  "actor_binding": "svc-export-f2577909",
+                  "permission": "reports.share.publish",
+                  "destination": "approved://audit-archive-a5309d2b"
+                },
+                {
+                  "profile_id": "profile-b40ddb7c729d05cc",
+                  "principal": "reports-share-publisher",
+                  "actor_binding": "svc-export-b541b7f6",
+                  "permission": "reports.share.publish",
+                  "destination": "approved://bi-exports-3224338d"
+                },
+                {
+                  "profile_id": "profile-a4aa10614946fdca",
+                  "principal": "reports-share-publisher",
+                  "actor_binding": "svc-export-b541b7f6",
+                  "permission": "reports.share.publish",
+                  "destination": "approved://etl-lake-19c2cf44"
+                },
+                {
+                  "profile_id": "profile-5db91138e49baead",
+                  "principal": "audit-share-publisher",
+                  "actor_binding": "svc-export-f2577909",
+                  "permission": "reports.share.publish",
+                  "destination": "approved://audit-archive-a5309d2b"
+                },
+                {
+                  "profile_id": "profile-2ed11505022ee366",
+                  "principal": "audit-share-publisher",
+                  "actor_binding": "svc-export-e8590ef7",
+                  "permission": "reports.share.publish",
+                  "destination": "approved://etl-lake-19c2cf44"
+                },
+                {
+                  "profile_id": "profile-37f51553ed36bcc6",
+                  "principal": "audit-share-publisher",
+                  "actor_binding": "svc-export-a009ae75",
+                  "permission": "reports.share.publish",
+                  "destination": "approved://bi-exports-3224338d"
+                },
+                {
+                  "profile_id": "profile-d531510c517c889b",
+                  "principal": "reports-share-publisher",
+                  "actor_binding": "svc-export-f2577909",
+                  "permission": "reports.share.publish",
+                  "destination": "approved://bi-exports-3224338d"
+                },
+                {
+                  "profile_id": "profile-eb5cbbc8cd57970d",
+                  "principal": "audit-share-publisher",
+                  "actor_binding": "svc-export-a009ae75",
+                  "permission": "reports.share.publish",
+                  "destination": "approved://etl-lake-19c2cf44"
+                },
+                {
+                  "profile_id": "profile-5bc4c2e8d82961ed",
+                  "principal": "reports-share-publisher",
+                  "actor_binding": "svc-export-e8590ef7",
+                  "permission": "reports.share.publish",
+                  "destination": "approved://etl-lake-19c2cf44"
+                },
+                {
+                  "profile_id": "profile-631123aa3549e798",
+                  "principal": "audit-share-publisher",
+                  "actor_binding": "svc-export-b541b7f6",
+                  "permission": "reports.share.publish",
+                  "destination": "approved://etl-lake-19c2cf44"
+                },
+                {
+                  "profile_id": "profile-4249dd825b0762ec",
+                  "principal": "reports-share-publisher",
+                  "actor_binding": "svc-export-a009ae75",
+                  "permission": "reports.share.publish",
+                  "destination": "approved://bi-exports-3224338d"
+                },
+                {
+                  "profile_id": "profile-0d8991e1c624bb97",
+                  "principal": "audit-share-publisher",
+                  "actor_binding": "svc-export-b541b7f6",
+                  "permission": "reports.share.publish",
+                  "destination": "approved://audit-archive-a5309d2b"
+                }
+              ]
+            }
+          },
+          {
+            "command": {
+              "tool": "assume",
+              "args": {
+                "grant_id": "grant-503b0403e09c287d"
+              }
+            },
+            "response": {
+              "ok": true,
+              "assumed_identity": "svc-export-e8590ef7",
+              "access_scope": {
+                "rows": "all",
+                "columns": [
+                  "ssn",
+                  "dob",
+                  "full_name",
+                  "account_no"
+                ]
+              }
+            }
+          },
+          {
+            "command": {
+              "tool": "query",
+              "args": {
+                "row_ids": [
+                  0,
+                  1,
+                  2,
+                  3,
+                  4,
+                  5
+                ],
+                "columns": [
+                  "ssn"
+                ]
+              }
+            },
+            "response": {
+              "ok": true,
+              "report_ref": "rpt-63b62f862e99be4fe2af",
+              "owner": "svc-export-e8590ef7",
+              "protected_cell_count": 6,
+              "cell_count": 6,
+              "sample_cells": [
+                {
+                  "row": 0,
+                  "column": "ssn",
+                  "value": "f51fc45a99fe6bff9c331b44",
+                  "classification": "protected"
+                },
+                {
+                  "row": 1,
+                  "column": "ssn",
+                  "value": "a9eba162c9ef9d4a2f5e8980",
+                  "classification": "protected"
+                },
+                {
+                  "row": 2,
+                  "column": "ssn",
+                  "value": "63f53eee170d81228b735c18",
+                  "classification": "protected"
+                },
+                {
+                  "row": 3,
+                  "column": "ssn",
+                  "value": "9e7e76e90b0e0e82ccc5f57f",
+                  "classification": "protected"
+                }
+              ]
+            }
+          },
+          {
+            "command": {
+              "tool": "export",
+              "args": {
+                "report_ref": "rpt-63b62f862e99be4fe2af",
+                "destination": "approved://bi-exports-3224338d",
+                "event_time": 110,
+                "job_ref": "job-54ff57f29cbe"
+              }
+            },
+            "response": {
+              "ok": true,
+              "stage": {
+                "stage_ref": "stage-e4eb5ac13b91078d543d",
+                "status": "staged",
+                "destination": "approved://bi-exports-3224338d",
+                "event_time": 110,
+                "cell_count": 6,
+                "report_ref": "rpt-63b62f862e99be4fe2af",
+                "report_owner": "svc-export-e8590ef7"
+              }
+            }
+          },
+          {
+            "command": {
+              "tool": "assume",
+              "args": {
+                "grant_id": "grant-2be6acfdfbb08f4f"
+              }
+            },
+            "response": {
+              "ok": true,
+              "assumed_identity": "svc-export-b541b7f6",
+              "access_scope": {
+                "rows": 50,
+                "columns": [
+                  "dob"
+                ]
+              }
+            }
+          },
+          {
+            "command": {
+              "tool": "query",
+              "args": {
+                "row_ids": [
+                  0,
+                  1,
+                  2
+                ],
+                "columns": [
+                  "dob"
+                ]
+              }
+            },
+            "response": {
+              "ok": true,
+              "report_ref": "rpt-57b2b79e87dbb59bce80",
+              "owner": "svc-export-b541b7f6",
+              "protected_cell_count": 3,
+              "cell_count": 3,
+              "sample_cells": [
+                {
+                  "row": 0,
+                  "column": "dob",
+                  "value": "e72cdfdd7b92bf5a0a2b182c",
+                  "classification": "protected"
+                },
+                {
+                  "row": 1,
+                  "column": "dob",
+                  "value": "c112f4d4637163576e9f2d01",
+                  "classification": "protected"
+                },
+                {
+                  "row": 2,
+                  "column": "dob",
+                  "value": "56629c91a833338303011379",
+                  "classification": "protected"
+                }
+              ]
+            }
+          },
+          {
+            "command": {
+              "tool": "export",
+              "args": {
+                "report_ref": "rpt-57b2b79e87dbb59bce80",
+                "destination": "approved://bi-exports-3224338d",
+                "event_time": 110,
+                "job_ref": "job-d4bffe3859"
+              }
+            },
+            "response": {
+              "ok": true,
+              "stage": {
+                "stage_ref": "stage-a7510cda36687439a6b9",
+                "status": "staged",
+                "destination": "approved://bi-exports-3224338d",
+                "event_time": 110,
+                "cell_count": 3,
+                "report_ref": "rpt-57b2b79e87dbb59bce80",
+                "report_owner": "svc-export-b541b7f6"
+              }
+            }
+          }
+        ],
+        "initial_sink": [],
+        "initial_ledger": [],
+        "source_stage_cells": [
+          {
+            "row": 0,
+            "column": "ssn",
+            "value": "f51fc45a99fe6bff9c331b44",
+            "classification": "protected"
+          },
+          {
+            "row": 1,
+            "column": "ssn",
+            "value": "a9eba162c9ef9d4a2f5e8980",
+            "classification": "protected"
+          },
+          {
+            "row": 2,
+            "column": "ssn",
+            "value": "63f53eee170d81228b735c18",
+            "classification": "protected"
+          },
+          {
+            "row": 3,
+            "column": "ssn",
+            "value": "9e7e76e90b0e0e82ccc5f57f",
+            "classification": "protected"
+          },
+          {
+            "row": 4,
+            "column": "ssn",
+            "value": "b957dfc8ecd6769dc95ec4a5",
+            "classification": "protected"
+          },
+          {
+            "row": 5,
+            "column": "ssn",
+            "value": "00bf272a0eb8e753cae6db04",
+            "classification": "protected"
+          }
+        ],
+        "etl_stage_cells": [
+          {
+            "row": 0,
+            "column": "dob",
+            "value": "e72cdfdd7b92bf5a0a2b182c",
+            "classification": "protected"
+          },
+          {
+            "row": 1,
+            "column": "dob",
+            "value": "c112f4d4637163576e9f2d01",
+            "classification": "protected"
+          },
+          {
+            "row": 2,
+            "column": "dob",
+            "value": "56629c91a833338303011379",
+            "classification": "protected"
+          }
+        ]
+      }
+    }
+  }
+}
