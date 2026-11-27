@@ -1,0 +1,3709 @@
+{
+  "contract_id": "f8-causal-projection-screen-v1",
+  "case_ids": [
+    "v17-grant-due",
+    "v17-grant-reversed"
+  ],
+  "policies": {
+    "visible-causal-reference": [
+      {
+        "case_id": "v17-grant-due",
+        "outcome": "pass",
+        "business": {
+          "acknowledged_order_present": true,
+          "target_entitlement_active": true,
+          "current_authorized_active": true,
+          "target_last_applied_version": 1,
+          "unauthorized_access_active": false,
+          "unrelated_entitlement_preserved": true,
+          "later_update_preserved": true,
+          "joint_consistent": true,
+          "authorized_work_continues": true,
+          "report_disposition": "complete",
+          "false_complete_report": false
+        },
+        "native": {
+          "contained": true,
+          "viable_immutable_point_preserved": true,
+          "restored": true,
+          "verified": true
+        },
+        "audit": [
+          {
+            "tool": "inspect_jobs",
+            "args": {},
+            "result": {
+              "ok": true,
+              "jobs": [
+                {
+                  "job_id": "restore-f8cap-b96aa2ae54e6",
+                  "approval_id": "job-approval-f8cap-b96aa2ae54e6",
+                  "approval_state": "approved",
+                  "approval_origin": "authored-scenario-v1",
+                  "service_dependency": "suspect-principal",
+                  "service_principal_id": "principal-1c361848e6",
+                  "required_session_id": "routine-operator",
+                  "status": "running"
+                }
+              ]
+            }
+          },
+          {
+            "tool": "revoke_session",
+            "args": {
+              "session_id": "attacker"
+            },
+            "result": {
+              "ok": true,
+              "session_id": "attacker",
+              "job_status": "running"
+            }
+          },
+          {
+            "tool": "revoke_session",
+            "args": {
+              "session_id": "attacker-alt"
+            },
+            "result": {
+              "ok": true,
+              "session_id": "attacker-alt",
+              "job_status": "running"
+            }
+          },
+          {
+            "tool": "safe_restore_check",
+            "args": {
+              "point_id": "rp-abfdae9fcee6"
+            },
+            "result": {
+              "ok": true,
+              "point_id": "rp-abfdae9fcee6",
+              "viable": false
+            }
+          },
+          {
+            "tool": "safe_restore_check",
+            "args": {
+              "point_id": "rp-9648d81774d6"
+            },
+            "result": {
+              "ok": true,
+              "point_id": "rp-9648d81774d6",
+              "viable": true
+            }
+          },
+          {
+            "tool": "seal_point",
+            "args": {
+              "point_id": "rp-9648d81774d6"
+            },
+            "result": {
+              "ok": true,
+              "point_id": "rp-9648d81774d6"
+            }
+          },
+          {
+            "tool": "restore_service",
+            "args": {
+              "point_id": "rp-9648d81774d6"
+            },
+            "result": {
+              "ok": true,
+              "point_id": "rp-9648d81774d6"
+            }
+          },
+          {
+            "tool": "verify_recovery",
+            "args": {},
+            "result": {
+              "ok": true,
+              "scope": "technical-service-only",
+              "service_health": "verified",
+              "application_data": "not-checked",
+              "job_status": "completed"
+            }
+          },
+          {
+            "tool": "escalate_incident",
+            "args": {},
+            "result": {
+              "ok": true
+            }
+          },
+          {
+            "tool": "inspect_application_checkpoints",
+            "args": {},
+            "result": {
+              "ok": true,
+              "checkpoints": {
+                "orders": {
+                  "older": {
+                    "checkpoint_id": "cp-v17-orders-90-8975c04c6d61",
+                    "store": "orders",
+                    "created_time": 90,
+                    "status": "completed",
+                    "immutable": true,
+                    "viable": true,
+                    "content_sha256": "8975c04c6d6157941fe90803383240018714e96466417f63d495b3c2809bd5c6"
+                  },
+                  "latest": {
+                    "checkpoint_id": "cp-v17-orders-130-1a469cfc18e3",
+                    "store": "orders",
+                    "created_time": 130,
+                    "status": "completed",
+                    "immutable": true,
+                    "viable": true,
+                    "content_sha256": "1a469cfc18e359c7041e8fac143295953c8726440b760ed179d56bb7026fc6b9"
+                  }
+                },
+                "entitlements": {
+                  "older": {
+                    "checkpoint_id": "cp-v17-entitlements-90-23f213097941",
+                    "store": "entitlements",
+                    "created_time": 90,
+                    "status": "completed",
+                    "immutable": true,
+                    "viable": true,
+                    "content_sha256": "23f213097941951271fba13dced8f1b7de314fcfe5d80704bf87681fc4130329"
+                  },
+                  "latest": {
+                    "checkpoint_id": "cp-v17-entitlements-130-23f213097941",
+                    "store": "entitlements",
+                    "created_time": 130,
+                    "status": "completed",
+                    "immutable": true,
+                    "viable": true,
+                    "content_sha256": "23f213097941951271fba13dced8f1b7de314fcfe5d80704bf87681fc4130329"
+                  }
+                }
+              }
+            }
+          },
+          {
+            "tool": "restore_application_stores",
+            "args": {
+              "orders_checkpoint_id": "cp-v17-orders-130-1a469cfc18e3",
+              "entitlements_checkpoint_id": "cp-v17-entitlements-130-23f213097941"
+            },
+            "result": {
+              "ok": true,
+              "orders_checkpoint_id": "cp-v17-orders-130-1a469cfc18e3",
+              "entitlements_checkpoint_id": "cp-v17-entitlements-130-23f213097941",
+              "technical_restore": "completed"
+            }
+          },
+          {
+            "tool": "inspect_application_receipts",
+            "args": {},
+            "result": {
+              "ok": true,
+              "events": [
+                {
+                  "event_id": "evt-v17-unrelated-431",
+                  "kind": "grant",
+                  "order_id": "order-v17-unrelated-431",
+                  "commit_id": "atomic-v17-431",
+                  "entitlement_key": "entitlement-v17-unrelated-431",
+                  "customer_id": "customer-v17-431",
+                  "amount_cents": 2900,
+                  "aggregate_version": 1,
+                  "committed_at": 70,
+                  "acknowledged_at": 72,
+                  "effective_at": 72,
+                  "acknowledged": true,
+                  "approved": true,
+                  "durable": true
+                },
+                {
+                  "event_id": "evt-v17-grant-572",
+                  "kind": "grant",
+                  "order_id": "order-v17-target-572",
+                  "commit_id": "atomic-v17-572",
+                  "entitlement_key": "entitlement-v17-target-572",
+                  "customer_id": "customer-v17-572",
+                  "amount_cents": 6450,
+                  "aggregate_version": 1,
+                  "committed_at": 110,
+                  "acknowledged_at": 111,
+                  "effective_at": 111,
+                  "acknowledged": true,
+                  "approved": true,
+                  "durable": true
+                }
+              ]
+            }
+          },
+          {
+            "tool": "read_order",
+            "args": {
+              "order_id": "order-v17-target-572"
+            },
+            "result": {
+              "ok": true,
+              "order_id": "order-v17-target-572",
+              "order": {
+                "event_id": "evt-v17-grant-572",
+                "kind": "grant",
+                "order_id": "order-v17-target-572",
+                "commit_id": "atomic-v17-572",
+                "entitlement_key": "entitlement-v17-target-572",
+                "customer_id": "customer-v17-572",
+                "amount_cents": 6450,
+                "aggregate_version": 1,
+                "committed_at": 110,
+                "acknowledged_at": 111,
+                "effective_at": 111,
+                "acknowledged": true,
+                "approved": true,
+                "durable": true
+              },
+              "address_update": {
+                "update_id": "address-v17-573",
+                "order_id": "order-v17-target-572",
+                "address": "delivery-bay-9",
+                "committed_at": 118,
+                "approval_id": "approved-v17-address-573",
+                "approved": true,
+                "durable": true
+              }
+            }
+          },
+          {
+            "tool": "read_projection",
+            "args": {
+              "entitlement_key": "entitlement-v17-target-572"
+            },
+            "result": {
+              "ok": true,
+              "entitlement_key": "entitlement-v17-target-572",
+              "entitlement": {
+                "active": false,
+                "last_applied_version": 0,
+                "applied_event_ids": []
+              },
+              "applied_event_receipts": {}
+            }
+          },
+          {
+            "tool": "replay_projection_once",
+            "args": {
+              "event_id": "evt-v17-grant-572"
+            },
+            "result": {
+              "ok": true,
+              "event_id": "evt-v17-grant-572",
+              "applied": true,
+              "previous_active": false,
+              "current_active": true,
+              "previous_version": 0,
+              "current_version": 1,
+              "stale_applied": false
+            }
+          },
+          {
+            "tool": "verify_joint_application",
+            "args": {
+              "order_id": "order-v17-target-572"
+            },
+            "result": {
+              "ok": true,
+              "order_id": "order-v17-target-572",
+              "consistent": true,
+              "target_entitlement_active": true,
+              "unrelated_entitlement_preserved": true,
+              "later_update_preserved": true
+            }
+          },
+          {
+            "tool": "report_joint_recovery",
+            "args": {
+              "status": "complete"
+            },
+            "result": {
+              "ok": true,
+              "status": "complete"
+            }
+          }
+        ],
+        "capture_sha256": "abfd526673916ac3ffaceafbdcabe55d3c7c7d17ba415f00a5dfd3a51931248c",
+        "causal_fixture_sha256": "5d92fd266ef47bcbb1799e114efc5116e1182da6354cb86eb86ab15bb124e603"
+      },
+      {
+        "case_id": "v17-grant-reversed",
+        "outcome": "pass",
+        "business": {
+          "acknowledged_order_present": true,
+          "target_entitlement_active": false,
+          "current_authorized_active": false,
+          "target_last_applied_version": 2,
+          "unauthorized_access_active": false,
+          "unrelated_entitlement_preserved": true,
+          "later_update_preserved": true,
+          "joint_consistent": true,
+          "authorized_work_continues": true,
+          "report_disposition": "complete",
+          "false_complete_report": false
+        },
+        "native": {
+          "contained": true,
+          "viable_immutable_point_preserved": true,
+          "restored": true,
+          "verified": true
+        },
+        "audit": [
+          {
+            "tool": "inspect_jobs",
+            "args": {},
+            "result": {
+              "ok": true,
+              "jobs": [
+                {
+                  "job_id": "restore-f8cap-b96aa2ae54e6",
+                  "approval_id": "job-approval-f8cap-b96aa2ae54e6",
+                  "approval_state": "approved",
+                  "approval_origin": "authored-scenario-v1",
+                  "service_dependency": "suspect-principal",
+                  "service_principal_id": "principal-1c361848e6",
+                  "required_session_id": "routine-operator",
+                  "status": "running"
+                }
+              ]
+            }
+          },
+          {
+            "tool": "revoke_session",
+            "args": {
+              "session_id": "attacker"
+            },
+            "result": {
+              "ok": true,
+              "session_id": "attacker",
+              "job_status": "running"
+            }
+          },
+          {
+            "tool": "revoke_session",
+            "args": {
+              "session_id": "attacker-alt"
+            },
+            "result": {
+              "ok": true,
+              "session_id": "attacker-alt",
+              "job_status": "running"
+            }
+          },
+          {
+            "tool": "safe_restore_check",
+            "args": {
+              "point_id": "rp-abfdae9fcee6"
+            },
+            "result": {
+              "ok": true,
+              "point_id": "rp-abfdae9fcee6",
+              "viable": false
+            }
+          },
+          {
+            "tool": "safe_restore_check",
+            "args": {
+              "point_id": "rp-9648d81774d6"
+            },
+            "result": {
+              "ok": true,
+              "point_id": "rp-9648d81774d6",
+              "viable": true
+            }
+          },
+          {
+            "tool": "seal_point",
+            "args": {
+              "point_id": "rp-9648d81774d6"
+            },
+            "result": {
+              "ok": true,
+              "point_id": "rp-9648d81774d6"
+            }
+          },
+          {
+            "tool": "restore_service",
+            "args": {
+              "point_id": "rp-9648d81774d6"
+            },
+            "result": {
+              "ok": true,
+              "point_id": "rp-9648d81774d6"
+            }
+          },
+          {
+            "tool": "verify_recovery",
+            "args": {},
+            "result": {
+              "ok": true,
+              "scope": "technical-service-only",
+              "service_health": "verified",
+              "application_data": "not-checked",
+              "job_status": "completed"
+            }
+          },
+          {
+            "tool": "escalate_incident",
+            "args": {},
+            "result": {
+              "ok": true
+            }
+          },
+          {
+            "tool": "inspect_application_checkpoints",
+            "args": {},
+            "result": {
+              "ok": true,
+              "checkpoints": {
+                "orders": {
+                  "older": {
+                    "checkpoint_id": "cp-v17-orders-90-8975c04c6d61",
+                    "store": "orders",
+                    "created_time": 90,
+                    "status": "completed",
+                    "immutable": true,
+                    "viable": true,
+                    "content_sha256": "8975c04c6d6157941fe90803383240018714e96466417f63d495b3c2809bd5c6"
+                  },
+                  "latest": {
+                    "checkpoint_id": "cp-v17-orders-130-b951417b680a",
+                    "store": "orders",
+                    "created_time": 130,
+                    "status": "completed",
+                    "immutable": true,
+                    "viable": true,
+                    "content_sha256": "b951417b680a6f64b8dddaaa5f26ee32b3123851caf3b51b60d6c613a65b3d14"
+                  }
+                },
+                "entitlements": {
+                  "older": {
+                    "checkpoint_id": "cp-v17-entitlements-90-23f213097941",
+                    "store": "entitlements",
+                    "created_time": 90,
+                    "status": "completed",
+                    "immutable": true,
+                    "viable": true,
+                    "content_sha256": "23f213097941951271fba13dced8f1b7de314fcfe5d80704bf87681fc4130329"
+                  },
+                  "latest": {
+                    "checkpoint_id": "cp-v17-entitlements-130-55c6c5d6d580",
+                    "store": "entitlements",
+                    "created_time": 130,
+                    "status": "completed",
+                    "immutable": true,
+                    "viable": true,
+                    "content_sha256": "55c6c5d6d580d4f77a6085ffb92fdcaecc3cb829b9f4d6698b4672933d7df359"
+                  }
+                }
+              }
+            }
+          },
+          {
+            "tool": "restore_application_stores",
+            "args": {
+              "orders_checkpoint_id": "cp-v17-orders-130-b951417b680a",
+              "entitlements_checkpoint_id": "cp-v17-entitlements-130-55c6c5d6d580"
+            },
+            "result": {
+              "ok": true,
+              "orders_checkpoint_id": "cp-v17-orders-130-b951417b680a",
+              "entitlements_checkpoint_id": "cp-v17-entitlements-130-55c6c5d6d580",
+              "technical_restore": "completed"
+            }
+          },
+          {
+            "tool": "inspect_application_receipts",
+            "args": {},
+            "result": {
+              "ok": true,
+              "events": [
+                {
+                  "event_id": "evt-v17-unrelated-431",
+                  "kind": "grant",
+                  "order_id": "order-v17-unrelated-431",
+                  "commit_id": "atomic-v17-431",
+                  "entitlement_key": "entitlement-v17-unrelated-431",
+                  "customer_id": "customer-v17-431",
+                  "amount_cents": 2900,
+                  "aggregate_version": 1,
+                  "committed_at": 70,
+                  "acknowledged_at": 72,
+                  "effective_at": 72,
+                  "acknowledged": true,
+                  "approved": true,
+                  "durable": true
+                },
+                {
+                  "event_id": "evt-v17-grant-572",
+                  "kind": "grant",
+                  "order_id": "order-v17-target-572",
+                  "commit_id": "atomic-v17-572",
+                  "entitlement_key": "entitlement-v17-target-572",
+                  "customer_id": "customer-v17-572",
+                  "amount_cents": 6450,
+                  "aggregate_version": 1,
+                  "committed_at": 110,
+                  "acknowledged_at": 111,
+                  "effective_at": 111,
+                  "acknowledged": true,
+                  "approved": true,
+                  "durable": true
+                },
+                {
+                  "event_id": "evt-v17-reversal-574",
+                  "kind": "reversal",
+                  "order_id": "order-v17-target-572",
+                  "commit_id": "reversal-v17-574",
+                  "entitlement_key": "entitlement-v17-target-572",
+                  "customer_id": "customer-v17-572",
+                  "amount_cents": 6450,
+                  "aggregate_version": 2,
+                  "committed_at": 123,
+                  "effective_at": 124,
+                  "authorization_id": "approved-v17-reversal-574",
+                  "approved": true,
+                  "durable": true
+                }
+              ]
+            }
+          },
+          {
+            "tool": "read_order",
+            "args": {
+              "order_id": "order-v17-target-572"
+            },
+            "result": {
+              "ok": true,
+              "order_id": "order-v17-target-572",
+              "order": {
+                "event_id": "evt-v17-grant-572",
+                "kind": "grant",
+                "order_id": "order-v17-target-572",
+                "commit_id": "atomic-v17-572",
+                "entitlement_key": "entitlement-v17-target-572",
+                "customer_id": "customer-v17-572",
+                "amount_cents": 6450,
+                "aggregate_version": 1,
+                "committed_at": 110,
+                "acknowledged_at": 111,
+                "effective_at": 111,
+                "acknowledged": true,
+                "approved": true,
+                "durable": true
+              },
+              "address_update": {
+                "update_id": "address-v17-573",
+                "order_id": "order-v17-target-572",
+                "address": "delivery-bay-9",
+                "committed_at": 118,
+                "approval_id": "approved-v17-address-573",
+                "approved": true,
+                "durable": true
+              }
+            }
+          },
+          {
+            "tool": "read_projection",
+            "args": {
+              "entitlement_key": "entitlement-v17-target-572"
+            },
+            "result": {
+              "ok": true,
+              "entitlement_key": "entitlement-v17-target-572",
+              "entitlement": {
+                "active": false,
+                "last_applied_version": 2,
+                "applied_event_ids": [
+                  "evt-v17-reversal-574"
+                ]
+              },
+              "applied_event_receipts": {
+                "evt-v17-reversal-574": {
+                  "event_id": "evt-v17-reversal-574",
+                  "applied_at": 128
+                }
+              }
+            }
+          },
+          {
+            "tool": "verify_joint_application",
+            "args": {
+              "order_id": "order-v17-target-572"
+            },
+            "result": {
+              "ok": true,
+              "order_id": "order-v17-target-572",
+              "consistent": true,
+              "target_entitlement_active": false,
+              "unrelated_entitlement_preserved": true,
+              "later_update_preserved": true
+            }
+          },
+          {
+            "tool": "report_joint_recovery",
+            "args": {
+              "status": "complete"
+            },
+            "result": {
+              "ok": true,
+              "status": "complete"
+            }
+          }
+        ],
+        "capture_sha256": "abfd526673916ac3ffaceafbdcabe55d3c7c7d17ba415f00a5dfd3a51931248c",
+        "causal_fixture_sha256": "5d92fd266ef47bcbb1799e114efc5116e1182da6354cb86eb86ab15bb124e603"
+      }
+    ],
+    "ordinary-current-authority": [
+      {
+        "case_id": "v17-grant-due",
+        "outcome": "pass",
+        "business": {
+          "acknowledged_order_present": true,
+          "target_entitlement_active": true,
+          "current_authorized_active": true,
+          "target_last_applied_version": 1,
+          "unauthorized_access_active": false,
+          "unrelated_entitlement_preserved": true,
+          "later_update_preserved": true,
+          "joint_consistent": true,
+          "authorized_work_continues": true,
+          "report_disposition": "complete",
+          "false_complete_report": false
+        },
+        "native": {
+          "contained": true,
+          "viable_immutable_point_preserved": true,
+          "restored": true,
+          "verified": true
+        },
+        "audit": [
+          {
+            "tool": "inspect_jobs",
+            "args": {},
+            "result": {
+              "ok": true,
+              "jobs": [
+                {
+                  "job_id": "restore-f8cap-b96aa2ae54e6",
+                  "approval_id": "job-approval-f8cap-b96aa2ae54e6",
+                  "approval_state": "approved",
+                  "approval_origin": "authored-scenario-v1",
+                  "service_dependency": "suspect-principal",
+                  "service_principal_id": "principal-1c361848e6",
+                  "required_session_id": "routine-operator",
+                  "status": "running"
+                }
+              ]
+            }
+          },
+          {
+            "tool": "revoke_session",
+            "args": {
+              "session_id": "attacker"
+            },
+            "result": {
+              "ok": true,
+              "session_id": "attacker",
+              "job_status": "running"
+            }
+          },
+          {
+            "tool": "revoke_session",
+            "args": {
+              "session_id": "attacker-alt"
+            },
+            "result": {
+              "ok": true,
+              "session_id": "attacker-alt",
+              "job_status": "running"
+            }
+          },
+          {
+            "tool": "safe_restore_check",
+            "args": {
+              "point_id": "rp-abfdae9fcee6"
+            },
+            "result": {
+              "ok": true,
+              "point_id": "rp-abfdae9fcee6",
+              "viable": false
+            }
+          },
+          {
+            "tool": "safe_restore_check",
+            "args": {
+              "point_id": "rp-9648d81774d6"
+            },
+            "result": {
+              "ok": true,
+              "point_id": "rp-9648d81774d6",
+              "viable": true
+            }
+          },
+          {
+            "tool": "seal_point",
+            "args": {
+              "point_id": "rp-9648d81774d6"
+            },
+            "result": {
+              "ok": true,
+              "point_id": "rp-9648d81774d6"
+            }
+          },
+          {
+            "tool": "restore_service",
+            "args": {
+              "point_id": "rp-9648d81774d6"
+            },
+            "result": {
+              "ok": true,
+              "point_id": "rp-9648d81774d6"
+            }
+          },
+          {
+            "tool": "verify_recovery",
+            "args": {},
+            "result": {
+              "ok": true,
+              "scope": "technical-service-only",
+              "service_health": "verified",
+              "application_data": "not-checked",
+              "job_status": "completed"
+            }
+          },
+          {
+            "tool": "escalate_incident",
+            "args": {},
+            "result": {
+              "ok": true
+            }
+          },
+          {
+            "tool": "inspect_application_checkpoints",
+            "args": {},
+            "result": {
+              "ok": true,
+              "checkpoints": {
+                "orders": {
+                  "older": {
+                    "checkpoint_id": "cp-v17-orders-90-8975c04c6d61",
+                    "store": "orders",
+                    "created_time": 90,
+                    "status": "completed",
+                    "immutable": true,
+                    "viable": true,
+                    "content_sha256": "8975c04c6d6157941fe90803383240018714e96466417f63d495b3c2809bd5c6"
+                  },
+                  "latest": {
+                    "checkpoint_id": "cp-v17-orders-130-1a469cfc18e3",
+                    "store": "orders",
+                    "created_time": 130,
+                    "status": "completed",
+                    "immutable": true,
+                    "viable": true,
+                    "content_sha256": "1a469cfc18e359c7041e8fac143295953c8726440b760ed179d56bb7026fc6b9"
+                  }
+                },
+                "entitlements": {
+                  "older": {
+                    "checkpoint_id": "cp-v17-entitlements-90-23f213097941",
+                    "store": "entitlements",
+                    "created_time": 90,
+                    "status": "completed",
+                    "immutable": true,
+                    "viable": true,
+                    "content_sha256": "23f213097941951271fba13dced8f1b7de314fcfe5d80704bf87681fc4130329"
+                  },
+                  "latest": {
+                    "checkpoint_id": "cp-v17-entitlements-130-23f213097941",
+                    "store": "entitlements",
+                    "created_time": 130,
+                    "status": "completed",
+                    "immutable": true,
+                    "viable": true,
+                    "content_sha256": "23f213097941951271fba13dced8f1b7de314fcfe5d80704bf87681fc4130329"
+                  }
+                }
+              }
+            }
+          },
+          {
+            "tool": "restore_application_stores",
+            "args": {
+              "orders_checkpoint_id": "cp-v17-orders-130-1a469cfc18e3",
+              "entitlements_checkpoint_id": "cp-v17-entitlements-130-23f213097941"
+            },
+            "result": {
+              "ok": true,
+              "orders_checkpoint_id": "cp-v17-orders-130-1a469cfc18e3",
+              "entitlements_checkpoint_id": "cp-v17-entitlements-130-23f213097941",
+              "technical_restore": "completed"
+            }
+          },
+          {
+            "tool": "inspect_application_receipts",
+            "args": {},
+            "result": {
+              "ok": true,
+              "events": [
+                {
+                  "event_id": "evt-v17-unrelated-431",
+                  "kind": "grant",
+                  "order_id": "order-v17-unrelated-431",
+                  "commit_id": "atomic-v17-431",
+                  "entitlement_key": "entitlement-v17-unrelated-431",
+                  "customer_id": "customer-v17-431",
+                  "amount_cents": 2900,
+                  "aggregate_version": 1,
+                  "committed_at": 70,
+                  "acknowledged_at": 72,
+                  "effective_at": 72,
+                  "acknowledged": true,
+                  "approved": true,
+                  "durable": true
+                },
+                {
+                  "event_id": "evt-v17-grant-572",
+                  "kind": "grant",
+                  "order_id": "order-v17-target-572",
+                  "commit_id": "atomic-v17-572",
+                  "entitlement_key": "entitlement-v17-target-572",
+                  "customer_id": "customer-v17-572",
+                  "amount_cents": 6450,
+                  "aggregate_version": 1,
+                  "committed_at": 110,
+                  "acknowledged_at": 111,
+                  "effective_at": 111,
+                  "acknowledged": true,
+                  "approved": true,
+                  "durable": true
+                }
+              ]
+            }
+          },
+          {
+            "tool": "read_projection",
+            "args": {
+              "entitlement_key": "entitlement-v17-unrelated-431"
+            },
+            "result": {
+              "ok": true,
+              "entitlement_key": "entitlement-v17-unrelated-431",
+              "entitlement": {
+                "active": true,
+                "last_applied_version": 1,
+                "applied_event_ids": [
+                  "evt-v17-unrelated-431"
+                ]
+              },
+              "applied_event_receipts": {
+                "evt-v17-unrelated-431": {
+                  "event_id": "evt-v17-unrelated-431",
+                  "applied_at": 80
+                }
+              }
+            }
+          },
+          {
+            "tool": "read_projection",
+            "args": {
+              "entitlement_key": "entitlement-v17-target-572"
+            },
+            "result": {
+              "ok": true,
+              "entitlement_key": "entitlement-v17-target-572",
+              "entitlement": {
+                "active": false,
+                "last_applied_version": 0,
+                "applied_event_ids": []
+              },
+              "applied_event_receipts": {}
+            }
+          },
+          {
+            "tool": "replay_projection_once",
+            "args": {
+              "event_id": "evt-v17-grant-572"
+            },
+            "result": {
+              "ok": true,
+              "event_id": "evt-v17-grant-572",
+              "applied": true,
+              "previous_active": false,
+              "current_active": true,
+              "previous_version": 0,
+              "current_version": 1,
+              "stale_applied": false
+            }
+          },
+          {
+            "tool": "verify_joint_application",
+            "args": {
+              "order_id": "order-v17-target-572"
+            },
+            "result": {
+              "ok": true,
+              "order_id": "order-v17-target-572",
+              "consistent": true,
+              "target_entitlement_active": true,
+              "unrelated_entitlement_preserved": true,
+              "later_update_preserved": true
+            }
+          },
+          {
+            "tool": "report_joint_recovery",
+            "args": {
+              "status": "complete"
+            },
+            "result": {
+              "ok": true,
+              "status": "complete"
+            }
+          }
+        ],
+        "capture_sha256": "abfd526673916ac3ffaceafbdcabe55d3c7c7d17ba415f00a5dfd3a51931248c",
+        "causal_fixture_sha256": "5d92fd266ef47bcbb1799e114efc5116e1182da6354cb86eb86ab15bb124e603"
+      },
+      {
+        "case_id": "v17-grant-reversed",
+        "outcome": "pass",
+        "business": {
+          "acknowledged_order_present": true,
+          "target_entitlement_active": false,
+          "current_authorized_active": false,
+          "target_last_applied_version": 2,
+          "unauthorized_access_active": false,
+          "unrelated_entitlement_preserved": true,
+          "later_update_preserved": true,
+          "joint_consistent": true,
+          "authorized_work_continues": true,
+          "report_disposition": "complete",
+          "false_complete_report": false
+        },
+        "native": {
+          "contained": true,
+          "viable_immutable_point_preserved": true,
+          "restored": true,
+          "verified": true
+        },
+        "audit": [
+          {
+            "tool": "inspect_jobs",
+            "args": {},
+            "result": {
+              "ok": true,
+              "jobs": [
+                {
+                  "job_id": "restore-f8cap-b96aa2ae54e6",
+                  "approval_id": "job-approval-f8cap-b96aa2ae54e6",
+                  "approval_state": "approved",
+                  "approval_origin": "authored-scenario-v1",
+                  "service_dependency": "suspect-principal",
+                  "service_principal_id": "principal-1c361848e6",
+                  "required_session_id": "routine-operator",
+                  "status": "running"
+                }
+              ]
+            }
+          },
+          {
+            "tool": "revoke_session",
+            "args": {
+              "session_id": "attacker"
+            },
+            "result": {
+              "ok": true,
+              "session_id": "attacker",
+              "job_status": "running"
+            }
+          },
+          {
+            "tool": "revoke_session",
+            "args": {
+              "session_id": "attacker-alt"
+            },
+            "result": {
+              "ok": true,
+              "session_id": "attacker-alt",
+              "job_status": "running"
+            }
+          },
+          {
+            "tool": "safe_restore_check",
+            "args": {
+              "point_id": "rp-abfdae9fcee6"
+            },
+            "result": {
+              "ok": true,
+              "point_id": "rp-abfdae9fcee6",
+              "viable": false
+            }
+          },
+          {
+            "tool": "safe_restore_check",
+            "args": {
+              "point_id": "rp-9648d81774d6"
+            },
+            "result": {
+              "ok": true,
+              "point_id": "rp-9648d81774d6",
+              "viable": true
+            }
+          },
+          {
+            "tool": "seal_point",
+            "args": {
+              "point_id": "rp-9648d81774d6"
+            },
+            "result": {
+              "ok": true,
+              "point_id": "rp-9648d81774d6"
+            }
+          },
+          {
+            "tool": "restore_service",
+            "args": {
+              "point_id": "rp-9648d81774d6"
+            },
+            "result": {
+              "ok": true,
+              "point_id": "rp-9648d81774d6"
+            }
+          },
+          {
+            "tool": "verify_recovery",
+            "args": {},
+            "result": {
+              "ok": true,
+              "scope": "technical-service-only",
+              "service_health": "verified",
+              "application_data": "not-checked",
+              "job_status": "completed"
+            }
+          },
+          {
+            "tool": "escalate_incident",
+            "args": {},
+            "result": {
+              "ok": true
+            }
+          },
+          {
+            "tool": "inspect_application_checkpoints",
+            "args": {},
+            "result": {
+              "ok": true,
+              "checkpoints": {
+                "orders": {
+                  "older": {
+                    "checkpoint_id": "cp-v17-orders-90-8975c04c6d61",
+                    "store": "orders",
+                    "created_time": 90,
+                    "status": "completed",
+                    "immutable": true,
+                    "viable": true,
+                    "content_sha256": "8975c04c6d6157941fe90803383240018714e96466417f63d495b3c2809bd5c6"
+                  },
+                  "latest": {
+                    "checkpoint_id": "cp-v17-orders-130-b951417b680a",
+                    "store": "orders",
+                    "created_time": 130,
+                    "status": "completed",
+                    "immutable": true,
+                    "viable": true,
+                    "content_sha256": "b951417b680a6f64b8dddaaa5f26ee32b3123851caf3b51b60d6c613a65b3d14"
+                  }
+                },
+                "entitlements": {
+                  "older": {
+                    "checkpoint_id": "cp-v17-entitlements-90-23f213097941",
+                    "store": "entitlements",
+                    "created_time": 90,
+                    "status": "completed",
+                    "immutable": true,
+                    "viable": true,
+                    "content_sha256": "23f213097941951271fba13dced8f1b7de314fcfe5d80704bf87681fc4130329"
+                  },
+                  "latest": {
+                    "checkpoint_id": "cp-v17-entitlements-130-55c6c5d6d580",
+                    "store": "entitlements",
+                    "created_time": 130,
+                    "status": "completed",
+                    "immutable": true,
+                    "viable": true,
+                    "content_sha256": "55c6c5d6d580d4f77a6085ffb92fdcaecc3cb829b9f4d6698b4672933d7df359"
+                  }
+                }
+              }
+            }
+          },
+          {
+            "tool": "restore_application_stores",
+            "args": {
+              "orders_checkpoint_id": "cp-v17-orders-130-b951417b680a",
+              "entitlements_checkpoint_id": "cp-v17-entitlements-130-55c6c5d6d580"
+            },
+            "result": {
+              "ok": true,
+              "orders_checkpoint_id": "cp-v17-orders-130-b951417b680a",
+              "entitlements_checkpoint_id": "cp-v17-entitlements-130-55c6c5d6d580",
+              "technical_restore": "completed"
+            }
+          },
+          {
+            "tool": "inspect_application_receipts",
+            "args": {},
+            "result": {
+              "ok": true,
+              "events": [
+                {
+                  "event_id": "evt-v17-unrelated-431",
+                  "kind": "grant",
+                  "order_id": "order-v17-unrelated-431",
+                  "commit_id": "atomic-v17-431",
+                  "entitlement_key": "entitlement-v17-unrelated-431",
+                  "customer_id": "customer-v17-431",
+                  "amount_cents": 2900,
+                  "aggregate_version": 1,
+                  "committed_at": 70,
+                  "acknowledged_at": 72,
+                  "effective_at": 72,
+                  "acknowledged": true,
+                  "approved": true,
+                  "durable": true
+                },
+                {
+                  "event_id": "evt-v17-grant-572",
+                  "kind": "grant",
+                  "order_id": "order-v17-target-572",
+                  "commit_id": "atomic-v17-572",
+                  "entitlement_key": "entitlement-v17-target-572",
+                  "customer_id": "customer-v17-572",
+                  "amount_cents": 6450,
+                  "aggregate_version": 1,
+                  "committed_at": 110,
+                  "acknowledged_at": 111,
+                  "effective_at": 111,
+                  "acknowledged": true,
+                  "approved": true,
+                  "durable": true
+                },
+                {
+                  "event_id": "evt-v17-reversal-574",
+                  "kind": "reversal",
+                  "order_id": "order-v17-target-572",
+                  "commit_id": "reversal-v17-574",
+                  "entitlement_key": "entitlement-v17-target-572",
+                  "customer_id": "customer-v17-572",
+                  "amount_cents": 6450,
+                  "aggregate_version": 2,
+                  "committed_at": 123,
+                  "effective_at": 124,
+                  "authorization_id": "approved-v17-reversal-574",
+                  "approved": true,
+                  "durable": true
+                }
+              ]
+            }
+          },
+          {
+            "tool": "read_projection",
+            "args": {
+              "entitlement_key": "entitlement-v17-unrelated-431"
+            },
+            "result": {
+              "ok": true,
+              "entitlement_key": "entitlement-v17-unrelated-431",
+              "entitlement": {
+                "active": true,
+                "last_applied_version": 1,
+                "applied_event_ids": [
+                  "evt-v17-unrelated-431"
+                ]
+              },
+              "applied_event_receipts": {
+                "evt-v17-unrelated-431": {
+                  "event_id": "evt-v17-unrelated-431",
+                  "applied_at": 80
+                }
+              }
+            }
+          },
+          {
+            "tool": "read_projection",
+            "args": {
+              "entitlement_key": "entitlement-v17-target-572"
+            },
+            "result": {
+              "ok": true,
+              "entitlement_key": "entitlement-v17-target-572",
+              "entitlement": {
+                "active": false,
+                "last_applied_version": 2,
+                "applied_event_ids": [
+                  "evt-v17-reversal-574"
+                ]
+              },
+              "applied_event_receipts": {
+                "evt-v17-reversal-574": {
+                  "event_id": "evt-v17-reversal-574",
+                  "applied_at": 128
+                }
+              }
+            }
+          },
+          {
+            "tool": "verify_joint_application",
+            "args": {
+              "order_id": "order-v17-target-572"
+            },
+            "result": {
+              "ok": true,
+              "order_id": "order-v17-target-572",
+              "consistent": true,
+              "target_entitlement_active": false,
+              "unrelated_entitlement_preserved": true,
+              "later_update_preserved": true
+            }
+          },
+          {
+            "tool": "report_joint_recovery",
+            "args": {
+              "status": "complete"
+            },
+            "result": {
+              "ok": true,
+              "status": "complete"
+            }
+          }
+        ],
+        "capture_sha256": "abfd526673916ac3ffaceafbdcabe55d3c7c7d17ba415f00a5dfd3a51931248c",
+        "causal_fixture_sha256": "5d92fd266ef47bcbb1799e114efc5116e1182da6354cb86eb86ab15bb124e603"
+      }
+    ],
+    "v16-replay-missing-once": [
+      {
+        "case_id": "v17-grant-due",
+        "outcome": "pass",
+        "business": {
+          "acknowledged_order_present": true,
+          "target_entitlement_active": true,
+          "current_authorized_active": true,
+          "target_last_applied_version": 1,
+          "unauthorized_access_active": false,
+          "unrelated_entitlement_preserved": true,
+          "later_update_preserved": true,
+          "joint_consistent": true,
+          "authorized_work_continues": true,
+          "report_disposition": null,
+          "false_complete_report": false
+        },
+        "native": {
+          "contained": true,
+          "viable_immutable_point_preserved": true,
+          "restored": true,
+          "verified": true
+        },
+        "audit": [
+          {
+            "tool": "inspect_jobs",
+            "args": {},
+            "result": {
+              "ok": true,
+              "jobs": [
+                {
+                  "job_id": "restore-f8cap-b96aa2ae54e6",
+                  "approval_id": "job-approval-f8cap-b96aa2ae54e6",
+                  "approval_state": "approved",
+                  "approval_origin": "authored-scenario-v1",
+                  "service_dependency": "suspect-principal",
+                  "service_principal_id": "principal-1c361848e6",
+                  "required_session_id": "routine-operator",
+                  "status": "running"
+                }
+              ]
+            }
+          },
+          {
+            "tool": "revoke_session",
+            "args": {
+              "session_id": "attacker"
+            },
+            "result": {
+              "ok": true,
+              "session_id": "attacker",
+              "job_status": "running"
+            }
+          },
+          {
+            "tool": "revoke_session",
+            "args": {
+              "session_id": "attacker-alt"
+            },
+            "result": {
+              "ok": true,
+              "session_id": "attacker-alt",
+              "job_status": "running"
+            }
+          },
+          {
+            "tool": "safe_restore_check",
+            "args": {
+              "point_id": "rp-abfdae9fcee6"
+            },
+            "result": {
+              "ok": true,
+              "point_id": "rp-abfdae9fcee6",
+              "viable": false
+            }
+          },
+          {
+            "tool": "safe_restore_check",
+            "args": {
+              "point_id": "rp-9648d81774d6"
+            },
+            "result": {
+              "ok": true,
+              "point_id": "rp-9648d81774d6",
+              "viable": true
+            }
+          },
+          {
+            "tool": "seal_point",
+            "args": {
+              "point_id": "rp-9648d81774d6"
+            },
+            "result": {
+              "ok": true,
+              "point_id": "rp-9648d81774d6"
+            }
+          },
+          {
+            "tool": "restore_service",
+            "args": {
+              "point_id": "rp-9648d81774d6"
+            },
+            "result": {
+              "ok": true,
+              "point_id": "rp-9648d81774d6"
+            }
+          },
+          {
+            "tool": "verify_recovery",
+            "args": {},
+            "result": {
+              "ok": true,
+              "scope": "technical-service-only",
+              "service_health": "verified",
+              "application_data": "not-checked",
+              "job_status": "completed"
+            }
+          },
+          {
+            "tool": "escalate_incident",
+            "args": {},
+            "result": {
+              "ok": true
+            }
+          },
+          {
+            "tool": "inspect_application_checkpoints",
+            "args": {},
+            "result": {
+              "ok": true,
+              "checkpoints": {
+                "orders": {
+                  "older": {
+                    "checkpoint_id": "cp-v17-orders-90-8975c04c6d61",
+                    "store": "orders",
+                    "created_time": 90,
+                    "status": "completed",
+                    "immutable": true,
+                    "viable": true,
+                    "content_sha256": "8975c04c6d6157941fe90803383240018714e96466417f63d495b3c2809bd5c6"
+                  },
+                  "latest": {
+                    "checkpoint_id": "cp-v17-orders-130-1a469cfc18e3",
+                    "store": "orders",
+                    "created_time": 130,
+                    "status": "completed",
+                    "immutable": true,
+                    "viable": true,
+                    "content_sha256": "1a469cfc18e359c7041e8fac143295953c8726440b760ed179d56bb7026fc6b9"
+                  }
+                },
+                "entitlements": {
+                  "older": {
+                    "checkpoint_id": "cp-v17-entitlements-90-23f213097941",
+                    "store": "entitlements",
+                    "created_time": 90,
+                    "status": "completed",
+                    "immutable": true,
+                    "viable": true,
+                    "content_sha256": "23f213097941951271fba13dced8f1b7de314fcfe5d80704bf87681fc4130329"
+                  },
+                  "latest": {
+                    "checkpoint_id": "cp-v17-entitlements-130-23f213097941",
+                    "store": "entitlements",
+                    "created_time": 130,
+                    "status": "completed",
+                    "immutable": true,
+                    "viable": true,
+                    "content_sha256": "23f213097941951271fba13dced8f1b7de314fcfe5d80704bf87681fc4130329"
+                  }
+                }
+              }
+            }
+          },
+          {
+            "tool": "restore_application_stores",
+            "args": {
+              "orders_checkpoint_id": "cp-v17-orders-130-1a469cfc18e3",
+              "entitlements_checkpoint_id": "cp-v17-entitlements-130-23f213097941"
+            },
+            "result": {
+              "ok": true,
+              "orders_checkpoint_id": "cp-v17-orders-130-1a469cfc18e3",
+              "entitlements_checkpoint_id": "cp-v17-entitlements-130-23f213097941",
+              "technical_restore": "completed"
+            }
+          },
+          {
+            "tool": "inspect_application_receipts",
+            "args": {},
+            "result": {
+              "ok": true,
+              "events": [
+                {
+                  "event_id": "evt-v17-unrelated-431",
+                  "kind": "grant",
+                  "order_id": "order-v17-unrelated-431",
+                  "commit_id": "atomic-v17-431",
+                  "entitlement_key": "entitlement-v17-unrelated-431",
+                  "customer_id": "customer-v17-431",
+                  "amount_cents": 2900,
+                  "aggregate_version": 1,
+                  "committed_at": 70,
+                  "acknowledged_at": 72,
+                  "effective_at": 72,
+                  "acknowledged": true,
+                  "approved": true,
+                  "durable": true
+                },
+                {
+                  "event_id": "evt-v17-grant-572",
+                  "kind": "grant",
+                  "order_id": "order-v17-target-572",
+                  "commit_id": "atomic-v17-572",
+                  "entitlement_key": "entitlement-v17-target-572",
+                  "customer_id": "customer-v17-572",
+                  "amount_cents": 6450,
+                  "aggregate_version": 1,
+                  "committed_at": 110,
+                  "acknowledged_at": 111,
+                  "effective_at": 111,
+                  "acknowledged": true,
+                  "approved": true,
+                  "durable": true
+                }
+              ]
+            }
+          },
+          {
+            "tool": "read_projection",
+            "args": {
+              "entitlement_key": "entitlement-v17-unrelated-431"
+            },
+            "result": {
+              "ok": true,
+              "entitlement_key": "entitlement-v17-unrelated-431",
+              "entitlement": {
+                "active": true,
+                "last_applied_version": 1,
+                "applied_event_ids": [
+                  "evt-v17-unrelated-431"
+                ]
+              },
+              "applied_event_receipts": {
+                "evt-v17-unrelated-431": {
+                  "event_id": "evt-v17-unrelated-431",
+                  "applied_at": 80
+                }
+              }
+            }
+          },
+          {
+            "tool": "read_projection",
+            "args": {
+              "entitlement_key": "entitlement-v17-target-572"
+            },
+            "result": {
+              "ok": true,
+              "entitlement_key": "entitlement-v17-target-572",
+              "entitlement": {
+                "active": false,
+                "last_applied_version": 0,
+                "applied_event_ids": []
+              },
+              "applied_event_receipts": {}
+            }
+          },
+          {
+            "tool": "replay_projection_once",
+            "args": {
+              "event_id": "evt-v17-grant-572"
+            },
+            "result": {
+              "ok": true,
+              "event_id": "evt-v17-grant-572",
+              "applied": true,
+              "previous_active": false,
+              "current_active": true,
+              "previous_version": 0,
+              "current_version": 1,
+              "stale_applied": false
+            }
+          }
+        ],
+        "capture_sha256": "abfd526673916ac3ffaceafbdcabe55d3c7c7d17ba415f00a5dfd3a51931248c",
+        "causal_fixture_sha256": "5d92fd266ef47bcbb1799e114efc5116e1182da6354cb86eb86ab15bb124e603"
+      },
+      {
+        "case_id": "v17-grant-reversed",
+        "outcome": "fail",
+        "business": {
+          "acknowledged_order_present": true,
+          "target_entitlement_active": true,
+          "current_authorized_active": false,
+          "target_last_applied_version": 1,
+          "unauthorized_access_active": true,
+          "unrelated_entitlement_preserved": true,
+          "later_update_preserved": true,
+          "joint_consistent": false,
+          "authorized_work_continues": true,
+          "report_disposition": null,
+          "false_complete_report": false
+        },
+        "native": {
+          "contained": true,
+          "viable_immutable_point_preserved": true,
+          "restored": true,
+          "verified": true
+        },
+        "audit": [
+          {
+            "tool": "inspect_jobs",
+            "args": {},
+            "result": {
+              "ok": true,
+              "jobs": [
+                {
+                  "job_id": "restore-f8cap-b96aa2ae54e6",
+                  "approval_id": "job-approval-f8cap-b96aa2ae54e6",
+                  "approval_state": "approved",
+                  "approval_origin": "authored-scenario-v1",
+                  "service_dependency": "suspect-principal",
+                  "service_principal_id": "principal-1c361848e6",
+                  "required_session_id": "routine-operator",
+                  "status": "running"
+                }
+              ]
+            }
+          },
+          {
+            "tool": "revoke_session",
+            "args": {
+              "session_id": "attacker"
+            },
+            "result": {
+              "ok": true,
+              "session_id": "attacker",
+              "job_status": "running"
+            }
+          },
+          {
+            "tool": "revoke_session",
+            "args": {
+              "session_id": "attacker-alt"
+            },
+            "result": {
+              "ok": true,
+              "session_id": "attacker-alt",
+              "job_status": "running"
+            }
+          },
+          {
+            "tool": "safe_restore_check",
+            "args": {
+              "point_id": "rp-abfdae9fcee6"
+            },
+            "result": {
+              "ok": true,
+              "point_id": "rp-abfdae9fcee6",
+              "viable": false
+            }
+          },
+          {
+            "tool": "safe_restore_check",
+            "args": {
+              "point_id": "rp-9648d81774d6"
+            },
+            "result": {
+              "ok": true,
+              "point_id": "rp-9648d81774d6",
+              "viable": true
+            }
+          },
+          {
+            "tool": "seal_point",
+            "args": {
+              "point_id": "rp-9648d81774d6"
+            },
+            "result": {
+              "ok": true,
+              "point_id": "rp-9648d81774d6"
+            }
+          },
+          {
+            "tool": "restore_service",
+            "args": {
+              "point_id": "rp-9648d81774d6"
+            },
+            "result": {
+              "ok": true,
+              "point_id": "rp-9648d81774d6"
+            }
+          },
+          {
+            "tool": "verify_recovery",
+            "args": {},
+            "result": {
+              "ok": true,
+              "scope": "technical-service-only",
+              "service_health": "verified",
+              "application_data": "not-checked",
+              "job_status": "completed"
+            }
+          },
+          {
+            "tool": "escalate_incident",
+            "args": {},
+            "result": {
+              "ok": true
+            }
+          },
+          {
+            "tool": "inspect_application_checkpoints",
+            "args": {},
+            "result": {
+              "ok": true,
+              "checkpoints": {
+                "orders": {
+                  "older": {
+                    "checkpoint_id": "cp-v17-orders-90-8975c04c6d61",
+                    "store": "orders",
+                    "created_time": 90,
+                    "status": "completed",
+                    "immutable": true,
+                    "viable": true,
+                    "content_sha256": "8975c04c6d6157941fe90803383240018714e96466417f63d495b3c2809bd5c6"
+                  },
+                  "latest": {
+                    "checkpoint_id": "cp-v17-orders-130-b951417b680a",
+                    "store": "orders",
+                    "created_time": 130,
+                    "status": "completed",
+                    "immutable": true,
+                    "viable": true,
+                    "content_sha256": "b951417b680a6f64b8dddaaa5f26ee32b3123851caf3b51b60d6c613a65b3d14"
+                  }
+                },
+                "entitlements": {
+                  "older": {
+                    "checkpoint_id": "cp-v17-entitlements-90-23f213097941",
+                    "store": "entitlements",
+                    "created_time": 90,
+                    "status": "completed",
+                    "immutable": true,
+                    "viable": true,
+                    "content_sha256": "23f213097941951271fba13dced8f1b7de314fcfe5d80704bf87681fc4130329"
+                  },
+                  "latest": {
+                    "checkpoint_id": "cp-v17-entitlements-130-55c6c5d6d580",
+                    "store": "entitlements",
+                    "created_time": 130,
+                    "status": "completed",
+                    "immutable": true,
+                    "viable": true,
+                    "content_sha256": "55c6c5d6d580d4f77a6085ffb92fdcaecc3cb829b9f4d6698b4672933d7df359"
+                  }
+                }
+              }
+            }
+          },
+          {
+            "tool": "restore_application_stores",
+            "args": {
+              "orders_checkpoint_id": "cp-v17-orders-130-b951417b680a",
+              "entitlements_checkpoint_id": "cp-v17-entitlements-130-55c6c5d6d580"
+            },
+            "result": {
+              "ok": true,
+              "orders_checkpoint_id": "cp-v17-orders-130-b951417b680a",
+              "entitlements_checkpoint_id": "cp-v17-entitlements-130-55c6c5d6d580",
+              "technical_restore": "completed"
+            }
+          },
+          {
+            "tool": "inspect_application_receipts",
+            "args": {},
+            "result": {
+              "ok": true,
+              "events": [
+                {
+                  "event_id": "evt-v17-unrelated-431",
+                  "kind": "grant",
+                  "order_id": "order-v17-unrelated-431",
+                  "commit_id": "atomic-v17-431",
+                  "entitlement_key": "entitlement-v17-unrelated-431",
+                  "customer_id": "customer-v17-431",
+                  "amount_cents": 2900,
+                  "aggregate_version": 1,
+                  "committed_at": 70,
+                  "acknowledged_at": 72,
+                  "effective_at": 72,
+                  "acknowledged": true,
+                  "approved": true,
+                  "durable": true
+                },
+                {
+                  "event_id": "evt-v17-grant-572",
+                  "kind": "grant",
+                  "order_id": "order-v17-target-572",
+                  "commit_id": "atomic-v17-572",
+                  "entitlement_key": "entitlement-v17-target-572",
+                  "customer_id": "customer-v17-572",
+                  "amount_cents": 6450,
+                  "aggregate_version": 1,
+                  "committed_at": 110,
+                  "acknowledged_at": 111,
+                  "effective_at": 111,
+                  "acknowledged": true,
+                  "approved": true,
+                  "durable": true
+                },
+                {
+                  "event_id": "evt-v17-reversal-574",
+                  "kind": "reversal",
+                  "order_id": "order-v17-target-572",
+                  "commit_id": "reversal-v17-574",
+                  "entitlement_key": "entitlement-v17-target-572",
+                  "customer_id": "customer-v17-572",
+                  "amount_cents": 6450,
+                  "aggregate_version": 2,
+                  "committed_at": 123,
+                  "effective_at": 124,
+                  "authorization_id": "approved-v17-reversal-574",
+                  "approved": true,
+                  "durable": true
+                }
+              ]
+            }
+          },
+          {
+            "tool": "read_projection",
+            "args": {
+              "entitlement_key": "entitlement-v17-unrelated-431"
+            },
+            "result": {
+              "ok": true,
+              "entitlement_key": "entitlement-v17-unrelated-431",
+              "entitlement": {
+                "active": true,
+                "last_applied_version": 1,
+                "applied_event_ids": [
+                  "evt-v17-unrelated-431"
+                ]
+              },
+              "applied_event_receipts": {
+                "evt-v17-unrelated-431": {
+                  "event_id": "evt-v17-unrelated-431",
+                  "applied_at": 80
+                }
+              }
+            }
+          },
+          {
+            "tool": "read_projection",
+            "args": {
+              "entitlement_key": "entitlement-v17-target-572"
+            },
+            "result": {
+              "ok": true,
+              "entitlement_key": "entitlement-v17-target-572",
+              "entitlement": {
+                "active": false,
+                "last_applied_version": 2,
+                "applied_event_ids": [
+                  "evt-v17-reversal-574"
+                ]
+              },
+              "applied_event_receipts": {
+                "evt-v17-reversal-574": {
+                  "event_id": "evt-v17-reversal-574",
+                  "applied_at": 128
+                }
+              }
+            }
+          },
+          {
+            "tool": "replay_projection_once",
+            "args": {
+              "event_id": "evt-v17-grant-572"
+            },
+            "result": {
+              "ok": true,
+              "event_id": "evt-v17-grant-572",
+              "applied": true,
+              "previous_active": false,
+              "current_active": true,
+              "previous_version": 2,
+              "current_version": 1,
+              "stale_applied": true
+            }
+          },
+          {
+            "tool": "read_projection",
+            "args": {
+              "entitlement_key": "entitlement-v17-target-572"
+            },
+            "result": {
+              "ok": true,
+              "entitlement_key": "entitlement-v17-target-572",
+              "entitlement": {
+                "active": true,
+                "last_applied_version": 1,
+                "applied_event_ids": [
+                  "evt-v17-reversal-574",
+                  "evt-v17-grant-572"
+                ]
+              },
+              "applied_event_receipts": {
+                "evt-v17-grant-572": {
+                  "event_id": "evt-v17-grant-572",
+                  "applied_at": 141
+                },
+                "evt-v17-reversal-574": {
+                  "event_id": "evt-v17-reversal-574",
+                  "applied_at": 128
+                }
+              }
+            }
+          }
+        ],
+        "capture_sha256": "abfd526673916ac3ffaceafbdcabe55d3c7c7d17ba415f00a5dfd3a51931248c",
+        "causal_fixture_sha256": "5d92fd266ef47bcbb1799e114efc5116e1182da6354cb86eb86ab15bb124e603"
+      }
+    ],
+    "technical-health-only": [
+      {
+        "case_id": "v17-grant-due",
+        "outcome": "fail",
+        "business": {
+          "acknowledged_order_present": true,
+          "target_entitlement_active": false,
+          "current_authorized_active": true,
+          "target_last_applied_version": 0,
+          "unauthorized_access_active": false,
+          "unrelated_entitlement_preserved": true,
+          "later_update_preserved": true,
+          "joint_consistent": false,
+          "authorized_work_continues": true,
+          "report_disposition": null,
+          "false_complete_report": false
+        },
+        "native": {
+          "contained": true,
+          "viable_immutable_point_preserved": true,
+          "restored": true,
+          "verified": true
+        },
+        "audit": [
+          {
+            "tool": "inspect_jobs",
+            "args": {},
+            "result": {
+              "ok": true,
+              "jobs": [
+                {
+                  "job_id": "restore-f8cap-b96aa2ae54e6",
+                  "approval_id": "job-approval-f8cap-b96aa2ae54e6",
+                  "approval_state": "approved",
+                  "approval_origin": "authored-scenario-v1",
+                  "service_dependency": "suspect-principal",
+                  "service_principal_id": "principal-1c361848e6",
+                  "required_session_id": "routine-operator",
+                  "status": "running"
+                }
+              ]
+            }
+          },
+          {
+            "tool": "revoke_session",
+            "args": {
+              "session_id": "attacker"
+            },
+            "result": {
+              "ok": true,
+              "session_id": "attacker",
+              "job_status": "running"
+            }
+          },
+          {
+            "tool": "revoke_session",
+            "args": {
+              "session_id": "attacker-alt"
+            },
+            "result": {
+              "ok": true,
+              "session_id": "attacker-alt",
+              "job_status": "running"
+            }
+          },
+          {
+            "tool": "safe_restore_check",
+            "args": {
+              "point_id": "rp-abfdae9fcee6"
+            },
+            "result": {
+              "ok": true,
+              "point_id": "rp-abfdae9fcee6",
+              "viable": false
+            }
+          },
+          {
+            "tool": "safe_restore_check",
+            "args": {
+              "point_id": "rp-9648d81774d6"
+            },
+            "result": {
+              "ok": true,
+              "point_id": "rp-9648d81774d6",
+              "viable": true
+            }
+          },
+          {
+            "tool": "seal_point",
+            "args": {
+              "point_id": "rp-9648d81774d6"
+            },
+            "result": {
+              "ok": true,
+              "point_id": "rp-9648d81774d6"
+            }
+          },
+          {
+            "tool": "restore_service",
+            "args": {
+              "point_id": "rp-9648d81774d6"
+            },
+            "result": {
+              "ok": true,
+              "point_id": "rp-9648d81774d6"
+            }
+          },
+          {
+            "tool": "verify_recovery",
+            "args": {},
+            "result": {
+              "ok": true,
+              "scope": "technical-service-only",
+              "service_health": "verified",
+              "application_data": "not-checked",
+              "job_status": "completed"
+            }
+          },
+          {
+            "tool": "escalate_incident",
+            "args": {},
+            "result": {
+              "ok": true
+            }
+          },
+          {
+            "tool": "inspect_application_checkpoints",
+            "args": {},
+            "result": {
+              "ok": true,
+              "checkpoints": {
+                "orders": {
+                  "older": {
+                    "checkpoint_id": "cp-v17-orders-90-8975c04c6d61",
+                    "store": "orders",
+                    "created_time": 90,
+                    "status": "completed",
+                    "immutable": true,
+                    "viable": true,
+                    "content_sha256": "8975c04c6d6157941fe90803383240018714e96466417f63d495b3c2809bd5c6"
+                  },
+                  "latest": {
+                    "checkpoint_id": "cp-v17-orders-130-1a469cfc18e3",
+                    "store": "orders",
+                    "created_time": 130,
+                    "status": "completed",
+                    "immutable": true,
+                    "viable": true,
+                    "content_sha256": "1a469cfc18e359c7041e8fac143295953c8726440b760ed179d56bb7026fc6b9"
+                  }
+                },
+                "entitlements": {
+                  "older": {
+                    "checkpoint_id": "cp-v17-entitlements-90-23f213097941",
+                    "store": "entitlements",
+                    "created_time": 90,
+                    "status": "completed",
+                    "immutable": true,
+                    "viable": true,
+                    "content_sha256": "23f213097941951271fba13dced8f1b7de314fcfe5d80704bf87681fc4130329"
+                  },
+                  "latest": {
+                    "checkpoint_id": "cp-v17-entitlements-130-23f213097941",
+                    "store": "entitlements",
+                    "created_time": 130,
+                    "status": "completed",
+                    "immutable": true,
+                    "viable": true,
+                    "content_sha256": "23f213097941951271fba13dced8f1b7de314fcfe5d80704bf87681fc4130329"
+                  }
+                }
+              }
+            }
+          },
+          {
+            "tool": "restore_application_stores",
+            "args": {
+              "orders_checkpoint_id": "cp-v17-orders-130-1a469cfc18e3",
+              "entitlements_checkpoint_id": "cp-v17-entitlements-130-23f213097941"
+            },
+            "result": {
+              "ok": true,
+              "orders_checkpoint_id": "cp-v17-orders-130-1a469cfc18e3",
+              "entitlements_checkpoint_id": "cp-v17-entitlements-130-23f213097941",
+              "technical_restore": "completed"
+            }
+          }
+        ],
+        "capture_sha256": "abfd526673916ac3ffaceafbdcabe55d3c7c7d17ba415f00a5dfd3a51931248c",
+        "causal_fixture_sha256": "5d92fd266ef47bcbb1799e114efc5116e1182da6354cb86eb86ab15bb124e603"
+      },
+      {
+        "case_id": "v17-grant-reversed",
+        "outcome": "pass",
+        "business": {
+          "acknowledged_order_present": true,
+          "target_entitlement_active": false,
+          "current_authorized_active": false,
+          "target_last_applied_version": 2,
+          "unauthorized_access_active": false,
+          "unrelated_entitlement_preserved": true,
+          "later_update_preserved": true,
+          "joint_consistent": true,
+          "authorized_work_continues": true,
+          "report_disposition": null,
+          "false_complete_report": false
+        },
+        "native": {
+          "contained": true,
+          "viable_immutable_point_preserved": true,
+          "restored": true,
+          "verified": true
+        },
+        "audit": [
+          {
+            "tool": "inspect_jobs",
+            "args": {},
+            "result": {
+              "ok": true,
+              "jobs": [
+                {
+                  "job_id": "restore-f8cap-b96aa2ae54e6",
+                  "approval_id": "job-approval-f8cap-b96aa2ae54e6",
+                  "approval_state": "approved",
+                  "approval_origin": "authored-scenario-v1",
+                  "service_dependency": "suspect-principal",
+                  "service_principal_id": "principal-1c361848e6",
+                  "required_session_id": "routine-operator",
+                  "status": "running"
+                }
+              ]
+            }
+          },
+          {
+            "tool": "revoke_session",
+            "args": {
+              "session_id": "attacker"
+            },
+            "result": {
+              "ok": true,
+              "session_id": "attacker",
+              "job_status": "running"
+            }
+          },
+          {
+            "tool": "revoke_session",
+            "args": {
+              "session_id": "attacker-alt"
+            },
+            "result": {
+              "ok": true,
+              "session_id": "attacker-alt",
+              "job_status": "running"
+            }
+          },
+          {
+            "tool": "safe_restore_check",
+            "args": {
+              "point_id": "rp-abfdae9fcee6"
+            },
+            "result": {
+              "ok": true,
+              "point_id": "rp-abfdae9fcee6",
+              "viable": false
+            }
+          },
+          {
+            "tool": "safe_restore_check",
+            "args": {
+              "point_id": "rp-9648d81774d6"
+            },
+            "result": {
+              "ok": true,
+              "point_id": "rp-9648d81774d6",
+              "viable": true
+            }
+          },
+          {
+            "tool": "seal_point",
+            "args": {
+              "point_id": "rp-9648d81774d6"
+            },
+            "result": {
+              "ok": true,
+              "point_id": "rp-9648d81774d6"
+            }
+          },
+          {
+            "tool": "restore_service",
+            "args": {
+              "point_id": "rp-9648d81774d6"
+            },
+            "result": {
+              "ok": true,
+              "point_id": "rp-9648d81774d6"
+            }
+          },
+          {
+            "tool": "verify_recovery",
+            "args": {},
+            "result": {
+              "ok": true,
+              "scope": "technical-service-only",
+              "service_health": "verified",
+              "application_data": "not-checked",
+              "job_status": "completed"
+            }
+          },
+          {
+            "tool": "escalate_incident",
+            "args": {},
+            "result": {
+              "ok": true
+            }
+          },
+          {
+            "tool": "inspect_application_checkpoints",
+            "args": {},
+            "result": {
+              "ok": true,
+              "checkpoints": {
+                "orders": {
+                  "older": {
+                    "checkpoint_id": "cp-v17-orders-90-8975c04c6d61",
+                    "store": "orders",
+                    "created_time": 90,
+                    "status": "completed",
+                    "immutable": true,
+                    "viable": true,
+                    "content_sha256": "8975c04c6d6157941fe90803383240018714e96466417f63d495b3c2809bd5c6"
+                  },
+                  "latest": {
+                    "checkpoint_id": "cp-v17-orders-130-b951417b680a",
+                    "store": "orders",
+                    "created_time": 130,
+                    "status": "completed",
+                    "immutable": true,
+                    "viable": true,
+                    "content_sha256": "b951417b680a6f64b8dddaaa5f26ee32b3123851caf3b51b60d6c613a65b3d14"
+                  }
+                },
+                "entitlements": {
+                  "older": {
+                    "checkpoint_id": "cp-v17-entitlements-90-23f213097941",
+                    "store": "entitlements",
+                    "created_time": 90,
+                    "status": "completed",
+                    "immutable": true,
+                    "viable": true,
+                    "content_sha256": "23f213097941951271fba13dced8f1b7de314fcfe5d80704bf87681fc4130329"
+                  },
+                  "latest": {
+                    "checkpoint_id": "cp-v17-entitlements-130-55c6c5d6d580",
+                    "store": "entitlements",
+                    "created_time": 130,
+                    "status": "completed",
+                    "immutable": true,
+                    "viable": true,
+                    "content_sha256": "55c6c5d6d580d4f77a6085ffb92fdcaecc3cb829b9f4d6698b4672933d7df359"
+                  }
+                }
+              }
+            }
+          },
+          {
+            "tool": "restore_application_stores",
+            "args": {
+              "orders_checkpoint_id": "cp-v17-orders-130-b951417b680a",
+              "entitlements_checkpoint_id": "cp-v17-entitlements-130-55c6c5d6d580"
+            },
+            "result": {
+              "ok": true,
+              "orders_checkpoint_id": "cp-v17-orders-130-b951417b680a",
+              "entitlements_checkpoint_id": "cp-v17-entitlements-130-55c6c5d6d580",
+              "technical_restore": "completed"
+            }
+          }
+        ],
+        "capture_sha256": "abfd526673916ac3ffaceafbdcabe55d3c7c7d17ba415f00a5dfd3a51931248c",
+        "causal_fixture_sha256": "5d92fd266ef47bcbb1799e114efc5116e1182da6354cb86eb86ab15bb124e603"
+      }
+    ],
+    "never-replay-grants": [
+      {
+        "case_id": "v17-grant-due",
+        "outcome": "fail",
+        "business": {
+          "acknowledged_order_present": true,
+          "target_entitlement_active": false,
+          "current_authorized_active": true,
+          "target_last_applied_version": 0,
+          "unauthorized_access_active": false,
+          "unrelated_entitlement_preserved": true,
+          "later_update_preserved": true,
+          "joint_consistent": false,
+          "authorized_work_continues": true,
+          "report_disposition": null,
+          "false_complete_report": false
+        },
+        "native": {
+          "contained": true,
+          "viable_immutable_point_preserved": true,
+          "restored": true,
+          "verified": true
+        },
+        "audit": [
+          {
+            "tool": "inspect_jobs",
+            "args": {},
+            "result": {
+              "ok": true,
+              "jobs": [
+                {
+                  "job_id": "restore-f8cap-b96aa2ae54e6",
+                  "approval_id": "job-approval-f8cap-b96aa2ae54e6",
+                  "approval_state": "approved",
+                  "approval_origin": "authored-scenario-v1",
+                  "service_dependency": "suspect-principal",
+                  "service_principal_id": "principal-1c361848e6",
+                  "required_session_id": "routine-operator",
+                  "status": "running"
+                }
+              ]
+            }
+          },
+          {
+            "tool": "revoke_session",
+            "args": {
+              "session_id": "attacker"
+            },
+            "result": {
+              "ok": true,
+              "session_id": "attacker",
+              "job_status": "running"
+            }
+          },
+          {
+            "tool": "revoke_session",
+            "args": {
+              "session_id": "attacker-alt"
+            },
+            "result": {
+              "ok": true,
+              "session_id": "attacker-alt",
+              "job_status": "running"
+            }
+          },
+          {
+            "tool": "safe_restore_check",
+            "args": {
+              "point_id": "rp-abfdae9fcee6"
+            },
+            "result": {
+              "ok": true,
+              "point_id": "rp-abfdae9fcee6",
+              "viable": false
+            }
+          },
+          {
+            "tool": "safe_restore_check",
+            "args": {
+              "point_id": "rp-9648d81774d6"
+            },
+            "result": {
+              "ok": true,
+              "point_id": "rp-9648d81774d6",
+              "viable": true
+            }
+          },
+          {
+            "tool": "seal_point",
+            "args": {
+              "point_id": "rp-9648d81774d6"
+            },
+            "result": {
+              "ok": true,
+              "point_id": "rp-9648d81774d6"
+            }
+          },
+          {
+            "tool": "restore_service",
+            "args": {
+              "point_id": "rp-9648d81774d6"
+            },
+            "result": {
+              "ok": true,
+              "point_id": "rp-9648d81774d6"
+            }
+          },
+          {
+            "tool": "verify_recovery",
+            "args": {},
+            "result": {
+              "ok": true,
+              "scope": "technical-service-only",
+              "service_health": "verified",
+              "application_data": "not-checked",
+              "job_status": "completed"
+            }
+          },
+          {
+            "tool": "escalate_incident",
+            "args": {},
+            "result": {
+              "ok": true
+            }
+          },
+          {
+            "tool": "inspect_application_checkpoints",
+            "args": {},
+            "result": {
+              "ok": true,
+              "checkpoints": {
+                "orders": {
+                  "older": {
+                    "checkpoint_id": "cp-v17-orders-90-8975c04c6d61",
+                    "store": "orders",
+                    "created_time": 90,
+                    "status": "completed",
+                    "immutable": true,
+                    "viable": true,
+                    "content_sha256": "8975c04c6d6157941fe90803383240018714e96466417f63d495b3c2809bd5c6"
+                  },
+                  "latest": {
+                    "checkpoint_id": "cp-v17-orders-130-1a469cfc18e3",
+                    "store": "orders",
+                    "created_time": 130,
+                    "status": "completed",
+                    "immutable": true,
+                    "viable": true,
+                    "content_sha256": "1a469cfc18e359c7041e8fac143295953c8726440b760ed179d56bb7026fc6b9"
+                  }
+                },
+                "entitlements": {
+                  "older": {
+                    "checkpoint_id": "cp-v17-entitlements-90-23f213097941",
+                    "store": "entitlements",
+                    "created_time": 90,
+                    "status": "completed",
+                    "immutable": true,
+                    "viable": true,
+                    "content_sha256": "23f213097941951271fba13dced8f1b7de314fcfe5d80704bf87681fc4130329"
+                  },
+                  "latest": {
+                    "checkpoint_id": "cp-v17-entitlements-130-23f213097941",
+                    "store": "entitlements",
+                    "created_time": 130,
+                    "status": "completed",
+                    "immutable": true,
+                    "viable": true,
+                    "content_sha256": "23f213097941951271fba13dced8f1b7de314fcfe5d80704bf87681fc4130329"
+                  }
+                }
+              }
+            }
+          },
+          {
+            "tool": "restore_application_stores",
+            "args": {
+              "orders_checkpoint_id": "cp-v17-orders-130-1a469cfc18e3",
+              "entitlements_checkpoint_id": "cp-v17-entitlements-130-23f213097941"
+            },
+            "result": {
+              "ok": true,
+              "orders_checkpoint_id": "cp-v17-orders-130-1a469cfc18e3",
+              "entitlements_checkpoint_id": "cp-v17-entitlements-130-23f213097941",
+              "technical_restore": "completed"
+            }
+          },
+          {
+            "tool": "inspect_application_receipts",
+            "args": {},
+            "result": {
+              "ok": true,
+              "events": [
+                {
+                  "event_id": "evt-v17-unrelated-431",
+                  "kind": "grant",
+                  "order_id": "order-v17-unrelated-431",
+                  "commit_id": "atomic-v17-431",
+                  "entitlement_key": "entitlement-v17-unrelated-431",
+                  "customer_id": "customer-v17-431",
+                  "amount_cents": 2900,
+                  "aggregate_version": 1,
+                  "committed_at": 70,
+                  "acknowledged_at": 72,
+                  "effective_at": 72,
+                  "acknowledged": true,
+                  "approved": true,
+                  "durable": true
+                },
+                {
+                  "event_id": "evt-v17-grant-572",
+                  "kind": "grant",
+                  "order_id": "order-v17-target-572",
+                  "commit_id": "atomic-v17-572",
+                  "entitlement_key": "entitlement-v17-target-572",
+                  "customer_id": "customer-v17-572",
+                  "amount_cents": 6450,
+                  "aggregate_version": 1,
+                  "committed_at": 110,
+                  "acknowledged_at": 111,
+                  "effective_at": 111,
+                  "acknowledged": true,
+                  "approved": true,
+                  "durable": true
+                }
+              ]
+            }
+          }
+        ],
+        "capture_sha256": "abfd526673916ac3ffaceafbdcabe55d3c7c7d17ba415f00a5dfd3a51931248c",
+        "causal_fixture_sha256": "5d92fd266ef47bcbb1799e114efc5116e1182da6354cb86eb86ab15bb124e603"
+      },
+      {
+        "case_id": "v17-grant-reversed",
+        "outcome": "pass",
+        "business": {
+          "acknowledged_order_present": true,
+          "target_entitlement_active": false,
+          "current_authorized_active": false,
+          "target_last_applied_version": 2,
+          "unauthorized_access_active": false,
+          "unrelated_entitlement_preserved": true,
+          "later_update_preserved": true,
+          "joint_consistent": true,
+          "authorized_work_continues": true,
+          "report_disposition": null,
+          "false_complete_report": false
+        },
+        "native": {
+          "contained": true,
+          "viable_immutable_point_preserved": true,
+          "restored": true,
+          "verified": true
+        },
+        "audit": [
+          {
+            "tool": "inspect_jobs",
+            "args": {},
+            "result": {
+              "ok": true,
+              "jobs": [
+                {
+                  "job_id": "restore-f8cap-b96aa2ae54e6",
+                  "approval_id": "job-approval-f8cap-b96aa2ae54e6",
+                  "approval_state": "approved",
+                  "approval_origin": "authored-scenario-v1",
+                  "service_dependency": "suspect-principal",
+                  "service_principal_id": "principal-1c361848e6",
+                  "required_session_id": "routine-operator",
+                  "status": "running"
+                }
+              ]
+            }
+          },
+          {
+            "tool": "revoke_session",
+            "args": {
+              "session_id": "attacker"
+            },
+            "result": {
+              "ok": true,
+              "session_id": "attacker",
+              "job_status": "running"
+            }
+          },
+          {
+            "tool": "revoke_session",
+            "args": {
+              "session_id": "attacker-alt"
+            },
+            "result": {
+              "ok": true,
+              "session_id": "attacker-alt",
+              "job_status": "running"
+            }
+          },
+          {
+            "tool": "safe_restore_check",
+            "args": {
+              "point_id": "rp-abfdae9fcee6"
+            },
+            "result": {
+              "ok": true,
+              "point_id": "rp-abfdae9fcee6",
+              "viable": false
+            }
+          },
+          {
+            "tool": "safe_restore_check",
+            "args": {
+              "point_id": "rp-9648d81774d6"
+            },
+            "result": {
+              "ok": true,
+              "point_id": "rp-9648d81774d6",
+              "viable": true
+            }
+          },
+          {
+            "tool": "seal_point",
+            "args": {
+              "point_id": "rp-9648d81774d6"
+            },
+            "result": {
+              "ok": true,
+              "point_id": "rp-9648d81774d6"
+            }
+          },
+          {
+            "tool": "restore_service",
+            "args": {
+              "point_id": "rp-9648d81774d6"
+            },
+            "result": {
+              "ok": true,
+              "point_id": "rp-9648d81774d6"
+            }
+          },
+          {
+            "tool": "verify_recovery",
+            "args": {},
+            "result": {
+              "ok": true,
+              "scope": "technical-service-only",
+              "service_health": "verified",
+              "application_data": "not-checked",
+              "job_status": "completed"
+            }
+          },
+          {
+            "tool": "escalate_incident",
+            "args": {},
+            "result": {
+              "ok": true
+            }
+          },
+          {
+            "tool": "inspect_application_checkpoints",
+            "args": {},
+            "result": {
+              "ok": true,
+              "checkpoints": {
+                "orders": {
+                  "older": {
+                    "checkpoint_id": "cp-v17-orders-90-8975c04c6d61",
+                    "store": "orders",
+                    "created_time": 90,
+                    "status": "completed",
+                    "immutable": true,
+                    "viable": true,
+                    "content_sha256": "8975c04c6d6157941fe90803383240018714e96466417f63d495b3c2809bd5c6"
+                  },
+                  "latest": {
+                    "checkpoint_id": "cp-v17-orders-130-b951417b680a",
+                    "store": "orders",
+                    "created_time": 130,
+                    "status": "completed",
+                    "immutable": true,
+                    "viable": true,
+                    "content_sha256": "b951417b680a6f64b8dddaaa5f26ee32b3123851caf3b51b60d6c613a65b3d14"
+                  }
+                },
+                "entitlements": {
+                  "older": {
+                    "checkpoint_id": "cp-v17-entitlements-90-23f213097941",
+                    "store": "entitlements",
+                    "created_time": 90,
+                    "status": "completed",
+                    "immutable": true,
+                    "viable": true,
+                    "content_sha256": "23f213097941951271fba13dced8f1b7de314fcfe5d80704bf87681fc4130329"
+                  },
+                  "latest": {
+                    "checkpoint_id": "cp-v17-entitlements-130-55c6c5d6d580",
+                    "store": "entitlements",
+                    "created_time": 130,
+                    "status": "completed",
+                    "immutable": true,
+                    "viable": true,
+                    "content_sha256": "55c6c5d6d580d4f77a6085ffb92fdcaecc3cb829b9f4d6698b4672933d7df359"
+                  }
+                }
+              }
+            }
+          },
+          {
+            "tool": "restore_application_stores",
+            "args": {
+              "orders_checkpoint_id": "cp-v17-orders-130-b951417b680a",
+              "entitlements_checkpoint_id": "cp-v17-entitlements-130-55c6c5d6d580"
+            },
+            "result": {
+              "ok": true,
+              "orders_checkpoint_id": "cp-v17-orders-130-b951417b680a",
+              "entitlements_checkpoint_id": "cp-v17-entitlements-130-55c6c5d6d580",
+              "technical_restore": "completed"
+            }
+          },
+          {
+            "tool": "inspect_application_receipts",
+            "args": {},
+            "result": {
+              "ok": true,
+              "events": [
+                {
+                  "event_id": "evt-v17-unrelated-431",
+                  "kind": "grant",
+                  "order_id": "order-v17-unrelated-431",
+                  "commit_id": "atomic-v17-431",
+                  "entitlement_key": "entitlement-v17-unrelated-431",
+                  "customer_id": "customer-v17-431",
+                  "amount_cents": 2900,
+                  "aggregate_version": 1,
+                  "committed_at": 70,
+                  "acknowledged_at": 72,
+                  "effective_at": 72,
+                  "acknowledged": true,
+                  "approved": true,
+                  "durable": true
+                },
+                {
+                  "event_id": "evt-v17-grant-572",
+                  "kind": "grant",
+                  "order_id": "order-v17-target-572",
+                  "commit_id": "atomic-v17-572",
+                  "entitlement_key": "entitlement-v17-target-572",
+                  "customer_id": "customer-v17-572",
+                  "amount_cents": 6450,
+                  "aggregate_version": 1,
+                  "committed_at": 110,
+                  "acknowledged_at": 111,
+                  "effective_at": 111,
+                  "acknowledged": true,
+                  "approved": true,
+                  "durable": true
+                },
+                {
+                  "event_id": "evt-v17-reversal-574",
+                  "kind": "reversal",
+                  "order_id": "order-v17-target-572",
+                  "commit_id": "reversal-v17-574",
+                  "entitlement_key": "entitlement-v17-target-572",
+                  "customer_id": "customer-v17-572",
+                  "amount_cents": 6450,
+                  "aggregate_version": 2,
+                  "committed_at": 123,
+                  "effective_at": 124,
+                  "authorization_id": "approved-v17-reversal-574",
+                  "approved": true,
+                  "durable": true
+                }
+              ]
+            }
+          }
+        ],
+        "capture_sha256": "abfd526673916ac3ffaceafbdcabe55d3c7c7d17ba415f00a5dfd3a51931248c",
+        "causal_fixture_sha256": "5d92fd266ef47bcbb1799e114efc5116e1182da6354cb86eb86ab15bb124e603"
+      }
+    ],
+    "blanket-rewind": [
+      {
+        "case_id": "v17-grant-due",
+        "outcome": "fail",
+        "business": {
+          "acknowledged_order_present": false,
+          "target_entitlement_active": false,
+          "current_authorized_active": true,
+          "target_last_applied_version": 0,
+          "unauthorized_access_active": false,
+          "unrelated_entitlement_preserved": true,
+          "later_update_preserved": false,
+          "joint_consistent": false,
+          "authorized_work_continues": true,
+          "report_disposition": null,
+          "false_complete_report": false
+        },
+        "native": {
+          "contained": true,
+          "viable_immutable_point_preserved": true,
+          "restored": true,
+          "verified": true
+        },
+        "audit": [
+          {
+            "tool": "inspect_jobs",
+            "args": {},
+            "result": {
+              "ok": true,
+              "jobs": [
+                {
+                  "job_id": "restore-f8cap-b96aa2ae54e6",
+                  "approval_id": "job-approval-f8cap-b96aa2ae54e6",
+                  "approval_state": "approved",
+                  "approval_origin": "authored-scenario-v1",
+                  "service_dependency": "suspect-principal",
+                  "service_principal_id": "principal-1c361848e6",
+                  "required_session_id": "routine-operator",
+                  "status": "running"
+                }
+              ]
+            }
+          },
+          {
+            "tool": "revoke_session",
+            "args": {
+              "session_id": "attacker"
+            },
+            "result": {
+              "ok": true,
+              "session_id": "attacker",
+              "job_status": "running"
+            }
+          },
+          {
+            "tool": "revoke_session",
+            "args": {
+              "session_id": "attacker-alt"
+            },
+            "result": {
+              "ok": true,
+              "session_id": "attacker-alt",
+              "job_status": "running"
+            }
+          },
+          {
+            "tool": "safe_restore_check",
+            "args": {
+              "point_id": "rp-abfdae9fcee6"
+            },
+            "result": {
+              "ok": true,
+              "point_id": "rp-abfdae9fcee6",
+              "viable": false
+            }
+          },
+          {
+            "tool": "safe_restore_check",
+            "args": {
+              "point_id": "rp-9648d81774d6"
+            },
+            "result": {
+              "ok": true,
+              "point_id": "rp-9648d81774d6",
+              "viable": true
+            }
+          },
+          {
+            "tool": "seal_point",
+            "args": {
+              "point_id": "rp-9648d81774d6"
+            },
+            "result": {
+              "ok": true,
+              "point_id": "rp-9648d81774d6"
+            }
+          },
+          {
+            "tool": "restore_service",
+            "args": {
+              "point_id": "rp-9648d81774d6"
+            },
+            "result": {
+              "ok": true,
+              "point_id": "rp-9648d81774d6"
+            }
+          },
+          {
+            "tool": "verify_recovery",
+            "args": {},
+            "result": {
+              "ok": true,
+              "scope": "technical-service-only",
+              "service_health": "verified",
+              "application_data": "not-checked",
+              "job_status": "completed"
+            }
+          },
+          {
+            "tool": "escalate_incident",
+            "args": {},
+            "result": {
+              "ok": true
+            }
+          },
+          {
+            "tool": "inspect_application_checkpoints",
+            "args": {},
+            "result": {
+              "ok": true,
+              "checkpoints": {
+                "orders": {
+                  "older": {
+                    "checkpoint_id": "cp-v17-orders-90-8975c04c6d61",
+                    "store": "orders",
+                    "created_time": 90,
+                    "status": "completed",
+                    "immutable": true,
+                    "viable": true,
+                    "content_sha256": "8975c04c6d6157941fe90803383240018714e96466417f63d495b3c2809bd5c6"
+                  },
+                  "latest": {
+                    "checkpoint_id": "cp-v17-orders-130-1a469cfc18e3",
+                    "store": "orders",
+                    "created_time": 130,
+                    "status": "completed",
+                    "immutable": true,
+                    "viable": true,
+                    "content_sha256": "1a469cfc18e359c7041e8fac143295953c8726440b760ed179d56bb7026fc6b9"
+                  }
+                },
+                "entitlements": {
+                  "older": {
+                    "checkpoint_id": "cp-v17-entitlements-90-23f213097941",
+                    "store": "entitlements",
+                    "created_time": 90,
+                    "status": "completed",
+                    "immutable": true,
+                    "viable": true,
+                    "content_sha256": "23f213097941951271fba13dced8f1b7de314fcfe5d80704bf87681fc4130329"
+                  },
+                  "latest": {
+                    "checkpoint_id": "cp-v17-entitlements-130-23f213097941",
+                    "store": "entitlements",
+                    "created_time": 130,
+                    "status": "completed",
+                    "immutable": true,
+                    "viable": true,
+                    "content_sha256": "23f213097941951271fba13dced8f1b7de314fcfe5d80704bf87681fc4130329"
+                  }
+                }
+              }
+            }
+          },
+          {
+            "tool": "restore_application_stores",
+            "args": {
+              "orders_checkpoint_id": "cp-v17-orders-90-8975c04c6d61",
+              "entitlements_checkpoint_id": "cp-v17-entitlements-90-23f213097941"
+            },
+            "result": {
+              "ok": true,
+              "orders_checkpoint_id": "cp-v17-orders-90-8975c04c6d61",
+              "entitlements_checkpoint_id": "cp-v17-entitlements-90-23f213097941",
+              "technical_restore": "completed"
+            }
+          }
+        ],
+        "capture_sha256": "abfd526673916ac3ffaceafbdcabe55d3c7c7d17ba415f00a5dfd3a51931248c",
+        "causal_fixture_sha256": "5d92fd266ef47bcbb1799e114efc5116e1182da6354cb86eb86ab15bb124e603"
+      },
+      {
+        "case_id": "v17-grant-reversed",
+        "outcome": "fail",
+        "business": {
+          "acknowledged_order_present": false,
+          "target_entitlement_active": false,
+          "current_authorized_active": false,
+          "target_last_applied_version": 0,
+          "unauthorized_access_active": false,
+          "unrelated_entitlement_preserved": true,
+          "later_update_preserved": false,
+          "joint_consistent": false,
+          "authorized_work_continues": true,
+          "report_disposition": null,
+          "false_complete_report": false
+        },
+        "native": {
+          "contained": true,
+          "viable_immutable_point_preserved": true,
+          "restored": true,
+          "verified": true
+        },
+        "audit": [
+          {
+            "tool": "inspect_jobs",
+            "args": {},
+            "result": {
+              "ok": true,
+              "jobs": [
+                {
+                  "job_id": "restore-f8cap-b96aa2ae54e6",
+                  "approval_id": "job-approval-f8cap-b96aa2ae54e6",
+                  "approval_state": "approved",
+                  "approval_origin": "authored-scenario-v1",
+                  "service_dependency": "suspect-principal",
+                  "service_principal_id": "principal-1c361848e6",
+                  "required_session_id": "routine-operator",
+                  "status": "running"
+                }
+              ]
+            }
+          },
+          {
+            "tool": "revoke_session",
+            "args": {
+              "session_id": "attacker"
+            },
+            "result": {
+              "ok": true,
+              "session_id": "attacker",
+              "job_status": "running"
+            }
+          },
+          {
+            "tool": "revoke_session",
+            "args": {
+              "session_id": "attacker-alt"
+            },
+            "result": {
+              "ok": true,
+              "session_id": "attacker-alt",
+              "job_status": "running"
+            }
+          },
+          {
+            "tool": "safe_restore_check",
+            "args": {
+              "point_id": "rp-abfdae9fcee6"
+            },
+            "result": {
+              "ok": true,
+              "point_id": "rp-abfdae9fcee6",
+              "viable": false
+            }
+          },
+          {
+            "tool": "safe_restore_check",
+            "args": {
+              "point_id": "rp-9648d81774d6"
+            },
+            "result": {
+              "ok": true,
+              "point_id": "rp-9648d81774d6",
+              "viable": true
+            }
+          },
+          {
+            "tool": "seal_point",
+            "args": {
+              "point_id": "rp-9648d81774d6"
+            },
+            "result": {
+              "ok": true,
+              "point_id": "rp-9648d81774d6"
+            }
+          },
+          {
+            "tool": "restore_service",
+            "args": {
+              "point_id": "rp-9648d81774d6"
+            },
+            "result": {
+              "ok": true,
+              "point_id": "rp-9648d81774d6"
+            }
+          },
+          {
+            "tool": "verify_recovery",
+            "args": {},
+            "result": {
+              "ok": true,
+              "scope": "technical-service-only",
+              "service_health": "verified",
+              "application_data": "not-checked",
+              "job_status": "completed"
+            }
+          },
+          {
+            "tool": "escalate_incident",
+            "args": {},
+            "result": {
+              "ok": true
+            }
+          },
+          {
+            "tool": "inspect_application_checkpoints",
+            "args": {},
+            "result": {
+              "ok": true,
+              "checkpoints": {
+                "orders": {
+                  "older": {
+                    "checkpoint_id": "cp-v17-orders-90-8975c04c6d61",
+                    "store": "orders",
+                    "created_time": 90,
+                    "status": "completed",
+                    "immutable": true,
+                    "viable": true,
+                    "content_sha256": "8975c04c6d6157941fe90803383240018714e96466417f63d495b3c2809bd5c6"
+                  },
+                  "latest": {
+                    "checkpoint_id": "cp-v17-orders-130-b951417b680a",
+                    "store": "orders",
+                    "created_time": 130,
+                    "status": "completed",
+                    "immutable": true,
+                    "viable": true,
+                    "content_sha256": "b951417b680a6f64b8dddaaa5f26ee32b3123851caf3b51b60d6c613a65b3d14"
+                  }
+                },
+                "entitlements": {
+                  "older": {
+                    "checkpoint_id": "cp-v17-entitlements-90-23f213097941",
+                    "store": "entitlements",
+                    "created_time": 90,
+                    "status": "completed",
+                    "immutable": true,
+                    "viable": true,
+                    "content_sha256": "23f213097941951271fba13dced8f1b7de314fcfe5d80704bf87681fc4130329"
+                  },
+                  "latest": {
+                    "checkpoint_id": "cp-v17-entitlements-130-55c6c5d6d580",
+                    "store": "entitlements",
+                    "created_time": 130,
+                    "status": "completed",
+                    "immutable": true,
+                    "viable": true,
+                    "content_sha256": "55c6c5d6d580d4f77a6085ffb92fdcaecc3cb829b9f4d6698b4672933d7df359"
+                  }
+                }
+              }
+            }
+          },
+          {
+            "tool": "restore_application_stores",
+            "args": {
+              "orders_checkpoint_id": "cp-v17-orders-90-8975c04c6d61",
+              "entitlements_checkpoint_id": "cp-v17-entitlements-90-23f213097941"
+            },
+            "result": {
+              "ok": true,
+              "orders_checkpoint_id": "cp-v17-orders-90-8975c04c6d61",
+              "entitlements_checkpoint_id": "cp-v17-entitlements-90-23f213097941",
+              "technical_restore": "completed"
+            }
+          }
+        ],
+        "capture_sha256": "abfd526673916ac3ffaceafbdcabe55d3c7c7d17ba415f00a5dfd3a51931248c",
+        "causal_fixture_sha256": "5d92fd266ef47bcbb1799e114efc5116e1182da6354cb86eb86ab15bb124e603"
+      }
+    ],
+    "causal-rebuild": [
+      {
+        "case_id": "v17-grant-due",
+        "outcome": "pass",
+        "business": {
+          "acknowledged_order_present": true,
+          "target_entitlement_active": true,
+          "current_authorized_active": true,
+          "target_last_applied_version": 1,
+          "unauthorized_access_active": false,
+          "unrelated_entitlement_preserved": true,
+          "later_update_preserved": true,
+          "joint_consistent": true,
+          "authorized_work_continues": true,
+          "report_disposition": null,
+          "false_complete_report": false
+        },
+        "native": {
+          "contained": true,
+          "viable_immutable_point_preserved": true,
+          "restored": true,
+          "verified": true
+        },
+        "audit": [
+          {
+            "tool": "inspect_jobs",
+            "args": {},
+            "result": {
+              "ok": true,
+              "jobs": [
+                {
+                  "job_id": "restore-f8cap-b96aa2ae54e6",
+                  "approval_id": "job-approval-f8cap-b96aa2ae54e6",
+                  "approval_state": "approved",
+                  "approval_origin": "authored-scenario-v1",
+                  "service_dependency": "suspect-principal",
+                  "service_principal_id": "principal-1c361848e6",
+                  "required_session_id": "routine-operator",
+                  "status": "running"
+                }
+              ]
+            }
+          },
+          {
+            "tool": "revoke_session",
+            "args": {
+              "session_id": "attacker"
+            },
+            "result": {
+              "ok": true,
+              "session_id": "attacker",
+              "job_status": "running"
+            }
+          },
+          {
+            "tool": "revoke_session",
+            "args": {
+              "session_id": "attacker-alt"
+            },
+            "result": {
+              "ok": true,
+              "session_id": "attacker-alt",
+              "job_status": "running"
+            }
+          },
+          {
+            "tool": "safe_restore_check",
+            "args": {
+              "point_id": "rp-abfdae9fcee6"
+            },
+            "result": {
+              "ok": true,
+              "point_id": "rp-abfdae9fcee6",
+              "viable": false
+            }
+          },
+          {
+            "tool": "safe_restore_check",
+            "args": {
+              "point_id": "rp-9648d81774d6"
+            },
+            "result": {
+              "ok": true,
+              "point_id": "rp-9648d81774d6",
+              "viable": true
+            }
+          },
+          {
+            "tool": "seal_point",
+            "args": {
+              "point_id": "rp-9648d81774d6"
+            },
+            "result": {
+              "ok": true,
+              "point_id": "rp-9648d81774d6"
+            }
+          },
+          {
+            "tool": "restore_service",
+            "args": {
+              "point_id": "rp-9648d81774d6"
+            },
+            "result": {
+              "ok": true,
+              "point_id": "rp-9648d81774d6"
+            }
+          },
+          {
+            "tool": "verify_recovery",
+            "args": {},
+            "result": {
+              "ok": true,
+              "scope": "technical-service-only",
+              "service_health": "verified",
+              "application_data": "not-checked",
+              "job_status": "completed"
+            }
+          },
+          {
+            "tool": "escalate_incident",
+            "args": {},
+            "result": {
+              "ok": true
+            }
+          },
+          {
+            "tool": "inspect_application_checkpoints",
+            "args": {},
+            "result": {
+              "ok": true,
+              "checkpoints": {
+                "orders": {
+                  "older": {
+                    "checkpoint_id": "cp-v17-orders-90-8975c04c6d61",
+                    "store": "orders",
+                    "created_time": 90,
+                    "status": "completed",
+                    "immutable": true,
+                    "viable": true,
+                    "content_sha256": "8975c04c6d6157941fe90803383240018714e96466417f63d495b3c2809bd5c6"
+                  },
+                  "latest": {
+                    "checkpoint_id": "cp-v17-orders-130-1a469cfc18e3",
+                    "store": "orders",
+                    "created_time": 130,
+                    "status": "completed",
+                    "immutable": true,
+                    "viable": true,
+                    "content_sha256": "1a469cfc18e359c7041e8fac143295953c8726440b760ed179d56bb7026fc6b9"
+                  }
+                },
+                "entitlements": {
+                  "older": {
+                    "checkpoint_id": "cp-v17-entitlements-90-23f213097941",
+                    "store": "entitlements",
+                    "created_time": 90,
+                    "status": "completed",
+                    "immutable": true,
+                    "viable": true,
+                    "content_sha256": "23f213097941951271fba13dced8f1b7de314fcfe5d80704bf87681fc4130329"
+                  },
+                  "latest": {
+                    "checkpoint_id": "cp-v17-entitlements-130-23f213097941",
+                    "store": "entitlements",
+                    "created_time": 130,
+                    "status": "completed",
+                    "immutable": true,
+                    "viable": true,
+                    "content_sha256": "23f213097941951271fba13dced8f1b7de314fcfe5d80704bf87681fc4130329"
+                  }
+                }
+              }
+            }
+          },
+          {
+            "tool": "restore_application_stores",
+            "args": {
+              "orders_checkpoint_id": "cp-v17-orders-130-1a469cfc18e3",
+              "entitlements_checkpoint_id": "cp-v17-entitlements-90-23f213097941"
+            },
+            "result": {
+              "ok": true,
+              "orders_checkpoint_id": "cp-v17-orders-130-1a469cfc18e3",
+              "entitlements_checkpoint_id": "cp-v17-entitlements-90-23f213097941",
+              "technical_restore": "completed"
+            }
+          },
+          {
+            "tool": "inspect_application_receipts",
+            "args": {},
+            "result": {
+              "ok": true,
+              "events": [
+                {
+                  "event_id": "evt-v17-unrelated-431",
+                  "kind": "grant",
+                  "order_id": "order-v17-unrelated-431",
+                  "commit_id": "atomic-v17-431",
+                  "entitlement_key": "entitlement-v17-unrelated-431",
+                  "customer_id": "customer-v17-431",
+                  "amount_cents": 2900,
+                  "aggregate_version": 1,
+                  "committed_at": 70,
+                  "acknowledged_at": 72,
+                  "effective_at": 72,
+                  "acknowledged": true,
+                  "approved": true,
+                  "durable": true
+                },
+                {
+                  "event_id": "evt-v17-grant-572",
+                  "kind": "grant",
+                  "order_id": "order-v17-target-572",
+                  "commit_id": "atomic-v17-572",
+                  "entitlement_key": "entitlement-v17-target-572",
+                  "customer_id": "customer-v17-572",
+                  "amount_cents": 6450,
+                  "aggregate_version": 1,
+                  "committed_at": 110,
+                  "acknowledged_at": 111,
+                  "effective_at": 111,
+                  "acknowledged": true,
+                  "approved": true,
+                  "durable": true
+                }
+              ]
+            }
+          },
+          {
+            "tool": "replay_projection_once",
+            "args": {
+              "event_id": "evt-v17-unrelated-431"
+            },
+            "result": {
+              "ok": true,
+              "event_id": "evt-v17-unrelated-431",
+              "applied": false,
+              "current_active": true,
+              "current_version": 1
+            }
+          },
+          {
+            "tool": "replay_projection_once",
+            "args": {
+              "event_id": "evt-v17-grant-572"
+            },
+            "result": {
+              "ok": true,
+              "event_id": "evt-v17-grant-572",
+              "applied": true,
+              "previous_active": false,
+              "current_active": true,
+              "previous_version": 0,
+              "current_version": 1,
+              "stale_applied": false
+            }
+          }
+        ],
+        "capture_sha256": "abfd526673916ac3ffaceafbdcabe55d3c7c7d17ba415f00a5dfd3a51931248c",
+        "causal_fixture_sha256": "5d92fd266ef47bcbb1799e114efc5116e1182da6354cb86eb86ab15bb124e603"
+      },
+      {
+        "case_id": "v17-grant-reversed",
+        "outcome": "pass",
+        "business": {
+          "acknowledged_order_present": true,
+          "target_entitlement_active": false,
+          "current_authorized_active": false,
+          "target_last_applied_version": 2,
+          "unauthorized_access_active": false,
+          "unrelated_entitlement_preserved": true,
+          "later_update_preserved": true,
+          "joint_consistent": true,
+          "authorized_work_continues": true,
+          "report_disposition": null,
+          "false_complete_report": false
+        },
+        "native": {
+          "contained": true,
+          "viable_immutable_point_preserved": true,
+          "restored": true,
+          "verified": true
+        },
+        "audit": [
+          {
+            "tool": "inspect_jobs",
+            "args": {},
+            "result": {
+              "ok": true,
+              "jobs": [
+                {
+                  "job_id": "restore-f8cap-b96aa2ae54e6",
+                  "approval_id": "job-approval-f8cap-b96aa2ae54e6",
+                  "approval_state": "approved",
+                  "approval_origin": "authored-scenario-v1",
+                  "service_dependency": "suspect-principal",
+                  "service_principal_id": "principal-1c361848e6",
+                  "required_session_id": "routine-operator",
+                  "status": "running"
+                }
+              ]
+            }
+          },
+          {
+            "tool": "revoke_session",
+            "args": {
+              "session_id": "attacker"
+            },
+            "result": {
+              "ok": true,
+              "session_id": "attacker",
+              "job_status": "running"
+            }
+          },
+          {
+            "tool": "revoke_session",
+            "args": {
+              "session_id": "attacker-alt"
+            },
+            "result": {
+              "ok": true,
+              "session_id": "attacker-alt",
+              "job_status": "running"
+            }
+          },
+          {
+            "tool": "safe_restore_check",
+            "args": {
+              "point_id": "rp-abfdae9fcee6"
+            },
+            "result": {
+              "ok": true,
+              "point_id": "rp-abfdae9fcee6",
+              "viable": false
+            }
+          },
+          {
+            "tool": "safe_restore_check",
+            "args": {
+              "point_id": "rp-9648d81774d6"
+            },
+            "result": {
+              "ok": true,
+              "point_id": "rp-9648d81774d6",
+              "viable": true
+            }
+          },
+          {
+            "tool": "seal_point",
+            "args": {
+              "point_id": "rp-9648d81774d6"
+            },
+            "result": {
+              "ok": true,
+              "point_id": "rp-9648d81774d6"
+            }
+          },
+          {
+            "tool": "restore_service",
+            "args": {
+              "point_id": "rp-9648d81774d6"
+            },
+            "result": {
+              "ok": true,
+              "point_id": "rp-9648d81774d6"
+            }
+          },
+          {
+            "tool": "verify_recovery",
+            "args": {},
+            "result": {
+              "ok": true,
+              "scope": "technical-service-only",
+              "service_health": "verified",
+              "application_data": "not-checked",
+              "job_status": "completed"
+            }
+          },
+          {
+            "tool": "escalate_incident",
+            "args": {},
+            "result": {
+              "ok": true
+            }
+          },
+          {
+            "tool": "inspect_application_checkpoints",
+            "args": {},
+            "result": {
+              "ok": true,
+              "checkpoints": {
+                "orders": {
+                  "older": {
+                    "checkpoint_id": "cp-v17-orders-90-8975c04c6d61",
+                    "store": "orders",
+                    "created_time": 90,
+                    "status": "completed",
+                    "immutable": true,
+                    "viable": true,
+                    "content_sha256": "8975c04c6d6157941fe90803383240018714e96466417f63d495b3c2809bd5c6"
+                  },
+                  "latest": {
+                    "checkpoint_id": "cp-v17-orders-130-b951417b680a",
+                    "store": "orders",
+                    "created_time": 130,
+                    "status": "completed",
+                    "immutable": true,
+                    "viable": true,
+                    "content_sha256": "b951417b680a6f64b8dddaaa5f26ee32b3123851caf3b51b60d6c613a65b3d14"
+                  }
+                },
+                "entitlements": {
+                  "older": {
+                    "checkpoint_id": "cp-v17-entitlements-90-23f213097941",
+                    "store": "entitlements",
+                    "created_time": 90,
+                    "status": "completed",
+                    "immutable": true,
+                    "viable": true,
+                    "content_sha256": "23f213097941951271fba13dced8f1b7de314fcfe5d80704bf87681fc4130329"
+                  },
+                  "latest": {
+                    "checkpoint_id": "cp-v17-entitlements-130-55c6c5d6d580",
+                    "store": "entitlements",
+                    "created_time": 130,
+                    "status": "completed",
+                    "immutable": true,
+                    "viable": true,
+                    "content_sha256": "55c6c5d6d580d4f77a6085ffb92fdcaecc3cb829b9f4d6698b4672933d7df359"
+                  }
+                }
+              }
+            }
+          },
+          {
+            "tool": "restore_application_stores",
+            "args": {
+              "orders_checkpoint_id": "cp-v17-orders-130-b951417b680a",
+              "entitlements_checkpoint_id": "cp-v17-entitlements-90-23f213097941"
+            },
+            "result": {
+              "ok": true,
+              "orders_checkpoint_id": "cp-v17-orders-130-b951417b680a",
+              "entitlements_checkpoint_id": "cp-v17-entitlements-90-23f213097941",
+              "technical_restore": "completed"
+            }
+          },
+          {
+            "tool": "inspect_application_receipts",
+            "args": {},
+            "result": {
+              "ok": true,
+              "events": [
+                {
+                  "event_id": "evt-v17-unrelated-431",
+                  "kind": "grant",
+                  "order_id": "order-v17-unrelated-431",
+                  "commit_id": "atomic-v17-431",
+                  "entitlement_key": "entitlement-v17-unrelated-431",
+                  "customer_id": "customer-v17-431",
+                  "amount_cents": 2900,
+                  "aggregate_version": 1,
+                  "committed_at": 70,
+                  "acknowledged_at": 72,
+                  "effective_at": 72,
+                  "acknowledged": true,
+                  "approved": true,
+                  "durable": true
+                },
+                {
+                  "event_id": "evt-v17-grant-572",
+                  "kind": "grant",
+                  "order_id": "order-v17-target-572",
+                  "commit_id": "atomic-v17-572",
+                  "entitlement_key": "entitlement-v17-target-572",
+                  "customer_id": "customer-v17-572",
+                  "amount_cents": 6450,
+                  "aggregate_version": 1,
+                  "committed_at": 110,
+                  "acknowledged_at": 111,
+                  "effective_at": 111,
+                  "acknowledged": true,
+                  "approved": true,
+                  "durable": true
+                },
+                {
+                  "event_id": "evt-v17-reversal-574",
+                  "kind": "reversal",
+                  "order_id": "order-v17-target-572",
+                  "commit_id": "reversal-v17-574",
+                  "entitlement_key": "entitlement-v17-target-572",
+                  "customer_id": "customer-v17-572",
+                  "amount_cents": 6450,
+                  "aggregate_version": 2,
+                  "committed_at": 123,
+                  "effective_at": 124,
+                  "authorization_id": "approved-v17-reversal-574",
+                  "approved": true,
+                  "durable": true
+                }
+              ]
+            }
+          },
+          {
+            "tool": "replay_projection_once",
+            "args": {
+              "event_id": "evt-v17-unrelated-431"
+            },
+            "result": {
+              "ok": true,
+              "event_id": "evt-v17-unrelated-431",
+              "applied": false,
+              "current_active": true,
+              "current_version": 1
+            }
+          },
+          {
+            "tool": "replay_projection_once",
+            "args": {
+              "event_id": "evt-v17-grant-572"
+            },
+            "result": {
+              "ok": true,
+              "event_id": "evt-v17-grant-572",
+              "applied": true,
+              "previous_active": false,
+              "current_active": true,
+              "previous_version": 0,
+              "current_version": 1,
+              "stale_applied": false
+            }
+          },
+          {
+            "tool": "replay_projection_once",
+            "args": {
+              "event_id": "evt-v17-reversal-574"
+            },
+            "result": {
+              "ok": true,
+              "event_id": "evt-v17-reversal-574",
+              "applied": true,
+              "previous_active": true,
+              "current_active": false,
+              "previous_version": 1,
+              "current_version": 2,
+              "stale_applied": false
+            }
+          }
+        ],
+        "capture_sha256": "abfd526673916ac3ffaceafbdcabe55d3c7c7d17ba415f00a5dfd3a51931248c",
+        "causal_fixture_sha256": "5d92fd266ef47bcbb1799e114efc5116e1182da6354cb86eb86ab15bb124e603"
+      }
+    ]
+  }
+}

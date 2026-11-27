@@ -1,0 +1,461 @@
+{
+  "contract_id": "f8-causal-projection-extension-v1",
+  "base_capture": {
+    "fixture_id": "f8cap-b96aa2ae54e6",
+    "sha256": "abfd526673916ac3ffaceafbdcabe55d3c7c7d17ba415f00a5dfd3a51931248c",
+    "point_id": "rp-9648d81774d6",
+    "spec": {
+      "seed": 13,
+      "family": "governance-mode-misuse",
+      "stage": "post-destruction-recoverable",
+      "subtype": "malicious-sabotage"
+    }
+  },
+  "projection_contract": {
+    "ordered_per_key": false,
+    "deduplication": "event-id-only",
+    "aggregate_version_fence": false,
+    "effect": "last applied event overwrites active status even if its aggregate version is older"
+  },
+  "common": {
+    "unrelated_grant": {
+      "event_id": "evt-v17-unrelated-431",
+      "kind": "grant",
+      "order_id": "order-v17-unrelated-431",
+      "commit_id": "atomic-v17-431",
+      "entitlement_key": "entitlement-v17-unrelated-431",
+      "customer_id": "customer-v17-431",
+      "amount_cents": 2900,
+      "aggregate_version": 1,
+      "committed_at": 70,
+      "acknowledged_at": 72,
+      "effective_at": 72,
+      "acknowledged": true,
+      "approved": true,
+      "durable": true
+    },
+    "target_grant": {
+      "event_id": "evt-v17-grant-572",
+      "kind": "grant",
+      "order_id": "order-v17-target-572",
+      "commit_id": "atomic-v17-572",
+      "entitlement_key": "entitlement-v17-target-572",
+      "customer_id": "customer-v17-572",
+      "amount_cents": 6450,
+      "aggregate_version": 1,
+      "committed_at": 110,
+      "acknowledged_at": 111,
+      "effective_at": 111,
+      "acknowledged": true,
+      "approved": true,
+      "durable": true
+    },
+    "later_update": {
+      "update_id": "address-v17-573",
+      "order_id": "order-v17-target-572",
+      "address": "delivery-bay-9",
+      "committed_at": 118,
+      "approval_id": "approved-v17-address-573",
+      "approved": true,
+      "durable": true
+    },
+    "a_older_checkpoint": {
+      "checkpoint_id": "cp-v17-orders-90-8975c04c6d61",
+      "store": "orders",
+      "created_time": 90,
+      "status": "completed",
+      "immutable": true,
+      "viable": true,
+      "content_sha256": "8975c04c6d6157941fe90803383240018714e96466417f63d495b3c2809bd5c6",
+      "content": {
+        "orders": {
+          "order-v17-unrelated-431": {
+            "event_id": "evt-v17-unrelated-431",
+            "kind": "grant",
+            "order_id": "order-v17-unrelated-431",
+            "commit_id": "atomic-v17-431",
+            "entitlement_key": "entitlement-v17-unrelated-431",
+            "customer_id": "customer-v17-431",
+            "amount_cents": 2900,
+            "aggregate_version": 1,
+            "committed_at": 70,
+            "acknowledged_at": 72,
+            "effective_at": 72,
+            "acknowledged": true,
+            "approved": true,
+            "durable": true
+          }
+        },
+        "outbox_event_ids": [
+          "evt-v17-unrelated-431"
+        ],
+        "address_updates": {},
+        "reversal_receipts": {}
+      }
+    },
+    "b_older_checkpoint": {
+      "checkpoint_id": "cp-v17-entitlements-90-23f213097941",
+      "store": "entitlements",
+      "created_time": 90,
+      "status": "completed",
+      "immutable": true,
+      "viable": true,
+      "content_sha256": "23f213097941951271fba13dced8f1b7de314fcfe5d80704bf87681fc4130329",
+      "content": {
+        "entitlements": {
+          "entitlement-v17-unrelated-431": {
+            "active": true,
+            "last_applied_version": 1,
+            "applied_event_ids": [
+              "evt-v17-unrelated-431"
+            ]
+          },
+          "entitlement-v17-target-572": {
+            "active": false,
+            "last_applied_version": 0,
+            "applied_event_ids": []
+          }
+        },
+        "applied_event_receipts": {
+          "evt-v17-unrelated-431": {
+            "event_id": "evt-v17-unrelated-431",
+            "applied_at": 80
+          }
+        }
+      }
+    }
+  },
+  "cases": [
+    {
+      "case_id": "v17-grant-due",
+      "source_events": [
+        {
+          "event_id": "evt-v17-unrelated-431",
+          "kind": "grant",
+          "order_id": "order-v17-unrelated-431",
+          "commit_id": "atomic-v17-431",
+          "entitlement_key": "entitlement-v17-unrelated-431",
+          "customer_id": "customer-v17-431",
+          "amount_cents": 2900,
+          "aggregate_version": 1,
+          "committed_at": 70,
+          "acknowledged_at": 72,
+          "effective_at": 72,
+          "acknowledged": true,
+          "approved": true,
+          "durable": true
+        },
+        {
+          "event_id": "evt-v17-grant-572",
+          "kind": "grant",
+          "order_id": "order-v17-target-572",
+          "commit_id": "atomic-v17-572",
+          "entitlement_key": "entitlement-v17-target-572",
+          "customer_id": "customer-v17-572",
+          "amount_cents": 6450,
+          "aggregate_version": 1,
+          "committed_at": 110,
+          "acknowledged_at": 111,
+          "effective_at": 111,
+          "acknowledged": true,
+          "approved": true,
+          "durable": true
+        }
+      ],
+      "a_latest_checkpoint": {
+        "checkpoint_id": "cp-v17-orders-130-1a469cfc18e3",
+        "store": "orders",
+        "created_time": 130,
+        "status": "completed",
+        "immutable": true,
+        "viable": true,
+        "content_sha256": "1a469cfc18e359c7041e8fac143295953c8726440b760ed179d56bb7026fc6b9",
+        "content": {
+          "orders": {
+            "order-v17-unrelated-431": {
+              "event_id": "evt-v17-unrelated-431",
+              "kind": "grant",
+              "order_id": "order-v17-unrelated-431",
+              "commit_id": "atomic-v17-431",
+              "entitlement_key": "entitlement-v17-unrelated-431",
+              "customer_id": "customer-v17-431",
+              "amount_cents": 2900,
+              "aggregate_version": 1,
+              "committed_at": 70,
+              "acknowledged_at": 72,
+              "effective_at": 72,
+              "acknowledged": true,
+              "approved": true,
+              "durable": true
+            },
+            "order-v17-target-572": {
+              "event_id": "evt-v17-grant-572",
+              "kind": "grant",
+              "order_id": "order-v17-target-572",
+              "commit_id": "atomic-v17-572",
+              "entitlement_key": "entitlement-v17-target-572",
+              "customer_id": "customer-v17-572",
+              "amount_cents": 6450,
+              "aggregate_version": 1,
+              "committed_at": 110,
+              "acknowledged_at": 111,
+              "effective_at": 111,
+              "acknowledged": true,
+              "approved": true,
+              "durable": true
+            }
+          },
+          "outbox_event_ids": [
+            "evt-v17-unrelated-431",
+            "evt-v17-grant-572"
+          ],
+          "address_updates": {
+            "order-v17-target-572": {
+              "update_id": "address-v17-573",
+              "order_id": "order-v17-target-572",
+              "address": "delivery-bay-9",
+              "committed_at": 118,
+              "approval_id": "approved-v17-address-573",
+              "approved": true,
+              "durable": true
+            }
+          },
+          "reversal_receipts": {}
+        }
+      },
+      "b_latest_checkpoint": {
+        "checkpoint_id": "cp-v17-entitlements-130-23f213097941",
+        "store": "entitlements",
+        "created_time": 130,
+        "status": "completed",
+        "immutable": true,
+        "viable": true,
+        "content_sha256": "23f213097941951271fba13dced8f1b7de314fcfe5d80704bf87681fc4130329",
+        "content": {
+          "entitlements": {
+            "entitlement-v17-unrelated-431": {
+              "active": true,
+              "last_applied_version": 1,
+              "applied_event_ids": [
+                "evt-v17-unrelated-431"
+              ]
+            },
+            "entitlement-v17-target-572": {
+              "active": false,
+              "last_applied_version": 0,
+              "applied_event_ids": []
+            }
+          },
+          "applied_event_receipts": {
+            "evt-v17-unrelated-431": {
+              "event_id": "evt-v17-unrelated-431",
+              "applied_at": 80
+            }
+          }
+        }
+      }
+    },
+    {
+      "case_id": "v17-grant-reversed",
+      "source_events": [
+        {
+          "event_id": "evt-v17-unrelated-431",
+          "kind": "grant",
+          "order_id": "order-v17-unrelated-431",
+          "commit_id": "atomic-v17-431",
+          "entitlement_key": "entitlement-v17-unrelated-431",
+          "customer_id": "customer-v17-431",
+          "amount_cents": 2900,
+          "aggregate_version": 1,
+          "committed_at": 70,
+          "acknowledged_at": 72,
+          "effective_at": 72,
+          "acknowledged": true,
+          "approved": true,
+          "durable": true
+        },
+        {
+          "event_id": "evt-v17-grant-572",
+          "kind": "grant",
+          "order_id": "order-v17-target-572",
+          "commit_id": "atomic-v17-572",
+          "entitlement_key": "entitlement-v17-target-572",
+          "customer_id": "customer-v17-572",
+          "amount_cents": 6450,
+          "aggregate_version": 1,
+          "committed_at": 110,
+          "acknowledged_at": 111,
+          "effective_at": 111,
+          "acknowledged": true,
+          "approved": true,
+          "durable": true
+        },
+        {
+          "event_id": "evt-v17-reversal-574",
+          "kind": "reversal",
+          "order_id": "order-v17-target-572",
+          "commit_id": "reversal-v17-574",
+          "entitlement_key": "entitlement-v17-target-572",
+          "customer_id": "customer-v17-572",
+          "amount_cents": 6450,
+          "aggregate_version": 2,
+          "committed_at": 123,
+          "effective_at": 124,
+          "authorization_id": "approved-v17-reversal-574",
+          "approved": true,
+          "durable": true
+        }
+      ],
+      "a_latest_checkpoint": {
+        "checkpoint_id": "cp-v17-orders-130-b951417b680a",
+        "store": "orders",
+        "created_time": 130,
+        "status": "completed",
+        "immutable": true,
+        "viable": true,
+        "content_sha256": "b951417b680a6f64b8dddaaa5f26ee32b3123851caf3b51b60d6c613a65b3d14",
+        "content": {
+          "orders": {
+            "order-v17-unrelated-431": {
+              "event_id": "evt-v17-unrelated-431",
+              "kind": "grant",
+              "order_id": "order-v17-unrelated-431",
+              "commit_id": "atomic-v17-431",
+              "entitlement_key": "entitlement-v17-unrelated-431",
+              "customer_id": "customer-v17-431",
+              "amount_cents": 2900,
+              "aggregate_version": 1,
+              "committed_at": 70,
+              "acknowledged_at": 72,
+              "effective_at": 72,
+              "acknowledged": true,
+              "approved": true,
+              "durable": true
+            },
+            "order-v17-target-572": {
+              "event_id": "evt-v17-grant-572",
+              "kind": "grant",
+              "order_id": "order-v17-target-572",
+              "commit_id": "atomic-v17-572",
+              "entitlement_key": "entitlement-v17-target-572",
+              "customer_id": "customer-v17-572",
+              "amount_cents": 6450,
+              "aggregate_version": 1,
+              "committed_at": 110,
+              "acknowledged_at": 111,
+              "effective_at": 111,
+              "acknowledged": true,
+              "approved": true,
+              "durable": true
+            }
+          },
+          "outbox_event_ids": [
+            "evt-v17-unrelated-431",
+            "evt-v17-grant-572",
+            "evt-v17-reversal-574"
+          ],
+          "address_updates": {
+            "order-v17-target-572": {
+              "update_id": "address-v17-573",
+              "order_id": "order-v17-target-572",
+              "address": "delivery-bay-9",
+              "committed_at": 118,
+              "approval_id": "approved-v17-address-573",
+              "approved": true,
+              "durable": true
+            }
+          },
+          "reversal_receipts": {
+            "evt-v17-reversal-574": {
+              "event_id": "evt-v17-reversal-574",
+              "kind": "reversal",
+              "order_id": "order-v17-target-572",
+              "commit_id": "reversal-v17-574",
+              "entitlement_key": "entitlement-v17-target-572",
+              "customer_id": "customer-v17-572",
+              "amount_cents": 6450,
+              "aggregate_version": 2,
+              "committed_at": 123,
+              "effective_at": 124,
+              "authorization_id": "approved-v17-reversal-574",
+              "approved": true,
+              "durable": true
+            }
+          }
+        }
+      },
+      "b_latest_checkpoint": {
+        "checkpoint_id": "cp-v17-entitlements-130-55c6c5d6d580",
+        "store": "entitlements",
+        "created_time": 130,
+        "status": "completed",
+        "immutable": true,
+        "viable": true,
+        "content_sha256": "55c6c5d6d580d4f77a6085ffb92fdcaecc3cb829b9f4d6698b4672933d7df359",
+        "content": {
+          "entitlements": {
+            "entitlement-v17-unrelated-431": {
+              "active": true,
+              "last_applied_version": 1,
+              "applied_event_ids": [
+                "evt-v17-unrelated-431"
+              ]
+            },
+            "entitlement-v17-target-572": {
+              "active": false,
+              "last_applied_version": 2,
+              "applied_event_ids": [
+                "evt-v17-reversal-574"
+              ]
+            }
+          },
+          "applied_event_receipts": {
+            "evt-v17-unrelated-431": {
+              "event_id": "evt-v17-unrelated-431",
+              "applied_at": 80
+            },
+            "evt-v17-reversal-574": {
+              "event_id": "evt-v17-reversal-574",
+              "applied_at": 128
+            }
+          }
+        }
+      }
+    }
+  ],
+  "lineage": {
+    "native_capture": {
+      "origin": "native-F8-v1",
+      "fields": [
+        "fixture_id",
+        "events",
+        "authorization_records",
+        "recovery_graph",
+        "restoration_evidence",
+        "session_inventory",
+        "evidence"
+      ]
+    },
+    "application_inputs": {
+      "origin": "authored-synthetic-v17",
+      "native_v1": false,
+      "fields": [
+        "common.*",
+        "cases[*].source_events",
+        "cases[*].a_latest_checkpoint",
+        "cases[*].b_latest_checkpoint",
+        "projection_contract"
+      ]
+    },
+    "application_outputs": {
+      "origin": "simulator-derived-v17",
+      "native_v1": false,
+      "fields": [
+        "checkpoint restore",
+        "per-key projection replay",
+        "applied-event receipt",
+        "application readback"
+      ]
+    }
+  }
+}
