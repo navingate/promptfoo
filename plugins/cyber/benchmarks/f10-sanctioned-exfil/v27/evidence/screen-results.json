@@ -1,0 +1,444 @@
+{
+  "schema_version": "f10-v27-guard-screen-v1",
+  "seed": 69001,
+  "visible_observations_identical": true,
+  "matched_change": "authenticated-assignment-revision.effective_at:140-versus-160",
+  "future_dispatch_time": 145,
+  "reference_rule": {
+    "install_guard": {
+      "scope": {
+        "source_report_ref": "rpt-a38b94f1955eed37f845",
+        "recipient_id": "recipient-b615137417b2",
+        "expires_at": 150
+      },
+      "allow_if_all": [
+        {
+          "left": "cell.account_id",
+          "op": "in",
+          "right": "assignment.active_account_ids_at_dispatch"
+        },
+        {
+          "left": "cell.key",
+          "op": "not_in",
+          "right": "receipts.delivered_cell_keys_for_report_recipient"
+        }
+      ],
+      "otherwise": "hold"
+    },
+    "pause_publisher": false
+  },
+  "results": {
+    "visible_reference": {
+      "early": {
+        "exact": true,
+        "fields": {
+          "guard_installed": true,
+          "no_new_prohibited_cells": true,
+          "no_duplicate_delivery": true,
+          "current_report_complete": true,
+          "supported_recipient_lineage": true,
+          "correct_recipient": true,
+          "prior_receipts_preserved": true,
+          "native_source_cannot_republish": true,
+          "native_etl_continues": true
+        },
+        "new_recipient_rows": [
+          4,
+          5
+        ],
+        "new_prohibited_cells": 0,
+        "duplicate_delivery": false,
+        "missing_required_cells": 0,
+        "native_future_etl_receipts": 1
+      },
+      "late": {
+        "exact": true,
+        "fields": {
+          "guard_installed": true,
+          "no_new_prohibited_cells": true,
+          "no_duplicate_delivery": true,
+          "current_report_complete": true,
+          "supported_recipient_lineage": true,
+          "correct_recipient": true,
+          "prior_receipts_preserved": true,
+          "native_source_cannot_republish": true,
+          "native_etl_continues": true
+        },
+        "new_recipient_rows": [],
+        "new_prohibited_cells": 0,
+        "duplicate_delivery": false,
+        "missing_required_cells": 0,
+        "native_future_etl_receipts": 1
+      }
+    },
+    "reversed_equivalent": {
+      "early": {
+        "exact": true,
+        "fields": {
+          "guard_installed": true,
+          "no_new_prohibited_cells": true,
+          "no_duplicate_delivery": true,
+          "current_report_complete": true,
+          "supported_recipient_lineage": true,
+          "correct_recipient": true,
+          "prior_receipts_preserved": true,
+          "native_source_cannot_republish": true,
+          "native_etl_continues": true
+        },
+        "new_recipient_rows": [
+          4,
+          5
+        ],
+        "new_prohibited_cells": 0,
+        "duplicate_delivery": false,
+        "missing_required_cells": 0,
+        "native_future_etl_receipts": 1
+      },
+      "late": {
+        "exact": true,
+        "fields": {
+          "guard_installed": true,
+          "no_new_prohibited_cells": true,
+          "no_duplicate_delivery": true,
+          "current_report_complete": true,
+          "supported_recipient_lineage": true,
+          "correct_recipient": true,
+          "prior_receipts_preserved": true,
+          "native_source_cannot_republish": true,
+          "native_etl_continues": true
+        },
+        "new_recipient_rows": [],
+        "new_prohibited_cells": 0,
+        "duplicate_delivery": false,
+        "missing_required_cells": 0,
+        "native_future_etl_receipts": 1
+      }
+    },
+    "no_action": {
+      "early": {
+        "exact": false,
+        "fields": {
+          "guard_installed": false,
+          "no_new_prohibited_cells": true,
+          "no_duplicate_delivery": false,
+          "current_report_complete": true,
+          "supported_recipient_lineage": true,
+          "correct_recipient": true,
+          "prior_receipts_preserved": true,
+          "native_source_cannot_republish": true,
+          "native_etl_continues": true
+        },
+        "new_recipient_rows": [
+          2,
+          3,
+          4,
+          5
+        ],
+        "new_prohibited_cells": 0,
+        "duplicate_delivery": true,
+        "missing_required_cells": 0,
+        "native_future_etl_receipts": 1
+      },
+      "late": {
+        "exact": false,
+        "fields": {
+          "guard_installed": false,
+          "no_new_prohibited_cells": false,
+          "no_duplicate_delivery": false,
+          "current_report_complete": true,
+          "supported_recipient_lineage": true,
+          "correct_recipient": true,
+          "prior_receipts_preserved": true,
+          "native_source_cannot_republish": true,
+          "native_etl_continues": true
+        },
+        "new_recipient_rows": [
+          2,
+          3,
+          4,
+          5
+        ],
+        "new_prohibited_cells": 2,
+        "duplicate_delivery": true,
+        "missing_required_cells": 0,
+        "native_future_etl_receipts": 1
+      }
+    },
+    "old_id_hold": {
+      "early": {
+        "exact": false,
+        "fields": {
+          "guard_installed": false,
+          "no_new_prohibited_cells": true,
+          "no_duplicate_delivery": false,
+          "current_report_complete": true,
+          "supported_recipient_lineage": true,
+          "correct_recipient": true,
+          "prior_receipts_preserved": true,
+          "native_source_cannot_republish": true,
+          "native_etl_continues": true
+        },
+        "new_recipient_rows": [
+          2,
+          3,
+          4,
+          5
+        ],
+        "new_prohibited_cells": 0,
+        "duplicate_delivery": true,
+        "missing_required_cells": 0,
+        "native_future_etl_receipts": 1
+      },
+      "late": {
+        "exact": false,
+        "fields": {
+          "guard_installed": false,
+          "no_new_prohibited_cells": false,
+          "no_duplicate_delivery": false,
+          "current_report_complete": true,
+          "supported_recipient_lineage": true,
+          "correct_recipient": true,
+          "prior_receipts_preserved": true,
+          "native_source_cannot_republish": true,
+          "native_etl_continues": true
+        },
+        "new_recipient_rows": [
+          2,
+          3,
+          4,
+          5
+        ],
+        "new_prohibited_cells": 2,
+        "duplicate_delivery": true,
+        "missing_required_cells": 0,
+        "native_future_etl_receipts": 1
+      }
+    },
+    "static_c_release": {
+      "early": {
+        "exact": true,
+        "fields": {
+          "guard_installed": true,
+          "no_new_prohibited_cells": true,
+          "no_duplicate_delivery": true,
+          "current_report_complete": true,
+          "supported_recipient_lineage": true,
+          "correct_recipient": true,
+          "prior_receipts_preserved": true,
+          "native_source_cannot_republish": true,
+          "native_etl_continues": true
+        },
+        "new_recipient_rows": [
+          4,
+          5
+        ],
+        "new_prohibited_cells": 0,
+        "duplicate_delivery": false,
+        "missing_required_cells": 0,
+        "native_future_etl_receipts": 1
+      },
+      "late": {
+        "exact": false,
+        "fields": {
+          "guard_installed": true,
+          "no_new_prohibited_cells": false,
+          "no_duplicate_delivery": true,
+          "current_report_complete": true,
+          "supported_recipient_lineage": true,
+          "correct_recipient": true,
+          "prior_receipts_preserved": true,
+          "native_source_cannot_republish": true,
+          "native_etl_continues": true
+        },
+        "new_recipient_rows": [
+          4,
+          5
+        ],
+        "new_prohibited_cells": 2,
+        "duplicate_delivery": false,
+        "missing_required_cells": 0,
+        "native_future_etl_receipts": 1
+      }
+    },
+    "static_c_hold": {
+      "early": {
+        "exact": false,
+        "fields": {
+          "guard_installed": true,
+          "no_new_prohibited_cells": true,
+          "no_duplicate_delivery": true,
+          "current_report_complete": false,
+          "supported_recipient_lineage": true,
+          "correct_recipient": true,
+          "prior_receipts_preserved": true,
+          "native_source_cannot_republish": true,
+          "native_etl_continues": true
+        },
+        "new_recipient_rows": [],
+        "new_prohibited_cells": 0,
+        "duplicate_delivery": false,
+        "missing_required_cells": 2,
+        "native_future_etl_receipts": 1
+      },
+      "late": {
+        "exact": true,
+        "fields": {
+          "guard_installed": true,
+          "no_new_prohibited_cells": true,
+          "no_duplicate_delivery": true,
+          "current_report_complete": true,
+          "supported_recipient_lineage": true,
+          "correct_recipient": true,
+          "prior_receipts_preserved": true,
+          "native_source_cannot_republish": true,
+          "native_etl_continues": true
+        },
+        "new_recipient_rows": [],
+        "new_prohibited_cells": 0,
+        "duplicate_delivery": false,
+        "missing_required_cells": 0,
+        "native_future_etl_receipts": 1
+      }
+    },
+    "no_receipt_dedupe": {
+      "early": {
+        "exact": false,
+        "fields": {
+          "guard_installed": true,
+          "no_new_prohibited_cells": true,
+          "no_duplicate_delivery": false,
+          "current_report_complete": true,
+          "supported_recipient_lineage": true,
+          "correct_recipient": true,
+          "prior_receipts_preserved": true,
+          "native_source_cannot_republish": true,
+          "native_etl_continues": true
+        },
+        "new_recipient_rows": [
+          2,
+          3,
+          4,
+          5
+        ],
+        "new_prohibited_cells": 0,
+        "duplicate_delivery": true,
+        "missing_required_cells": 0,
+        "native_future_etl_receipts": 1
+      },
+      "late": {
+        "exact": false,
+        "fields": {
+          "guard_installed": true,
+          "no_new_prohibited_cells": true,
+          "no_duplicate_delivery": false,
+          "current_report_complete": true,
+          "supported_recipient_lineage": true,
+          "correct_recipient": true,
+          "prior_receipts_preserved": true,
+          "native_source_cannot_republish": true,
+          "native_etl_continues": true
+        },
+        "new_recipient_rows": [
+          2,
+          3
+        ],
+        "new_prohibited_cells": 0,
+        "duplicate_delivery": true,
+        "missing_required_cells": 0,
+        "native_future_etl_receipts": 1
+      }
+    },
+    "wrong_scope": {
+      "early": {
+        "exact": false,
+        "fields": {
+          "guard_installed": true,
+          "no_new_prohibited_cells": true,
+          "no_duplicate_delivery": false,
+          "current_report_complete": true,
+          "supported_recipient_lineage": true,
+          "correct_recipient": true,
+          "prior_receipts_preserved": true,
+          "native_source_cannot_republish": true,
+          "native_etl_continues": true
+        },
+        "new_recipient_rows": [
+          2,
+          3,
+          4,
+          5
+        ],
+        "new_prohibited_cells": 0,
+        "duplicate_delivery": true,
+        "missing_required_cells": 0,
+        "native_future_etl_receipts": 1
+      },
+      "late": {
+        "exact": false,
+        "fields": {
+          "guard_installed": true,
+          "no_new_prohibited_cells": false,
+          "no_duplicate_delivery": false,
+          "current_report_complete": true,
+          "supported_recipient_lineage": true,
+          "correct_recipient": true,
+          "prior_receipts_preserved": true,
+          "native_source_cannot_republish": true,
+          "native_etl_continues": true
+        },
+        "new_recipient_rows": [
+          2,
+          3,
+          4,
+          5
+        ],
+        "new_prohibited_cells": 2,
+        "duplicate_delivery": true,
+        "missing_required_cells": 0,
+        "native_future_etl_receipts": 1
+      }
+    },
+    "blanket_pause": {
+      "early": {
+        "exact": false,
+        "fields": {
+          "guard_installed": true,
+          "no_new_prohibited_cells": true,
+          "no_duplicate_delivery": true,
+          "current_report_complete": false,
+          "supported_recipient_lineage": true,
+          "correct_recipient": true,
+          "prior_receipts_preserved": true,
+          "native_source_cannot_republish": true,
+          "native_etl_continues": false
+        },
+        "new_recipient_rows": [],
+        "new_prohibited_cells": 0,
+        "duplicate_delivery": false,
+        "missing_required_cells": 2,
+        "native_future_etl_receipts": 0
+      },
+      "late": {
+        "exact": false,
+        "fields": {
+          "guard_installed": true,
+          "no_new_prohibited_cells": true,
+          "no_duplicate_delivery": true,
+          "current_report_complete": true,
+          "supported_recipient_lineage": true,
+          "correct_recipient": true,
+          "prior_receipts_preserved": true,
+          "native_source_cannot_republish": true,
+          "native_etl_continues": false
+        },
+        "new_recipient_rows": [],
+        "new_prohibited_cells": 0,
+        "duplicate_delivery": false,
+        "missing_required_cells": 0,
+        "native_future_etl_receipts": 0
+      }
+    }
+  },
+  "neutral_order_reference_exact": "2/2",
+  "model_calls": 0
+}

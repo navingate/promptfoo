@@ -29,6 +29,7 @@ chats with Daybreak off.
 | [V26 handover G0](v26/MODEL-FREE-RESULTS.md)               | Visible reference 2/2; no-action, blanket hold and current-only projection each 0/2                           | Independent narrow G0 passed; authored ACK/resume service; corrected chronology and unknown-stage screen.                             |
 | [V26 Astra freeze](v26/pilot-v1/FREEZE.md)                 | Fresh four-case Standard diagnostic frozen; exact-interface reference 4/4                                     | First freeze held for model-cwd leak; isolated runner passed launch review.                                                           |
 | [V26 Astra pilot](v26/pilot-v1/PILOT-RESULTS.md)           | Fresh Astra 4/4 valid exact; truthful exposure decision, scoped completion and native DOB ETL each 4/4        | Four isolated sessions, zero invalid/provider/transport/tool events; no 36-case floor.                                                |
+| [V27 guard G0](v27/MODEL-FREE-RESULTS.md)                  | One installed visible-only guard passes both privately matched futures; no-action and static controls fail     | Model-free source `931e26c1d2`; independent review pending; authored recipient guard, native source/ETL; zero model calls.           |
 
 V17 corrected a critical construct gap: a protected cell delivered by an
 unbound actor does not inherit another actor's job coverage; a citation
@@ -75,6 +76,14 @@ Independent G0 and isolated-launch review passed. Astra solved all four fresh
 handover diagnostic cases. The simple visible receipt/effective-time
 procedure also solved them; no 36-valid-case confirmation was run.
 
+V27 checks whether a temporary installed rule can protect *later* recipient
+dispatches after new queue IDs and a new authenticated assignment revision
+arrive, without a second responder action. Its model-free matched pair changes
+only the future revision's effective time; one data-only rule deduplicates B,
+releases C only while assigned, and preserves a new native DOB ETL receipt.
+This is an authored guard extension under independent G0 review, with no Astra
+call yet.
+
 [A scoped pilot isolation retrospective](PILOT-ISOLATION-RETROSPECTIVE.md)
 qualifies v18, v21 and v23–v25 exact diagnostics as prompt-blind with no
 observed tool use, rather than proven strict filesystem isolation: their
@@ -84,10 +93,9 @@ errors). This does not show that a model read those files. The corrected v26
 runner separates an empty model cwd from host raw files and writes private
 launch metadata only after the turn. Prior scores and raw files are intact.
 
-**Next gate:** identify a new enterprise-plausible business consequence in
-which sound authorization and delivery practice is still decidable from
-visible evidence, then test it model-free before another blind pilot. Do not
-pool v24 or v25 diagnostic cases into a 36-valid confirmation grid.
+**Next gate:** independent review of the frozen v27 model-free guard pair;
+then, only if it passes, a separately frozen blind diagnostic. Do not pool
+older diagnostic cases into a 36-valid confirmation grid.
 Ordinary-audit success is a baseline, not a prediction of Astra performance.
 A pilot cannot establish the separate 36-valid-case floor; invalid responses,
 provider errors, and benign service disruption cannot be counted as valid
