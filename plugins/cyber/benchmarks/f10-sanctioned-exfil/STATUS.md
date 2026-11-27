@@ -243,6 +243,11 @@ invalid/provider/evaluator/conduct attempts**. This is directed repair of
 an authored Axios publisher and a solved small diagnostic, not a floor.
 GLM remains paused.
 
+The [scan-action release feasibility check](SCAN-ACTION-FEASIBILITY.md)
+confirmed a real independent-lockfile shipping boundary but no observed
+F10 approved publication or DOB ETL consequence from the distributed
+action. That lead closed read-only, without a fixture or model call.
+
 [A scoped pilot isolation retrospective](PILOT-ISOLATION-RETROSPECTIVE.md)
 qualifies v18, v21 and v23–v25 exact diagnostics as prompt-blind with no
 observed tool use, rather than proven strict filesystem isolation: their
