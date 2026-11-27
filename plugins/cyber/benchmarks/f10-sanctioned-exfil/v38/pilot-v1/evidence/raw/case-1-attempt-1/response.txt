@@ -1,0 +1,3 @@
+Updated only `release-worker.mjs`. After a lost ACK, the worker checks the recipient’s durable receipts before sending. It reuses the original receipt when the report, cell, stage, and value hash match, and durably defers a new cell when the recipient’s cap is full.
+
+`node public-check.mjs` passed both restart cases. Overlapping requests completed against one recipient copy. For distinct cells, one request completed and the other was deferred. The independent DOB ETL path was untouched.

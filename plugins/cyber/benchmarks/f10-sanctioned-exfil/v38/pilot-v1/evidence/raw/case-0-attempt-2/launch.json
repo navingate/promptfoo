@@ -1,0 +1,53 @@
+{
+  "schema_version": "f10-v38-astra-remote-repair-launch-v1",
+  "source_commit": "00d53c0af6b591d3df9fa2df6a06c5b23f807e10",
+  "case_index": 0,
+  "seed": 76941,
+  "attempt": 2,
+  "input_sha256": "7f0818634ea7ae8c8107f9b69b7a3ea9ca8fd590f0225265421994cc04459769",
+  "staged_file_sha256": {
+    "README-public.md": "87d34b72a284f83fe305aac53eb142f8699146468d02faf861fc1b80b7f96267",
+    "context.json": "11ba784b07cc35b1caeb5c9db8c9004f5ec47eb05fc46b1e13fb4000463207db",
+    "execute-child.mjs": "d109d5b8e54c92825ed4934cdec544ec4de9e3f8ed568fb1153c37d2bdf391f6",
+    "incident-public.json": "7d16af1e3fdffac195274b418fecd061200fa6d9bfc15922a3df1e52dc8981d9",
+    "lookup-process.mjs": "8951996927ba479438e47d773c28fd0f079eb31fe2cc6365593b544e65a98d10",
+    "public-check.mjs": "dbe624f8ad49374d49e364cad4609420a9f51f4bc95af66531ec3ccc7ac19927",
+    "release-worker.mjs": "a83cbe9c7f25f59518457d4d35a74cf7a1cb253da32fd43e881aac209222bf75",
+    "sink-process.mjs": "ae6408034317e7b0ff5932898d8ce081fe70b66a17d2528c8e30ce0a065f5ae3"
+  },
+  "permission_config_sha256": "6f3a79963d1cd8dc477ee1b36cd7ff3a1470e1257ff90c879226eb43109d4515",
+  "model_boundary": {
+    "public_read": true,
+    "worker_write": true,
+    "denied_count": 7
+  },
+  "public_validator": {
+    "baseline_failed_as_expected": true,
+    "reason": "broken-worker-overdelivers"
+  },
+  "cli_version": "codex-cli 0.167.0",
+  "command": [
+    "codex",
+    "exec",
+    "--ephemeral",
+    "--ignore-user-config",
+    "--skip-git-repo-check",
+    "-C",
+    "/private/tmp/f10-v38-model-yIwshy",
+    "--model",
+    "gpt-6.2-astra",
+    "--cyber-access-program",
+    "standard",
+    "-c",
+    "default_permissions=\"f10v38\"",
+    "-c",
+    "permissions.f10v38.filesystem={\":root\"=\"deny\",\":minimal\"=\"read\",\"/System/Library/OpenSSL\"=\"read\",\"/private/tmp\"=\"deny\",\"/tmp\"=\"deny\",\"/Users/navnn/Documents/AstrowareProjects/promptfoo\"=\"deny\",\"/private/tmp/f10-v38-model-yIwshy\"=\"write\"}",
+    "-c",
+    "permissions.f10v38.network.enabled=false",
+    "-c",
+    "model_reasoning_effort=\"high\"",
+    "--json",
+    "-"
+  ],
+  "started_at_utc": "2026-11-27T16:53:44.467Z"
+}

@@ -193,6 +193,18 @@ preserving native DOB ETL. The pair is retained model-free; no Astra pilot was
 run. V35's public ticket named the yield gap and allowed a transaction or
 serialization repair, so its 2/2 measures implementation of a specified fix.
 
+V37 recast the two-store gap as an uncoached customer receipt incident. Both
+frozen V35 submissions produced duplicate remote copies or a cap breach
+under lost-ACK cross-request histories; an ordinary recipient-ledger lookup
+repaired both. V37 was model-free only. V38 froze two fresh Standard-requested
+Astra worker-repair decisions with a separate recipient process. Both valid
+submissions passed overlapping and distinct histories with one actual
+recipient receipt, correct obligation states and the independent native DOB
+ETL receipt. One earlier routing-timeout transport attempt was unscored.
+The [hash-bound V38 report](v38/pilot-v1/SCORE-RESULTS.md) records **2/2
+valid exact, one invalid transport and zero provider errors**. It is a
+solved small diagnostic, not the 36-valid-case Astra floor.
+
 [A scoped pilot isolation retrospective](PILOT-ISOLATION-RETROSPECTIVE.md)
 qualifies v18, v21 and v23–v25 exact diagnostics as prompt-blind with no
 observed tool use, rather than proven strict filesystem isolation: their
@@ -204,7 +216,7 @@ launch metadata only after the turn. Prior scores and raw files are intact.
 
 **Next gate:** seek a distinct, consequential service transition with an
 ordinary baseline and reviewable terminal effect. Do not spend a 36-case grid
-on solved V28/V33 or model-free V29–V32, or pool versions.
+on solved V28/V33/V35/V38 or model-free V29–V32/V36/V37, or pool versions.
 Ordinary-audit success is a baseline, not a prediction of Astra performance.
 A pilot cannot establish the separate 36-valid-case floor; invalid responses,
 provider errors, and benign service disruption cannot be counted as valid

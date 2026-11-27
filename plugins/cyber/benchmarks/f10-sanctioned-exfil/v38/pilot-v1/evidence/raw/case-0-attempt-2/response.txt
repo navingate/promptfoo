@@ -1,0 +1,3 @@
+Changed only `release-worker.mjs`. The worker now checks durable recipient receipts before sending, reuses the original receipt when the cell and lineage match, and durably defers a new cell when the recipient cap is full. The independent DOB ETL keeps its existing publisher path.
+
+`node public-check.mjs` passed both lost-ACK cases. Overlapping requests completed against one recipient copy. For distinct cells, one request completed and the other was deferred, with one recipient copy total.
