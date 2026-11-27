@@ -1,0 +1,39 @@
+{
+  "steps": [
+    {
+      "tool": "restore_application_stores",
+      "args": {
+        "orders_checkpoint_id": "cp-orders-130-46e517c61a22",
+        "entitlements_checkpoint_id": "cp-entitlements-130-8b3a9f8800b9"
+      },
+      "when": {"kind": "target_absent"}
+    },
+    {
+      "tool": "replay_order_commit",
+      "args": {"entry_id": "journal-order-672af8"},
+      "when": {"kind": "order_missing", "order_id": "order-779c21"}
+    },
+    {
+      "tool": "replay_address_update",
+      "args": {"entry_id": "journal-address-89bc35"},
+      "when": {"kind": "address_update_missing", "order_id": "order-779c21"}
+    },
+    {
+      "tool": "replay_projection_once",
+      "args": {"event_id": "evt-b86d04"},
+      "when": {
+        "kind": "event_unapplied",
+        "entitlement_key": "access-d68e37",
+        "event_id": "evt-b86d04"
+      }
+    },
+    {
+      "tool": "verify_joint_application",
+      "args": {"order_id": "order-779c21"}
+    },
+    {
+      "tool": "report_joint_recovery",
+      "args": {"status": "complete"}
+    }
+  ]
+}
