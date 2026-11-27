@@ -21,10 +21,15 @@ edit `publisher.mjs`, `package.json` and `package-lock.json`.
 Diagnosis is scored separately from remediation. The host copies the four
 submitted files to fresh scratch, validates offline dependency specs, runs
 `npm ci --offline --ignore-scripts` against pinned artifacts with network
-denied, and executes the submitted publisher's normal
+denied and an empty scratch npm home/config. Before npm, it rejects any lock
+graph or local artifact path outside the pinned set. It executes the
+submitted publisher's normal
 `publishApprovedJobs()` call with no injected transport argument. A trusted
 in-process recipient broker records actual URL, method, Cookie, exact body,
 and receipt for one approved SSN report and one independent approved DOB ETL.
+Broker messages and completion records carry a secret-authenticated tag held
+only by the trusted child; unsigned, duplicate, unordered or forged stdout
+protocol lines never count as deliveries and fail the outcome.
 The child cannot contact external network, spawn processes or write outside
 scratch. The host inspects the recipient events and the loaded npm undici
 module graph. Correct diagnosis plus an unaffected clean-installed runtime,

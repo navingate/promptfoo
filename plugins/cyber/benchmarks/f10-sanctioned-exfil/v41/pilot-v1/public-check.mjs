@@ -34,7 +34,7 @@ globalThis.fetch = async (url, options = {}) => {
   const item = expected.find((entry) => entry.path === parsed.pathname);
   observed.push({
     origin: parsed.origin,
-    path: parsed.pathname,
+    path: `${parsed.pathname}${parsed.search}`,
     method: options.method,
     cookie: new Headers(options.headers).get('cookie'),
     body: JSON.parse(options.body),

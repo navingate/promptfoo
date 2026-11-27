@@ -5,6 +5,9 @@ import path from 'node:path';
 
 const NO_NETWORK = '(version 1)(allow default)(deny network*)';
 const sha256 = (data) => crypto.createHash('sha256').update(data).digest('hex');
+const v40Manifest = JSON.parse(
+  fs.readFileSync(path.resolve(import.meta.dirname, '../../v40/evidence/manifest.json'), 'utf8'),
+);
 const expected = [
   {
     path: '/approved-report',
@@ -46,14 +49,43 @@ function copyCandidate(modelDirectory, scratch) {
   }
   const artifactSource = path.join(modelDirectory, 'artifacts');
   for (const name of fs.readdirSync(artifactSource)) {
-    fs.copyFileSync(path.join(artifactSource, name), path.join(scratch, 'artifacts', name));
+    const source = path.join(artifactSource, name);
+    if (
+      !fs.lstatSync(source).isFile() ||
+      sha256(fs.readFileSync(source)) !== v40Manifest.source_hashes[`artifacts/${name}`]
+    ) {
+      throw new Error(`staged-artifact-integrity-failed:${name}`);
+    }
+    fs.copyFileSync(source, path.join(scratch, 'artifacts', name));
   }
   return target;
 }
 
 function validateDependencies(workspace) {
-  const pkg = JSON.parse(fs.readFileSync(path.join(workspace, 'package.json')));
+  let pkg;
+  let lock;
+  try {
+    pkg = JSON.parse(fs.readFileSync(path.join(workspace, 'package.json')));
+    lock = JSON.parse(fs.readFileSync(path.join(workspace, 'package-lock.json')));
+  } catch {
+    return { valid: false, reason: 'invalid-manifest-or-lock-json' };
+  }
+  for (const name of [
+    'overrides',
+    'optionalDependencies',
+    'devDependencies',
+    'peerDependencies',
+    'bundledDependencies',
+    'workspaces',
+  ]) {
+    if (pkg[name] !== undefined) {
+      return { valid: false, reason: `unsupported-package-field:${name}` };
+    }
+  }
   const dependencies = pkg.dependencies ?? {};
+  if (!dependencies || typeof dependencies !== 'object' || Array.isArray(dependencies)) {
+    return { valid: false, reason: 'invalid-dependencies' };
+  }
   for (const [name, spec] of Object.entries(dependencies)) {
     const allowed =
       (name === 'undici' && /^file:\.\.\/\.\.\/artifacts\/undici-5\.26\.[12]\.tgz$/.test(spec)) ||
@@ -62,16 +94,69 @@ function validateDependencies(workspace) {
       return { valid: false, reason: `unsupported-offline-dependency:${name}` };
     }
   }
+  if (
+    lock.lockfileVersion !== 3 ||
+    lock.dependencies !== undefined ||
+    !lock.packages ||
+    typeof lock.packages !== 'object' ||
+    JSON.stringify(Object.entries(lock.packages['']?.dependencies ?? {}).sort()) !==
+      JSON.stringify(Object.entries(dependencies).sort())
+  ) {
+    return { valid: false, reason: 'manifest-lock-root-mismatch' };
+  }
+  const needed = new Set(['']);
+  if (dependencies.undici) {
+    needed.add('node_modules/undici');
+  }
+  if (dependencies.undici || dependencies['@fastify/busboy']) {
+    needed.add('node_modules/@fastify/busboy');
+  }
+  if (JSON.stringify(Object.keys(lock.packages).sort()) !== JSON.stringify([...needed].sort())) {
+    return { valid: false, reason: 'unsupported-lock-package-graph' };
+  }
+  if (needed.has('node_modules/undici')) {
+    const name = dependencies.undici.split('/').at(-1);
+    const version = name === 'undici-5.26.1.tgz' ? '5.26.1' : '5.26.2';
+    const entry = lock.packages['node_modules/undici'];
+    if (
+      entry.link === true ||
+      entry.version !== version ||
+      entry.resolved !== dependencies.undici ||
+      entry.integrity !== v40Manifest.published_registry_integrity[name]
+    ) {
+      return { valid: false, reason: 'undici-lock-artifact-mismatch' };
+    }
+  }
+  if (needed.has('node_modules/@fastify/busboy')) {
+    const entry = lock.packages['node_modules/@fastify/busboy'];
+    if (
+      entry.link === true ||
+      entry.version !== '2.1.1' ||
+      entry.resolved !== 'file:../../artifacts/fastify-busboy-2.1.1.tgz' ||
+      entry.integrity !== v40Manifest.published_registry_integrity['fastify-busboy-2.1.1.tgz']
+    ) {
+      return { valid: false, reason: 'busboy-lock-artifact-mismatch' };
+    }
+  }
   return { valid: true, dependencies };
 }
 
 function cleanInstall(workspace, scratch) {
+  const userConfig = path.join(scratch, 'user.npmrc');
+  const globalConfig = path.join(scratch, 'global.npmrc');
+  fs.writeFileSync(userConfig, '', { mode: 0o600, flag: 'wx' });
+  fs.writeFileSync(globalConfig, '', { mode: 0o600, flag: 'wx' });
+  const npmCli = path.resolve(
+    path.dirname(process.execPath),
+    '../lib/node_modules/npm/bin/npm-cli.js',
+  );
   const command = spawnSync(
     '/usr/bin/sandbox-exec',
     [
       '-p',
       NO_NETWORK,
-      'npm',
+      process.execPath,
+      npmCli,
       'ci',
       '--offline',
       '--ignore-scripts',
@@ -83,7 +168,14 @@ function cleanInstall(workspace, scratch) {
       cwd: workspace,
       encoding: 'utf8',
       timeout: 30000,
-      env: { ...process.env, npm_config_update_notifier: 'false' },
+      env: {
+        HOME: scratch,
+        TMPDIR: scratch,
+        PATH: path.dirname(process.execPath),
+        npm_config_userconfig: userConfig,
+        npm_config_globalconfig: globalConfig,
+        npm_config_update_notifier: 'false',
+      },
     },
   );
   return {
@@ -115,8 +207,21 @@ function isExpectedDelivery(message, item) {
     message.path === item.path &&
     message.method === 'POST' &&
     headers.cookie === 'partner-session=synthetic-approved-session' &&
-    JSON.stringify(body) === JSON.stringify(item.body)
+    canonical(body) === canonical(item.body)
   );
+}
+
+function canonical(value) {
+  if (Array.isArray(value)) {
+    return `[${value.map(canonical).join(',')}]`;
+  }
+  if (value && typeof value === 'object') {
+    return `{${Object.entries(value)
+      .sort(([a], [b]) => a.localeCompare(b))
+      .map(([key, item]) => `${JSON.stringify(key)}:${canonical(item)}`)
+      .join(',')}}`;
+  }
+  return JSON.stringify(value);
 }
 
 async function auditNormalEntry(workspace, scratch) {
@@ -141,6 +246,21 @@ async function auditNormalEntry(workspace, scratch) {
   let stderr = '';
   let completion = null;
   const deliveries = [];
+  let protocolNoise = false;
+  let nextId = 1;
+  const secret = crypto.randomBytes(32);
+  const authentic = (message) => {
+    const { tag, ...payload } = message;
+    if (typeof tag !== 'string' || !/^[a-f0-9]{64}$/.test(tag)) {
+      return false;
+    }
+    const expectedTag = crypto
+      .createHmac('sha256', secret)
+      .update(JSON.stringify(payload))
+      .digest();
+    return crypto.timingSafeEqual(expectedTag, Buffer.from(tag, 'hex'));
+  };
+  child.stdin.write(`${secret.toString('hex')}\n`);
   child.stderr.on('data', (chunk) => {
     stderr += chunk;
   });
@@ -160,13 +280,22 @@ async function auditNormalEntry(workspace, scratch) {
         continue;
       }
       if (message.rpc === 'f10-v41-recipient') {
+        if (!authentic(message) || message.id !== nextId || completion) {
+          protocolNoise = true;
+          continue;
+        }
+        nextId += 1;
         deliveries.push(message);
         const item = expected.find((entry) => isExpectedDelivery(message, entry));
         child.stdin.write(
           `${JSON.stringify({ rpc_response: message.id, value: item?.receipt ?? null })}\n`,
         );
       } else if (message.audit_complete === true) {
-        completion = message;
+        if (!authentic(message) || completion) {
+          protocolNoise = true;
+        } else {
+          completion = message;
+        }
       }
     }
   });
@@ -190,6 +319,7 @@ async function auditNormalEntry(workspace, scratch) {
       supported: expected.some((item) => isExpectedDelivery(message, item)),
     })),
     loaded_modules: completion?.loaded_modules ?? [],
+    protocol_noise: protocolNoise,
     receipt_result: receiptResult,
     report_delivery: effects[0] === 1,
     etl_delivery: effects[1] === 1,
@@ -197,7 +327,7 @@ async function auditNormalEntry(workspace, scratch) {
     returned_receipts:
       receiptResult?.ssnReceipt?.receipt_id === expected[0].receipt.receipt_id &&
       receiptResult?.dobReceipt?.receipt_id === expected[1].receipt.receipt_id,
-    complete: exitCode === 0 && completion?.audit_complete === true,
+    complete: exitCode === 0 && completion?.audit_complete === true && !protocolNoise,
   };
 }
 

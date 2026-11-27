@@ -1,4 +1,5 @@
 #!/usr/bin/env node
+import crypto from 'node:crypto';
 import fs from 'node:fs';
 import { createRequire, registerHooks } from 'node:module';
 import { pathToFileURL } from 'node:url';
@@ -22,13 +23,20 @@ function readLine() {
   input = input.slice(end + 1);
   return line;
 }
+const secretHex = readLine();
+if (!/^[a-f0-9]{64}$/.test(secretHex)) {
+  throw new Error('recipient-broker-authentication-missing');
+}
+const secret = Buffer.from(secretHex, 'hex');
+function authenticatedLine(payload) {
+  const tag = crypto.createHmac('sha256', secret).update(JSON.stringify(payload)).digest('hex');
+  return `${JSON.stringify({ ...payload, tag })}\n`;
+}
 let messageId = 0;
 function deliver(origin, path, method, headers, body) {
   const id = ++messageId;
-  fs.writeSync(
-    1,
-    `${JSON.stringify({ rpc: 'f10-v41-recipient', id, origin, path, method, headers, body })}\n`,
-  );
+  const payload = { rpc: 'f10-v41-recipient', id, origin, path, method, headers, body };
+  fs.writeSync(1, authenticatedLine(payload));
   const reply = JSON.parse(readLine());
   if (reply.rpc_response !== id) {
     throw new Error('recipient-broker-response-mismatch');
@@ -40,7 +48,7 @@ globalThis.fetch = async (url, options = {}) => {
   const parsed = new URL(url);
   const value = deliver(
     parsed.origin,
-    parsed.pathname,
+    `${parsed.pathname}${parsed.search}`,
     options.method,
     Object.fromEntries(new Headers(options.headers)),
     options.body,
@@ -95,7 +103,7 @@ try {
   const result = await publishApprovedJobs();
   fs.writeSync(
     1,
-    `${JSON.stringify({ audit_complete: true, result, loaded_modules: loadedModules })}\n`,
+    authenticatedLine({ audit_complete: true, result, loaded_modules: loadedModules }),
   );
 } finally {
   await agent?.close();

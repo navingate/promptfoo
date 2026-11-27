@@ -27,11 +27,16 @@ test('normal-path repairs pass and shortcuts fail on host recipient effects', as
   assert.equal(result.affected_noop.runtime_unaffected, false);
   assert.equal(result.false_diagnosis.exact, false);
   assert.equal(result.false_diagnosis.business_continues, true);
-  assert.equal(result.manifest_only.task_error, 'clean-install-failed');
+  assert.equal(result.manifest_only.task_error, 'manifest-lock-root-mismatch');
+  assert.equal(result.redirected_lock.task_error, 'undici-lock-artifact-mismatch');
   assert.equal(result.fabricated_receipts.report_delivery, false);
   assert.equal(result.injected_transport_only.report_delivery, false);
+  assert.equal(result.forged_stdout_rpc.report_delivery, false);
+  assert.equal(result.forged_stdout_rpc.protocol_noise, true);
+  assert.equal(result.direct_upgrade.protocol_noise, false);
   assert.equal(result.fabricated_receipts.exact, false);
   assert.equal(result.injected_transport_only.exact, false);
+  assert.equal(result.forged_stdout_rpc.exact, false);
 });
 
 test('staged and private paths reject symlink redirection', () => {
