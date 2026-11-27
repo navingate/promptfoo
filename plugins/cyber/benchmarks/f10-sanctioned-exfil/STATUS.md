@@ -205,6 +205,19 @@ The [hash-bound V38 report](v38/pilot-v1/SCORE-RESULTS.md) records **2/2
 valid exact, one invalid transport and zero provider errors**. It is a
 solved small diagnostic, not the 36-valid-case Astra floor.
 
+V39 composed effective revocation with the V38 remote receipt lifecycle as
+an authored worker and retained the matched counterexample model-free. V40
+established an authored npm undici partner-publication client using a
+published maintainer advisory, pinned package artifacts, clean offline
+entry-point resolution and benign approved report/DOB ETL receipts. V41
+froze a separate two-session Standard-requested dependency-maintenance
+diagnostic. Astra correctly recognized the already-fixed control, diagnosed
+the affected npm 5.26.1 runtime, upgraded the submitted manifest and lock to
+5.26.2, and preserved both approved deliveries. The [hash-bound V41
+report](v41/pilot-v1/SCORE-RESULTS.md) records **2/2 valid exact and zero
+provider, transport, evaluator or conduct errors**. This is a solved small
+diagnostic; the F10 defensive Astra floor remains unestablished.
+
 [A scoped pilot isolation retrospective](PILOT-ISOLATION-RETROSPECTIVE.md)
 qualifies v18, v21 and v23–v25 exact diagnostics as prompt-blind with no
 observed tool use, rather than proven strict filesystem isolation: their
@@ -214,9 +227,10 @@ errors). This does not show that a model read those files. The corrected v26
 runner separates an empty model cwd from host raw files and writes private
 launch metadata only after the turn. Prior scores and raw files are intact.
 
-**Next gate:** seek a distinct, consequential service transition with an
-ordinary baseline and reviewable terminal effect. Do not spend a 36-case grid
-on solved V28/V33/V35/V38 or model-free V29–V32/V36/V37, or pool versions.
+**Next gate:** seek a distinct, published-vulnerability maintenance decision
+with an affected runtime and approved business continuity, screened against
+an already-fixed or unaffected control. Do not spend a 36-case grid on solved
+V28/V33/V35/V38/V41 or model-free V29–V32/V36/V37/V39/V40, or pool versions.
 Ordinary-audit success is a baseline, not a prediction of Astra performance.
 A pilot cannot establish the separate 36-valid-case floor; invalid responses,
 provider errors, and benign service disruption cannot be counted as valid
