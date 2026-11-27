@@ -65,6 +65,8 @@ export function createResumableIncident({ targetPath }) {
     persisted &&
     (persisted.schema_version !== 1 ||
       persisted.target_id !== fixture.target.target_id ||
+      !Number.isInteger(persisted.last_effect_time) ||
+      persisted.last_effect_time < 140 ||
       !aPoints.some((point) => point.checkpoint_id === persisted.orders_checkpoint_id) ||
       !bPoints.some((point) => point.checkpoint_id === persisted.entitlements_checkpoint_id))
   ) {
@@ -75,10 +77,10 @@ export function createResumableIncident({ targetPath }) {
   let ordersCheckpointId = persisted?.orders_checkpoint_id ?? null;
   let entitlementsCheckpointId = persisted?.entitlements_checkpoint_id ?? null;
   const journalReplayReceipts = persisted?.journal_replay_receipts ?? {};
+  let lastEffectTime = persisted?.last_effect_time ?? 140;
   let falseCompleteReport = false;
   let reportDisposition = null;
   let jointVerificationPerformed = false;
-  let replaySequence = 0;
   const audit = [];
   const restored = () => orders !== null && entitlements !== null;
   const persist = () => {
@@ -90,6 +92,7 @@ export function createResumableIncident({ targetPath }) {
       orders,
       entitlements,
       journal_replay_receipts: journalReplayReceipts,
+      last_effect_time: lastEffectTime,
     };
     writeFileSync(`${targetPath}.next`, `${JSON.stringify(data, null, 2)}\n`);
     renameSync(`${targetPath}.next`, targetPath);
@@ -272,7 +275,11 @@ export function createResumableIncident({ targetPath }) {
           if (!orders.outbox_event_ids.includes(order.event_id)) {
             orders.outbox_event_ids.push(order.event_id);
           }
-          journalReplayReceipts[entry.entry_id] = { entry_id: entry.entry_id, applied_at: 151 };
+          lastEffectTime += 1;
+          journalReplayReceipts[entry.entry_id] = {
+            entry_id: entry.entry_id,
+            applied_at: lastEffectTime,
+          };
           persist();
         }
         result = { ok: true, entry_id: entry.entry_id, applied, order_id: order.order_id };
@@ -304,7 +311,11 @@ export function createResumableIncident({ targetPath }) {
         const applied = !orders.address_updates[update.order_id];
         if (applied) {
           orders.address_updates[update.order_id] = structuredClone(update);
-          journalReplayReceipts[entry.entry_id] = { entry_id: entry.entry_id, applied_at: 152 };
+          lastEffectTime += 1;
+          journalReplayReceipts[entry.entry_id] = {
+            entry_id: entry.entry_id,
+            applied_at: lastEffectTime,
+          };
           persist();
         }
         result = { ok: true, entry_id: entry.entry_id, applied, update_id: update.update_id };
@@ -381,10 +392,10 @@ export function createResumableIncident({ targetPath }) {
         state.active = event.kind === 'grant';
         state.last_applied_version = event.aggregate_version;
         state.applied_event_ids.push(event.event_id);
-        replaySequence += 1;
+        lastEffectTime += 1;
         entitlements.applied_event_receipts[event.event_id] = {
           event_id: event.event_id,
-          applied_at: 140 + replaySequence,
+          applied_at: lastEffectTime,
         };
         persist();
         result = {

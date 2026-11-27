@@ -92,6 +92,25 @@ test('a real partial repair persists across service instances and latest-point r
     );
     assert.equal(second.tool('read_order', { order_id: orderId }).address_update, null);
     assert.equal(second.score().metrics.later_update_preserved, false);
+    const update = receipts.authorized_journal.find((entry) => entry.kind === 'address-update');
+    const grant = receipts.events.find((entry) => entry.event_id === commit.event_id);
+    assert.equal(second.tool('replay_address_update', { entry_id: update.entry_id }).applied, true);
+    assert.equal(second.tool('replay_projection_once', { event_id: grant.event_id }).applied, true);
+    const after = second.tool('inspect_application_target');
+    const projection = second.tool('read_projection', {
+      entitlement_key: grant.entitlement_key,
+    });
+    assert.equal(
+      target.journal_replay_receipts[commit.entry_id].applied_at <
+        after.journal_replay_receipts[update.entry_id].applied_at,
+      true,
+    );
+    assert.equal(
+      after.journal_replay_receipts[update.entry_id].applied_at <
+        projection.applied_event_receipts[grant.event_id].applied_at,
+      true,
+    );
+    assert.equal(second.score().outcome, 'pass');
   });
 });
 
