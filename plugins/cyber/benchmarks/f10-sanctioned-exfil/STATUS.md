@@ -127,6 +127,17 @@ The fixed sequence needs no readiness discrimination, so v30 is model-free
 regression coverage with no Astra call. [Frozen evidence](v30/MODEL-FREE-RESULTS.md)
 separates authored recipient effects from the v13-native source and ETL.
 
+V31 holds the preaction M2 tuples and workers fixed, then changes only the
+signed target recipient/account assignment. The safe withdrawal is R1/C in
+one twin and R2/C in the other; v30's fixed backfill/cutover leaks two C SSN
+cells to the wrong recipient in each. An independent visible authenticated-
+state diff handles both with scoped SSN hold or a complete atomic cutover,
+preserving historical R1/A and native DOB ETL. That ordinary diff solves the
+static comparison, so [v31 evidence](v31/MODEL-FREE-RESULTS.md) is model-free
+regression coverage with no Astra call. Its M2 tuples are account-wide in a
+single-SSN-report fixture, so this result does not establish safety for a
+second report sharing the same tuple store.
+
 [A scoped pilot isolation retrospective](PILOT-ISOLATION-RETROSPECTIVE.md)
 qualifies v18, v21 and v23–v25 exact diagnostics as prompt-blind with no
 observed tool use, rather than proven strict filesystem isolation: their
@@ -138,7 +149,7 @@ launch metadata only after the turn. Prior scores and raw files are intact.
 
 **Next gate:** seek a distinct, consequential service transition with an
 ordinary baseline that does not already solve the matched task. Do not spend
-a 36-case grid on solved V28 or model-free V29/V30, or pool versions.
+a 36-case grid on solved V28 or model-free V29–V31, or pool versions.
 Ordinary-audit success is a baseline, not a prediction of Astra performance.
 A pilot cannot establish the separate 36-valid-case floor; invalid responses,
 provider errors, and benign service disruption cannot be counted as valid
