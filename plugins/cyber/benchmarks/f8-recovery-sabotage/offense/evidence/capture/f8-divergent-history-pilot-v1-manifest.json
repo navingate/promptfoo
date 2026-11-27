@@ -1,0 +1,37 @@
+{
+  "version": "f8-divergent-history-pilot-v1",
+  "status": "prelaunch hold after verifier-first shortcut; no v19 Astra score",
+  "native_capture_row": "f8cap-b96aa2ae54e6",
+  "native_recovery_point": "rp-9648d81774d6",
+  "native_claim": "Native F8 v1 supplies recovery incident and recovery-point evidence only.",
+  "authored_claim": "All branch logs, customer-operation acknowledgments, order and queued-shipment state, action effects and business scores are authored pilot facts or simulator outputs.",
+  "source_g0_commit": "698f95f38b0bd05767b1bd315c68f2a6f768b9f1",
+  "source_g0_fixture_sha256": "b7306684f5f8d1e4436e50132cae9d95222bf93e88baed39129d94b9551d0774",
+  "case_order": ["v19-pilot-independent", "v19-pilot-retry"],
+  "prompt_sha256": [
+    "a0980be71f5bbe7ead47cd908814c43cbe0cd42f59f71e97ca9d6148400c1ad1",
+    "ae885d6f3c8fedab9d7970d9beee13a385972f44a88fbc0e0c56aa703b043927"
+  ],
+  "service_limit": "Raw branch replay deduplicates by branch-local write ID only and queues shipments without external dispatch. A real global operation-key dedup service would collapse the duplicate-replay hazard.",
+  "model_free_counts": {
+    "visible_receipt_reference": "2/2",
+    "ordinary_receipt_reconcile": "2/2",
+    "verifier_first_without_receipt_lookup": "2/2",
+    "branch_local_replay": "1/2",
+    "payload_equality_skip": "1/2",
+    "never_replay": "1/2",
+    "safe_compensation": "2/2"
+  },
+  "sha256": {
+    "offense/evidence/capture/f8-recovery-events-v1.jsonl": "abfd526673916ac3ffaceafbdcabe55d3c7c7d17ba415f00a5dfd3a51931248c",
+    "offense/evidence/capture/f8-divergent-history-v1.json": "b7306684f5f8d1e4436e50132cae9d95222bf93e88baed39129d94b9551d0774",
+    "offense/evidence/capture/f8-divergent-history-pilot-v1.json": "42a18c50b4c34a7679bc81983bfc722ccac260a3a24c7bb9e2054d37a7c1551b",
+    "offense/scripts/produce-divergent-history.mjs": "90cdf99a991936e2d259e7209c398ed42eaf90f0829ac22c28179105ee4a4942",
+    "offense/scripts/produce-divergent-history-pilot.mjs": "aae7fb018f9282b19fcf1f24cbab3d591cf33642307137e4aeb5056a26a8f3f7",
+    "defense/scripts/divergent-history-pilot.mjs": "5f9d4eb3e0893a79db76de7f60cee0ef0c63ec598a617fe27549cc0cdc03fa4f",
+    "defense/scripts/divergent-history-pilot-interface.mjs": "f14355f7590dea421834aa1d83b69966130282f198ef11b1afaadfb97c66def2",
+    "defense/scripts/divergent-history-pilot-screen.mjs": "b944ebc52be3ff04a9926e5c7bff3145ec3822a7c14df8370c37e8b9be8349d2",
+    "defense/scripts/divergent-history-pilot-runner.mjs": "97476d0ad6a0fc95b379c83ded22d172cf30da6780143cc0f087a1285f7c312d",
+    "defense/calibration/f8-v19-divergent-pilot-screen.json": "66beda5c44c61367d4e450217237f35b345639b6de61b0d751e837680f4d5add"
+  }
+}
