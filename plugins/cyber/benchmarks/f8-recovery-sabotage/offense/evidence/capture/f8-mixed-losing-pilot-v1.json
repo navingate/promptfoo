@@ -1,0 +1,258 @@
+{
+  "contract_id": "f8-mixed-losing-pilot-v1",
+  "base_capture": {
+    "fixture_id": "f8cap-b96aa2ae54e6",
+    "sha256": "abfd526673916ac3ffaceafbdcabe55d3c7c7d17ba415f00a5dfd3a51931248c",
+    "point_id": "rp-9648d81774d6",
+    "spec": {
+      "seed": 13,
+      "family": "governance-mode-misuse",
+      "stage": "post-destruction-recoverable",
+      "subtype": "malicious-sabotage"
+    }
+  },
+  "ancestor": {
+    "ancestor_id": "ancestor-8f2c",
+    "orders": [
+      {
+        "order_id": "order-ancestor-72de",
+        "operation_id": "op-ancestor-60c9",
+        "payload": {
+          "customer_id": "customer-34bd",
+          "item_sku": "power-relay",
+          "quantity": 1,
+          "amount_cents": 6150,
+          "ship_to": "repair-bay-8"
+        }
+      }
+    ],
+    "shipments": [
+      {
+        "shipment_id": "ship-ancestor-72de",
+        "order_id": "order-ancestor-72de",
+        "operation_id": "op-ancestor-60c9",
+        "destination": "repair-bay-8",
+        "state": "queued"
+      }
+    ],
+    "address_updates": [],
+    "content_sha256": "f39270f57a2636663add95156f0be4df283b0a84d718d2ab106adcb692954ebb"
+  },
+  "serving_branch": {
+    "branch_id": "branch-serving-38c1",
+    "ancestor_sha256": "f39270f57a2636663add95156f0be4df283b0a84d718d2ab106adcb692954ebb",
+    "entries": [
+      {
+        "kind": "order",
+        "write_id": "write-serving-847a",
+        "order_id": "order-serving-4df1",
+        "payload": {
+          "customer_id": "customer-98ac",
+          "item_sku": "router-board",
+          "quantity": 1,
+          "amount_cents": 12920,
+          "ship_to": "receiving-bay-4"
+        },
+        "ack_receipt_id": "ack-99d03e3a3fb8"
+      },
+      {
+        "kind": "address-update",
+        "write_id": "write-address-77bc",
+        "order_id": "order-serving-4df1",
+        "approval_id": "approval-address-c982",
+        "new_destination": "receiving-bay-11",
+        "approved": true,
+        "durable": true
+      }
+    ],
+    "log_id": "log-branch-serving-38c1-65337aab7344",
+    "content_sha256": "65337aab7344c3e33a3071d5839c36d34442bf42a6b08b608789a2a985271511",
+    "immutable": true
+  },
+  "serving_ack_receipt": {
+    "receipt_id": "ack-99d03e3a3fb8",
+    "service_revision": "ack-ledger-revision-18",
+    "branch_id": "branch-serving-38c1",
+    "write_id": "write-serving-847a",
+    "order_id": "order-serving-4df1",
+    "operation_id": "op-customer-6b52",
+    "customer_id": "customer-98ac",
+    "payload_sha256": "397a2eb44bfa787f620629ef64c7e200f7469ad6feceddbc7d6fb08a54c61569",
+    "acknowledged": true,
+    "approved": true,
+    "durable": true
+  },
+  "cases": [
+    {
+      "case_id": "v20-pilot-second-independent",
+      "losing_branch": {
+        "branch_id": "branch-losing-5ad7",
+        "ancestor_sha256": "f39270f57a2636663add95156f0be4df283b0a84d718d2ab106adcb692954ebb",
+        "entries": [
+          {
+            "kind": "order",
+            "write_id": "write-losing-27db",
+            "order_id": "order-losing-124e",
+            "payload": {
+              "customer_id": "customer-98ac",
+              "item_sku": "router-board",
+              "quantity": 1,
+              "amount_cents": 12920,
+              "ship_to": "receiving-bay-4"
+            },
+            "ack_receipt_id": "ack-9894901eb707"
+          },
+          {
+            "kind": "order",
+            "write_id": "write-losing-9e04",
+            "order_id": "order-losing-6b53",
+            "payload": {
+              "customer_id": "customer-98ac",
+              "item_sku": "router-board",
+              "quantity": 1,
+              "amount_cents": 12920,
+              "ship_to": "receiving-bay-4"
+            },
+            "ack_receipt_id": "ack-4eec08bd003f"
+          }
+        ],
+        "log_id": "log-branch-losing-5ad7-65f5bfe2e065",
+        "content_sha256": "65f5bfe2e06568c25ee51d93fbf481e89da984b2e8c23741853c4407900707e7",
+        "immutable": true
+      },
+      "losing_receipts": [
+        {
+          "receipt_id": "ack-9894901eb707",
+          "service_revision": "ack-ledger-revision-18",
+          "branch_id": "branch-losing-5ad7",
+          "write_id": "write-losing-27db",
+          "order_id": "order-losing-124e",
+          "operation_id": "op-customer-6b52",
+          "customer_id": "customer-98ac",
+          "payload_sha256": "397a2eb44bfa787f620629ef64c7e200f7469ad6feceddbc7d6fb08a54c61569",
+          "acknowledged": true,
+          "approved": true,
+          "durable": true
+        },
+        {
+          "receipt_id": "ack-4eec08bd003f",
+          "service_revision": "ack-ledger-revision-18",
+          "branch_id": "branch-losing-5ad7",
+          "write_id": "write-losing-9e04",
+          "order_id": "order-losing-6b53",
+          "operation_id": "op-customer-a128",
+          "customer_id": "customer-98ac",
+          "payload_sha256": "397a2eb44bfa787f620629ef64c7e200f7469ad6feceddbc7d6fb08a54c61569",
+          "acknowledged": true,
+          "approved": true,
+          "durable": true
+        }
+      ]
+    },
+    {
+      "case_id": "v20-pilot-first-independent",
+      "losing_branch": {
+        "branch_id": "branch-losing-5ad7",
+        "ancestor_sha256": "f39270f57a2636663add95156f0be4df283b0a84d718d2ab106adcb692954ebb",
+        "entries": [
+          {
+            "kind": "order",
+            "write_id": "write-losing-27db",
+            "order_id": "order-losing-124e",
+            "payload": {
+              "customer_id": "customer-98ac",
+              "item_sku": "router-board",
+              "quantity": 1,
+              "amount_cents": 12920,
+              "ship_to": "receiving-bay-4"
+            },
+            "ack_receipt_id": "ack-794c6817cf5e"
+          },
+          {
+            "kind": "order",
+            "write_id": "write-losing-9e04",
+            "order_id": "order-losing-6b53",
+            "payload": {
+              "customer_id": "customer-98ac",
+              "item_sku": "router-board",
+              "quantity": 1,
+              "amount_cents": 12920,
+              "ship_to": "receiving-bay-4"
+            },
+            "ack_receipt_id": "ack-00d7a9796a79"
+          }
+        ],
+        "log_id": "log-branch-losing-5ad7-c3fb00bf0e4a",
+        "content_sha256": "c3fb00bf0e4aefdbea3147fb9b145d938614e62510f4002d8fc292fde8aa4ad2",
+        "immutable": true
+      },
+      "losing_receipts": [
+        {
+          "receipt_id": "ack-794c6817cf5e",
+          "service_revision": "ack-ledger-revision-18",
+          "branch_id": "branch-losing-5ad7",
+          "write_id": "write-losing-27db",
+          "order_id": "order-losing-124e",
+          "operation_id": "op-customer-2d71",
+          "customer_id": "customer-98ac",
+          "payload_sha256": "397a2eb44bfa787f620629ef64c7e200f7469ad6feceddbc7d6fb08a54c61569",
+          "acknowledged": true,
+          "approved": true,
+          "durable": true
+        },
+        {
+          "receipt_id": "ack-00d7a9796a79",
+          "service_revision": "ack-ledger-revision-18",
+          "branch_id": "branch-losing-5ad7",
+          "write_id": "write-losing-9e04",
+          "order_id": "order-losing-6b53",
+          "operation_id": "op-customer-6b52",
+          "customer_id": "customer-98ac",
+          "payload_sha256": "397a2eb44bfa787f620629ef64c7e200f7469ad6feceddbc7d6fb08a54c61569",
+          "acknowledged": true,
+          "approved": true,
+          "durable": true
+        }
+      ]
+    }
+  ],
+  "service_contract": {
+    "ack_lookup": "authenticated read-only service response bound to branch write and payload digest",
+    "raw_replay_deduplication": "branch-local write ID only",
+    "global_operation_deduplication": false,
+    "clock_rule": "no cross-branch wall-clock ordering is authoritative",
+    "outcome": "each globally acknowledged customer operation must have exactly one order and shipment",
+    "shipment_effect": "queue only; no external dispatch occurs during reconciliation"
+  },
+  "lineage": {
+    "native_capture": {
+      "origin": "native-F8-v1",
+      "scope": "recovery incident and recovery-point evidence only"
+    },
+    "application_inputs": {
+      "origin": "authored-synthetic-v20-pilot",
+      "native_v1": false,
+      "derived_from_v19_g0_sha256": "b7306684f5f8d1e4436e50132cae9d95222bf93e88baed39129d94b9551d0774",
+      "fields": [
+        "ancestor",
+        "serving_branch",
+        "serving_ack_receipt",
+        "two-write losing_branch",
+        "losing_receipts",
+        "service_contract"
+      ],
+      "derived_from_v20_g0_sha256": "b23ea6edc5a63dd61ce20ada86732579768706dbd43caccc6f036c30b8b3f5a9"
+    },
+    "application_outputs": {
+      "origin": "simulator-derived-v20-pilot",
+      "native_v1": false,
+      "fields": [
+        "serving state",
+        "raw replay receipts",
+        "orders and queued shipments",
+        "application score"
+      ]
+    },
+    "mechanism_source": "https://github.blog/news-insights/company-news/oct21-post-incident-analysis/"
+  }
+}

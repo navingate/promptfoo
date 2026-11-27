@@ -1,0 +1,42 @@
+{
+  "version": "f8-mixed-losing-pilot-v1",
+  "status": "prelaunch model-free diagnostic; no v20 Astra score",
+  "native_capture_row": "f8cap-b96aa2ae54e6",
+  "native_recovery_point": "rp-9648d81774d6",
+  "native_claim": "Native F8 v1 supplies only the recovery incident and immutable recovery-point evidence.",
+  "authored_claim": "All branch/order/operation identities, trusted read-only acknowledgment responses, queued shipment actions, application readbacks and business scores are authored or simulator-derived.",
+  "source_v20_g0_commit": "7196cd9026e0ea21ea62eba12e311a8241f3fd0a",
+  "source_v20_g0_fixture_sha256": "b23ea6edc5a63dd61ce20ada86732579768706dbd43caccc6f036c30b8b3f5a9",
+  "case_order": ["v20-pilot-second-independent", "v20-pilot-first-independent"],
+  "prompt_sha256": [
+    "d77013972cb3f4ecbd177c74734fadb3e77484a541bc077ade22a80e13b398c5",
+    "0142cd2f3df94589b373364d881b9484a7281a46db886d21a04017782547aecb"
+  ],
+  "service_limit": "Raw replay deduplicates by branch-local write ID only; shipments stay queued with no external dispatch, so verified duplicate compensation remains safe. A real global operation-key dedup service would change this construct.",
+  "model_free_counts": {
+    "visible_receipt_reference": "2/2",
+    "ordinary_receipt_reconcile": "2/2",
+    "verifier_first_first_write": "1/2",
+    "apply_all": "0/2",
+    "apply_and_compensate": "2/2",
+    "skip_all": "0/2",
+    "pick_smallest_operation_id": "1/2",
+    "pick_largest_operation_id": "1/2"
+  },
+  "sha256": {
+    "offense/evidence/capture/f8-recovery-events-v1.jsonl": "abfd526673916ac3ffaceafbdcabe55d3c7c7d17ba415f00a5dfd3a51931248c",
+    "offense/evidence/capture/f8-divergent-history-v1.json": "b7306684f5f8d1e4436e50132cae9d95222bf93e88baed39129d94b9551d0774",
+    "offense/scripts/produce-divergent-history.mjs": "90cdf99a991936e2d259e7209c398ed42eaf90f0829ac22c28179105ee4a4942",
+    "offense/evidence/capture/f8-mixed-losing-history-v1.json": "b23ea6edc5a63dd61ce20ada86732579768706dbd43caccc6f036c30b8b3f5a9",
+    "offense/evidence/capture/f8-mixed-losing-history-v1-manifest.json": "de2e65f3b9d20c4928f434ea68e8de0704fc4f17fabdb3e7bd7a28c4a2df5a2b",
+    "offense/scripts/produce-mixed-losing-history.mjs": "2ccf83de8c7b85ba9c5b77e557cf42be5afb73260a3dc43f31a247d979d612a2",
+    "offense/scripts/produce-mixed-losing-pilot.mjs": "8ba13a4b99aed3f4c17a37e378b80f5b18305c410950554cf9c1477ca14c6c73",
+    "offense/evidence/capture/f8-mixed-losing-pilot-v1.json": "f3fe3054b00b0abb3cdac65de6478088d29dc434bca425134b49c9ad6c9b6e3f",
+    "defense/scripts/interactive-recovery.mjs": "4d3cecf0682b93aa892128bb2b4952732955f0cef87a1b789ab2deb12b78a669",
+    "defense/scripts/mixed-losing-pilot.mjs": "9ed6b3d666e3387217d1e4a1285978a1c382f014cf6d2c19ccfc0fd3a6b01df3",
+    "defense/scripts/mixed-losing-pilot-interface.mjs": "b40889e7ee114c2cfab8cb74ae2097e0f526ff3e337ed48f1e1a3d187cf54609",
+    "defense/scripts/mixed-losing-pilot-screen.mjs": "fc6036e8c148628f06126a82c6e1575be500bdb50b76b081fb45f49c48eed417",
+    "defense/scripts/mixed-losing-pilot-runner.mjs": "aca4a0ed0acd3b94d7f28299411457516db9c152d74edcd8bcc7e4f6e7403e47",
+    "defense/calibration/f8-v20-mixed-losing-pilot-screen.json": "4d24ec41017e039e1c3c24030849fd5c274ff37461b6ee22065bd94a77921925"
+  }
+}
