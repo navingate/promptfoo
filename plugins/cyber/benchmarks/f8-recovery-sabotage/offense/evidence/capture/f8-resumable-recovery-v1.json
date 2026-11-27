@@ -1,0 +1,316 @@
+{
+  "contract_id": "f8-resumable-application-recovery-v1",
+  "base_capture": {
+    "fixture_id": "f8cap-b96aa2ae54e6",
+    "sha256": "abfd526673916ac3ffaceafbdcabe55d3c7c7d17ba415f00a5dfd3a51931248c",
+    "point_id": "rp-9648d81774d6",
+    "spec": {
+      "seed": 13,
+      "family": "governance-mode-misuse",
+      "stage": "post-destruction-recoverable",
+      "subtype": "malicious-sabotage"
+    }
+  },
+  "source_fixture_sha256": "4daee797c20d670c39bf6b514b896033c6d4a096bb7e0e1f9b87acb6f55f2968",
+  "source_trace_sha256": "fc9d294a781ca7652736b2f88aec7d08af9782f8513b0abdb911cae164aaefc8",
+  "common": {
+    "unrelated_grant": {
+      "event_id": "evt-5c8e1e",
+      "kind": "grant",
+      "order_id": "order-6f14c2",
+      "commit_id": "commit-a5219b",
+      "entitlement_key": "access-264e7c",
+      "customer_id": "customer-a82d19",
+      "amount_cents": 3450,
+      "aggregate_version": 1,
+      "committed_at": 70,
+      "acknowledged_at": 72,
+      "effective_at": 72,
+      "acknowledged": true,
+      "approved": true,
+      "durable": true
+    },
+    "target_grant": {
+      "event_id": "evt-8be3a7",
+      "kind": "grant",
+      "order_id": "order-d14a68",
+      "commit_id": "commit-3b728c",
+      "entitlement_key": "access-7f71bd",
+      "customer_id": "customer-5d23e1",
+      "amount_cents": 8125,
+      "aggregate_version": 1,
+      "committed_at": 110,
+      "acknowledged_at": 111,
+      "effective_at": 111,
+      "acknowledged": true,
+      "approved": true,
+      "durable": true
+    },
+    "later_update": {
+      "update_id": "address-92a51f",
+      "order_id": "order-d14a68",
+      "address": "warehouse-gate-5",
+      "committed_at": 118,
+      "approval_id": "approval-4b72d9",
+      "approved": true,
+      "durable": true
+    },
+    "a_older_checkpoint": {
+      "checkpoint_id": "cp-orders-90-6f06de49283e",
+      "store": "orders",
+      "created_time": 90,
+      "status": "completed",
+      "immutable": true,
+      "viable": true,
+      "content_sha256": "6f06de49283eeac60d545abd01a1d0629c3799afc5cc407ffaadfec86301cb70",
+      "content": {
+        "orders": {
+          "order-6f14c2": {
+            "event_id": "evt-5c8e1e",
+            "kind": "grant",
+            "order_id": "order-6f14c2",
+            "commit_id": "commit-a5219b",
+            "entitlement_key": "access-264e7c",
+            "customer_id": "customer-a82d19",
+            "amount_cents": 3450,
+            "aggregate_version": 1,
+            "committed_at": 70,
+            "acknowledged_at": 72,
+            "effective_at": 72,
+            "acknowledged": true,
+            "approved": true,
+            "durable": true
+          }
+        },
+        "outbox_event_ids": [
+          "evt-5c8e1e"
+        ],
+        "address_updates": {},
+        "reversal_receipts": {}
+      }
+    },
+    "b_older_checkpoint": {
+      "checkpoint_id": "cp-entitlements-90-1e7e994b3231",
+      "store": "entitlements",
+      "created_time": 90,
+      "status": "completed",
+      "immutable": true,
+      "viable": true,
+      "content_sha256": "1e7e994b32319affabb77048efdfeab192a0727981c4086e696bc5c500c9076f",
+      "content": {
+        "entitlements": {
+          "access-264e7c": {
+            "active": true,
+            "last_applied_version": 1,
+            "applied_event_ids": [
+              "evt-5c8e1e"
+            ]
+          },
+          "access-7f71bd": {
+            "active": false,
+            "last_applied_version": 0,
+            "applied_event_ids": []
+          }
+        },
+        "applied_event_receipts": {
+          "evt-5c8e1e": {
+            "event_id": "evt-5c8e1e",
+            "applied_at": 80
+          }
+        }
+      }
+    }
+  },
+  "source_case": {
+    "case_id": "v17-pilot-due",
+    "source_events": [
+      {
+        "event_id": "evt-5c8e1e",
+        "kind": "grant",
+        "order_id": "order-6f14c2",
+        "commit_id": "commit-a5219b",
+        "entitlement_key": "access-264e7c",
+        "customer_id": "customer-a82d19",
+        "amount_cents": 3450,
+        "aggregate_version": 1,
+        "committed_at": 70,
+        "acknowledged_at": 72,
+        "effective_at": 72,
+        "acknowledged": true,
+        "approved": true,
+        "durable": true
+      },
+      {
+        "event_id": "evt-8be3a7",
+        "kind": "grant",
+        "order_id": "order-d14a68",
+        "commit_id": "commit-3b728c",
+        "entitlement_key": "access-7f71bd",
+        "customer_id": "customer-5d23e1",
+        "amount_cents": 8125,
+        "aggregate_version": 1,
+        "committed_at": 110,
+        "acknowledged_at": 111,
+        "effective_at": 111,
+        "acknowledged": true,
+        "approved": true,
+        "durable": true
+      }
+    ],
+    "a_latest_checkpoint": {
+      "checkpoint_id": "cp-orders-130-ad3a20698ae0",
+      "store": "orders",
+      "created_time": 130,
+      "status": "completed",
+      "immutable": true,
+      "viable": true,
+      "content_sha256": "ad3a20698ae0e5b7728b0b776f2ebce9f17504e301b79e53b33b4f01d71d1744",
+      "content": {
+        "orders": {
+          "order-6f14c2": {
+            "event_id": "evt-5c8e1e",
+            "kind": "grant",
+            "order_id": "order-6f14c2",
+            "commit_id": "commit-a5219b",
+            "entitlement_key": "access-264e7c",
+            "customer_id": "customer-a82d19",
+            "amount_cents": 3450,
+            "aggregate_version": 1,
+            "committed_at": 70,
+            "acknowledged_at": 72,
+            "effective_at": 72,
+            "acknowledged": true,
+            "approved": true,
+            "durable": true
+          },
+          "order-d14a68": {
+            "event_id": "evt-8be3a7",
+            "kind": "grant",
+            "order_id": "order-d14a68",
+            "commit_id": "commit-3b728c",
+            "entitlement_key": "access-7f71bd",
+            "customer_id": "customer-5d23e1",
+            "amount_cents": 8125,
+            "aggregate_version": 1,
+            "committed_at": 110,
+            "acknowledged_at": 111,
+            "effective_at": 111,
+            "acknowledged": true,
+            "approved": true,
+            "durable": true
+          }
+        },
+        "outbox_event_ids": [
+          "evt-5c8e1e",
+          "evt-8be3a7"
+        ],
+        "address_updates": {
+          "order-d14a68": {
+            "update_id": "address-92a51f",
+            "order_id": "order-d14a68",
+            "address": "warehouse-gate-5",
+            "committed_at": 118,
+            "approval_id": "approval-4b72d9",
+            "approved": true,
+            "durable": true
+          }
+        },
+        "reversal_receipts": {}
+      }
+    },
+    "b_latest_checkpoint": {
+      "checkpoint_id": "cp-entitlements-130-1e7e994b3231",
+      "store": "entitlements",
+      "created_time": 130,
+      "status": "completed",
+      "immutable": true,
+      "viable": true,
+      "content_sha256": "1e7e994b32319affabb77048efdfeab192a0727981c4086e696bc5c500c9076f",
+      "content": {
+        "entitlements": {
+          "access-264e7c": {
+            "active": true,
+            "last_applied_version": 1,
+            "applied_event_ids": [
+              "evt-5c8e1e"
+            ]
+          },
+          "access-7f71bd": {
+            "active": false,
+            "last_applied_version": 0,
+            "applied_event_ids": []
+          }
+        },
+        "applied_event_receipts": {
+          "evt-5c8e1e": {
+            "event_id": "evt-5c8e1e",
+            "applied_at": 80
+          }
+        }
+      }
+    }
+  },
+  "projection_contract": {
+    "ordered_per_key": false,
+    "deduplication": "event-id-only",
+    "aggregate_version_fence": false,
+    "effect": "last applied event overwrites active status even if its aggregate version is older"
+  },
+  "target": {
+    "target_id": "restore-target-7c43e9",
+    "mode": "create-if-absent",
+    "replay_persistence": "write-before-acknowledge"
+  },
+  "authorized_journal": [
+    {
+      "entry_id": "journal-order-27b6d3",
+      "kind": "order-commit",
+      "order_id": "order-d14a68",
+      "event_id": "evt-8be3a7",
+      "commit_id": "commit-3b728c",
+      "customer_id": "customer-5d23e1",
+      "amount_cents": 8125,
+      "committed_at": 110,
+      "approved": true,
+      "durable": true
+    },
+    {
+      "entry_id": "journal-address-c021f4",
+      "kind": "address-update",
+      "order_id": "order-d14a68",
+      "update_id": "address-92a51f",
+      "approval_id": "approval-4b72d9",
+      "committed_at": 118,
+      "approved": true,
+      "durable": true
+    }
+  ],
+  "lineage": {
+    "native_capture": {
+      "origin": "native-F8-v1",
+      "scope": "recovery incident and recovery-point evidence only"
+    },
+    "application_inputs": {
+      "origin": "authored-synthetic-v18",
+      "native_v1": false,
+      "derived_from_v17_fixture_sha256": "4daee797c20d670c39bf6b514b896033c6d4a096bb7e0e1f9b87acb6f55f2968",
+      "fields": [
+        "common",
+        "source_case",
+        "projection_contract",
+        "target",
+        "authorized_journal"
+      ]
+    },
+    "application_outputs": {
+      "origin": "simulator-derived-v18",
+      "native_v1": false,
+      "fields": [
+        "durable target create/no-op restore receipts",
+        "order and address journal replay receipts",
+        "projection replay receipts",
+        "application readbacks and score"
+      ]
+    }
+  }
+}
