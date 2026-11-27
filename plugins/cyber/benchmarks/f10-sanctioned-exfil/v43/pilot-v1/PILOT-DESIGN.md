@@ -8,8 +8,11 @@ prelaunch review.
 The intended model workspace is one neutral root/worker installation per
 fresh session. It contains the published advisory, unchanged publisher,
 root and worker manifests/locks, a public offline resolver check, an empty
-assessment record and all pinned tarballs. A fresh session edits its own
-workspace. The affected and already-patched controls differ only in the
+assessment record and all pinned tarballs. A fresh session edits only its
+root/worker dependency files and assessment record. The Axios publisher and
+benign service code are immutable; replacement-library source rewrites are
+outside this pilot's narrow maintenance contract. The affected and
+already-patched controls differ only in the
 worker's transitive `follow-redirects` lock resolution. One model response is
 one maintenance decision, not one score per receipt. Diagnosis of the
 starting worker runtime and actual repaired runtime/business continuity are
@@ -20,16 +23,17 @@ The model's filesystem permission profile must deny host scorer, sibling
 case, raw records and private truth. Its network remains disabled. The public
 check therefore performs only offline `npm ci` and entry-point resolver/import
 inspection; it never opens a socket or claims publication success. The host
-scorer later copies submitted files to fresh scratch, validates package and
-lock paths against pinned artifacts, clean-installs offline, and executes the
-submitted publisher's normal Axios entry under narrowed file/process
+scorer later copies submitted dependency files to fresh scratch with the
+trusted fixed publisher, validates package and lock paths against pinned
+artifacts, clean-installs offline, and executes the publisher's normal Axios
+entry under narrowed file/process
 permissions with only loopback networking. A trusted host proxy counts exact
 approved report and DOB ETL POSTs and issues receipts. Candidate stdout
 cannot create a host receipt. The host checks the actually loaded worker
 dependency and real sink effects; package labels or the assessment alone
-cannot satisfy remediation. An ordinary supported worker lock update,
-direct pinned dependency, or equivalent safe replacement is credited by
-those effects. A root-only patch and manifest-only bump must fail.
+cannot satisfy remediation. An ordinary supported worker lock update, direct
+pinned dependency or supported override is credited by those effects. A
+root-only patch and manifest-only bump must fail.
 
 The normal local proxy check and loopback network allowance are host-only.
 The model is not penalized for the observed `EPERM` when a socket is opened
@@ -53,3 +57,13 @@ check with both receipts. That profile still had broad file access, so it is
 not a host-scorer isolation pass. The exact model-facing input, scored host
 profile, validity rules and launch ledger remain to be built and reviewed
 after the first-wave decision.
+
+A separate **unfrozen host-scorer prototype** now copies only submitted
+dependency files into scratch and uses the trusted fixed publisher. It checks
+all root/worker lock paths and published tarball integrities before offline
+installation, then runs the normal Axios publisher with Node file/process
+permissions and loopback-only Seatbelt networking. Model-free controls cover
+affected root-only behavior, the fixed case, worker-lock repair, direct pinned
+worker repair, supported override, manifest-only failure, lock path escape,
+malformed dependency metadata, and private file/write/process denials. These
+checks do not establish prompt isolation, a launch protocol, or a blind score.
