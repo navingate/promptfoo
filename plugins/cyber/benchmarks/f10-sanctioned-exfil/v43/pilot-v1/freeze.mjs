@@ -34,6 +34,7 @@ const localSources = [
   'run.mjs',
   'freeze.mjs',
   'PROTOCOL.md',
+  'evidence/SUPERSEDED.md',
 ];
 const inheritedSources = [
   '../../v28/pilot-v1/events.mjs',
@@ -78,7 +79,7 @@ export function expectedManifest(sourceCommit) {
     }
   }
   return {
-    schema_version: 'f10-v43-follow-redirects-astra-diagnostic-v1',
+    schema_version: 'f10-v43-follow-redirects-astra-diagnostic-v2',
     source_commit: sourceCommit,
     source_hashes: Object.fromEntries(
       [...localSources, ...inheritedSources].map((name) => [
