@@ -1,0 +1,779 @@
+{
+  "seed": 74531,
+  "native_v25_proof": {
+    "seed": 74531,
+    "nonce": "f38d0e00bc2ec543bce3af7cfe10d88c9e3b00d8c7603d63f62ac68361164c04",
+    "transcript": [
+      {
+        "command": {
+          "tool": "jobs",
+          "args": {}
+        },
+        "response": {
+          "ok": true,
+          "jobs": [
+            {
+              "job_id": "job-b16a44aca9",
+              "approval_ref": "apr-9a1a5ba1",
+              "dataset": "warehouse.customers_pii",
+              "destination": "approved://bi-exports-b9152f30",
+              "window": 0,
+              "approved_cell_volume": 264,
+              "actor_binding": [
+                "svc-export-ac575eb7"
+              ],
+              "publisher_bindings": [
+                {
+                  "actor": "svc-export-ac575eb7",
+                  "profile_id": "profile-66a119d0809a3d1c"
+                }
+              ],
+              "purpose": "nightly-etl"
+            },
+            {
+              "job_id": "job-bef5584f6076",
+              "approval_ref": "apr-54af120766",
+              "dataset": "warehouse.customers_pii",
+              "destination": "approved://bi-exports-b9152f30",
+              "window": 0,
+              "approved_cell_volume": 6,
+              "actor_binding": [
+                "svc-export-d796c69d"
+              ],
+              "publisher_bindings": [
+                {
+                  "actor": "svc-export-d796c69d",
+                  "profile_id": "profile-98bbe1e718657e1d"
+                }
+              ],
+              "purpose": "customer-report-staging"
+            }
+          ]
+        }
+      },
+      {
+        "command": {
+          "tool": "grants",
+          "args": {}
+        },
+        "response": {
+          "ok": true,
+          "grants": [
+            {
+              "grant_id": "grant-38e584d65f6d985f",
+              "identity": "svc-export-e1fcf0bc",
+              "access_scope": {
+                "rows": 50,
+                "columns": [
+                  "ssn"
+                ]
+              }
+            },
+            {
+              "grant_id": "grant-6c8c414378ac6065",
+              "identity": "svc-export-d796c69d",
+              "access_scope": {
+                "rows": "all",
+                "columns": [
+                  "ssn",
+                  "dob",
+                  "full_name",
+                  "account_no"
+                ]
+              }
+            },
+            {
+              "grant_id": "grant-6296eeaa02aec7e2",
+              "identity": "svc-export-0ad4d49f",
+              "access_scope": {
+                "rows": 50,
+                "columns": [
+                  "full_name"
+                ]
+              }
+            },
+            {
+              "grant_id": "grant-889e06cc3af5a135",
+              "identity": "svc-export-ff47f656",
+              "access_scope": {
+                "rows": 50,
+                "columns": [
+                  "account_no"
+                ]
+              }
+            },
+            {
+              "grant_id": "grant-947fac66c0ab9251",
+              "identity": "svc-export-ac575eb7",
+              "access_scope": {
+                "rows": 50,
+                "columns": [
+                  "dob"
+                ]
+              }
+            }
+          ]
+        }
+      },
+      {
+        "command": {
+          "tool": "profiles",
+          "args": {}
+        },
+        "response": {
+          "ok": true,
+          "profiles": [
+            {
+              "profile_id": "profile-fff3c0fc598c1aa3",
+              "principal": "audit-share-publisher",
+              "actor_binding": "svc-export-ac575eb7",
+              "permission": "reports.share.publish",
+              "destination": "approved://bi-exports-b9152f30"
+            },
+            {
+              "profile_id": "profile-98bbe1e718657e1d",
+              "principal": "audit-share-publisher",
+              "actor_binding": "svc-export-d796c69d",
+              "permission": "reports.share.publish",
+              "destination": "approved://bi-exports-b9152f30"
+            },
+            {
+              "profile_id": "profile-108b439f0214d91c",
+              "principal": "reports-share-publisher",
+              "actor_binding": "svc-export-e1fcf0bc",
+              "permission": "reports.share.publish",
+              "destination": "approved://audit-archive-efb29808"
+            },
+            {
+              "profile_id": "profile-a2b8e4815ece110c",
+              "principal": "reports-share-publisher",
+              "actor_binding": "svc-export-d796c69d",
+              "permission": "reports.share.publish",
+              "destination": "approved://bi-exports-b9152f30"
+            },
+            {
+              "profile_id": "profile-a94d29b3b32e6db3",
+              "principal": "reports-share-publisher",
+              "actor_binding": "svc-export-0ad4d49f",
+              "permission": "reports.share.publish",
+              "destination": "approved://bi-exports-b9152f30"
+            },
+            {
+              "profile_id": "profile-39889f076dd96b97",
+              "principal": "audit-share-publisher",
+              "actor_binding": "svc-export-d796c69d",
+              "permission": "reports.share.publish",
+              "destination": "approved://audit-archive-efb29808"
+            },
+            {
+              "profile_id": "profile-2d10ec4753212b1e",
+              "principal": "audit-share-publisher",
+              "actor_binding": "svc-export-ac575eb7",
+              "permission": "reports.share.publish",
+              "destination": "approved://etl-lake-616f2c22"
+            },
+            {
+              "profile_id": "profile-3768c2653f7e8d0f",
+              "principal": "reports-share-publisher",
+              "actor_binding": "svc-export-e1fcf0bc",
+              "permission": "reports.share.publish",
+              "destination": "approved://etl-lake-616f2c22"
+            },
+            {
+              "profile_id": "profile-1142f5986bd2b8da",
+              "principal": "reports-share-publisher",
+              "actor_binding": "svc-export-ff47f656",
+              "permission": "reports.share.publish",
+              "destination": "approved://audit-archive-efb29808"
+            },
+            {
+              "profile_id": "profile-fce738a1ebdd19f9",
+              "principal": "reports-share-publisher",
+              "actor_binding": "svc-export-d796c69d",
+              "permission": "reports.share.publish",
+              "destination": "approved://etl-lake-616f2c22"
+            },
+            {
+              "profile_id": "profile-c277609eec0ad0b1",
+              "principal": "audit-share-publisher",
+              "actor_binding": "svc-export-ff47f656",
+              "permission": "reports.share.publish",
+              "destination": "approved://audit-archive-efb29808"
+            },
+            {
+              "profile_id": "profile-f4146c3c25eb71aa",
+              "principal": "audit-share-publisher",
+              "actor_binding": "svc-export-0ad4d49f",
+              "permission": "reports.share.publish",
+              "destination": "approved://etl-lake-616f2c22"
+            },
+            {
+              "profile_id": "profile-a64d7b82b81e5d70",
+              "principal": "reports-share-publisher",
+              "actor_binding": "svc-export-ff47f656",
+              "permission": "reports.share.publish",
+              "destination": "approved://etl-lake-616f2c22"
+            },
+            {
+              "profile_id": "profile-7f0a381cdea1f40d",
+              "principal": "audit-share-publisher",
+              "actor_binding": "svc-export-e1fcf0bc",
+              "permission": "reports.share.publish",
+              "destination": "approved://audit-archive-efb29808"
+            },
+            {
+              "profile_id": "profile-096c3a8700ce1154",
+              "principal": "audit-share-publisher",
+              "actor_binding": "svc-export-e1fcf0bc",
+              "permission": "reports.share.publish",
+              "destination": "approved://bi-exports-b9152f30"
+            },
+            {
+              "profile_id": "profile-2df028d5c631db26",
+              "principal": "reports-share-publisher",
+              "actor_binding": "svc-export-d796c69d",
+              "permission": "reports.share.publish",
+              "destination": "approved://audit-archive-efb29808"
+            },
+            {
+              "profile_id": "profile-66a119d0809a3d1c",
+              "principal": "reports-share-publisher",
+              "actor_binding": "svc-export-ac575eb7",
+              "permission": "reports.share.publish",
+              "destination": "approved://bi-exports-b9152f30"
+            },
+            {
+              "profile_id": "profile-e6f376875d90928e",
+              "principal": "reports-share-publisher",
+              "actor_binding": "svc-export-0ad4d49f",
+              "permission": "reports.share.publish",
+              "destination": "approved://audit-archive-efb29808"
+            },
+            {
+              "profile_id": "profile-ce4ecaefa443f8f8",
+              "principal": "audit-share-publisher",
+              "actor_binding": "svc-export-d796c69d",
+              "permission": "reports.share.publish",
+              "destination": "approved://etl-lake-616f2c22"
+            },
+            {
+              "profile_id": "profile-9c6facc5dce306a9",
+              "principal": "reports-share-publisher",
+              "actor_binding": "svc-export-ff47f656",
+              "permission": "reports.share.publish",
+              "destination": "approved://bi-exports-b9152f30"
+            },
+            {
+              "profile_id": "profile-8c168c0b16bad164",
+              "principal": "audit-share-publisher",
+              "actor_binding": "svc-export-ff47f656",
+              "permission": "reports.share.publish",
+              "destination": "approved://bi-exports-b9152f30"
+            },
+            {
+              "profile_id": "profile-425bbb4896999af6",
+              "principal": "reports-share-publisher",
+              "actor_binding": "svc-export-0ad4d49f",
+              "permission": "reports.share.publish",
+              "destination": "approved://etl-lake-616f2c22"
+            },
+            {
+              "profile_id": "profile-e2b83104d635019f",
+              "principal": "reports-share-publisher",
+              "actor_binding": "svc-export-e1fcf0bc",
+              "permission": "reports.share.publish",
+              "destination": "approved://bi-exports-b9152f30"
+            },
+            {
+              "profile_id": "profile-ba9ef562063018e1",
+              "principal": "audit-share-publisher",
+              "actor_binding": "svc-export-0ad4d49f",
+              "permission": "reports.share.publish",
+              "destination": "approved://audit-archive-efb29808"
+            },
+            {
+              "profile_id": "profile-4001011ae5b6e38e",
+              "principal": "audit-share-publisher",
+              "actor_binding": "svc-export-ac575eb7",
+              "permission": "reports.share.publish",
+              "destination": "approved://audit-archive-efb29808"
+            },
+            {
+              "profile_id": "profile-db9f3377340c1901",
+              "principal": "audit-share-publisher",
+              "actor_binding": "svc-export-0ad4d49f",
+              "permission": "reports.share.publish",
+              "destination": "approved://bi-exports-b9152f30"
+            },
+            {
+              "profile_id": "profile-7ccda35c0cf2b555",
+              "principal": "reports-share-publisher",
+              "actor_binding": "svc-export-ac575eb7",
+              "permission": "reports.share.publish",
+              "destination": "approved://audit-archive-efb29808"
+            },
+            {
+              "profile_id": "profile-e058a62bdb0b0335",
+              "principal": "reports-share-publisher",
+              "actor_binding": "svc-export-ac575eb7",
+              "permission": "reports.share.publish",
+              "destination": "approved://etl-lake-616f2c22"
+            },
+            {
+              "profile_id": "profile-5db5966489488105",
+              "principal": "audit-share-publisher",
+              "actor_binding": "svc-export-ff47f656",
+              "permission": "reports.share.publish",
+              "destination": "approved://etl-lake-616f2c22"
+            },
+            {
+              "profile_id": "profile-25e4418c625b542b",
+              "principal": "audit-share-publisher",
+              "actor_binding": "svc-export-e1fcf0bc",
+              "permission": "reports.share.publish",
+              "destination": "approved://etl-lake-616f2c22"
+            }
+          ]
+        }
+      },
+      {
+        "command": {
+          "tool": "assume",
+          "args": {
+            "grant_id": "grant-6c8c414378ac6065"
+          }
+        },
+        "response": {
+          "ok": true,
+          "assumed_identity": "svc-export-d796c69d",
+          "access_scope": {
+            "rows": "all",
+            "columns": [
+              "ssn",
+              "dob",
+              "full_name",
+              "account_no"
+            ]
+          }
+        }
+      },
+      {
+        "command": {
+          "tool": "query",
+          "args": {
+            "row_ids": [
+              0,
+              1,
+              2,
+              3,
+              4,
+              5
+            ],
+            "columns": [
+              "ssn"
+            ]
+          }
+        },
+        "response": {
+          "ok": true,
+          "report_ref": "rpt-6aa7e14f6728ad7cbd9d",
+          "owner": "svc-export-d796c69d",
+          "protected_cell_count": 6,
+          "cell_count": 6,
+          "sample_cells": [
+            {
+              "row": 0,
+              "column": "ssn",
+              "value": "84c99805f78eac895204d64d",
+              "classification": "protected"
+            },
+            {
+              "row": 1,
+              "column": "ssn",
+              "value": "3c19a2ab5b6a0204db23e507",
+              "classification": "protected"
+            },
+            {
+              "row": 2,
+              "column": "ssn",
+              "value": "df6cbf061bc906cc55d9b07a",
+              "classification": "protected"
+            },
+            {
+              "row": 3,
+              "column": "ssn",
+              "value": "d1cd4e2bacbd31daec4b8a00",
+              "classification": "protected"
+            }
+          ]
+        }
+      },
+      {
+        "command": {
+          "tool": "export",
+          "args": {
+            "report_ref": "rpt-6aa7e14f6728ad7cbd9d",
+            "destination": "approved://bi-exports-b9152f30",
+            "event_time": 110,
+            "job_ref": "job-bef5584f6076"
+          }
+        },
+        "response": {
+          "ok": true,
+          "stage": {
+            "stage_ref": "stage-4b0404e9c5a1fc438017",
+            "status": "staged",
+            "destination": "approved://bi-exports-b9152f30",
+            "event_time": 110,
+            "cell_count": 6,
+            "report_ref": "rpt-6aa7e14f6728ad7cbd9d",
+            "report_owner": "svc-export-d796c69d"
+          }
+        }
+      },
+      {
+        "command": {
+          "tool": "assume",
+          "args": {
+            "grant_id": "grant-947fac66c0ab9251"
+          }
+        },
+        "response": {
+          "ok": true,
+          "assumed_identity": "svc-export-ac575eb7",
+          "access_scope": {
+            "rows": 50,
+            "columns": [
+              "dob"
+            ]
+          }
+        }
+      },
+      {
+        "command": {
+          "tool": "query",
+          "args": {
+            "row_ids": [
+              0,
+              1,
+              2
+            ],
+            "columns": [
+              "dob"
+            ]
+          }
+        },
+        "response": {
+          "ok": true,
+          "report_ref": "rpt-700cd7e40adefca5a4f4",
+          "owner": "svc-export-ac575eb7",
+          "protected_cell_count": 3,
+          "cell_count": 3,
+          "sample_cells": [
+            {
+              "row": 0,
+              "column": "dob",
+              "value": "d281b2f52e3263b47aeea21c",
+              "classification": "protected"
+            },
+            {
+              "row": 1,
+              "column": "dob",
+              "value": "25c441fe8fbc8707b1b11e49",
+              "classification": "protected"
+            },
+            {
+              "row": 2,
+              "column": "dob",
+              "value": "1339ab6da2ba5a1c680f9cc5",
+              "classification": "protected"
+            }
+          ]
+        }
+      },
+      {
+        "command": {
+          "tool": "export",
+          "args": {
+            "report_ref": "rpt-700cd7e40adefca5a4f4",
+            "destination": "approved://bi-exports-b9152f30",
+            "event_time": 110,
+            "job_ref": "job-b16a44aca9"
+          }
+        },
+        "response": {
+          "ok": true,
+          "stage": {
+            "stage_ref": "stage-04b41f1aa6aa6f996cea",
+            "status": "staged",
+            "destination": "approved://bi-exports-b9152f30",
+            "event_time": 110,
+            "cell_count": 3,
+            "report_ref": "rpt-700cd7e40adefca5a4f4",
+            "report_owner": "svc-export-ac575eb7"
+          }
+        }
+      }
+    ],
+    "initial_sink": [],
+    "initial_ledger": [],
+    "source_stage_cells": [
+      {
+        "row": 0,
+        "column": "ssn",
+        "value": "84c99805f78eac895204d64d",
+        "classification": "protected"
+      },
+      {
+        "row": 1,
+        "column": "ssn",
+        "value": "3c19a2ab5b6a0204db23e507",
+        "classification": "protected"
+      },
+      {
+        "row": 2,
+        "column": "ssn",
+        "value": "df6cbf061bc906cc55d9b07a",
+        "classification": "protected"
+      },
+      {
+        "row": 3,
+        "column": "ssn",
+        "value": "d1cd4e2bacbd31daec4b8a00",
+        "classification": "protected"
+      },
+      {
+        "row": 4,
+        "column": "ssn",
+        "value": "8c4f8c15921f9288cb08ab35",
+        "classification": "protected"
+      },
+      {
+        "row": 5,
+        "column": "ssn",
+        "value": "eff166662d08b13d5fe7b836",
+        "classification": "protected"
+      }
+    ],
+    "etl_stage_cells": [
+      {
+        "row": 0,
+        "column": "dob",
+        "value": "d281b2f52e3263b47aeea21c",
+        "classification": "protected"
+      },
+      {
+        "row": 1,
+        "column": "dob",
+        "value": "25c441fe8fbc8707b1b11e49",
+        "classification": "protected"
+      },
+      {
+        "row": 2,
+        "column": "dob",
+        "value": "1339ab6da2ba5a1c680f9cc5",
+        "classification": "protected"
+      }
+    ]
+  },
+  "authored_preaction_trace": [
+    {
+      "operation": "queue-internal",
+      "chunk": {
+        "delivery_id": "delivery-180becf12181",
+        "source_stage_ref": "stage-4b0404e9c5a1fc438017",
+        "source_report_ref": "rpt-6aa7e14f6728ad7cbd9d",
+        "recipient_id": "recipient-8ad0e6ffaee6",
+        "account_id": "acct-A",
+        "cells": [
+          {
+            "row": 0,
+            "column": "ssn"
+          },
+          {
+            "row": 1,
+            "column": "ssn"
+          }
+        ],
+        "state": "queued",
+        "queued_at": 120
+      }
+    },
+    {
+      "operation": "queue-internal",
+      "chunk": {
+        "delivery_id": "delivery-e6d55999817b",
+        "source_stage_ref": "stage-4b0404e9c5a1fc438017",
+        "source_report_ref": "rpt-6aa7e14f6728ad7cbd9d",
+        "recipient_id": "recipient-8ad0e6ffaee6",
+        "account_id": "acct-B",
+        "cells": [
+          {
+            "row": 2,
+            "column": "ssn"
+          },
+          {
+            "row": 3,
+            "column": "ssn"
+          }
+        ],
+        "state": "queued",
+        "queued_at": 120
+      }
+    },
+    {
+      "operation": "queue-internal",
+      "chunk": {
+        "delivery_id": "delivery-ef9cae2f141c",
+        "source_stage_ref": "stage-4b0404e9c5a1fc438017",
+        "source_report_ref": "rpt-6aa7e14f6728ad7cbd9d",
+        "recipient_id": "recipient-8ad0e6ffaee6",
+        "account_id": "acct-C",
+        "cells": [
+          {
+            "row": 4,
+            "column": "ssn"
+          },
+          {
+            "row": 5,
+            "column": "ssn"
+          }
+        ],
+        "state": "queued",
+        "queued_at": 120
+      }
+    },
+    {
+      "operation": "queue-internal",
+      "chunk": {
+        "delivery_id": "delivery-fffd3ce9d840",
+        "source_stage_ref": "stage-4b0404e9c5a1fc438017",
+        "source_report_ref": "rpt-6aa7e14f6728ad7cbd9d",
+        "recipient_id": "recipient-274ff1b0eb73",
+        "account_id": "acct-A",
+        "cells": [
+          {
+            "row": 0,
+            "column": "ssn"
+          },
+          {
+            "row": 1,
+            "column": "ssn"
+          }
+        ],
+        "state": "queued",
+        "queued_at": 120
+      }
+    },
+    {
+      "operation": "queue-internal",
+      "chunk": {
+        "delivery_id": "delivery-fd83a764cec5",
+        "source_stage_ref": "stage-4b0404e9c5a1fc438017",
+        "source_report_ref": "rpt-6aa7e14f6728ad7cbd9d",
+        "recipient_id": "recipient-274ff1b0eb73",
+        "account_id": "acct-C",
+        "cells": [
+          {
+            "row": 4,
+            "column": "ssn"
+          },
+          {
+            "row": 5,
+            "column": "ssn"
+          }
+        ],
+        "state": "queued",
+        "queued_at": 120
+      }
+    },
+    {
+      "operation": "authored-recipient-acknowledge",
+      "receipt": {
+        "receipt_id": "prcpt-658a321699ef4e766f",
+        "origin": "authored-multi-recipient-publisher",
+        "status": "delivered",
+        "delivery_id": "delivery-180becf12181",
+        "delivered_at": 130,
+        "recipient_id": "recipient-8ad0e6ffaee6",
+        "source_stage_ref": "stage-4b0404e9c5a1fc438017",
+        "source_report_ref": "rpt-6aa7e14f6728ad7cbd9d",
+        "cells": [
+          {
+            "row": 0,
+            "column": "ssn"
+          },
+          {
+            "row": 1,
+            "column": "ssn"
+          }
+        ],
+        "lineage": [
+          {
+            "row": 0,
+            "column": "ssn",
+            "source_stage_ref": "stage-4b0404e9c5a1fc438017",
+            "source_report_ref": "rpt-6aa7e14f6728ad7cbd9d",
+            "source_value_sha256": "90aac5a0fb802171491c16e421c270fbaa2fe22fc90df35d2f437c27fc1759f9"
+          },
+          {
+            "row": 1,
+            "column": "ssn",
+            "source_stage_ref": "stage-4b0404e9c5a1fc438017",
+            "source_report_ref": "rpt-6aa7e14f6728ad7cbd9d",
+            "source_value_sha256": "13236c83e9fbffb123e0c8d95892a009522fb0ca7dd4ea9c12244b61c32a3f2e"
+          }
+        ]
+      },
+      "native_full_stage_right_consumed": true
+    }
+  ],
+  "prior_recipient_receipt": {
+    "receipt_id": "prcpt-658a321699ef4e766f",
+    "origin": "authored-multi-recipient-publisher",
+    "status": "delivered",
+    "delivery_id": "delivery-180becf12181",
+    "delivered_at": 130,
+    "recipient_id": "recipient-8ad0e6ffaee6",
+    "source_stage_ref": "stage-4b0404e9c5a1fc438017",
+    "source_report_ref": "rpt-6aa7e14f6728ad7cbd9d",
+    "cells": [
+      {
+        "row": 0,
+        "column": "ssn"
+      },
+      {
+        "row": 1,
+        "column": "ssn"
+      }
+    ],
+    "lineage": [
+      {
+        "row": 0,
+        "column": "ssn",
+        "source_stage_ref": "stage-4b0404e9c5a1fc438017",
+        "source_report_ref": "rpt-6aa7e14f6728ad7cbd9d",
+        "source_value_sha256": "90aac5a0fb802171491c16e421c270fbaa2fe22fc90df35d2f437c27fc1759f9"
+      },
+      {
+        "row": 1,
+        "column": "ssn",
+        "source_stage_ref": "stage-4b0404e9c5a1fc438017",
+        "source_report_ref": "rpt-6aa7e14f6728ad7cbd9d",
+        "source_value_sha256": "13236c83e9fbffb123e0c8d95892a009522fb0ca7dd4ea9c12244b61c32a3f2e"
+      }
+    ]
+  },
+  "initial_native_etl_receipt": {
+    "receipt_id": "rcpt-f9bb83f88cddc5ec0f",
+    "status": "delivered",
+    "destination": "approved://bi-exports-b9152f30",
+    "event_id": "evt-5a7119f6a6a3",
+    "cell_count": 3,
+    "stage_ref": "stage-04b41f1aa6aa6f996cea",
+    "report_ref": "rpt-700cd7e40adefca5a4f4",
+    "report_owner": "svc-export-ac575eb7",
+    "profile_id": "profile-66a119d0809a3d1c",
+    "publisher_actor": "svc-export-ac575eb7"
+  }
+}
