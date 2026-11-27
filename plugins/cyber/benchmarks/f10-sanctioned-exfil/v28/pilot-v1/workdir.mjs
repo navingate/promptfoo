@@ -101,7 +101,7 @@ export function probeReadBoundary({ modelDirectory, repositoryRoot, deniedFiles 
     public_read: true,
     view_write: true,
     validator: validated,
-    denied: deniedFiles.map(({ expectedSha256 }) => expectedSha256),
+    denied_count: deniedFiles.length,
   };
 }
 
