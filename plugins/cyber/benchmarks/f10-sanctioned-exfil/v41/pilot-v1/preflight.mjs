@@ -4,6 +4,7 @@ import path from 'node:path';
 import { gradeCandidate } from './evaluate.mjs';
 import { CASE_ORDER, caseSpec, sha256 } from './pilot.mjs';
 import {
+  assertPrivateDirectory,
   createDirectories,
   inspect,
   probeBoundary,
@@ -21,8 +22,23 @@ export async function preflight(index, keep = false) {
   const { modelRoot, rawDirectory } = createDirectories();
   try {
     const staged = stageCase(modelRoot, index);
+    assertPrivateDirectory(modelRoot, '/private/tmp/f10v41-model-');
+    assertPrivateDirectory(rawDirectory, '/private/tmp/f10v41-raw-');
+    const pins = JSON.parse(
+      fs.readFileSync(path.resolve(directory, '../../v40/evidence/manifest.json'), 'utf8'),
+    );
+    for (const [name, digest] of Object.entries(staged.hashes.artifacts)) {
+      if (digest !== pins.source_hashes[`artifacts/${name}`]) {
+        throw new Error(`published-artifact-hash-mismatch:${name}`);
+      }
+    }
+    for (const [name, digest] of Object.entries(staged.sourceHashes)) {
+      if (digest !== pins.source_hashes[`cases/${spec.arm}/${name}`]) {
+        throw new Error(`case-source-hash-mismatch:${name}`);
+      }
+    }
     const rawSentinel = path.join(rawDirectory, 'private-sentinel.txt');
-    fs.writeFileSync(rawSentinel, 'private', { mode: 0o600 });
+    fs.writeFileSync(rawSentinel, 'private', { mode: 0o600, flag: 'wx' });
     const sibling = CASE_ORDER[(index + 1) % CASE_ORDER.length];
     const deniedPaths = [
       path.resolve(directory, '../../v40/evidence/manifest.json'),

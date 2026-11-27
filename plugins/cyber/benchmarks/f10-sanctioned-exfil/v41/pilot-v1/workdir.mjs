@@ -16,7 +16,21 @@ export function createDirectories() {
   const rawDirectory = fs.mkdtempSync('/private/tmp/f10v41-raw-');
   fs.chmodSync(modelRoot, 0o700);
   fs.chmodSync(rawDirectory, 0o700);
+  assertPrivateDirectory(modelRoot, '/private/tmp/f10v41-model-');
+  assertPrivateDirectory(rawDirectory, '/private/tmp/f10v41-raw-');
   return { modelRoot, rawDirectory };
+}
+
+export function assertPrivateDirectory(directory, prefix) {
+  assert.ok(directory.startsWith(prefix), 'unexpected-private-directory-prefix');
+  assert.ok(fs.lstatSync(directory).isDirectory(), 'private-directory-not-direct');
+  assert.equal(fs.realpathSync(directory), directory, 'private-directory-symlink');
+  assert.equal(fs.statSync(directory).mode & 0o777, 0o700, 'private-directory-mode');
+}
+
+function assertRegularAt(file, parent) {
+  assert.ok(fs.lstatSync(file).isFile(), `nonregular-file:${file}`);
+  assert.equal(fs.realpathSync(file), path.join(fs.realpathSync(parent), path.basename(file)));
 }
 
 export function stageCase(modelRoot, index) {
@@ -27,13 +41,19 @@ export function stageCase(modelRoot, index) {
   fs.mkdirSync(workspace, { recursive: true });
   fs.mkdirSync(artifacts);
   for (const name of ['publisher.mjs', 'package.json', 'package-lock.json', 'ADVISORY.md']) {
-    fs.copyFileSync(path.join(spec.caseDirectory, name), path.join(workspace, name));
+    const source = path.join(spec.caseDirectory, name);
+    assertRegularAt(source, spec.caseDirectory);
+    fs.copyFileSync(source, path.join(workspace, name));
   }
   for (const name of ['README-public.md', 'public-check.mjs', 'assessment.json']) {
-    fs.copyFileSync(path.join(sourceDirectory, name), path.join(workspace, name));
+    const source = path.join(sourceDirectory, name);
+    assertRegularAt(source, sourceDirectory);
+    fs.copyFileSync(source, path.join(workspace, name));
   }
   for (const name of ARTIFACTS) {
-    fs.copyFileSync(path.join(artifactDirectory, name), path.join(artifacts, name));
+    const source = path.join(artifactDirectory, name);
+    assertRegularAt(source, artifactDirectory);
+    fs.copyFileSync(source, path.join(artifacts, name));
   }
   return { workspace, hashes: snapshot(modelRoot), sourceHashes: publicHashes(spec) };
 }
@@ -41,6 +61,12 @@ export function stageCase(modelRoot, index) {
 export function snapshot(modelRoot) {
   const workspace = path.join(modelRoot, 'cases/workspace');
   const artifacts = path.join(modelRoot, 'artifacts');
+  assertPrivateDirectory(modelRoot, '/private/tmp/f10v41-model-');
+  assert.ok(fs.lstatSync(path.join(modelRoot, 'cases')).isDirectory());
+  assert.ok(fs.lstatSync(workspace).isDirectory());
+  assert.ok(fs.lstatSync(artifacts).isDirectory());
+  assert.equal(fs.realpathSync(workspace), workspace);
+  assert.equal(fs.realpathSync(artifacts), artifacts);
   const expected = [...EDITABLE, ...IMMUTABLE].sort();
   const allowedGenerated = ['.npm-cache', 'node_modules'];
   const names = fs
@@ -53,14 +79,14 @@ export function snapshot(modelRoot) {
     workspace: Object.fromEntries(
       names.map((name) => {
         const file = path.join(workspace, name);
-        assert.ok(fs.lstatSync(file).isFile(), `nonregular-workspace-file:${name}`);
+        assertRegularAt(file, workspace);
         return [name, sha256(fs.readFileSync(file))];
       }),
     ),
     artifacts: Object.fromEntries(
       ARTIFACTS.map((name) => {
         const file = path.join(artifacts, name);
-        assert.ok(fs.lstatSync(file).isFile(), `nonregular-artifact:${name}`);
+        assertRegularAt(file, artifacts);
         return [name, sha256(fs.readFileSync(file))];
       }),
     ),
@@ -123,6 +149,7 @@ export function probeBoundary(modelRoot, repositoryRoot, deniedFiles) {
   const workspace = path.join(modelRoot, 'cases/workspace');
   for (const item of deniedFiles) {
     assert.ok(fs.lstatSync(item.path).isFile());
+    assert.equal(fs.realpathSync(item.path), item.path, 'denied-probe-symlink');
     assert.equal(sha256(fs.readFileSync(item.path)), item.sha256);
   }
   const script = `

@@ -10,7 +10,7 @@ import { gradeCandidate } from './evaluate.mjs';
 import { verifyFrozen } from './freeze.mjs';
 import { CASE_ORDER, caseSpec, publicInput, sha256 } from './pilot.mjs';
 import { preflight } from './preflight.mjs';
-import { inspect, permissionArgs } from './workdir.mjs';
+import { assertPrivateDirectory, inspect, permissionArgs } from './workdir.mjs';
 
 const index = Number(process.argv[2]);
 const attempt = Number(process.argv[3]);
@@ -26,6 +26,8 @@ assert.equal(cliVersion, frozen.cli_version);
 const repositoryRoot = path.resolve(import.meta.dirname, '../../../../../../../..');
 const ready = await preflight(index, true);
 const { modelRoot, rawDirectory } = ready;
+assertPrivateDirectory(modelRoot, '/private/tmp/f10v41-model-');
+assertPrivateDirectory(rawDirectory, '/private/tmp/f10v41-raw-');
 const workspace = path.join(modelRoot, 'cases/workspace');
 assert.deepEqual(ready.staged, frozen.cases[index].staged);
 assert.equal(ready.boundary.denied_count, 6);
@@ -83,8 +85,8 @@ const launch = {
 };
 const eventsPath = path.join(rawDirectory, 'events.jsonl');
 const stderrPath = path.join(rawDirectory, 'stderr.txt');
-const events = fs.createWriteStream(eventsPath, { mode: 0o600 });
-const errors = fs.createWriteStream(stderrPath, { mode: 0o600 });
+const events = fs.createWriteStream(eventsPath, { mode: 0o600, flags: 'wx' });
+const errors = fs.createWriteStream(stderrPath, { mode: 0o600, flags: 'wx' });
 process.stdout.write(`${rawDirectory}\n`);
 const child = spawn('codex', args, { cwd: workspace, stdio: ['pipe', 'pipe', 'pipe'] });
 child.stdout.pipe(events);
@@ -128,10 +130,12 @@ if (exitCode !== 0) {
   status = 'valid';
 }
 const response = eventValidation.final_message ?? '';
-fs.writeFileSync(path.join(rawDirectory, 'response.txt'), response, { mode: 0o600 });
+assertPrivateDirectory(rawDirectory, '/private/tmp/f10v41-raw-');
+fs.writeFileSync(path.join(rawDirectory, 'response.txt'), response, { mode: 0o600, flag: 'wx' });
 for (const name of ['publisher.mjs', 'package.json', 'package-lock.json', 'assessment.json']) {
   const source = path.join(workspace, name);
   if (fs.existsSync(source) && fs.lstatSync(source).isFile()) {
+    assert.equal(fs.realpathSync(source), source, 'submitted-file-symlink');
     fs.copyFileSync(source, path.join(rawDirectory, `submitted-${name}`));
   }
 }
@@ -157,9 +161,11 @@ const summary = {
 // The private arm and all raw metadata are saved only after the model exits.
 fs.writeFileSync(path.join(rawDirectory, 'launch.json'), `${JSON.stringify(launch, null, 2)}\n`, {
   mode: 0o600,
+  flag: 'wx',
 });
 fs.writeFileSync(path.join(rawDirectory, 'summary.json'), `${JSON.stringify(summary, null, 2)}\n`, {
   mode: 0o600,
+  flag: 'wx',
 });
 fs.rmSync(modelRoot, { recursive: true, force: true });
 process.stdout.write(

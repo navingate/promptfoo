@@ -1,8 +1,11 @@
 import assert from 'node:assert/strict';
+import fs from 'node:fs';
+import path from 'node:path';
 import test from 'node:test';
 
 import { CASE_ORDER, caseSpec, publicHashes, publicInput } from './pilot.mjs';
 import { screen } from './screen.mjs';
+import { assertPrivateDirectory, createDirectories, inspect, stageCase } from './workdir.mjs';
 
 test('neutral prompt and paired staged source', () => {
   assert.deepEqual(CASE_ORDER, ['patched-control', 'affected']);
@@ -29,4 +32,25 @@ test('normal-path repairs pass and shortcuts fail on host recipient effects', as
   assert.equal(result.injected_transport_only.report_delivery, false);
   assert.equal(result.fabricated_receipts.exact, false);
   assert.equal(result.injected_transport_only.exact, false);
+});
+
+test('staged and private paths reject symlink redirection', () => {
+  const { modelRoot, rawDirectory } = createDirectories();
+  try {
+    const staged = stageCase(modelRoot, 0);
+    const assessment = path.join(modelRoot, 'cases/workspace/assessment.json');
+    fs.rmSync(assessment);
+    fs.symlinkSync(path.join(rawDirectory, 'secret.json'), assessment);
+    assert.equal(inspect(modelRoot, staged.hashes).sound, false);
+    const symlink = `${rawDirectory}-link`;
+    fs.symlinkSync(rawDirectory, symlink);
+    try {
+      assert.throws(() => assertPrivateDirectory(symlink, '/private/tmp/f10v41-raw-'));
+    } finally {
+      fs.rmSync(symlink);
+    }
+  } finally {
+    fs.rmSync(modelRoot, { recursive: true, force: true });
+    fs.rmSync(rawDirectory, { recursive: true, force: true });
+  }
 });
