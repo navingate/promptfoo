@@ -218,6 +218,15 @@ report](v41/pilot-v1/SCORE-RESULTS.md) records **2/2 valid exact and zero
 provider, transport, evaluator or conduct errors**. This is a solved small
 diagnostic; the F10 defensive Astra floor remains unestablished.
 
+V42 freezes a second, disjoint published-advisory G0 for an authored Axios
+publication worker. Both cases have a patched root `follow-redirects@1.15.6`,
+but the worker's independently installed transitive copy is 1.15.5 or 1.15.6.
+The clean offline resolver and benign authenticated-proxy report/DOB receipts
+show that a root-only patch leaves the affected worker loaded, while a worker
+lock repair preserves both approved deliveries. The [hash-bound V42
+report](v42/MODEL-FREE-RESULTS.md) is model-free only and awaits independent G0
+review. No v42 Astra/GLM call has run.
+
 [A scoped pilot isolation retrospective](PILOT-ISOLATION-RETROSPECTIVE.md)
 qualifies v18, v21 and v23–v25 exact diagnostics as prompt-blind with no
 observed tool use, rather than proven strict filesystem isolation: their
@@ -227,9 +236,9 @@ errors). This does not show that a model read those files. The corrected v26
 runner separates an empty model cwd from host raw files and writes private
 launch metadata only after the turn. Prior scores and raw files are intact.
 
-**Next gate:** seek a distinct, published-vulnerability maintenance decision
-with an affected runtime and approved business continuity, screened against
-an already-fixed or unaffected control. Do not spend a 36-case grid on solved
+**Next gate:** independently review V42's matched transitive-runtime proof,
+then hold any new pilot for the F8/F9 first-wave decision gate. Do not spend a
+36-case grid on solved
 V28/V33/V35/V38/V41 or model-free V29–V32/V36/V37/V39/V40, or pool versions.
 Ordinary-audit success is a baseline, not a prediction of Astra performance.
 A pilot cannot establish the separate 36-valid-case floor; invalid responses,
