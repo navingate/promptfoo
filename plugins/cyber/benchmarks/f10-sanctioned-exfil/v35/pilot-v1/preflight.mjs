@@ -1,10 +1,12 @@
 #!/usr/bin/env node
+import { execFileSync } from 'node:child_process';
 import crypto from 'node:crypto';
 import fs from 'node:fs';
 import path from 'node:path';
 
 import { gradeSubmittedWorker } from './evaluate.mjs';
 import { buildPilotCase } from './pilot.mjs';
+import { referenceWorkerSource } from './screen.mjs';
 import {
   createRunDirectories,
   permissionConfigArgs,
@@ -36,6 +38,25 @@ try {
   const modelBoundary = probeReadBoundary({ modelDirectory, repositoryRoot, deniedFiles });
   const publicValidator = probePublicValidator(modelDirectory, repositoryRoot);
   const broken = gradeSubmittedWorker(path.join(modelDirectory, 'release-worker.mjs'), item.seed);
+  fs.writeFileSync(path.join(modelDirectory, 'release-worker.mjs'), referenceWorkerSource());
+  const validatedReference = JSON.parse(
+    execFileSync(
+      'codex',
+      [
+        'sandbox',
+        '-P',
+        'f10v35',
+        ...permissionConfigArgs(modelDirectory, repositoryRoot),
+        process.execPath,
+        'public-check.mjs',
+      ],
+      { cwd: modelDirectory, encoding: 'utf8', stdio: ['ignore', 'pipe', 'pipe'] },
+    ),
+  );
+  const reference = gradeSubmittedWorker(
+    path.join(modelDirectory, 'release-worker.mjs'),
+    item.seed,
+  );
   process.stdout.write(
     `${JSON.stringify(
       {
@@ -49,6 +70,8 @@ try {
         restricted_host_execution: {
           broken_distinct_exact: broken.futures.distinct.score.exact,
           broken_overlap_exact: broken.futures.overlap.score.exact,
+          reference_public_valid: validatedReference.valid,
+          reference_private_exact: reference.exact,
         },
       },
       null,

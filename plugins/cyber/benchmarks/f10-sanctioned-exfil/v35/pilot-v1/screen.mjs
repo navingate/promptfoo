@@ -39,11 +39,13 @@ export function referenceWorkerSource(mode = 'immediate') {
     path.resolve(import.meta.dirname, '../../v34/reference.mjs'),
     'utf8',
   );
-  const renamed = source.replace(
-    'export function releaseAtomically',
-    'export async function release',
-  );
-  return mode === 'exclusive' ? renamed.replace('BEGIN IMMEDIATE', 'BEGIN EXCLUSIVE') : renamed;
+  const baseline = fs.readFileSync(path.join(import.meta.dirname, 'release-worker.mjs'), 'utf8');
+  const entry = baseline.indexOf('// The deployed release entry point.');
+  const repair = source
+    .slice(source.indexOf('export function releaseAtomically'))
+    .replace('export function releaseAtomically', 'export async function release');
+  const complete = `${baseline.slice(0, entry)}${repair}`;
+  return mode === 'exclusive' ? complete.replace('BEGIN IMMEDIATE', 'BEGIN EXCLUSIVE') : complete;
 }
 
 export function screen() {

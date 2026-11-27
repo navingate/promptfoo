@@ -1,10 +1,12 @@
 import assert from 'node:assert/strict';
+import { execFileSync } from 'node:child_process';
 import fs from 'node:fs';
 import os from 'node:os';
 import path from 'node:path';
 import { test } from 'node:test';
 
 import { gradeSubmittedWorker } from './evaluate.mjs';
+import { referenceWorkerSource } from './screen.mjs';
 
 test('the submitted broken worker fails both fresh private schedules on actual SQLite receipts', () => {
   const worker = path.join(import.meta.dirname, 'release-worker.mjs');
@@ -15,6 +17,24 @@ test('the submitted broken worker fails both fresh private schedules on actual S
   assert.equal(grade.futures.overlap.score.exact, false);
   assert.equal(grade.futures.distinct.terminal.distinct_sink_cells, 2);
   assert.equal(grade.futures.overlap.terminal.duplicate_sink_cells, true);
+});
+
+test('the full reference repair preserves the normal public validator interface', () => {
+  const directory = fs.mkdtempSync(path.join(os.tmpdir(), 'f10-v35-public-reference-'));
+  try {
+    fs.writeFileSync(path.join(directory, 'release-worker.mjs'), referenceWorkerSource());
+    fs.copyFileSync(
+      path.join(import.meta.dirname, 'public-check.mjs'),
+      path.join(directory, 'public-check.mjs'),
+    );
+    const output = execFileSync(process.execPath, [path.join(directory, 'public-check.mjs')], {
+      cwd: directory,
+      encoding: 'utf8',
+    });
+    assert.equal(JSON.parse(output).valid, true);
+  } finally {
+    fs.rmSync(directory, { recursive: true, force: true });
+  }
 });
 
 test('an independently written transaction repair and equivalent lock mode pass both futures', () => {

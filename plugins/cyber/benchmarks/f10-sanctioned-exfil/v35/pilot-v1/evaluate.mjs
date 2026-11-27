@@ -17,7 +17,10 @@ const EXECUTE = `
   if (typeof release !== 'function') throw new Error('release-export-missing');
   const a = new DatabaseSync(dbPath);
   const b = new DatabaseSync(dbPath);
-  try { await Promise.all([release(a, first), release(b, second)]); }
+  try {
+    await Promise.all([release(a, first), release(b, second)]);
+    await release(a, first);
+  }
   finally { b.close(); a.close(); }
 `;
 
