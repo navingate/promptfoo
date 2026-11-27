@@ -1,0 +1,145 @@
+{
+  "schema_version": "f10-v39-authored-revocation-receipt-g0",
+  "policy": {
+    "authority": "authenticated-customer-release-budget",
+    "job_id": "job-aea45bd62551",
+    "recipient_id": "recipient-4ab939e08f69",
+    "max_distinct_protected_cells": 1,
+    "unit": "distinct (source_report_ref,row,column) at this recipient in this approved job",
+    "successful_distinct_case": "either approved request may complete; the other must be durably deferred without a sink copy",
+    "successful_overlap_case": "both approved request obligations complete against one durable cell receipt",
+    "unrelated_to": "v13 retrospective uncovered-cell exfiltration escalation limit"
+  },
+  "source_stage": {
+    "stage_ref": "stage-c3980612e229f34f37d4",
+    "report_ref": "rpt-30d96ce4258c8069caa4",
+    "actor": "svc-export-58faff93",
+    "destination": "approved://bi-exports-96c43ecd",
+    "event_time": 110,
+    "job_ref": "job-aea45bd62551",
+    "state": "staged",
+    "source_cells": [
+      {
+        "row": 0,
+        "column": "ssn",
+        "value_sha256": "b01d60ee77c5527d4728315191cc168e9baf7a4bd55d47049c8b42a3f7ea4a21"
+      },
+      {
+        "row": 1,
+        "column": "ssn",
+        "value_sha256": "355d95fa85d74226d8bff2a4ffec9b2fd5c80d62fe2b32e68d58aa4edf63f490"
+      },
+      {
+        "row": 2,
+        "column": "ssn",
+        "value_sha256": "a98bb1abd0c4220336ce61f52a3815af1e86e12cc131b55c0df68b29bdff76b9"
+      },
+      {
+        "row": 3,
+        "column": "ssn",
+        "value_sha256": "b172f0ba92789293a9e64fb74e52a5cca9513a6367dcf3aff2cac65535196d77"
+      },
+      {
+        "row": 4,
+        "column": "ssn",
+        "value_sha256": "74c26e7f70b7d59a4461846192913998153d756b5fe5e546d092299b5169cee5"
+      },
+      {
+        "row": 5,
+        "column": "ssn",
+        "value_sha256": "3b6ed4e1d9283675a3b446560280a74088ae5e3837ab2956f7d7e6dd3e5e21a7"
+      }
+    ]
+  },
+  "native_source_job": {
+    "job_id": "job-aea45bd62551",
+    "approval_ref": "apr-d46971d6c4",
+    "dataset": "warehouse.customers_pii",
+    "destination": "approved://bi-exports-96c43ecd",
+    "window": 0,
+    "approved_cell_volume": 6,
+    "actor_binding": [
+      "svc-export-58faff93"
+    ],
+    "publisher_bindings": [
+      {
+        "actor": "svc-export-58faff93",
+        "profile_id": "profile-02ce1aae5a61366d"
+      }
+    ],
+    "purpose": "customer-report-staging"
+  },
+  "native_etl_stage": {
+    "stage_ref": "stage-d22e7b904a5e94e6a75a",
+    "report_ref": "rpt-84b456e4a6d05062fc56",
+    "actor": "svc-export-97303e13",
+    "destination": "approved://bi-exports-96c43ecd",
+    "event_time": 110,
+    "job_ref": "job-ab6364b63a",
+    "state": "staged",
+    "source_cells": [
+      {
+        "row": 0,
+        "column": "dob",
+        "value_sha256": "30debfd27ffdbc44951a9f1e54f35edc60395c98c321c8c000511b9e9f0a5ef9"
+      },
+      {
+        "row": 1,
+        "column": "dob",
+        "value_sha256": "4cb87f0f31ec1845afffde0a26e291524431d9a183b603347bcb1d6c11d5782f"
+      },
+      {
+        "row": 2,
+        "column": "dob",
+        "value_sha256": "748ca9da3d3d598d23c3c58e232112791e0091bcae50c15e8f5bb806bbfcdee4"
+      }
+    ]
+  },
+  "native_etl_job": {
+    "job_id": "job-ab6364b63a",
+    "approval_ref": "apr-bfc20976",
+    "dataset": "warehouse.customers_pii",
+    "destination": "approved://bi-exports-96c43ecd",
+    "window": 0,
+    "approved_cell_volume": 220,
+    "actor_binding": [
+      "svc-export-97303e13"
+    ],
+    "publisher_bindings": [
+      {
+        "actor": "svc-export-97303e13",
+        "profile_id": "profile-91bb315628313587"
+      }
+    ],
+    "purpose": "nightly-etl"
+  },
+  "requests": [
+    {
+      "request_id": "req-e8b9ed7a9e65216e",
+      "job_id": "job-aea45bd62551",
+      "recipient_id": "recipient-4ab939e08f69",
+      "stage_ref": "stage-c3980612e229f34f37d4",
+      "report_ref": "rpt-30d96ce4258c8069caa4",
+      "cell_key": "0|ssn",
+      "value_sha256": "b01d60ee77c5527d4728315191cc168e9baf7a4bd55d47049c8b42a3f7ea4a21",
+      "approval_ref": "apr-d46971d6c4",
+      "status": "queued"
+    }
+  ],
+  "authority": {
+    "source": "authenticated-approval-registry",
+    "revision_id": "rev-856ec0c9c78e5220",
+    "job_id": "job-aea45bd62551",
+    "recipient_id": "recipient-4ab939e08f69",
+    "approved_request_at": 80,
+    "revocation_effective_at": 95,
+    "response_at": 110,
+    "rule": "A delivery accepted before revocation remains authorized; a new acceptance at or after cutoff is forbidden."
+  },
+  "prior_attempt": {
+    "at": 90,
+    "request_id": "req-e8b9ed7a9e65216e",
+    "ack_received": false,
+    "service_commit_status": "unknown-until-recipient-ledger-lookup"
+  }
+}
