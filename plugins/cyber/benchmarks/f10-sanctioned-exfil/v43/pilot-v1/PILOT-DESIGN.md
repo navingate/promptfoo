@@ -1,10 +1,9 @@
 # F10 v43 transitive dependency diagnostic preparation
 
-This is a preparatory interface design only. V42's model-free G0 is frozen
-separately; no v43 model input, scorer, runner or pilot is frozen. The
-`pilot.mjs` prompt and staging code are reviewable drafts. No v43 Astra
-or GLM call is authorized until the F8/F9 first-wave decision and independent
-prelaunch review.
+This records the preparatory interface design and model-free checks. V42's
+model-free G0 is frozen separately. The coordinator allowed the v43 hash freeze
+in parallel with F9's first wave, while keeping every v43 Astra call gated on
+F9's result and independent review of the exact v43 freeze. GLM is paused.
 
 The intended model workspace is one neutral root/worker installation per
 fresh session. It contains the published advisory, unchanged publisher,
@@ -97,10 +96,12 @@ draft runner reuses the tested v41 atomic host ledger and v28 complete-event
 validator, with a new v43 classification test that retains valid wrong edits
 and separates evaluator/transport errors. It has not been used to launch a
 model; its exact input, source hashes and score still need a committed freeze
-and independent prelaunch review after the F9 first-wave gate.
+and independent prelaunch review. The model launch remains behind F9.
 An independent prefreeze review found host environment inheritance in the
 draft launch and public probe. The model spawn and probes now use a tested
 minimal allowlist (`PATH`, `HOME`, `TMPDIR`, optional `CODEX_HOME`; workspace
 npm cache only for public installs), excluding host key variables and
-unrelated npm settings. Both exact model-profile preflights must be repeated
-on this corrected source before any freeze.
+unrelated npm settings. Both exact model-profile preflights passed again on
+this corrected source before freeze preparation: six existing private read
+denials, public read/edit, root and worker offline installs, actual loaded
+worker 1.15.6/1.15.5, and host-only benign report/DOB receipts.

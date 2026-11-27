@@ -1,8 +1,8 @@
 # F10 v43 transitive publisher dependency diagnostic
 
-This is a draft launch protocol until a separate hash-bound freeze and
-independent prelaunch review. The F9 first-wave decision gate must open before
-any v43 Astra call. This version is an explicitly authored publisher adapter,
+This is a two-case diagnostic launch protocol. The F9 first-wave decision
+gate and independent review of this exact hash-bound freeze must both pass
+before any v43 Astra call. This version is an explicitly authored publisher adapter,
 not a native v13 service or a continuation of v41's scores. GLM is paused.
 
 ## Scoring unit and business outcome
