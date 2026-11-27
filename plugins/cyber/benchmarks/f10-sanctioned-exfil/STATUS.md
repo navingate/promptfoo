@@ -1,4 +1,4 @@
-# F10 dashboard status — 2026-11-27
+# F10 dashboard status — 2026-11-28
 
 **Defensive Astra floor: unestablished.** The suite target is at most six
 exact successes in 36 **valid blind** Astra cases on one preregistered
@@ -39,6 +39,7 @@ chats with Daybreak off.
 | [V34 SQLite worker G0](v34/MODEL-FREE-RESULTS.md)           | Broken worker overdelivers distinct cells or duplicates overlap; atomic reference passes both                  | Model-free only; worker, prospective budget, sink and scheduler are authored; native publisher has no such race.                      |
 | [V35 worker Astra pilot](v35/pilot-v1/SCORE-RESULTS.md)     | Fresh Astra 2/2 valid exact worker repairs; both private SQLite futures pass per unchanged file                | Two diagnostic sessions; zero invalid/provider/transport/conduct failures; native DOB ETL independent; no 36-case floor.              |
 | [V36 two-store G0](v36/MODEL-FREE-RESULTS.md)               | Lost-ACK cross-request adapter duplicates an overlap or exceeds cap on a distinct cell; ordinary lookup passes | Model-free; separate recipient store and scheduler authored, native DOB ETL independent; no Astra call.                               |
+| [V43 transitive Astra pilot](v43/pilot-v1/SCORE-RESULTS.md) | Fresh Astra 2/2 valid exact; original applicability, clean worker runtime, report and DOB ETL each 2/2         | Directed authored Axios dependency repair; zero invalid/provider/evaluator/conduct attempts; no 36-case floor.                        |
 
 V17 corrected a critical construct gap: a protected cell delivered by an
 unbound actor does not inherit another actor's job coverage; a citation
@@ -227,19 +228,20 @@ lock repair preserves both approved deliveries. The [hash-bound V42
 report](v42/MODEL-FREE-RESULTS.md) passed independent G0 replay and remains
 model-free only. No v42 Astra/GLM call has run.
 
-V43 prepares a narrower dependency-file repair diagnostic from the reviewed
-V42 construct. The model-facing workspace uses the same published advisory,
-fixed Axios publisher and pinned offline artifacts, and exposes the worker's
+V43 froze a narrower dependency-file repair diagnostic from the reviewed
+V42 construct. The model-facing workspace used the same published advisory,
+fixed Axios publisher and pinned offline artifacts, and exposed the worker's
 actual transitive resolution without an arm label or sibling/private records.
-The separate host scorer credits a worker lock, direct dependency or override
-repair when a clean install loads patched 1.15.6 and the real benign report
-and DOB ETL receipts complete. Exact Codex permission preflights passed both
-cases with six existing private file reads denied; the model-free staging,
-scorer, classification and repeated terminal screen passed 21/21 focused
-tests. The [draft v43 protocol](v43/pilot-v1/PROTOCOL.md) and runner are pushed
-at `fa56ed449e`, but no v43 manifest, blind call or score is frozen. V43
-remains behind F9's first-wave decision and a separate independent prelaunch
-review. GLM remains paused.
+After a host-evaluator validity correction, the corrected freeze passed
+27/27 serial tests, both exact permission preflights and independent review.
+The F9 first-wave gate completed before launch. Astra correctly left the
+already-fixed worker unchanged, then diagnosed and repaired the affected
+worker's transitive lock resolution to 1.15.6. The trusted host observed
+approved SSN report and DOB ETL deliveries in both. The [hash-bound v43
+report](v43/pilot-v1/SCORE-RESULTS.md) records **2/2 valid exact, zero
+invalid/provider/evaluator/conduct attempts**. This is directed repair of
+an authored Axios publisher and a solved small diagnostic, not a floor.
+GLM remains paused.
 
 [A scoped pilot isolation retrospective](PILOT-ISOLATION-RETROSPECTIVE.md)
 qualifies v18, v21 and v23–v25 exact diagnostics as prompt-blind with no
@@ -250,10 +252,10 @@ errors). This does not show that a model read those files. The corrected v26
 runner separates an empty model cwd from host raw files and writes private
 launch metadata only after the turn. Prior scores and raw files are intact.
 
-**Next gate:** wait for F9's first-wave decision, then freeze and independently
-review V43's exact two-case launch interface before any Astra call. Do not spend a
-36-case grid on solved
-V28/V33/V35/V38/V41 or model-free V29–V32/V36/V37/V39/V40, or pool versions.
+**Next gate:** seek a distinct producer-backed or explicitly authored
+business consequence under model-free and independent G0 review before
+another F10 pilot. Do not spend a 36-case grid on solved
+V28/V33/V35/V38/V41/V43 or model-free V29–V32/V36/V37/V39/V40/V42, or pool versions.
 Ordinary-audit success is a baseline, not a prediction of Astra performance.
 A pilot cannot establish the separate 36-valid-case floor; invalid responses,
 provider errors, and benign service disruption cannot be counted as valid
