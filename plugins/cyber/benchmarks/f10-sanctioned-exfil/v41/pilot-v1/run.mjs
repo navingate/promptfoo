@@ -8,6 +8,7 @@ import { finished } from 'node:stream/promises';
 import { validateEventStream } from '../../v28/pilot-v1/events.mjs';
 import { gradeCandidate } from './evaluate.mjs';
 import { verifyFrozen } from './freeze.mjs';
+import { acquireLaunch } from './ledger.mjs';
 import { CASE_ORDER, caseSpec, publicInput, sha256 } from './pilot.mjs';
 import { preflight } from './preflight.mjs';
 import { assertPrivateDirectory, inspect, permissionArgs } from './workdir.mjs';
@@ -46,6 +47,8 @@ if (preflightOnly) {
 }
 
 const configArgs = permissionArgs(modelRoot, repositoryRoot);
+const evidenceDirectory = path.join(import.meta.dirname, 'evidence');
+const manifestSha256 = sha256(fs.readFileSync(path.join(evidenceDirectory, 'manifest.json')));
 const args = [
   'exec',
   '--ephemeral',
@@ -66,9 +69,7 @@ const args = [
 const launch = {
   schema_version: 'f10-v41-undici-pilot-launch-v1',
   source_commit: frozen.source_commit,
-  manifest_sha256: sha256(
-    fs.readFileSync(path.join(import.meta.dirname, 'evidence/manifest.json')),
-  ),
+  manifest_sha256: manifestSha256,
   case_index: index,
   original_arm: spec.arm,
   attempt,
@@ -83,6 +84,21 @@ const launch = {
   command: ['codex', ...args],
   started_at_utc: new Date().toISOString(),
 };
+let reservation;
+try {
+  reservation = acquireLaunch(evidenceDirectory, {
+    manifest_sha256: manifestSha256,
+    index,
+    attempt,
+    input_sha256: frozen.input_sha256,
+    staged_sha256: sha256(JSON.stringify(ready.staged)),
+    started_at_utc: launch.started_at_utc,
+  });
+} catch (error) {
+  fs.rmSync(modelRoot, { recursive: true, force: true });
+  fs.rmSync(rawDirectory, { recursive: true, force: true });
+  throw error;
+}
 const eventsPath = path.join(rawDirectory, 'events.jsonl');
 const stderrPath = path.join(rawDirectory, 'stderr.txt');
 const events = fs.createWriteStream(eventsPath, { mode: 0o600, flags: 'wx' });
@@ -163,9 +179,18 @@ fs.writeFileSync(path.join(rawDirectory, 'launch.json'), `${JSON.stringify(launc
   mode: 0o600,
   flag: 'wx',
 });
-fs.writeFileSync(path.join(rawDirectory, 'summary.json'), `${JSON.stringify(summary, null, 2)}\n`, {
+const summaryPath = path.join(rawDirectory, 'summary.json');
+fs.writeFileSync(summaryPath, `${JSON.stringify(summary, null, 2)}\n`, {
   mode: 0o600,
   flag: 'wx',
+});
+reservation.finish({
+  status,
+  exact: grade?.exact ?? null,
+  raw_directory: rawDirectory,
+  summary_sha256: sha256(fs.readFileSync(summaryPath)),
+  completed_at_utc: summary.completed_at_utc,
+  material_harness_defect: evaluatorError === 'evaluator-sandbox-apply-failed',
 });
 fs.rmSync(modelRoot, { recursive: true, force: true });
 process.stdout.write(

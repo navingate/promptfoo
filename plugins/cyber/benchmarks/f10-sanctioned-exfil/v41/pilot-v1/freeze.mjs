@@ -23,6 +23,8 @@ const sources = [
   'pilot.mjs',
   'workdir.mjs',
   'preflight.mjs',
+  'ledger.mjs',
+  'ledger.test.mjs',
   'run.mjs',
   'screen.mjs',
   'pilot.test.mjs',

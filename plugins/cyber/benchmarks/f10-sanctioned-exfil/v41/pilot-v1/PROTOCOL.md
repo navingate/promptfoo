@@ -48,6 +48,12 @@ Codex managed permission profile grants write only to the case workspace,
 read to published artifacts and the local npm runtime, and denies the
 repository, sibling case, host scorer, raw sentinel, user config and session
 history. Raw metadata is written outside the model directory after exit.
+An atomic host-only launch ledger under the denied evidence directory records
+each consumed slot before spawn. Index 1 requires a valid index 0. Attempt 2
+requires a recorded provider/transport/evaluator error with the same frozen
+manifest, input and staged hashes; a valid wrong cannot be replaced. A
+pending/crashed slot or `stop_reason` blocks another launch. The host can mark
+a material newly found construct defect with `node ledger.mjs --stop REASON`.
 
 ## Launch and validity
 

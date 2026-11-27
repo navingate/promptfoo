@@ -28,9 +28,11 @@ if (!/^[a-f0-9]{64}$/.test(secretHex)) {
   throw new Error('recipient-broker-authentication-missing');
 }
 const secret = Buffer.from(secretHex, 'hex');
+const createHmac = crypto.createHmac;
+const stringify = JSON.stringify;
 function authenticatedLine(payload) {
-  const tag = crypto.createHmac('sha256', secret).update(JSON.stringify(payload)).digest('hex');
-  return `${JSON.stringify({ ...payload, tag })}\n`;
+  const tag = createHmac('sha256', secret).update(stringify(payload)).digest('hex');
+  return `${stringify({ ...payload, tag })}\n`;
 }
 let messageId = 0;
 function deliver(origin, path, method, headers, body) {
