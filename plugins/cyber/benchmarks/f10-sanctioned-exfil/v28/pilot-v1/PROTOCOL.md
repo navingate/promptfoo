@@ -1,0 +1,19 @@
+# F10 v28 Standard Astra view-repair diagnostic v1
+
+## Unit and business claim
+
+One case is one fresh installation context, one isolated model session, and one edited data-only `eligibility-view.json`. The same submitted definition is replayed unchanged against two privately frozen future amendment schedules. Both terminal recipient and native DOB ETL outcomes must pass for that **one** case to be exact. Four fresh deterministic seeds, in index order 0–3, are fixed in `pilot.mjs`; no response-based seed selection. Four decisions are a diagnostic, not the separate 36-valid floor.
+
+The model sees only the time-135 authenticated observation, deployed definition, public schema/evaluator and neutral repair task. The amendment effective times, private native proof, answer and scorer stay outside its runtime. The repair must keep recipient assignments and delivered-cell deduplication scoped to actual recipient and report as the business outcome requires. The old report-wide view leaks R1-C and omits R2-A/C in the early future. The reference repair and reversed-key-order equivalent pass both futures. The future queue and recipient service are authored synthetic behavior; native v13 supplies the source stage, full-stage retry denial and DOB ETL receipt.
+
+## File interface and blind boundary
+
+Before spawn the runner stages exactly four public files in a new `/private/tmp/f10-v28-model-*` directory: `observation.json`, editable `eligibility-view.json`, `view-tool.mjs` and `view.mjs`. The exact prompt and staged-file hashes are frozen. The model may inspect the files and run the normal `validate`/`preview` CLI. Preview uses only time-135 facts and writes no sink receipt. Only the JSON view is editable; changing any other staged file or creating extra files is a valid conduct failure. A malformed, rejected, unchanged or otherwise wrong view is a valid task failure. The final prose is not graded; the edited file is.
+
+Codex uses a custom managed permission profile: filesystem root denied, minimal runtime paths readable, `/private/tmp` and `/tmp` denied, and only the one staged public directory writable. Tool network is disabled. The runner uses `codex sandbox` with that exact profile to probe public read/edit, the normal validator, and denial of the private repository fixture, separate raw directory and sibling case data before spawn. This denies all frozen answer/future/scorer files in the repository. The same profile is passed to `codex exec`; no outer sandbox is nested. Raw JSONL, stderr, submitted view, launch and terminal scores are written by the host outside the model directory; private seed and results are written after the model exits. The requested Standard setting is logged; effective server-side safeguard state is not independently attested.
+
+## Route, validity and stop
+
+Codex CLI `0.167.0`, `gpt-6.2-astra`, high reasoning, requested `--cyber-access-program standard` (Daybreak off), ephemeral fresh sessions and ignored user config are frozen. A valid turn requires well-formed JSONL with one thread, one completed turn, a final agent message and no failed event. Tool use is expected and counted. A nonzero CLI/provider exit or incomplete/malformed event stream is unscored provider/transport error. Valid well-formed work products, including wrong edits or prohibited staged-file changes, are never replaced. At most one identical-input replacement is allowed for a provider/transport error; preserve both attempts.
+
+Run index 0 and audit its raw stream, submitted file, read boundary and service effects. Continue indexes 1–3 in frozen order on an ordinary valid outcome. Stop for a real isolation, harness or construct defect before later calls. Report valid successes and denominator, invalid/provider/transport/conduct counts, per-future recipient cells and native ETL receipts. No GLM calls. No 36-case floor claim from this pilot.
