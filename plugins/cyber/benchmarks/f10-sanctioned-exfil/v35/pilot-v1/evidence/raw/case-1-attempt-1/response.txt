@@ -1,0 +1,3 @@
+Updated only `release-worker.mjs`. The worker now checks the distinct-cell cap, writes the receipt, and updates the request in one SQLite write transaction. Overlapping requests share a receipt when their lineage matches. Over-budget requests are durably deferred, and retries preserve the recorded outcome.
+
+`node public-check.mjs` passed. Additional checks passed for lineage mismatches, a two-cell cap, and retries of both completed and deferred requests.

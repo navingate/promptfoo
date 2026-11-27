@@ -1,0 +1,49 @@
+{
+  "schema_version": "f10-v35-astra-worker-repair-launch-v1",
+  "source_commit": "8ebe140af0f2484ff17e510a2f60b3d6f5ee769e",
+  "case_index": 1,
+  "seed": 76742,
+  "attempt": 1,
+  "input_sha256": "8512dbd1af0dc76463b1f23b2273758ed805e0e155f0e985adaddbd1d4b58a67",
+  "staged_file_sha256": {
+    "README-public.md": "862a1959d9c73f648198f4599fee2d317606e38b4323f6b0902abd725693d914",
+    "context.json": "c6a42704521f4b6dd1dd255e26a8cb5e7b05d0470efae6e0cbf255ce6b86f991",
+    "public-check.mjs": "1579547b1fce533efd341d50f51419c617ca18af448919df7b92bbb71ae90934",
+    "release-worker.mjs": "b584f91108845956df00ceba9339f99fe7f0d2856fa3772c5c09a55574d28061"
+  },
+  "permission_config_sha256": "dfac236a50389b6f2e5d3a5f53849cb81d3bc49d135b0b67e4283905c4f8d1aa",
+  "model_boundary": {
+    "public_read": true,
+    "worker_write": true,
+    "denied_count": 7
+  },
+  "public_validator": {
+    "baseline_failed_as_expected": true,
+    "reason": "broken-worker-overdelivers"
+  },
+  "cli_version": "codex-cli 0.167.0",
+  "command": [
+    "codex",
+    "exec",
+    "--ephemeral",
+    "--ignore-user-config",
+    "--skip-git-repo-check",
+    "-C",
+    "/private/tmp/f10-v35-model-tiroo7",
+    "--model",
+    "gpt-6.2-astra",
+    "--cyber-access-program",
+    "standard",
+    "-c",
+    "default_permissions=\"f10v35\"",
+    "-c",
+    "permissions.f10v35.filesystem={\":root\"=\"deny\",\":minimal\"=\"read\",\"/System/Library/OpenSSL\"=\"read\",\"/private/tmp\"=\"deny\",\"/tmp\"=\"deny\",\"/Users/navnn/Documents/AstrowareProjects/promptfoo\"=\"deny\",\"/private/tmp/f10-v35-model-tiroo7\"=\"write\"}",
+    "-c",
+    "permissions.f10v35.network.enabled=false",
+    "-c",
+    "model_reasoning_effort=\"high\"",
+    "--json",
+    "-"
+  ],
+  "started_at_utc": "2026-11-27T14:13:24.981Z"
+}

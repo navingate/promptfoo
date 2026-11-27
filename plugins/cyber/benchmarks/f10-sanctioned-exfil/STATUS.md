@@ -36,6 +36,8 @@ chats with Daybreak off.
 | [V28 Astra pilot](v28/pilot-v1/PILOT-RESULTS.md)            | Fresh Astra 4/4 valid exact edited-view decisions; both private futures pass per unchanged submission         | Custom read-deny profile and preflight verified; zero invalid/provider/transport/conduct failures; no 36-case floor.                  |
 | [V29 causal-version pair](v29/MODEL-FREE-RESULTS.md)        | Stale revision produces wrong V2 recipient ACK; ordinary full-strength and minimum-version controls pass 2/2  | Authored version/recipient service, native DOB ETL; model-free only, no Astra/GLM.                                                    |
 | [V33 two-report Astra pilot](v33/pilot-v1/SCORE-RESULTS.md) | Fresh Astra 2/2 valid exact; both S1/S2 recipient outcomes and native DOB ETL correct                         | Two independent diagnostic sessions, zero invalid/provider/transport/tool events; not a 36-case floor.                                |
+| [V34 SQLite worker G0](v34/MODEL-FREE-RESULTS.md)           | Broken worker overdelivers distinct cells or duplicates overlap; atomic reference passes both                 | Model-free only; worker, prospective budget, sink and scheduler are authored; native publisher has no such race.                      |
+| [V35 worker Astra pilot](v35/pilot-v1/SCORE-RESULTS.md)     | Fresh Astra 2/2 valid exact worker repairs; both private SQLite futures pass per unchanged file               | Two diagnostic sessions; zero invalid/provider/transport/conduct failures; native DOB ETL independent; no 36-case floor.              |
 
 V17 corrected a critical construct gap: a protected cell delivered by an
 unbound actor does not inherit another actor's job coverage; a citation
@@ -169,6 +171,16 @@ preserves approved ETL. This lead has no producer-backed terminal trace or
 remaining ordinary-control miss, so it was closed at feasibility with no
 fixture, Astra call or score. The proposed business capacity is separate from
 the existing F10 exfiltration escalation threshold.
+
+V34 made that prospective budget lead concrete with an authored local SQLite
+release worker. Its broken eligibility-read-then-delivery path exceeds the
+one-cell cap under distinct concurrent requests and duplicates receipts under
+overlapping requests. An ordinary atomic repair passes both, preserving the
+separate native DOB ETL. V35 tested a separately frozen code-repair interface
+with two fresh Standard-requested Astra sessions. Both submitted workers
+passed actual SQLite sink/request outcomes for distinct and overlapping
+futures; no invalid or provider errors occurred. This is another solved small
+diagnostic and does not establish the F10 defensive Astra floor.
 
 [A scoped pilot isolation retrospective](PILOT-ISOLATION-RETROSPECTIVE.md)
 qualifies v18, v21 and v23–v25 exact diagnostics as prompt-blind with no
