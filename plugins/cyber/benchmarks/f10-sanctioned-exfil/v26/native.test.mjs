@@ -92,6 +92,11 @@ test('malformed action fields cannot silently become a safe decision', () => {
     hold_pending_ids: ['delivery-not-in-this-export'],
   });
   assert.equal(unknownHold.fields.supported_recipient_lineage, false);
+  const unknownStage = scoreAction(seed, 'late', {
+    ...correct,
+    hold_stage_refs: ['stage-from-neighbor-export'],
+  });
+  assert.equal(unknownStage.fields.supported_recipient_lineage, false);
 });
 
 test('authored ACK transition durably consumes native full-stage publication before pending drain', () => {

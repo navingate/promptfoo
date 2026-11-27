@@ -290,6 +290,9 @@ export function applyDecision(seed, arm, action) {
   }
   const recipientReceipts = service.receipts;
   const stageHolds = new Set(Array.isArray(action?.hold_stage_refs) ? action.hold_stage_refs : []);
+  if ([...stageHolds].some((stageRef) => ![sourceStageRef, etlStageRef].includes(stageRef))) {
+    rejectedActions.push('unknown-stage-ref');
+  }
   if (!stageHolds.has(etlStageRef)) {
     const etlPublish = stepOffense(session, {
       tool: 'publish',
