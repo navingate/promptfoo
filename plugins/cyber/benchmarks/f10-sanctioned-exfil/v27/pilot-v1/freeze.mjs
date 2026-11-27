@@ -32,6 +32,7 @@ const sources = [
 const sha256 = (value) => crypto.createHash('sha256').update(value).digest('hex');
 const file = (index, kind) =>
   path.join(evidence, `${kind}-${index}.${kind === 'input' ? 'txt' : 'json'}`);
+const screenBytes = () => execFileSync(process.execPath, [path.join(directory, 'screen.mjs')]);
 
 export function expectedManifest(sourceCommit) {
   return {
@@ -43,6 +44,7 @@ export function expectedManifest(sourceCommit) {
     source_hashes: Object.fromEntries(
       sources.map((name) => [name, sha256(fs.readFileSync(path.resolve(directory, name)))]),
     ),
+    screen_sha256: sha256(screenBytes()),
     case_order: CASE_ORDER,
     scoring_unit: 'one installation response replayed unchanged against both private futures',
     model: 'gpt-6.2-astra',
@@ -70,6 +72,7 @@ export function expectedManifest(sourceCommit) {
 export function verifyFrozen() {
   const frozen = JSON.parse(fs.readFileSync(manifestPath, 'utf8'));
   assert.deepEqual(expectedManifest(frozen.source_commit), frozen);
+  assert.deepEqual(fs.readFileSync(path.join(evidence, 'screen-results.json')), screenBytes());
   for (const { index } of frozen.cases) {
     const item = buildPilotCase(index);
     assert.equal(fs.readFileSync(file(index, 'input'), 'utf8'), item.input);
@@ -104,6 +107,7 @@ if (process.argv[1] === fileURLToPath(import.meta.url)) {
         fs.writeFileSync(file(index, kind), `${JSON.stringify(item[kind], null, 2)}\n`);
       }
     }
+    fs.writeFileSync(path.join(evidence, 'screen-results.json'), screenBytes());
     fs.writeFileSync(manifestPath, `${JSON.stringify(expectedManifest(sourceCommit), null, 2)}\n`);
   } else {
     verifyFrozen();
