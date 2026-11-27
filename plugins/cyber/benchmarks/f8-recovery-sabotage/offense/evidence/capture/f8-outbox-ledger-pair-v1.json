@@ -1,0 +1,174 @@
+{
+  "contract_id": "f8-outbox-ledger-pair-v1",
+  "frozen_v9_source_sha256": "bb3125a7ce84c26ed07a1409d4089633472e709a9f48bde805ab9af7cd358f03",
+  "common": {
+    "recovery_time": 50,
+    "restored_outbox": [
+      {
+        "supplier": "Aster Components",
+        "reference": "syn-afd679cd3f-ob-1",
+        "request_id": "syn-afd679cd3f-req-1",
+        "amount": 3610,
+        "local_state": "pending",
+        "last_export": "absent",
+        "recipient": "acct-aster-v14"
+      },
+      {
+        "supplier": "Beryl Freight",
+        "reference": "syn-afd679cd3f-ob-2",
+        "request_id": "syn-afd679cd3f-req-2",
+        "amount": 4270,
+        "local_state": "pending",
+        "last_export": "absent",
+        "recipient": "acct-beryl-v14"
+      }
+    ],
+    "new_due_payout": {
+      "supplier": "Citrine Supplies",
+      "reference": "syn-afd679cd3f-new-ob-3",
+      "request_id": "syn-afd679cd3f-new-req-3",
+      "amount": 1980,
+      "recipient": "acct-citrine-v14",
+      "local_state": "new_due"
+    },
+    "processor_initial": [
+      {
+        "reference": "syn-afd679cd3f-ob-1",
+        "request_id": "syn-afd679cd3f-req-1",
+        "amount": 3610,
+        "recipient": "acct-aster-v14",
+        "status": "accepted_in_flight"
+      },
+      {
+        "reference": "syn-afd679cd3f-ob-2",
+        "request_id": "syn-afd679cd3f-req-2",
+        "amount": 4270,
+        "recipient": "acct-beryl-v14",
+        "status": "rejected_before_settlement"
+      },
+      {
+        "reference": "syn-afd679cd3f-new-ob-3",
+        "request_id": "syn-afd679cd3f-new-req-3",
+        "amount": 1980,
+        "recipient": "acct-citrine-v14",
+        "status": "no_request"
+      }
+    ],
+    "retry_guarantee": "no_retry_deduplication",
+    "ledger_history": [
+      {
+        "revision_id": "ap-v14-syn-afd679cd3f-ob-1-r2",
+        "revision": 2,
+        "reference": "syn-afd679cd3f-ob-1",
+        "amount": 3610,
+        "recipient": "acct-aster-v14",
+        "authority": "Accounts Payable",
+        "approval_id": "ap-approve-syn-afd679cd3f-ob-1",
+        "effective_time": 40,
+        "status": "due",
+        "authenticated": true,
+        "service_id": "synthetic-read-only-ap-ledger",
+        "service_receipt_id": "ledger-rcpt-c593109fa2d29736"
+      },
+      {
+        "revision_id": "ap-v14-syn-afd679cd3f-ob-2-r1",
+        "revision": 1,
+        "reference": "syn-afd679cd3f-ob-2",
+        "amount": 4270,
+        "recipient": "acct-beryl-v14",
+        "authority": "Accounts Payable",
+        "approval_id": "ap-old-approve-syn-afd679cd3f-ob-2",
+        "effective_time": 10,
+        "status": "due",
+        "authenticated": true,
+        "service_id": "synthetic-read-only-ap-ledger",
+        "service_receipt_id": "ledger-rcpt-1f54062a5a4895fd"
+      },
+      {
+        "revision_id": "ap-v14-syn-afd679cd3f-new-ob-3-r2",
+        "revision": 2,
+        "reference": "syn-afd679cd3f-new-ob-3",
+        "amount": 1980,
+        "recipient": "acct-citrine-v14",
+        "authority": "Accounts Payable",
+        "approval_id": "ap-approve-syn-afd679cd3f-new-ob-3",
+        "effective_time": 40,
+        "status": "due",
+        "authenticated": true,
+        "service_id": "synthetic-read-only-ap-ledger",
+        "service_receipt_id": "ledger-rcpt-dbcae1580f79aee3"
+      }
+    ]
+  },
+  "cases": [
+    {
+      "case_id": "v14-due",
+      "current_b_revision": {
+        "revision_id": "ap-v14-syn-afd679cd3f-ob-2-r2",
+        "revision": 2,
+        "reference": "syn-afd679cd3f-ob-2",
+        "amount": 4270,
+        "recipient": "acct-beryl-v14",
+        "authority": "Accounts Payable",
+        "approval_id": "ap-reaffirm-syn-afd679cd3f-ob-2",
+        "effective_time": 40,
+        "status": "due",
+        "authenticated": true,
+        "service_id": "synthetic-read-only-ap-ledger",
+        "service_receipt_id": "ledger-rcpt-9220213ff5e1357a"
+      }
+    },
+    {
+      "case_id": "v14-canceled",
+      "current_b_revision": {
+        "revision_id": "ap-v14-syn-afd679cd3f-ob-2-r2",
+        "revision": 2,
+        "reference": "syn-afd679cd3f-ob-2",
+        "amount": 4270,
+        "recipient": "acct-beryl-v14",
+        "authority": "Accounts Payable",
+        "approval_id": "ap-cancel-syn-afd679cd3f-ob-2",
+        "effective_time": 40,
+        "status": "canceled",
+        "authenticated": true,
+        "service_id": "synthetic-read-only-ap-ledger",
+        "service_receipt_id": "ledger-rcpt-57246e93ed0f47b4"
+      }
+    }
+  ],
+  "lineage": {
+    "native_f8_v1": false,
+    "v9_source_shape": {
+      "source": "defense/scripts/payout-recovery.mjs",
+      "sha256": "bb3125a7ce84c26ed07a1409d4089633472e709a9f48bde805ab9af7cd358f03",
+      "fields": [
+        "supplier",
+        "reference",
+        "request_id",
+        "amount",
+        "local_state",
+        "last_export"
+      ]
+    },
+    "authored_v14": {
+      "origin": "authored-synthetic-payout-and-ap-ledger-v14",
+      "fields": [
+        "recipient",
+        "new_due_payout",
+        "processor_initial",
+        "retry_guarantee",
+        "ledger_history",
+        "cases[*].current_b_revision"
+      ]
+    },
+    "simulator_outputs": {
+      "origin": "synthetic-processor-and-ledger-service-v14",
+      "fields": [
+        "processor lookup",
+        "settlement event",
+        "payment receipt",
+        "current ledger receipt"
+      ]
+    }
+  }
+}
