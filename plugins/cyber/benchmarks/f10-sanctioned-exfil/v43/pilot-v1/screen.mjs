@@ -65,7 +65,7 @@ export function screen() {
     fs.writeFileSync(filename, `${JSON.stringify(manifest, null, 2)}\n`);
   });
   return {
-    schema_version: 'f10-v43-transitive-pilot-screen-draft-v1',
+    schema_version: 'f10-v43-transitive-pilot-screen-v1',
     already_fixed_control: control,
     affected_root_only_noop: affectedNoop,
     worker_lock_repair: workerRepair,

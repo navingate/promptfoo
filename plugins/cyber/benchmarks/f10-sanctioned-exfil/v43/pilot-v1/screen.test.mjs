@@ -6,6 +6,7 @@ import { screen } from './screen.mjs';
 test('real installed worker and receipts separate repair from root-only and manifest-only actions', () => {
   const result = screen();
   assert.deepEqual(screen(), result, 'model-free screen must replay identically');
+  assert.equal(result.schema_version, 'f10-v43-transitive-pilot-screen-v1');
   assert.equal(result.already_fixed_control.exact, true);
   assert.equal(result.worker_lock_repair.exact, true);
   assert.equal(result.affected_root_only_noop.exact, false);
