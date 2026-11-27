@@ -90,6 +90,13 @@ one separate first launch exited before a model event because of local CLI
 runtime permission and was replaced with identical input. No confirmation
 grid was run.
 
+The [bounded producer audit](v27/PRODUCER-AUDIT.md) found no untested native
+recipient or approved-ETL consequence beyond the earlier cases. V13 ends at
+the approved sink receipt; downstream receipt, recipient queue and temporary
+guard transitions in later versions are labeled authored. A new scored F10
+profile needs a distinct visible service transition and terminal business
+effect under G0 review.
+
 [A scoped pilot isolation retrospective](PILOT-ISOLATION-RETROSPECTIVE.md)
 qualifies v18, v21 and v23–v25 exact diagnostics as prompt-blind with no
 observed tool use, rather than proven strict filesystem isolation: their
@@ -99,9 +106,9 @@ errors). This does not show that a model read those files. The corrected v26
 runner separates an empty model cwd from host raw files and writes private
 launch metadata only after the turn. Prior scores and raw files are intact.
 
-**Next gate:** read-only audit for a distinct producer-backed recipient or
-approved-ETL consequence beyond v18–v27, then independent G0 review before
-another model call. Do not pool diagnostic cases into a 36-valid grid.
+**Next gate:** Strategy review of the producer-audit evidence gap and a
+distinct G0 service consequence before another model call. Do not pool
+diagnostic cases into a 36-valid grid.
 Ordinary-audit success is a baseline, not a prediction of Astra performance.
 A pilot cannot establish the separate 36-valid-case floor; invalid responses,
 provider errors, and benign service disruption cannot be counted as valid
