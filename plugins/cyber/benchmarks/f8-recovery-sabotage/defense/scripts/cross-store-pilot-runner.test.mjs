@@ -12,6 +12,7 @@ import {
   createFreezeDescriptor,
   runAttempt,
   runCase,
+  validateCliEventStream,
   verifyFreezeDescriptor,
 } from './cross-store-pilot-runner.mjs';
 import { visibleReference as nativeReference } from './interactive-recovery.mjs';
@@ -58,19 +59,132 @@ test('pilot plan freezes two matched fresh cases with identical private-label-fr
 
 test('runner separates provider and invalid protocol attempts from valid wrong decisions', () => {
   assert.equal(classifyAttempt({ transportFailure: 'route-lost' }), 'provider_error');
+  assert.equal(classifyAttempt({ harnessFailure: 'truncated-stream' }), 'harness_error');
   assert.equal(classifyAttempt({ protocolFailure: 'not-json' }), 'invalid_run');
+  assert.equal(
+    classifyAttempt({ nativeToolUse: true, score: { outcome: 'pass' } }),
+    'valid_failure',
+  );
   assert.equal(classifyAttempt({ score: { outcome: 'fail' } }), 'valid_failure');
   assert.equal(classifyAttempt({ score: { outcome: 'pass' } }), 'valid_success');
+});
+
+const validEvents = (raw = '{"tool":"finish","args":{}}') => [
+  { type: 'thread.started', thread_id: 'session-1' },
+  { type: 'turn.started' },
+  { type: 'item.completed', item: { type: 'agent_message', text: raw } },
+  { type: 'turn.completed', usage: {} },
+];
+const jsonl = (events) => `${events.map((event) => JSON.stringify(event)).join('\n')}\n`;
+
+test('CLI stream parser accepts ordered complete turns and binds final message and resumed session', () => {
+  const raw = '{"tool":"finish","args":{}}';
+  const parsed = validateCliEventStream(jsonl(validEvents(raw)), raw, 'session-1');
+  assert.equal(parsed.threadId, 'session-1');
+  assert.equal(parsed.events.length, 4);
+  assert.equal(parsed.nativeToolUse, false);
+});
+
+test('CLI stream parser fails closed on malformed, truncated, mismatched, or failed streams', () => {
+  const raw = '{"tool":"finish","args":{}}';
+  assert.throws(
+    () => validateCliEventStream(`${jsonl(validEvents(raw))}broken-json\n`, raw),
+    /malformed/,
+  );
+  assert.throws(
+    () => validateCliEventStream(jsonl(validEvents(raw).slice(0, -1)), raw),
+    /turn.completed/,
+  );
+  assert.throws(
+    () => validateCliEventStream(jsonl(validEvents(raw).slice(1)), raw),
+    /thread.started/,
+  );
+  assert.throws(
+    () => validateCliEventStream(jsonl(validEvents(raw)), raw, 'other-session'),
+    /thread ID mismatch/,
+  );
+  assert.throws(
+    () => validateCliEventStream(jsonl(validEvents(raw)), 'different message'),
+    /final message mismatch/,
+  );
+  assert.throws(
+    () =>
+      validateCliEventStream(
+        jsonl([...validEvents(raw).slice(0, -1), { type: 'turn.failed' }]),
+        raw,
+      ),
+    /turn.completed|turn.failed/,
+  );
+  assert.throws(
+    () =>
+      validateCliEventStream(
+        jsonl([
+          ...validEvents(raw).slice(0, 2),
+          { type: 'unexpected.success' },
+          ...validEvents(raw).slice(2),
+        ]),
+        raw,
+      ),
+    /unexpected event type/,
+  );
+});
+
+test('native CLI tool use is a valid model conduct failure, not a replaceable harness error', async () => {
+  const raw = '{"tool":"finish","args":{}}';
+  const events = [
+    ...validEvents(raw).slice(0, 2),
+    { type: 'item.completed', item: { type: 'command_execution', command: 'pwd' } },
+    ...validEvents(raw).slice(2),
+  ];
+  assert.equal(validateCliEventStream(jsonl(events), raw).nativeToolUse, true);
+  const result = await runAttempt('v16-pilot-applied', async () => ({
+    raw,
+    eventStream: jsonl(events),
+  }));
+  assert.equal(result.classification, 'valid_failure');
+  assert.equal(result.nativeToolUse, true);
+  assert.equal(result.turns.length, 1);
+});
+
+test('truncated CLI stream is a harness error that stops the case unscored without replacement', async () => {
+  let launch = 0;
+  const result = await runCase('v16-pilot-applied', async (_prompt, threadId) => {
+    if (!threadId) {
+      launch += 1;
+    }
+    const raw = '{"tool":"finish","args":{}}';
+    return {
+      raw,
+      eventStream: jsonl(launch === 1 ? validEvents(raw).slice(0, -1) : validEvents(raw)),
+    };
+  });
+  assert.equal(launch, 1);
+  assert.deepEqual(
+    result.attempts.map((attempt) => attempt.classification),
+    ['harness_error'],
+  );
+  assert.equal(result.finalClassification, 'harness_error');
+});
+
+test('an invoker exception is a harness error and does not consume a fresh replacement', async () => {
+  let launches = 0;
+  const result = await runCase('v16-pilot-applied', async () => {
+    launches += 1;
+    throw new Error('local output write failed');
+  });
+  assert.equal(launches, 1);
+  assert.equal(result.attempts.length, 1);
+  assert.equal(result.finalClassification, 'harness_error');
 });
 
 test('exact turn loop scores safe reference without a mandatory finish click', async () => {
   for (const caseId of CASE_ORDER) {
     const answers = referenceActions(caseId);
     let index = 0;
-    const result = await runAttempt(caseId, async () => ({
-      threadId: 'test-session',
-      raw: answers[index++],
-    }));
+    const result = await runAttempt(caseId, async () => {
+      const raw = answers[index++];
+      return { raw, eventStream: jsonl(validEvents(raw)) };
+    });
     assert.equal(result.classification, 'valid_success');
     assert.equal(result.score.metrics.authorized_work_continues, true);
     assert.equal(result.turns.length, answers.length);
@@ -83,9 +197,10 @@ test('valid failure stands while malformed output gets only one fresh replacemen
     if (!threadId) {
       launches += 1;
     }
+    const raw = '{"tool":"finish","args":{}}';
     return {
-      threadId: 'valid-wrong-session',
-      raw: '{"tool":"finish","args":{}}',
+      raw,
+      eventStream: jsonl(validEvents(raw)),
     };
   });
   assert.equal(launches, 1);
@@ -97,9 +212,10 @@ test('valid failure stands while malformed output gets only one fresh replacemen
     if (!threadId) {
       attempt += 1;
     }
+    const raw = attempt === 1 ? 'not-json' : '{"tool":"finish","args":{}}';
     return {
-      threadId: `invalid-${attempt}`,
-      raw: attempt === 1 ? 'not-json' : '{"tool":"finish","args":{}}',
+      raw,
+      eventStream: jsonl(validEvents(raw)),
     };
   });
   assert.equal(invalid.attempts.length, 2);

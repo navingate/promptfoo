@@ -30,10 +30,89 @@ export function classifyAttempt(attempt) {
   if (attempt.transportFailure) {
     return 'provider_error';
   }
+  if (attempt.harnessFailure) {
+    return 'harness_error';
+  }
   if (attempt.protocolFailure) {
     return 'invalid_run';
   }
+  if (attempt.nativeToolUse) {
+    return 'valid_failure';
+  }
   return attempt.score?.outcome === 'pass' ? 'valid_success' : 'valid_failure';
+}
+
+export function validateCliEventStream(stdout, raw, expectedThreadId) {
+  if (typeof stdout !== 'string' || !stdout.trim()) {
+    throw new Error('event-stream: missing JSONL');
+  }
+  const lines = stdout.split('\n');
+  if (lines.at(-1) === '') {
+    lines.pop();
+  }
+  if (lines.some((line) => !line.trim())) {
+    throw new Error('event-stream: blank or malformed JSONL line');
+  }
+  const events = lines.map((line, index) => {
+    try {
+      const event = JSON.parse(line);
+      if (!event || typeof event !== 'object' || Array.isArray(event)) {
+        throw new Error('not an event object');
+      }
+      return event;
+    } catch {
+      throw new Error(`event-stream: malformed JSONL line ${index + 1}`);
+    }
+  });
+  const first = events[0];
+  if (first?.type !== 'thread.started' || typeof first.thread_id !== 'string' || !first.thread_id) {
+    throw new Error('event-stream: missing leading thread.started');
+  }
+  if (expectedThreadId && first.thread_id !== expectedThreadId) {
+    throw new Error('event-stream: thread ID mismatch');
+  }
+  if (events[1]?.type !== 'turn.started') {
+    throw new Error('event-stream: missing ordered turn.started');
+  }
+  if (events.at(-1)?.type !== 'turn.completed') {
+    throw new Error('event-stream: missing final turn.completed');
+  }
+  if (
+    events.filter((event) => event.type === 'thread.started').length !== 1 ||
+    events.filter((event) => event.type === 'turn.started').length !== 1 ||
+    events.filter((event) => event.type === 'turn.completed').length !== 1 ||
+    events.some((event) => ['turn.failed', 'error'].includes(event.type))
+  ) {
+    throw new Error('event-stream: duplicate boundary or turn.failed/error event');
+  }
+  if (
+    events
+      .slice(2, -1)
+      .some(
+        (event) =>
+          !['item.started', 'item.updated', 'item.completed'].includes(event.type) ||
+          typeof event.item?.type !== 'string',
+      )
+  ) {
+    throw new Error('event-stream: unexpected event type or missing item');
+  }
+  const finalMessages = events.filter(
+    (event) => event.type === 'item.completed' && event.item?.type === 'agent_message',
+  );
+  if (
+    finalMessages.length !== 1 ||
+    events.at(-2) !== finalMessages[0] ||
+    typeof finalMessages[0].item.text !== 'string'
+  ) {
+    throw new Error('event-stream: missing ordered final agent_message');
+  }
+  if (finalMessages[0].item.text !== raw) {
+    throw new Error('event-stream: final message mismatch');
+  }
+  const nativeToolUse = events.some(
+    (event) => event.item?.type && !['agent_message', 'reasoning'].includes(event.item.type),
+  );
+  return { events, threadId: first.thread_id, nativeToolUse };
 }
 
 export async function runAttempt(caseId, invokeTurn) {
@@ -41,7 +120,9 @@ export async function runAttempt(caseId, invokeTurn) {
   const turns = [];
   let threadId;
   let transportFailure;
+  let harnessFailure;
   let protocolFailure;
+  let nativeToolUse = false;
   for (let turn = 0; turn < MAX_ACTIONS; turn += 1) {
     const prompt =
       turn === 0
@@ -51,18 +132,45 @@ export async function runAttempt(caseId, invokeTurn) {
     try {
       response = await invokeTurn(prompt, threadId, turn);
     } catch (error) {
-      transportFailure = String(error);
+      harnessFailure = String(error);
       break;
     }
     response ??= {};
-    threadId = response.threadId ?? threadId;
-    if (response.transportFailure || !threadId || !response.raw) {
-      transportFailure = response.transportFailure ?? 'missing-session-or-output';
+    if (response.transportFailure) {
+      transportFailure = response.transportFailure;
       turns.push({
         turn,
         prompt,
         raw: response.raw ?? '',
-        events: response.events ?? [],
+        events: [],
+        cli: response.cli,
+      });
+      break;
+    }
+    let events;
+    try {
+      const validated = validateCliEventStream(response.eventStream, response.raw ?? '', threadId);
+      events = validated.events;
+      threadId = validated.threadId;
+      nativeToolUse = validated.nativeToolUse;
+    } catch (error) {
+      harnessFailure = String(error);
+      turns.push({
+        turn,
+        prompt,
+        raw: response.raw ?? '',
+        events: [],
+        cli: response.cli,
+      });
+      break;
+    }
+    if (nativeToolUse) {
+      turns.push({
+        turn,
+        prompt,
+        raw: response.raw,
+        events,
+        nativeToolUse: true,
         cli: response.cli,
       });
       break;
@@ -77,7 +185,7 @@ export async function runAttempt(caseId, invokeTurn) {
         turn,
         prompt,
         raw: response.raw,
-        events: response.events ?? [],
+        events,
         cli: response.cli,
       });
       break;
@@ -88,7 +196,7 @@ export async function runAttempt(caseId, invokeTurn) {
       raw: response.raw,
       action,
       result,
-      events: response.events ?? [],
+      events,
       cli: response.cli,
     });
     if (action.tool === 'finish') {
@@ -99,7 +207,9 @@ export async function runAttempt(caseId, invokeTurn) {
     threadId,
     turns,
     transportFailure,
+    harnessFailure,
     protocolFailure,
+    nativeToolUse,
     score: incident.score(),
   };
   return { ...attempt, classification: classifyAttempt(attempt) };
@@ -110,7 +220,7 @@ export async function runCase(caseId, invokeTurn) {
   for (let attemptNumber = 0; attemptNumber < 2; attemptNumber += 1) {
     const attempt = await runAttempt(caseId, invokeTurn);
     attempts.push({ attemptNumber, ...attempt });
-    if (['valid_success', 'valid_failure'].includes(attempt.classification)) {
+    if (!['provider_error', 'invalid_run'].includes(attempt.classification)) {
       break;
     }
   }
@@ -248,20 +358,9 @@ function modelInvoker(outDir, caseNumber) {
     writeFileSync(join(outDir, stderrFile), result.stderr ?? '');
     const raw = existsSync(messagePath) ? readFileSync(messagePath, 'utf8') : '';
     writeFileSync(join(outDir, messageFile), raw);
-    const events = (result.stdout ?? '')
-      .split('\n')
-      .filter(Boolean)
-      .flatMap((line) => {
-        try {
-          return [JSON.parse(line)];
-        } catch {
-          return [];
-        }
-      });
     return {
       raw,
-      threadId: threadId ?? events.find((event) => event.type === 'thread.started')?.thread_id,
-      events,
+      eventStream: result.stdout ?? '',
       transportFailure:
         result.status === 0 ? undefined : (result.error?.message ?? `exit-${result.status}`),
       cli: {
@@ -319,6 +418,9 @@ async function runPilot(outDir) {
     );
     results.push(record);
     console.log(`case ${entry.caseNumber}: ${record.finalClassification}`);
+    if (record.finalClassification === 'harness_error') {
+      break;
+    }
   }
   writeFileSync(join(outDir, 'results.json'), `${JSON.stringify(results, null, 2)}\n`);
 }
