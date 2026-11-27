@@ -3,13 +3,14 @@ import assert from 'node:assert/strict';
 import { execFileSync, spawn } from 'node:child_process';
 import crypto from 'node:crypto';
 import fs from 'node:fs';
-import os from 'node:os';
 import path from 'node:path';
 import { finished } from 'node:stream/promises';
 
 import { validateEventStream } from '../../v25/pilot-v1/event-validation.mjs';
+import { classifyRun } from './classify.mjs';
 import { verifyFrozen } from './freeze.mjs';
-import { buildPilotCase, CASE_ORDER, gradeResponse } from './pilot.mjs';
+import { buildPilotCase, CASE_ORDER } from './pilot.mjs';
+import { assertModelDirectoryClean, createRunDirectories } from './workdir.mjs';
 
 const sha256 = (value) => crypto.createHash('sha256').update(value).digest('hex');
 const index = Number(process.argv[2]);
@@ -28,11 +29,10 @@ assert.equal(input, item.input);
 assert.equal(sha256(input), entry.input_sha256);
 const version = execFileSync('codex', ['--version'], { encoding: 'utf8' }).trim();
 assert.equal(version, frozen.cli_version);
-const directory = fs.mkdtempSync(path.join(os.tmpdir(), `f10-v26-astra-${index}-${attempt}-`));
-fs.chmodSync(directory, 0o700);
-const responsePath = path.join(directory, 'response.txt');
-const eventsPath = path.join(directory, 'events.jsonl');
-const stderrPath = path.join(directory, 'stderr.txt');
+const { modelDirectory, rawDirectory } = createRunDirectories();
+const responsePath = path.join(rawDirectory, 'response.txt');
+const eventsPath = path.join(rawDirectory, 'events.jsonl');
+const stderrPath = path.join(rawDirectory, 'stderr.txt');
 const args = [
   '--no-daemon',
   '--ask-for-approval',
@@ -51,7 +51,7 @@ const args = [
   '--ephemeral',
   '--json',
   '-C',
-  directory,
+  modelDirectory,
   '-o',
   responsePath,
   '-',
@@ -68,13 +68,11 @@ const launch = {
   command: ['codex', ...args],
   started_at_utc: new Date().toISOString(),
 };
-fs.writeFileSync(path.join(directory, 'launch.json'), `${JSON.stringify(launch, null, 2)}\n`, {
-  mode: 0o600,
-});
-process.stdout.write(`${directory}\n`);
+process.stdout.write(`${rawDirectory}\n`);
 const events = fs.createWriteStream(eventsPath, { mode: 0o600 });
 const errors = fs.createWriteStream(stderrPath, { mode: 0o600 });
-const child = spawn('codex', args, { cwd: directory, stdio: ['pipe', 'pipe', 'pipe'] });
+assertModelDirectoryClean(modelDirectory);
+const child = spawn('codex', args, { cwd: modelDirectory, stdio: ['pipe', 'pipe', 'pipe'] });
 child.stdout.pipe(events);
 child.stderr.pipe(errors);
 child.stdin.end(input);
@@ -86,20 +84,13 @@ await Promise.all([finished(events), finished(errors)]);
 const response = fs.existsSync(responsePath) ? fs.readFileSync(responsePath, 'utf8') : '';
 const eventBytes = fs.readFileSync(eventsPath);
 const eventValidation = validateEventStream(eventBytes.toString('utf8'), response);
-const grade =
-  exitCode === 0 && eventValidation.complete && eventValidation.tool_items === 0
-    ? gradeResponse(response, item.seed, item.arm)
-    : null;
-const status =
-  exitCode === 0
-    ? eventValidation.complete
-      ? eventValidation.tool_items > 0
-        ? 'invalid-tool-use'
-        : grade.valid
-          ? 'valid'
-          : 'invalid-output'
-      : 'harness-or-transport-error'
-    : 'provider-or-cli-error';
+const { status, grade } = classifyRun(
+  exitCode,
+  eventValidation,
+  response,
+  item.seed,
+  item.arm,
+);
 const summary = {
   ...launch,
   completed_at_utc: new Date().toISOString(),
@@ -112,7 +103,11 @@ const summary = {
   status,
   grade,
 };
-fs.writeFileSync(path.join(directory, 'summary.json'), `${JSON.stringify(summary, null, 2)}\n`, {
+// Private seed/arm metadata is written only after the model process exits.
+fs.writeFileSync(path.join(rawDirectory, 'launch.json'), `${JSON.stringify(launch, null, 2)}\n`, {
   mode: 0o600,
 });
-process.stdout.write(`${JSON.stringify({ directory, ...summary })}\n`);
+fs.writeFileSync(path.join(rawDirectory, 'summary.json'), `${JSON.stringify(summary, null, 2)}\n`, {
+  mode: 0o600,
+});
+process.stdout.write(`${JSON.stringify({ directory: rawDirectory, ...summary })}\n`);
