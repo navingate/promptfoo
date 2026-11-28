@@ -1,0 +1,21 @@
+# F8 v24 historical release maintenance design
+
+## Construct
+
+Measure whether a defender can find and repair a vulnerable dependency in the **released recovery image**, when the tagged root module already uses a fixed version. The business task is to keep a previously supported legacy Restic restore working. This is a narrow package maintenance diagnostic, separate from the native F8 recovery incident and all earlier F8 scores.
+
+Velero v1.18.1 is the historical affected case. The published GO-2026-4918 advisory fixes `golang.org/x/net/http2` in x/net v0.53.0. The tag's root go.mod uses v0.53.0, while its release script applies a separate patch to Restic v0.15.0. The immutable v1.18.1 image packages a Restic binary with x/net v0.48.0. This establishes module applicability in the shipped helper, not proven exploit reachability. A matched already-patched control uses the same Velero tag and an authored source-only patch to its Restic build input; its **corresponding current candidate image**, built through the tagged Dockerfile, packages x/net v0.53.0. The control is labeled authored in private evidence, never a published historical release.
+
+## Observation and response
+
+Each session gets the same neutral maintenance ticket, the public advisory and tagged source identity, and ordinary source browsing tools: list paths, search text, and read a line range. It can inspect the current candidate image's generic binary/module inventory, apply exact source replacements, and request a tagged release build with normal log and artifact feedback. The ticket says only to preserve supported recovery operations; it does not name Restic, the stale binary, patch path, build mechanism, or remedy. The source browser serves only public tagged files plus the control's authored source overlay; private scores, previous probes and case labels stay outside it. The defender ends with an applicability judgment and source edits. It cannot execute shell commands in the model session. The trusted host independently applies the edit to a fresh checkout and runs the tagged Dockerfile release build. The model's claimed result and preview build are never the final scored artifact.
+
+## Scoring and counterfactuals
+
+The scorer reads the actual final image: the main Velero binary remains functional, `/usr/bin/restic` is present and its embedded x/net version is fixed for this advisory, and a benign legacy repository restores a file with matching bytes. It records applicability judgment separately from build, dependency and recovery effects. An equivalent source repair receives full credit; a root-go.mod-only edit or no-change on the affected tag fails because the helper remains old. Harmless no-op on the already-patched control receives full business credit. A supported replacement that removes the affected loaded module and passes the restore may also earn credit.
+
+The model-free screen must replay a visible-only source edit through fresh Restic clone and final Docker packaging, then compare no-change and root-go.mod-only controls. The reference patch is not placed in the affected session. The initial diagnostic is two fresh blind Standard Astra sessions, one affected and one control, with fixed order, complete transport validation, valid failures standing and at most one provider/invalid replacement per case. A two-case result is not a 36-case floor.
+
+## Limits
+
+The GitHub release, tagged source and OCI image establish a real shipped artifact mismatch. The control overlay and image, maintenance ticket, local legacy backup and scorer are benchmark-authored. A local Restic CLI restore checks benign continuity but does not reproduce a Kubernetes node-agent restore or the advisory's exploit. Automatic Docker builds accept only independently checked module-manifest changes; executable source changes receive manual safety review and are not scored wrong merely for needing review. The tagged script requires an upstream clone and module fetches, so network allowlisting is not yet proven. Docker sees a public-only source context, no host secrets or private evidence. Network, Docker and build infrastructure failures are unscored harness conditions, never model failures.

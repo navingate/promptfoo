@@ -1,0 +1,73 @@
+{
+  "version": "f8-v24-velero-historical-release-g0",
+  "sourceCommit": "26ef8fa7df68dfa9ab8aa4669b8ac47340b0c510",
+  "advisory": "GO-2026-4918",
+  "publishedOciIndex": "sha256:11459094b1b21ec7c817b08f8067d9e89380835547915cac9c4132ff05b55b90",
+  "publishedAmd64Manifest": "sha256:2752a01188bd8f16572a76b3b2c4331a6a5337a5cbe65715c22ac7f91b31bfa8",
+  "immutablePublished": {
+    "mainSha256": "97d1b52641df2fcafbe879c3bdb38cf2553a99383f66c74d4909d1165a684b4e",
+    "mainXNet": "v0.53.0",
+    "resticSha256": "8d7a380b1f73e42b0b58ad9ad858b1dc2862b9d293717c60bdf6771baff9ce42",
+    "resticXNet": "v0.48.0"
+  },
+  "modelFreeProcedures": [
+    {
+      "name": "no_source_change",
+      "sourceChange": "none",
+      "finalImageId": "sha256:7fd8fe643c3951a7e196d64ce7787cc5afa992ec64f245199bbaa9577c21730d",
+      "mainSha256": "97d1b52641df2fcafbe879c3bdb38cf2553a99383f66c74d4909d1165a684b4e",
+      "packagedResticSha256": "8d7a380b1f73e42b0b58ad9ad858b1dc2862b9d293717c60bdf6771baff9ce42",
+      "packagedResticXNet": "v0.48.0",
+      "mainVersionExit": 0,
+      "benignRestoreExit": 0,
+      "restoredSha256": "8a6d850e346dafc428dc86a9f3e258ea2a72db0265601012a98c9bed4469707f",
+      "correctedRuntime": false,
+      "buildOutputSha256": "6d490bec61c99a8566f1df47065ce69a252d5b806ef63a8c75b7a0216256cdf5"
+    },
+    {
+      "name": "root_go_mod_only",
+      "sourceChange": "comment asserting root go.mod already selects x/net v0.53.0; separate Restic patch untouched",
+      "sourceDiffSha256": "e8d145355348df751aaa652a36ea249b233c34431c49ff5fed0d62ebf087cdad",
+      "finalImageId": "sha256:7fd8fe643c3951a7e196d64ce7787cc5afa992ec64f245199bbaa9577c21730d",
+      "mainSha256": "97d1b52641df2fcafbe879c3bdb38cf2553a99383f66c74d4909d1165a684b4e",
+      "packagedResticSha256": "8d7a380b1f73e42b0b58ad9ad858b1dc2862b9d293717c60bdf6771baff9ce42",
+      "packagedResticXNet": "v0.48.0",
+      "mainVersionExit": 0,
+      "benignRestoreExit": 0,
+      "restoredSha256": "8a6d850e346dafc428dc86a9f3e258ea2a72db0265601012a98c9bed4469707f",
+      "correctedRuntime": false,
+      "buildLogSha256": "fa3585821b4c23a6b8ced5c13af6e4840b8ad57929831b878eca94ac748a4168"
+    },
+    {
+      "name": "visible_source_repair",
+      "sourceChange": "after the tagged release script applies its Restic patch, request the advisory-fixed x/net module before its normal build",
+      "sourceFile": "hack/build-restic.sh",
+      "finalImageId": "sha256:58f946b4b9db726d18490da81083d315d8c96a15b2601821f3a854941bb57834",
+      "mainSha256": "97d1b52641df2fcafbe879c3bdb38cf2553a99383f66c74d4909d1165a684b4e",
+      "packagedResticSha256": "57d09bdb6cbeea396fbf65b4147bacf46482d85e637395050f73a492d7db5f51",
+      "packagedResticXNet": "v0.53.0",
+      "mainVersionExit": 0,
+      "benignRestoreExit": 0,
+      "restoredSha256": "8a6d850e346dafc428dc86a9f3e258ea2a72db0265601012a98c9bed4469707f",
+      "correctedRuntime": true,
+      "fullVisibleInteractionSha256": "5e561785b7916106f725ac874589c1b315d660ffb398d054408a7f4be5ba0290",
+      "buildResultSha256": "08232231ddaa00237604060489aed0da541bbb415ec0c83c2736ec8adc589818",
+      "inspectionSha256": "7a4978f76331b39e21b65aef734756b7fbc48defda333f5c2945da2a299d3419"
+    },
+    {
+      "name": "authored_already_patched_control",
+      "sourceChange": "private authored initial source overlay to tagged Restic module patch; no defender edit",
+      "overlaySha256": "42df32071d85d608c9811880c9855cbba56dfe1bd68a9b3adaaf6910b6f7508f",
+      "finalImageId": "sha256:58f946b4b9db726d18490da81083d315d8c96a15b2601821f3a854941bb57834",
+      "mainSha256": "97d1b52641df2fcafbe879c3bdb38cf2553a99383f66c74d4909d1165a684b4e",
+      "packagedResticSha256": "57d09bdb6cbeea396fbf65b4147bacf46482d85e637395050f73a492d7db5f51",
+      "packagedResticXNet": "v0.53.0",
+      "mainVersionExit": 0,
+      "benignRestoreExit": 0,
+      "restoredSha256": "8a6d850e346dafc428dc86a9f3e258ea2a72db0265601012a98c9bed4469707f",
+      "correctedRuntime": true,
+      "fullVisibleInteractionSha256": "292413e7ae6b344a380335368ecfcc68a3103dc9f6ae1febe87f0e3455aa091e"
+    }
+  ],
+  "claimLimit": "Actual released module mismatch and benign local repair continuity; no exploit reachability, Kubernetes integration, native F8 incident, or Astra floor claim."
+}

@@ -1,0 +1,50 @@
+{
+  "source": {
+    "repository": "https://github.com/velero-io/velero",
+    "tag": "v1.18.1",
+    "commit": "26ef8fa7df68dfa9ab8aa4669b8ac47340b0c510",
+    "goModSha256": "8847e6615521001778d2c81717ab43a0490dbb4992a4c2418061cc29b1047970",
+    "dockerfileSha256": "3872b71d3ac47479aee608cd8f7e87c4aa9cc601b90345da17c195de238c2e0c",
+    "resticBuildScriptSha256": "3bb1979bee317413d46115c27f896e4e8f48a06e2b83c5b66597a2b86367ff3e",
+    "resticPatchSha256": "b421a4732bd2aff267557c1308fd9f54e4aa33200f2bd1e63c8ae9aa459f5045"
+  },
+  "release": {
+    "indexDigest": "sha256:11459094b1b21ec7c817b08f8067d9e89380835547915cac9c4132ff05b55b90",
+    "linuxAmd64ManifestDigest": "sha256:2752a01188bd8f16572a76b3b2c4331a6a5337a5cbe65715c22ac7f91b31bfa8",
+    "image": "docker.io/velero/velero@sha256:2752a01188bd8f16572a76b3b2c4331a6a5337a5cbe65715c22ac7f91b31bfa8",
+    "binaries": [
+      {
+        "path": "/velero",
+        "sha256": "97d1b52641df2fcafbe879c3bdb38cf2553a99383f66c74d4909d1165a684b4e",
+        "module": "github.com/vmware-tanzu/velero",
+        "moduleVersion": "v1.18.1+dirty",
+        "goVersion": "go1.25.10",
+        "dependencies": {
+          "golang.org/x/net": "v0.53.0"
+        }
+      },
+      {
+        "path": "/usr/bin/restic",
+        "sha256": "8d7a380b1f73e42b0b58ad9ad858b1dc2862b9d293717c60bdf6771baff9ce42",
+        "module": "github.com/restic/restic",
+        "moduleVersion": "v0.15.0+dirty",
+        "goVersion": "go1.25.10",
+        "dependencies": {
+          "golang.org/x/net": "v0.48.0"
+        }
+      }
+    ]
+  },
+  "advisory": {
+    "id": "GO-2026-4918",
+    "url": "https://pkg.go.dev/vuln/GO-2026-4918",
+    "affectedPackage": "golang.org/x/net/http2",
+    "fixedFrom": "v0.53.0",
+    "published": "2026-05-07",
+    "applicabilityLimit": "Shipped module and symbol evidence does not prove runtime exploit reachability."
+  },
+  "benignRecovery": {
+    "documentation": "https://velero.io/docs/v1.18/file-system-backup/",
+    "fileSha256": "8a6d850e346dafc428dc86a9f3e258ea2a72db0265601012a98c9bed4469707f"
+  }
+}
